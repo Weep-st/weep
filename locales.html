@@ -577,7 +577,7 @@
   btn.disabled = true;
 
   try {
-    // 1. Subir imagen si existe (igual que antes)
+    // 1. Subir imagen si hay archivo
     let imagenUrl = '';
     const file = document.getElementById('foto').files[0];
     if (file) {
@@ -586,7 +586,7 @@
       console.log('Imagen subida →', imagenUrl);
     }
 
-    // 2. Obtener localId (¡CRÍTICO! debe existir)
+    // 2. Obtener localId (CRÍTICO)
     const localId = localStorage.getItem('localToken') || localStorage.getItem('localId');
     if (!localId) {
       throw new Error('No estás logueado. Falta localId en localStorage');
@@ -615,7 +615,7 @@
       throw new Error('Faltan datos obligatorios (nombre, categoría, precio > 0, localId)');
     }
 
-    // 5. Convertir a parámetros URL (igual que registerLocal)
+    // 5. Convertir a parámetros URL (mismo método que registerLocal)
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(data)) {
       if (value !== '' && value !== null && value !== undefined) {
@@ -626,10 +626,10 @@
     const url = `${API_URL}?${params.toString()}`;
     console.log('URL final (GET):', url);
 
-    // 6. Enviar como GET (mismo método que registerLocal)
+    // 6. Enviar como GET (igual que registerLocal)
     const response = await fetch(url, {
       method: 'GET',
-      mode: 'cors',          // Puedes probar 'no-cors' si falla, pero cors debería funcionar ahora
+      mode: 'cors',           // Puedes cambiar a 'no-cors' si falla, pero cors debería funcionar
       cache: 'no-cache'
     });
 
