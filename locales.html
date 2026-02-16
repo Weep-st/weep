@@ -574,15 +574,10 @@
   btn.disabled = true;
 
   try {
-    console.log('=== INICIO ENVÍO DE PLATO ===');
-    console.log('localToken actual:', localToken); // ← Esto es clave: debe mostrar un valor como LOC-...
-
     let imagenUrl = '';
     const file = document.getElementById('foto').files[0];
     if (file) {
-      console.log('Subiendo imagen...');
       imagenUrl = await subirImagen(file);
-      console.log('Imagen subida → URL:', imagenUrl);
     }
 
     const payload = {
@@ -592,7 +587,7 @@
       nombre: document.getElementById('nombre').value.trim(),
       categoria: document.getElementById('categoria').value,
       descripcion: document.getElementById('descripcion').value.trim(),
-      precio: parseFloat(document.getElementById('precio').value) || 0,
+      precio: document.getElementById('precio').value,  // lo dejamos como string (Apps Script lo convierte)
       disponibilidad: document.getElementById('disponibilidad').value,
       tamano_porcion: document.getElementById('tamano_porcion').value || '',
       variantes: document.getElementById('variantes').value.trim(),
@@ -600,49 +595,67 @@
       imagen_url: imagenUrl
     };
 
-    console.log('Payload que se va a enviar:');
-    console.log(JSON.stringify(payload, null, 2));  // ← Muestra TODO el objeto en consola
-
-    // Validación rápida
-    if (!payload.nombre || !payload.categoria || payload.precio <= 0 || !payload.localId) {
-      console.log('VALIDACIÓN FALLIDA EN FRONTEND');
+    // Validación rápida (igual que antes)
+    if (!payload.nombre || !payload.categoria || parseFloat(payload.precio) <= 0 || !payload.localId) {
       throw new Error('Faltan datos obligatorios (nombre, categoría, precio > 0, localId)');
     }
 
-    console.log('Enviando petición con no-cors...');
+    console.log('Enviando como form-urlencoded (igual que registerLocal):', payload);
 
-    await fetch(API_URL, {
+    // Convertimos a URLSearchParams (form-urlencoded) → mismo estilo que registerLocal
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(payload)) {
+      if (value !== '' && value !== null && value !== undefined) {
+        params.append(key, value);
+      }
+    }
+
+    const response = await fetch(API_URL, {
       method: 'POST',
-      mode: 'no-cors',
+      mode: 'cors',           // ← Podemos volver a cors si ya redeplegaste bien
       cache: 'no-cache',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: JSON.stringify(payload)
+      body: params.toString()
     });
 
-    console.log('Fetch completado (no-cors) → no se puede leer respuesta, pero se envió');
+    // Como usamos cors, ahora SÍ podemos leer la respuesta
+    const resultText = await response.text();
+    console.log('Respuesta cruda del servidor:', resultText);
 
-    alert(
-      payload.action === 'addMenuItem'
-        ? '¡Plato agregado! Revisa la hoja "Menú" y la consola del navegador para confirmar.'
-        : '¡Plato actualizado! Revisa la hoja "Menú" y la consola del navegador.'
-    );
+    let result;
+    try {
+      result = JSON.parse(resultText);
+      console.log('Respuesta parseada:', result);
+    } catch (parseErr) {
+      console.log('No se pudo parsear como JSON:', resultText);
+      throw new Error('Respuesta inválida del servidor');
+    }
 
-    document.getElementById('menu-form').classList.add('d-none');
-    document.getElementById('menu-form').reset();
-    document.getElementById('edit-item-id').value = '';
-    cargarMenuCompleto();
+    if (result.success) {
+      alert(
+        payload.action === 'addMenuItem'
+          ? '¡Plato agregado correctamente!'
+          : '¡Plato actualizado correctamente!'
+      );
+      document.getElementById('menu-form').classList.add('d-none');
+      document.getElementById('menu-form').reset();
+      document.getElementById('edit-item-id').value = '';
+      cargarMenuCompleto();
+    } else {
+      alert('Error del servidor: ' + (result.error || 'Respuesta desconocida'));
+    }
 
   } catch (err) {
-    console.error('ERROR AL GUARDAR PLATO (frontend):', err);
-    alert('Error al guardar el plato.\n' + (err.message || 'Revisa la consola (F12) para más detalles'));
+    console.error('Error completo al guardar:', err);
+    alert('No se pudo guardar el plato.\n' + (err.message || 'Error de conexión'));
   } finally {
     spinner.classList.add('d-none');
     btn.disabled = false;
-    console.log('=== FIN ENVÍO DE PLATO ===');
   }
 });
+  
   // === MENÚ ===
   async function cargarMenuCompleto() {
     const cont = document.getElementById('menu-listado');
