@@ -565,10 +565,7 @@
     }
   }
 
-  // ────────────────────────────────────────────────
-//    EVENTO SUBMIT DEL FORMULARIO DE PLATO
-// ────────────────────────────────────────────────
-document.getElementById('menu-form').addEventListener('submit', async (e) => {
+  document.getElementById('menu-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const btn = document.getElementById('guardar-btn');
@@ -602,9 +599,10 @@ document.getElementById('menu-form').addEventListener('submit', async (e) => {
       throw new Error('Faltan datos obligatorios (nombre, categoría, precio > 0, localId)');
     }
 
-    const response = await fetch(API_URL, {
+    // Envío con no-cors → no lanza error CORS, pero no podemos leer respuesta
+    await fetch(API_URL, {
       method: 'POST',
-      mode: 'cors',
+      mode: 'no-cors',
       cache: 'no-cache',
       headers: {
         'Content-Type': 'application/json'
@@ -612,26 +610,21 @@ document.getElementById('menu-form').addEventListener('submit', async (e) => {
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
-    console.log('Respuesta servidor:', result);
+    // Como no podemos leer la respuesta, mostramos éxito y recargamos
+    alert(
+      payload.action === 'addMenuItem'
+        ? '¡Plato agregado! Revisa la hoja "Menú" para confirmar.'
+        : '¡Plato actualizado! Revisa la hoja "Menú" para confirmar.'
+    );
 
-    if (result.success) {
-      alert(
-        payload.action === 'addMenuItem'
-          ? '¡Plato agregado correctamente!'
-          : '¡Plato actualizado correctamente!'
-      );
-      document.getElementById('menu-form').classList.add('d-none');
-      document.getElementById('menu-form').reset();
-      document.getElementById('edit-item-id').value = '';
-      cargarMenuCompleto();
-    } else {
-      alert('Error: ' + (result.error || result.message || 'Error desconocido'));
-    }
+    document.getElementById('menu-form').classList.add('d-none');
+    document.getElementById('menu-form').reset();
+    document.getElementById('edit-item-id').value = '';
+    cargarMenuCompleto();
 
   } catch (err) {
-    console.error('Error al guardar plato:', err);
-    alert('No se pudo guardar el plato.\n' + (err.message || 'Error de conexión'));
+    console.error('Error al intentar guardar plato:', err);
+    alert('Error al guardar el plato.\n' + (err.message || 'Revisa tu conexión o los datos ingresados'));
   } finally {
     spinner.classList.add('d-none');
     btn.disabled = false;
