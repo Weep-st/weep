@@ -587,7 +587,7 @@
       nombre: document.getElementById('nombre').value.trim(),
       categoria: document.getElementById('categoria').value,
       descripcion: document.getElementById('descripcion').value.trim(),
-      precio: document.getElementById('precio').value,  // lo dejamos como string (Apps Script lo convierte)
+      precio: document.getElementById('precio').value,
       disponibilidad: document.getElementById('disponibilidad').value,
       tamano_porcion: document.getElementById('tamano_porcion').value || '',
       variantes: document.getElementById('variantes').value.trim(),
@@ -595,14 +595,14 @@
       imagen_url: imagenUrl
     };
 
-    // Validación rápida (igual que antes)
+    // Validación
     if (!payload.nombre || !payload.categoria || parseFloat(payload.precio) <= 0 || !payload.localId) {
-      throw new Error('Faltan datos obligatorios (nombre, categoría, precio > 0, localId)');
+      throw new Error('Faltan datos obligatorios');
     }
 
-    console.log('Enviando como form-urlencoded (igual que registerLocal):', payload);
+    console.log('Intentando guardar como form-urlencoded (igual que registerLocal):', payload);
 
-    // Convertimos a URLSearchParams (form-urlencoded) → mismo estilo que registerLocal
+    // Convertimos a form-urlencoded
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(payload)) {
       if (value !== '' && value !== null && value !== undefined) {
@@ -610,35 +610,59 @@
       }
     }
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      mode: 'cors',           // ← Podemos volver a cors si ya redeplegaste bien
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: params.toString()
+    // Primero intentamos POST con form-urlencoded + cors
+    let response;
+    try {
+      response = await fetch(API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+      });
+
+      const resultText = await response.text();
+      console.log('Respuesta del servidor (POST):', resultText);
+
+      let result = JSON.parse(resultText);
+      if (result.success) {
+        alert('¡Plato agregado correctamente!');
+        document.getElementById('menu-form').classList.add('d-none');
+        document.getElementById('menu-form').reset();
+        document.getElementById('edit-item-id').value = '';
+        cargarMenuCompleto();
+        return; // Éxito → terminamos
+      }
+    } catch (corsErr) {
+      console.log('POST con cors falló (probablemente CORS):', corsErr.message);
+      // Si falla por CORS → fallback a GET con parámetros (como registerLocal)
+      console.log('Fallback a GET con parámetros...');
+    }
+
+    // Fallback: GET con parámetros en URL (funciona sin CORS en muchos casos)
+    const urlWithParams = `${API_URL}?${params.toString()}`;
+    console.log('URL GET fallback:', urlWithParams);
+
+    response = await fetch(urlWithParams, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache'
     });
 
-    // Como usamos cors, ahora SÍ podemos leer la respuesta
     const resultText = await response.text();
-    console.log('Respuesta cruda del servidor:', resultText);
+    console.log('Respuesta del servidor (GET fallback):', resultText);
 
     let result;
     try {
       result = JSON.parse(resultText);
-      console.log('Respuesta parseada:', result);
-    } catch (parseErr) {
-      console.log('No se pudo parsear como JSON:', resultText);
-      throw new Error('Respuesta inválida del servidor');
+    } catch {
+      throw new Error('Respuesta no válida del servidor');
     }
 
     if (result.success) {
-      alert(
-        payload.action === 'addMenuItem'
-          ? '¡Plato agregado correctamente!'
-          : '¡Plato actualizado correctamente!'
-      );
+      alert('¡Plato agregado correctamente! (vía fallback GET)');
       document.getElementById('menu-form').classList.add('d-none');
       document.getElementById('menu-form').reset();
       document.getElementById('edit-item-id').value = '';
@@ -648,8 +672,8 @@
     }
 
   } catch (err) {
-    console.error('Error completo al guardar:', err);
-    alert('No se pudo guardar el plato.\n' + (err.message || 'Error de conexión'));
+    console.error('Error completo al guardar plato:', err);
+    alert('No se pudo guardar.\n' + (err.message || 'Revisa consola (F12)'));
   } finally {
     spinner.classList.add('d-none');
     btn.disabled = false;
