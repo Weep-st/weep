@@ -568,7 +568,7 @@
     }
   }
 
-  document.getElementById('menu-form').addEventListener('submit', async (e) => {
+  document.getElementById('menu-form').addEventListener('submit', async function(e) {
   e.preventDefault();
 
   const btn = document.getElementById('guardar-btn');
@@ -577,15 +577,25 @@
   btn.disabled = true;
 
   try {
+    // 1. Subir imagen si existe (igual que antes)
     let imagenUrl = '';
     const file = document.getElementById('foto').files[0];
     if (file) {
+      console.log('Subiendo imagen a Cloudinary...');
       imagenUrl = await subirImagen(file);
+      console.log('Imagen subida →', imagenUrl);
     }
 
-    const params = new URLSearchParams({
+    // 2. Obtener localId (¡CRÍTICO! debe existir)
+    const localId = localStorage.getItem('localToken') || localStorage.getItem('localId');
+    if (!localId) {
+      throw new Error('No estás logueado. Falta localId en localStorage');
+    }
+
+    // 3. Armar los datos
+    const data = {
       action: document.getElementById('edit-item-id').value ? 'updateMenuItem' : 'addMenuItem',
-      localId: localToken,
+      localId: localId,
       itemId: document.getElementById('edit-item-id').value || '',
       nombre: document.getElementById('nombre').value.trim(),
       categoria: document.getElementById('categoria').value,
@@ -596,19 +606,33 @@
       variantes: document.getElementById('variantes').value.trim(),
       tiempo_preparacion: document.getElementById('tiempo_preparacion').value || '',
       imagen_url: imagenUrl
-    });
+    };
 
-    console.log('Enviando como GET (igual que registerLocal):', params.toString());
+    console.log('Datos a enviar (como GET):', data);
+
+    // 4. Validación básica
+    if (!data.nombre || !data.categoria || !data.precio || parseFloat(data.precio) <= 0 || !data.localId) {
+      throw new Error('Faltan datos obligatorios (nombre, categoría, precio > 0, localId)');
+    }
+
+    // 5. Convertir a parámetros URL (igual que registerLocal)
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== '' && value !== null && value !== undefined) {
+        params.append(key, value);
+      }
+    }
 
     const url = `${API_URL}?${params.toString()}`;
+    console.log('URL final (GET):', url);
 
+    // 6. Enviar como GET (mismo método que registerLocal)
     const response = await fetch(url, {
       method: 'GET',
-      mode: 'cors',           // Puedes dejar cors, pero si falla → cambia a 'no-cors'
+      mode: 'cors',          // Puedes probar 'no-cors' si falla, pero cors debería funcionar ahora
       cache: 'no-cache'
     });
 
-    // Con GET simple no hay preflight → debería funcionar sin CORS
     const resultText = await response.text();
     console.log('Respuesta cruda del servidor:', resultText);
 
@@ -617,12 +641,16 @@
       result = JSON.parse(resultText);
       console.log('Respuesta parseada:', result);
     } catch (parseErr) {
-      console.log('No es JSON válido:', resultText);
+      console.error('No se pudo parsear respuesta como JSON:', resultText);
       throw new Error('Respuesta inválida del servidor');
     }
 
     if (result.success) {
-      alert('¡Plato agregado correctamente!');
+      alert(
+        data.action === 'addMenuItem'
+          ? '¡Plato agregado correctamente!'
+          : '¡Plato actualizado correctamente!'
+      );
       document.getElementById('menu-form').classList.add('d-none');
       document.getElementById('menu-form').reset();
       document.getElementById('edit-item-id').value = '';
@@ -632,8 +660,8 @@
     }
 
   } catch (err) {
-    console.error('Error al guardar plato:', err);
-    alert('No se pudo guardar.\n' + (err.message || 'Revisa consola (F12)'));
+    console.error('Error al intentar guardar plato:', err);
+    alert('No se pudo guardar el plato.\n' + (err.message || 'Revisa la consola (F12)'));
   } finally {
     spinner.classList.add('d-none');
     btn.disabled = false;
