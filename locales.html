@@ -278,97 +278,54 @@
       </div>
     </div>
 
-    <!-- FORMULARIO PLATO -->
-<form id="menu-form" class="card shadow-lg p-4 mb-5 d-none"
-      onsubmit="event.preventDefault(); agregarPlato();">
-
-  <h3 class="mb-4 text-rojo" id="form-titulo">Nuevo Plato</h3>
-  <input type="hidden" id="edit-item-id">
-
-  <div class="row g-3">
-    
-    <div class="col-md-6">
-      <input type="text" id="nombre" class="form-control form-control-lg"
-        placeholder="Nombre del plato" required>
-    </div>
-
-    <div class="col-md-6">
-      <select id="categoria" class="form-select form-select-lg" required>
-        <option value="">Seleccionar categoría</option>
-        <option value="Hamburguesas">Hamburguesas</option>
-        <option value="Pizza">Pizzas</option>
-        <option value="Helados">Helados</option>
-        <option value="Postres">Postres</option>
-        <option value="Panadería">Panadería</option>
-      </select>
-    </div>
-
-    <div class="col-12">
-      <textarea id="descripcion" class="form-control" rows="2"
-        placeholder="Descripción breve" required></textarea>
-    </div>
-
-    <div class="col-md-4">
-      <input type="number" id="precio"
-        class="form-control form-control-lg"
-        placeholder="Precio" step="0.01" required>
-    </div>
-
-    <div class="col-md-4">
-      <select id="disponibilidad" class="form-select form-select-lg">
-        <option value="Sí">Disponible</option>
-        <option value="No">No disponible</option>
-      </select>
-    </div>
-
-    <div class="col-md-4">
-      <select id="tamano" class="form-select form-select-lg">
-        <option value="">Tamaño/Porción</option>
-        <option value="1 persona">1 persona</option>
-        <option value="2 personas">2 personas</option>
-        <option value="3 personas">3 personas</option>
-        <option value="4+ personas">4+ personas</option>
-      </select>
-    </div>
-
-    <div class="col-md-6">
-      <input type="text" id="variantes"
-        class="form-control form-control-lg"
-        placeholder="Variantes (ej: con cheddar)">
-    </div>
-
-    <div class="col-md-6">
-      <input type="number" id="tiempo"
-        class="form-control form-control-lg"
-        placeholder="Tiempo preparación (min)">
-    </div>
-
-    <!-- IMPORTANTE: tu backend espera imagen_url -->
-    <div class="col-12">
-      <input type="text" id="imagen"
-        class="form-control form-control-lg"
-        placeholder="URL de imagen (ej: https://...)">
-    </div>
-
-  </div>
-
-  <div class="mt-4 text-end">
-    <button type="button" id="cancelar-form"
-      class="btn btn-secondary btn-lg me-3">
+<!-- FORMULARIO PLATO -->
+    <form id="menu-form" class="card shadow-lg p-4 mb-5 d-none">
+      <h3 class="mb-4 text-rojo" id="form-titulo">Nuevo Plato</h3>
+      <input type="hidden" id="edit-item-id">
+      <div class="row g-3">
+        <div class="col-md-6"><input type="text" id="nombre" class="form-control form-control-lg" placeholder="Nombre del plato" required></div>
+        <div class="col-md-6">
+          <select id="categoria" class="form-select form-select-lg" required>
+            <option value="">Seleccionar categoría</option>
+            <option value="Hamburguesas">Hamburguesas</option>
+            <option value="Pizza">Pizzas</option>
+            <option value="Helados">Helados</option>
+            <option value="Postres">Postres</option>
+            <option value="Merienda">Panadería</option>
+          </select>
+        </div>
+        <div class="col-12"><textarea id="descripcion" class="form-control" rows="2" placeholder="Descripción breve" required></textarea></div>
+        <div class="col-md-4"><input type="number" id="precio" class="form-control form-control-lg" placeholder="Precio" step="0.01" required></div>
+        <div class="col-md-4">
+          <select id="disponibilidad" class="form-select form-select-lg">
+            <option value="Sí">Disponible</option>
+            <option value="No">No disponible</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select id="tamano_porcion" class="form-select form-select-lg">
+            <option value="">Tamaño/Porción</option>
+            <option value="1 persona">1 persona</option>
+            <option value="2 personas">2 personas</option>
+            <option value="3 personas">3 personas</option>
+            <option value="4+ personas">4+ personas</option>
+          </select>
+        </div>
+        <div class="col-md-6"><input type="text" id="variantes" class="form-control form-control-lg" placeholder="Variantes (ej: con cheddar)"></div>
+        <div class="col-md-6"><input type="number" id="tiempo_preparacion" class="form-control form-control-lg" placeholder="Tiempo preparación (min)"></div>
+        <div class="col-12"><input type="file" id="foto" class="form-control form-control-lg" accept="image/*"></div>
+      </div>
+      <div class="mt-4 text-end">
+    <button type="button" id="cancelar-form" class="btn btn-secondary btn-lg me-3">
       Cancelar
     </button>
 
-    <button type="submit"
-      class="btn btn-success btn-lg px-5"
-      id="guardar-btn">
-      <span class="spinner-border spinner-border-sm d-none"
-        role="status"></span>
+    <button type="submit" class="btn btn-success btn-lg px-5" id="guardar-btn">
+      <span class="spinner-border spinner-border-sm d-none" role="status"></span>
       Guardar Plato
     </button>
   </div>
-
 </form>
-
 
     <!-- FORMULARIO EDITAR PERFIL (con dirección) -->
     <div id="perfil-form" class="card shadow-lg p-4 mb-5 d-none">
