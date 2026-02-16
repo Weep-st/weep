@@ -568,8 +568,50 @@
     }
   }
 
-  document.getElementById('menu-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
+
+async function agregarPlato() {
+  const data = {
+    action: "addMenuItem",
+    nombre: document.getElementById("nombre").value,
+    categoria: document.getElementById("categoria").value,
+    descripcion: document.getElementById("descripcion").value,
+    precio: Number(document.getElementById("precio").value),
+    disponibilidad: "Sí",
+    tamano_porcion: document.getElementById("tamano_porcion").value,
+    variantes: document.getElementById("variantes").value,
+    tiempo_preparacion: document.getElementById("tiempo_preparacion").value,
+    imagen_url: document.getElementById("imagen").value || '', // o subir imagen real
+    localId: localStorage.getItem("localToken") || localStorage.getItem("localId")
+  };
+
+  try {
+    // Aquí tu lógica de fetch (GET o POST como prefieras)
+    const params = new URLSearchParams(data);
+    const url = `${API_URL}?${params.toString()}`;
+
+    const response = await fetch(url, { method: 'GET' });
+    const result = await response.json();
+
+    console.log('Respuesta del servidor:', result);
+
+    if (result.success) {
+      alert("Plato agregado correctamente");
+      // Limpiar y recargar
+      document.getElementById('menu-form').classList.add('d-none');
+      document.getElementById('menu-form').reset();
+      cargarMenuCompleto();
+    } else {
+      alert("Error: " + (result.error || "Respuesta desconocida"));
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Error al guardar: " + error.message);
+  }
+}
+
+// Conectar el formulario con la función agregarPlato
+document.getElementById('menu-form').addEventListener('submit', async function(e) {
+  e.preventDefault(); // ← Evita que la página se recargue
 
   const btn = document.getElementById('guardar-btn');
   const spinner = btn.querySelector('.spinner-border');
@@ -577,91 +619,17 @@
   btn.disabled = true;
 
   try {
-    // 1. Subir imagen si hay archivo
-    let imagenUrl = '';
-    const file = document.getElementById('foto').files[0];
-    if (file) {
-      console.log('Subiendo imagen a Cloudinary...');
-      imagenUrl = await subirImagen(file);
-      console.log('Imagen subida →', imagenUrl);
-    }
+    await agregarPlato(); // ← Aquí se llama tu función
 
-    // 2. Obtener localId (CRÍTICO)
-    const localId = localStorage.getItem('localToken') || localStorage.getItem('localId');
-    if (!localId) {
-      throw new Error('No estás logueado. Falta localId en localStorage');
-    }
-
-    // 3. Armar los datos
-    const data = {
-      action: document.getElementById('edit-item-id').value ? 'updateMenuItem' : 'addMenuItem',
-      localId: localId,
-      itemId: document.getElementById('edit-item-id').value || '',
-      nombre: document.getElementById('nombre').value.trim(),
-      categoria: document.getElementById('categoria').value,
-      descripcion: document.getElementById('descripcion').value.trim(),
-      precio: document.getElementById('precio').value,
-      disponibilidad: document.getElementById('disponibilidad').value,
-      tamano_porcion: document.getElementById('tamano_porcion').value || '',
-      variantes: document.getElementById('variantes').value.trim(),
-      tiempo_preparacion: document.getElementById('tiempo_preparacion').value || '',
-      imagen_url: imagenUrl
-    };
-
-    console.log('Datos a enviar (como GET):', data);
-
-    // 4. Validación básica
-    if (!data.nombre || !data.categoria || !data.precio || parseFloat(data.precio) <= 0 || !data.localId) {
-      throw new Error('Faltan datos obligatorios (nombre, categoría, precio > 0, localId)');
-    }
-
-    // 5. Convertir a parámetros URL (mismo método que registerLocal)
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== '' && value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    }
-
-    const url = `${API_URL}?${params.toString()}`;
-    console.log('URL final (GET):', url);
-
-    // 6. Enviar como GET (igual que registerLocal)
-    const response = await fetch(url, {
-      method: 'GET',
-      mode: 'cors',           // Puedes cambiar a 'no-cors' si falla, pero cors debería funcionar
-      cache: 'no-cache'
-    });
-
-    const resultText = await response.text();
-    console.log('Respuesta cruda del servidor:', resultText);
-
-    let result;
-    try {
-      result = JSON.parse(resultText);
-      console.log('Respuesta parseada:', result);
-    } catch (parseErr) {
-      console.error('No se pudo parsear respuesta como JSON:', resultText);
-      throw new Error('Respuesta inválida del servidor');
-    }
-
-    if (result.success) {
-      alert(
-        data.action === 'addMenuItem'
-          ? '¡Plato agregado correctamente!'
-          : '¡Plato actualizado correctamente!'
-      );
-      document.getElementById('menu-form').classList.add('d-none');
-      document.getElementById('menu-form').reset();
-      document.getElementById('edit-item-id').value = '';
-      cargarMenuCompleto();
-    } else {
-      alert('Error del servidor: ' + (result.error || 'Respuesta desconocida'));
-    }
-
-  } catch (err) {
-    console.error('Error al intentar guardar plato:', err);
-    alert('No se pudo guardar el plato.\n' + (err.message || 'Revisa la consola (F12)'));
+    // Éxito: limpiar formulario y recargar menú
+    alert('Plato agregado correctamente');
+    document.getElementById('menu-form').classList.add('d-none');
+    document.getElementById('menu-form').reset();
+    document.getElementById('edit-item-id').value = '';
+    cargarMenuCompleto();
+  } catch (error) {
+    console.error('Error al agregar plato:', error);
+    alert('No se pudo agregar el plato. Revisa la consola.');
   } finally {
     spinner.classList.add('d-none');
     btn.disabled = false;
@@ -1164,44 +1132,6 @@
     renderizarPedidosEnProceso('todos');
   });
 
-
-  async function agregarPlato() {
-  const data = {
-    action: "addMenuItem",
-    nombre: document.getElementById("nombre").value,
-    categoria: document.getElementById("categoria").value,
-    descripcion: document.getElementById("descripcion").value,
-    precio: Number(document.getElementById("precio").value),
-    disponibilidad: "Sí",
-    tamano_porcion: document.getElementById("tamano").value,
-    variantes: document.getElementById("variantes").value,
-    tiempo_preparacion: document.getElementById("tiempo").value,
-    imagen_url: document.getElementById("imagen").value,
-    localId: localStorage.getItem("localId") // 👈 CRÍTICO
-  };
-
-  try {
-    const response = await fetch("TU_URL_DE_APPS_SCRIPT", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    });
-
-    const result = await response.json();
-    console.log(result);
-
-    if (result.success) {
-      alert("Plato agregado correctamente");
-    } else {
-      alert("Error: " + result.error);
-    }
-
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
 
 </script>
 </body>
