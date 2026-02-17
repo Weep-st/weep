@@ -602,13 +602,13 @@ async function agregarPlato() {
     }
     console.log('Datos a enviar:', data);
     // Enviar como POST con JSON (nuevo)
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
+const response = await fetch(API_URL, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'text/plain;charset=utf-8'   // ← Esto evita el preflight
+  },
+  body: JSON.stringify(data)   // Sigue enviando JSON como string
+});
     const result = await response.json();
     console.log('Respuesta del servidor:', result);
     if (result.success) {
