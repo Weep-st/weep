@@ -582,53 +582,62 @@ async function agregarPlato() {
     tamano_porcion: document.getElementById("tamano_porcion").value || '',
     variantes: document.getElementById("variantes").value.trim(),
     tiempo_preparacion: document.getElementById("tiempo_preparacion").value || '',
-    imagen_url: '' // Se llenará si subes imagen
+    imagen_url: '' // se llenará si subes imagen
   };
 
-  // Subir imagen si hay archivo (opcional)
+  // Subir imagen si corresponde
   const file = document.getElementById('foto').files[0];
   if (file) {
     try {
       data.imagen_url = await subirImagen(file);
     } catch (err) {
-      console.error('Error al subir imagen:', err);
-      alert('No se pudo subir la imagen, pero se intentará guardar sin ella.');
+      console.error('Error subiendo imagen:', err);
+      // puedes decidir si sigues o cancelas
     }
   }
 
+  // Validaciones mínimas
+  if (!data.localId) {
+    alert("No estás logueado (falta localId)");
+    return;
+  }
+  if (!data.nombre || !data.categoria || data.precio <= 0) {
+    alert("Faltan datos obligatorios: nombre, categoría y precio > 0");
+    return;
+  }
+
+  console.log("Datos a enviar:", data);
+
+  // Convertir a form-urlencoded
+  const formData = new URLSearchParams();
+  for (const [key, value] of Object.entries(data)) {
+    formData.append(key, value);
+  }
+
   try {
-    // Validación básica
-    if (!data.localId) throw new Error('No estás logueado (falta localId)');
-    if (!data.nombre || !data.categoria || data.precio <= 0) {
-      throw new Error('Faltan datos obligatorios: nombre, categoría y precio > 0');
-    }
-
-    console.log('Datos a enviar:', data);
-
     const response = await fetch(API_URL, {
       method: 'POST',
-      mode: 'no-cors',                    // evita bloqueo CORS (pero no podemos leer la respuesta)
+      mode: 'no-cors',               // ← se mantiene
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: JSON.stringify(data)
+      body: formData.toString()
     });
 
-    // Con no-cors NO podemos leer response.json() ni saber si fue success/error
-    console.log('Solicitud enviada (modo no-cors) → asumimos éxito');
+    console.log("Solicitud enviada (form-urlencoded + no-cors)");
 
-    // Mostramos éxito (aunque no podemos confirmarlo al 100%)
-    alert("Plato agregado correctamente (verifica en la hoja Menú del Sheet)");
-    
-    // Cerramos formulario y recargamos lista
+    // Como es no-cors, no podemos leer la respuesta → asumimos éxito
+    alert("Plato guardado (verifica en la hoja 'Menú' del Sheet en unos segundos)");
+
+    // Limpiar y recargar
     document.getElementById('menu-form').classList.add('d-none');
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
     cargarMenuCompleto();
 
   } catch (error) {
-    console.error("Error al intentar guardar el plato:", error);
-    alert("Hubo un problema al intentar guardar el plato.\nRevisa la consola y la hoja Menú manualmente.");
+    console.error("Error al enviar:", error);
+    alert("Error al intentar guardar.\nRevisa la consola y la hoja Menú.");
   }
 }
 
