@@ -584,6 +584,7 @@ async function agregarPlato() {
     tiempo_preparacion: document.getElementById("tiempo_preparacion").value || '',
     imagen_url: '' // Se llenará si subes imagen
   };
+
   // Subir imagen si hay archivo (opcional)
   const file = document.getElementById('foto').files[0];
   if (file) {
@@ -594,38 +595,40 @@ async function agregarPlato() {
       alert('No se pudo subir la imagen, pero se intentará guardar sin ella.');
     }
   }
+
   try {
     // Validación básica
     if (!data.localId) throw new Error('No estás logueado (falta localId)');
     if (!data.nombre || !data.categoria || data.precio <= 0) {
       throw new Error('Faltan datos obligatorios: nombre, categoría y precio > 0');
     }
-    try {
+
     console.log('Datos a enviar:', data);
 
     const response = await fetch(API_URL, {
       method: 'POST',
-      mode: 'no-cors',                    // ← Esto evita el preflight y el bloqueo CORS
+      mode: 'no-cors',                    // evita bloqueo CORS (pero no podemos leer la respuesta)
       headers: {
-        'Content-Type': 'application/json'  // Puedes dejarlo, aunque con no-cors no se envía realmente
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
     });
 
-    // IMPORTANTE: Aquí NO puedes hacer response.json() ni response.ok
-    // La respuesta es opaque → no hay nada útil que leer
-    console.log('Solicitud enviada (no-cors) → asumimos éxito');
+    // Con no-cors NO podemos leer response.json() ni saber si fue success/error
+    console.log('Solicitud enviada (modo no-cors) → asumimos éxito');
 
-    // Asumimos que salió bien (porque la solicitud se envió)
-    alert("Plato agregado correctamente (verifica en el Sheet)");
+    // Mostramos éxito (aunque no podemos confirmarlo al 100%)
+    alert("Plato agregado correctamente (verifica en la hoja Menú del Sheet)");
+    
+    // Cerramos formulario y recargamos lista
     document.getElementById('menu-form').classList.add('d-none');
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
     cargarMenuCompleto();
 
   } catch (error) {
-    console.error("Error al intentar enviar:", error);
-    alert("Hubo un problema al intentar guardar. Verifica la consola y el Sheet manualmente.");
+    console.error("Error al intentar guardar el plato:", error);
+    alert("Hubo un problema al intentar guardar el plato.\nRevisa la consola y la hoja Menú manualmente.");
   }
 }
 
@@ -635,19 +638,15 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
 
   const btn = document.getElementById('guardar-btn');
   const spinner = btn.querySelector('.spinner-border');
+  
   spinner.classList.remove('d-none');
   btn.disabled = true;
 
   try {
-    await agregarPlato(); // ← Llama a tu función
-
-    // Éxito (el alert ya está dentro de agregarPlato, pero puedes dejarlo aquí también)
-    document.getElementById('menu-form').classList.add('d-none');
-    document.getElementById('menu-form').reset();
-    document.getElementById('edit-item-id').value = '';
-    cargarMenuCompleto();
+    await agregarPlato();
+    // El alert y el cierre del form ya están dentro de agregarPlato()
   } catch (error) {
-    console.error('Error al agregar plato:', error);
+    console.error('Error al ejecutar agregarPlato:', error);
     alert('No se pudo agregar el plato. Revisa la consola.');
   } finally {
     spinner.classList.add('d-none');
