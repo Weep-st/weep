@@ -584,8 +584,7 @@ async function agregarPlato() {
     tiempo_preparacion: document.getElementById("tiempo_preparacion").value || '',
     imagen_url: '' // Se llenará si subes imagen
   };
-
-  // Subir imagen si hay archivo (opcional, pero recomendado)
+  // Subir imagen si hay archivo (opcional)
   const file = document.getElementById('foto').files[0];
   if (file) {
     try {
@@ -595,26 +594,23 @@ async function agregarPlato() {
       alert('No se pudo subir la imagen, pero se intentará guardar sin ella.');
     }
   }
-
   try {
     // Validación básica
     if (!data.localId) throw new Error('No estás logueado (falta localId)');
     if (!data.nombre || !data.categoria || data.precio <= 0) {
       throw new Error('Faltan datos obligatorios: nombre, categoría y precio > 0');
     }
-
     console.log('Datos a enviar:', data);
-
-    // Enviar como GET (mismo método que registerLocal)
-    const params = new URLSearchParams(data);
-    const url = `${API_URL}?${params.toString()}`;
-    console.log('URL enviada:', url);
-
-    const response = await fetch(url, { method: 'GET' });
+    // Enviar como POST con JSON (nuevo)
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
     const result = await response.json();
-
     console.log('Respuesta del servidor:', result);
-
     if (result.success) {
       alert("Plato agregado correctamente");
       document.getElementById('menu-form').classList.add('d-none');
