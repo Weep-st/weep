@@ -571,23 +571,44 @@
 
 async function agregarPlato() {
   const data = {
-    action: "addMenuItem",
-    nombre: document.getElementById("nombre").value,
+    action: document.getElementById('edit-item-id').value ? "updateMenuItem" : "addMenuItem",
+    localId: localStorage.getItem("localToken") || localStorage.getItem("localId"),
+    itemId: document.getElementById('edit-item-id').value || '',
+    nombre: document.getElementById("nombre").value.trim(),
     categoria: document.getElementById("categoria").value,
-    descripcion: document.getElementById("descripcion").value,
-    precio: Number(document.getElementById("precio").value),
-    disponibilidad: "Sí",
-    tamano_porcion: document.getElementById("tamano_porcion").value,
-    variantes: document.getElementById("variantes").value,
-    tiempo_preparacion: document.getElementById("tiempo_preparacion").value,
-    imagen_url: document.getElementById("imagen").value || '', // o subir imagen real
-    localId: localStorage.getItem("localToken") || localStorage.getItem("localId")
+    descripcion: document.getElementById("descripcion").value.trim(),
+    precio: Number(document.getElementById("precio").value) || 0,
+    disponibilidad: document.getElementById("disponibilidad").value,
+    tamano_porcion: document.getElementById("tamano_porcion").value || '',
+    variantes: document.getElementById("variantes").value.trim(),
+    tiempo_preparacion: document.getElementById("tiempo_preparacion").value || '',
+    imagen_url: '' // Se llenará si subes imagen
   };
 
+  // Subir imagen si hay archivo (opcional, pero recomendado)
+  const file = document.getElementById('foto').files[0];
+  if (file) {
+    try {
+      data.imagen_url = await subirImagen(file);
+    } catch (err) {
+      console.error('Error al subir imagen:', err);
+      alert('No se pudo subir la imagen, pero se intentará guardar sin ella.');
+    }
+  }
+
   try {
-    // Aquí tu lógica de fetch (GET o POST como prefieras)
+    // Validación básica
+    if (!data.localId) throw new Error('No estás logueado (falta localId)');
+    if (!data.nombre || !data.categoria || data.precio <= 0) {
+      throw new Error('Faltan datos obligatorios: nombre, categoría y precio > 0');
+    }
+
+    console.log('Datos a enviar:', data);
+
+    // Enviar como GET (mismo método que registerLocal)
     const params = new URLSearchParams(data);
     const url = `${API_URL}?${params.toString()}`;
+    console.log('URL enviada:', url);
 
     const response = await fetch(url, { method: 'GET' });
     const result = await response.json();
@@ -596,22 +617,22 @@ async function agregarPlato() {
 
     if (result.success) {
       alert("Plato agregado correctamente");
-      // Limpiar y recargar
       document.getElementById('menu-form').classList.add('d-none');
       document.getElementById('menu-form').reset();
+      document.getElementById('edit-item-id').value = '';
       cargarMenuCompleto();
     } else {
-      alert("Error: " + (result.error || "Respuesta desconocida"));
+      alert("Error del servidor: " + (result.error || "Respuesta desconocida"));
     }
   } catch (error) {
-    console.error("Error:", error);
-    alert("Error al guardar: " + error.message);
+    console.error("Error al guardar plato:", error);
+    alert("No se pudo guardar el plato.\n" + error.message);
   }
 }
 
 // Conectar el formulario con la función agregarPlato
 document.getElementById('menu-form').addEventListener('submit', async function(e) {
-  e.preventDefault(); // ← Evita que la página se recargue
+  e.preventDefault(); // Evita recarga de página
 
   const btn = document.getElementById('guardar-btn');
   const spinner = btn.querySelector('.spinner-border');
@@ -619,10 +640,9 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   btn.disabled = true;
 
   try {
-    await agregarPlato(); // ← Aquí se llama tu función
+    await agregarPlato(); // ← Llama a tu función
 
-    // Éxito: limpiar formulario y recargar menú
-    alert('Plato agregado correctamente');
+    // Éxito (el alert ya está dentro de agregarPlato, pero puedes dejarlo aquí también)
     document.getElementById('menu-form').classList.add('d-none');
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
