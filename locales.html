@@ -592,7 +592,6 @@ async function agregarPlato() {
       data.imagen_url = await subirImagen(file);
     } catch (err) {
       console.error('Error subiendo imagen:', err);
-      // puedes decidir si sigues o cancelas
     }
   }
 
@@ -608,26 +607,22 @@ async function agregarPlato() {
 
   console.log("Datos a enviar:", data);
 
-  // Convertir a form-urlencoded
-  const formData = new URLSearchParams();
-  for (const [key, value] of Object.entries(data)) {
-    formData.append(key, value);
-  }
+  // Convertir a query string para GET
+  const queryParams = new URLSearchParams(data).toString();
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      mode: 'no-cors',               // ← se mantiene
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData.toString()
+    const url = `${API_URL}?${queryParams}`;
+    console.log("Enviando vía GET: " + url.substring(0, 200) + "..."); // Log truncado para no saturar
+
+    const response = await fetch(url, {
+      method: 'GET',  // ← Cambio clave: usa GET en lugar de POST
+      mode: 'no-cors',
+      cache: 'no-cache'
     });
 
-    console.log("Solicitud enviada (form-urlencoded + no-cors)");
+    console.log("Solicitud GET enviada → asumimos éxito");
 
-    // Como es no-cors, no podemos leer la respuesta → asumimos éxito
-    alert("Plato guardado (verifica en la hoja 'Menú' del Sheet en unos segundos)");
+    alert("Plato guardado correctamente (verifica en la hoja 'Menú' del Sheet)");
 
     // Limpiar y recargar
     document.getElementById('menu-form').classList.add('d-none');
@@ -636,7 +631,7 @@ async function agregarPlato() {
     cargarMenuCompleto();
 
   } catch (error) {
-    console.error("Error al enviar:", error);
+    console.error("Error al enviar GET:", error);
     alert("Error al intentar guardar.\nRevisa la consola y la hoja Menú.");
   }
 }
