@@ -489,7 +489,7 @@ main {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-        /* Punto verde estilo Instagram en esquina superior derecha */
+        /* Punto verde SIEMPRE visible en locales abiertos */
 .suggestion.abierto::after {
     content: '';
     position: absolute;
@@ -497,28 +497,32 @@ main {
     right: 8px;
     width: 14px;
     height: 14px;
-    background: #00ff00;           /* verde brillante */
-    border: 2px solid #ffffff;     /* borde blanco para destacar */
+    background: #00ff00;           /* verde brillante (puedes cambiar a #25D366 si prefieres el de WhatsApp) */
+    border: 2.5px solid #ffffff;   /* borde blanco para que resalte sobre cualquier fondo */
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0, 255, 0, 0.7); /* glow suave */
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.6); /* glow suave permanente */
     z-index: 10;
 }
 
-/* Opcional: efecto más sutil o animado (pulsing) */
+/* Efecto pulsing opcional (latido suave, muy usado en Instagram) */
 .suggestion.abierto.pulse::after {
-    animation: pulse 2s infinite;
+    animation: pulse 2.2s infinite ease-in-out;
 }
 
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+    0%   { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
     100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
 }
 
-/* Locales cerrados: más opacos y cursor no permitido */
+/* Locales cerrados: sin punto, más opacos */
 .suggestion.cerrado {
     opacity: 0.65;
     cursor: not-allowed;
+}
+
+.suggestion.cerrado::after {
+    content: none;  /* aseguramos que NO aparezca punto */
 }
         
     .suggestion:hover, .suggestion:active {
