@@ -479,17 +479,21 @@ main {
 #suggestion-items::-webkit-scrollbar {
     display: none;
 }
-    .suggestion {
-        width: 120px;
-        height: 120px;
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-        cursor: pointer;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
 
-        /* Punto verde FIJO en locales abiertos - esquina superior derecha del logo */
+        /* Contenedor base */
+.suggestion {
+    position: relative;               /* Necesario para posicionar el ::after */
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    overflow: visible;                /* Cambiado a visible para que el punto no se corte */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: white;                /* fondo para que el punto contraste bien */
+}
+
+/* Punto verde FIJO y siempre visible en locales abiertos */
 .suggestion.abierto::after {
     content: '';
     position: absolute;
@@ -497,39 +501,45 @@ main {
     right: 8px;
     width: 14px;
     height: 14px;
-    background: #00ff00;           /* verde brillante (puedes cambiar a #25D366 si querés más "WhatsApp") */
-    border: 2.5px solid #ffffff;   /* borde blanco grueso para que resalte */
+    background: #00ff00;              /* verde brillante */
+    border: 2.5px solid #ffffff;
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0, 255, 0, 0.7), 0 0 12px rgba(0, 255, 0, 0.4); /* glow suave */
-    z-index: 10;
-    pointer-events: none;           /* no interfiere con clics */
+    box-shadow: 
+        0 0 8px rgba(0, 255, 0, 0.8),
+        0 0 12px rgba(0, 255, 0, 0.5);
+    z-index: 20;                      /* muy alto para que no quede tapado */
+    pointer-events: none;             /* no interfiere con clics */
+    display: block !important;        /* fuerza visibilidad */
 }
 
-/* Efecto pulsing opcional (latido sutil) - solo en abiertos */
+/* Efecto pulsing opcional (latido sutil) */
 .suggestion.abierto.pulse::after {
-    animation: pulse 2.5s infinite ease-in-out;
+    animation: pulse 2.8s infinite ease-in-out;
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50%      { transform: scale(1.15); opacity: 0.85; }
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%      { transform: scale(1.18); opacity: 0.9; }
+}
+
+/* Hover: solo agranda la tarjeta, NO afecta al punto */
+.suggestion:hover {
+    transform: scale(1.1);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+/* El punto NO cambia ni desaparece en hover */
+.suggestion.abierto:hover::after,
+.suggestion.abierto:active::after {
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;       /* opcional: quitar pulse al hover si molesta */
 }
 
 /* Locales cerrados: sin punto, más opacos */
 .suggestion.cerrado {
     opacity: 0.65;
     cursor: not-allowed;
-}
-
-/* Hover general (aumenta tamaño y sombra) */
-.suggestion:hover {
-    transform: scale(1.1);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
-}
-
-/* Aseguramos que el punto NO desaparezca ni cambie en hover */
-.suggestion.abierto:hover::after {
-    /* No necesitamos nada aquí → el punto se mantiene igual */
 }
         
     .suggestion:hover, .suggestion:active {
