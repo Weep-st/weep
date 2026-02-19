@@ -488,6 +488,39 @@ main {
         cursor: pointer;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+
+        /* Punto verde estilo Instagram en esquina superior derecha */
+.suggestion.abierto::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 14px;
+    height: 14px;
+    background: #00ff00;           /* verde brillante */
+    border: 2px solid #ffffff;     /* borde blanco para destacar */
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.7); /* glow suave */
+    z-index: 10;
+}
+
+/* Opcional: efecto más sutil o animado (pulsing) */
+.suggestion.abierto.pulse::after {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+}
+
+/* Locales cerrados: más opacos y cursor no permitido */
+.suggestion.cerrado {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+        
     .suggestion:hover, .suggestion:active {
         transform: scale(1.1);
         box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
