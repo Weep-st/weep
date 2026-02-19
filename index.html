@@ -1811,76 +1811,69 @@ async function registerUser() {
                 .catch(() => { allDrinks = []; });
         }
         function loadFilters() {
-  const container = document.getElementById('suggestion-items');
-  const titleElement = document.getElementById('suggestions-title');
-  const wrapper = document.getElementById('suggestions-carousel-wrapper');
-  
-  if (!container || !wrapper) return;
-  
-  showLoading(container);
-  titleElement.textContent = "Sugerencias de Locales";
-  wrapper.classList.remove('few-items');
-  
-  fetch(scriptUrl + '?action=getFilters')
-    .then(r => r.ok ? r.json() : Promise.reject())
-    .then(data => {
-      container.innerHTML = '';
-      
-      if (data.locals?.length > 0) {
-        data.locals.forEach(local => {
-          const div = document.createElement('div');
-          div.className = 'suggestion';
-          div.dataset.local = local.local_id;
-          
-          // Badge de estado
-          const estadoClass = local.estado?.toLowerCase() === 'activo' 
-            ? 'bg-success text-white' 
-            : 'bg-danger text-white';
-          
-          const estadoTexto = local.estado?.toLowerCase() === 'activo' 
-            ? 'Abierto ahora' 
-            : 'Cerrado ahora';
-          
-          div.innerHTML = `
-            <img src="${local.imagen_url || 'https://placehold.co/200x200?text=' + encodeURIComponent(local.nombre_local)}" 
-                 alt="${local.nombre_local}" 
-                 onerror="this.src='https://placehold.co/200x200?text=Sin+Imagen'">
-            <div class="position-absolute bottom-0 start-0 end-0 p-2 text-center">
-              <span class="badge ${estadoClass} fs-6">${estadoTexto}</span>
-            </div>
-          `;
-          
-          // Opcional: si está cerrado, deshabilitar clic o cambiar cursor
-          if (local.estado?.toLowerCase() !== 'activo') {
-            div.style.opacity = '0.6';
-            div.style.cursor = 'not-allowed';
-            div.onclick = () => alert('Este local está cerrado en este momento.');
-          } else {
-            div.onclick = () => fetchMenus(null, local.local_id);
-          }
-          
-          container.appendChild(div);
-        });
-        
-        // Centrado si hay pocas tarjetas
-        if (data.locals.length <= 4) {
-          wrapper.classList.add('few-items');
-        }
-      } else {
-        container.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">Aún no hay locales registrados.</p>';
-        wrapper.classList.add('few-items');
-      }
-      
-      // Actualizar visibilidad de flechas
-      setTimeout(() => {
-        const cont = document.getElementById('suggestion-items');
-        const hasOverflow = cont.scrollWidth > cont.clientWidth;
-        wrapper.querySelectorAll('.carousel-btn').forEach(btn => {
-          btn.style.display = hasOverflow ? 'flex' : 'none';
-        });
-      }, 300);
-    })
-    .catch(() => showError(container, 'Error al cargar locales'));
+    const container = document.getElementById('suggestion-items');
+    const titleElement = document.getElementById('suggestions-title');
+    const wrapper = document.getElementById('suggestions-carousel-wrapper');
+
+    if (!container || !wrapper) return;
+
+    showLoading(container);
+    titleElement.textContent = "Sugerencias de Locales";
+    wrapper.classList.remove('few-items');
+
+    fetch(scriptUrl + '?action=getFilters')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+            container.innerHTML = '';
+
+            if (data.locals?.length > 0) {
+                data.locals.forEach(local => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion';
+
+                    // Clases según estado
+                    const estaAbierto = local.estado?.toLowerCase() === 'activo';
+                    div.classList.add(estaAbierto ? 'abierto' : 'cerrado');
+                    // Opcional: agregar la clase pulse solo a abiertos
+                    if (estaAbierto) div.classList.add('pulse');
+
+                    div.dataset.local = local.local_id;
+
+                    div.innerHTML = `
+                        <img src="${local.imagen_url || 'https://placehold.co/200x200?text=' + encodeURIComponent(local.nombre_local)}"
+                             alt="${local.nombre_local}"
+                             onerror="this.src='https://placehold.co/200x200?text=Sin+Imagen'">
+                    `;
+
+                    // Comportamiento al clic
+                    if (estaAbierto) {
+                        div.onclick = () => fetchMenus(null, local.local_id);
+                    } else {
+                        div.onclick = () => alert('Este local está cerrado en este momento.');
+                    }
+
+                    container.appendChild(div);
+                });
+
+                // Centrado si hay pocas tarjetas
+                if (data.locals.length <= 4) {
+                    wrapper.classList.add('few-items');
+                }
+            } else {
+                container.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">Aún no hay locales registrados.</p>';
+                wrapper.classList.add('few-items');
+            }
+
+            // Actualizar visibilidad de flechas
+            setTimeout(() => {
+                const cont = document.getElementById('suggestion-items');
+                const hasOverflow = cont.scrollWidth > cont.clientWidth;
+                wrapper.querySelectorAll('.carousel-btn').forEach(btn => {
+                    btn.style.display = hasOverflow ? 'flex' : 'none';
+                });
+            }, 300);
+        })
+        .catch(() => showError(container, 'Error al cargar locales'));
 }
        
         function setupSearch() {
