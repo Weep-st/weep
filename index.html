@@ -489,7 +489,7 @@ main {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-        /* Punto verde SIEMPRE visible en locales abiertos */
+        /* Punto verde FIJO en locales abiertos - esquina superior derecha del logo */
 .suggestion.abierto::after {
     content: '';
     position: absolute;
@@ -497,22 +497,22 @@ main {
     right: 8px;
     width: 14px;
     height: 14px;
-    background: #00ff00;           /* verde brillante (puedes cambiar a #25D366 si prefieres el de WhatsApp) */
-    border: 2.5px solid #ffffff;   /* borde blanco para que resalte sobre cualquier fondo */
+    background: #00ff00;           /* verde brillante (puedes cambiar a #25D366 si querés más "WhatsApp") */
+    border: 2.5px solid #ffffff;   /* borde blanco grueso para que resalte */
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0, 255, 0, 0.6); /* glow suave permanente */
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.7), 0 0 12px rgba(0, 255, 0, 0.4); /* glow suave */
     z-index: 10;
+    pointer-events: none;           /* no interfiere con clics */
 }
 
-/* Efecto pulsing opcional (latido suave, muy usado en Instagram) */
+/* Efecto pulsing opcional (latido sutil) - solo en abiertos */
 .suggestion.abierto.pulse::after {
-    animation: pulse 2.2s infinite ease-in-out;
+    animation: pulse 2.5s infinite ease-in-out;
 }
 
 @keyframes pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
-    70%  { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.15); opacity: 0.85; }
 }
 
 /* Locales cerrados: sin punto, más opacos */
@@ -521,8 +521,15 @@ main {
     cursor: not-allowed;
 }
 
-.suggestion.cerrado::after {
-    content: none;  /* aseguramos que NO aparezca punto */
+/* Hover general (aumenta tamaño y sombra) */
+.suggestion:hover {
+    transform: scale(1.1);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Aseguramos que el punto NO desaparezca ni cambie en hover */
+.suggestion.abierto:hover::after {
+    /* No necesitamos nada aquí → el punto se mantiene igual */
 }
         
     .suggestion:hover, .suggestion:active {
