@@ -1012,7 +1012,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: estadoParams.toString(),
-          mode: 'no-cors'  // puedes probar quitándolo temporalmente para depurar
+          mode: 'cors'  // puedes probar quitándolo temporalmente para depurar
         });
 
         console.log(`Solicitud de cambio de estado enviada → ${nuevoEstado} para ${idPedidoLocal}`);
