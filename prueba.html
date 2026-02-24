@@ -848,119 +848,155 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   });
 
   // === PEDIDOS ===
-  async function cargarMisPedidos() {
-    const contProceso = document.getElementById('pedidos-proceso-listado');
-    const contFinalizados = document.getElementById('pedidos-finalizados-listado');
-    
-    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando...</p></div>';
-    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando...</p></div>';
+  let estaCargandoPedidos = false; // Bandera para evitar llamadas simultáneas
 
-    try {
-      const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const locales = await resLocales.json();
-
-      if (!locales || locales.length === 0) {
-        contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
-        contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
-        return;
-      }
-
-      pedidosData = [];
-
-      for (const localPedido of locales) {
-        const idPedidoLocal = localPedido[0];
-        const idPedido = localPedido[1];
-        const estadoActual = localPedido[4] || 'Pendiente';
-
-        const resItems = await fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`);
-        const items = await resItems.json();
-
-        const resGeneral = await fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`);
-        const general = await resGeneral.json();
-
-        const pedidoInfo = {
-          idPedidoLocal,
-          idPedido,
-          estadoActual,
-          items,
-          direccion: general.direccion || 'Retiro en local',
-          observaciones: general.observaciones || 'Ninguna',
-          metodoPago: general.metodoPago || 'No especificado',
-          tipoEntrega: general.tipoEntrega || 'Para Retirar',
-          emailCliente: general.emailCliente || '',
-          nombreCliente: general.nombreCliente || 'Cliente'
-        };
-
-        pedidosData.push(pedidoInfo);
-      }
-
-      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal));
-
-      renderizarPedidosEnProceso('todos');
-      renderizarPedidosFinalizados();
-
-    } catch (err) {
-      console.error('Error cargando pedidos:', err);
-      contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-      contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-    }
+async function cargarMisPedidos() {
+  if (estaCargandoPedidos) {
+    console.log("Ya se está cargando pedidos, esperando...");
+    return;
   }
 
-  function generarHtmlPedido(p, esFinalizado = false) {
-    let itemsHtml = '<ul class="item-list">';
-    let subtotal = 0;
-    p.items.forEach(item => {
-        const totalItem = item[7];
-        subtotal += totalItem;
-        itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
-    });
-    itemsHtml += '</ul>';
+  estaCargandoPedidos = true;
 
-    let badgeClass = 'bg-warning';
-    if (p.estadoActual === 'Listo') badgeClass = 'bg-info';
-    if (p.estadoActual === 'Entregado') badgeClass = 'bg-success';
-    if (p.estadoActual === 'Rechazado') badgeClass = 'bg-danger';
+  const contProceso = document.getElementById('pedidos-proceso-listado');
+  const contFinalizados = document.getElementById('pedidos-finalizados-listado');
 
-    const tipoBadge = p.tipoEntrega === 'Con Envío' 
-        ? '<span class="badge bg-primary ms-2">Con Envío</span>' 
-        : '<span class="badge bg-secondary ms-2">Retiro</span>';
+  // Limpiar visualmente antes de empezar
+  contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+  contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
 
-    const botonesAccion = esFinalizado ? '' : `
-        <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
-            <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Listo
-            </button>
-            <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Entregado
-            </button>
-            <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
-            </button>
-        </div>`;
+  try {
+    const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+    const locales = await resLocales.json();
 
-    return `
-        <div class="pedido-card">
-            <div class="pedido-header d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
-                </div>
-                <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
-            </div>
-            <div class="pedido-body">
-                <p><strong>Cliente:</strong> ${p.nombreCliente}</p>
-                <p><strong>Dirección/Retiro:</strong> ${p.direccion}</p>
-                <p><strong>Método de pago:</strong> ${p.metodoPago}</p>
-                <p><strong>Observaciones:</strong> ${p.observaciones}</p>
-                <h6 class="mt-3">Items:</h6>
-                ${itemsHtml}
-                <div class="text-end mt-3">
-                    <strong>Subtotal local: $${subtotal.toFixed(2)}</strong>
-                </div>
-                ${botonesAccion}
-            </div>
-        </div>`;
+    if (!locales || locales.length === 0) {
+      contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
+      contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
+      pedidosData = []; // Limpiar array también
+      estaCargandoPedidos = false;
+      return;
+    }
+
+    // Limpiar array ANTES de agregar nuevos
+    pedidosData = [];
+
+    for (const localPedido of locales) {
+      const idPedidoLocal = localPedido[0];
+      const idPedido = localPedido[1];
+      const estadoActual = localPedido[4] || 'Pendiente';
+
+      const [resItems, resGeneral] = await Promise.all([
+        fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+        fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
+      ]);
+
+      const items = await resItems.json();
+      const general = await resGeneral.json();
+
+      pedidosData.push({
+        idPedidoLocal,
+        idPedido,
+        estadoActual,
+        items,
+        direccion: general.direccion || 'Retiro en local',
+        observaciones: general.observaciones || 'Ninguna',
+        metodoPago: general.metodoPago || 'No especificado',
+        tipoEntrega: general.tipoEntrega || 'Para Retirar',
+        emailCliente: general.emailCliente || '',
+        nombreCliente: general.nombreCliente || 'Cliente'
+      });
+    }
+
+    // Ordenar una sola vez
+    pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
+
+    // Renderizar
+    activarFiltroTodos();
+    renderizarPedidosEnProceso('todos');
+    renderizarPedidosFinalizados();
+
+  } catch (err) {
+    console.error('Error cargando pedidos:', err);
+    contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+    contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+  } finally {
+    estaCargandoPedidos = false;
+  }
 }
 
+// === ACTUALIZACIÓN AUTOMÁTICA - SOLO SI HAY PEDIDOS NUEVOS REALES ===
+let pedidosConocidos = new Set();
+let intervaloPedidos = null;
+
+function iniciarActualizacionAutomatica() {
+  if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
+
+  // Inicializar conocidos
+  pedidosConocidos.clear();
+  pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
+
+  intervaloPedidos = setInterval(async () => {
+    if (estaCargandoPedidos) return; // No interrumpir carga en curso
+
+    try {
+      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+      const pedidosActuales = await res.json();
+
+      if (!pedidosActuales || pedidosActuales.length === 0) return;
+
+      // ¿Hay algún ID nuevo?
+      const hayNuevo = pedidosActuales.some(p => !pedidosConocidos.has(p[0]));
+
+      if (hayNuevo) {
+        console.log('¡NUEVO PEDIDO REAL detectado! Actualizando...');
+        new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav').play();
+
+        await cargarMisPedidos(); // Esto ya limpia y recarga todo
+
+        // Actualizar conocidos
+        pedidosConocidos.clear();
+        pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
+      }
+    } catch (err) {
+      console.error('Error en actualización automática:', err);
+    }
+  }, 30000);
+}
+
+function detenerActualizacionAutomatica() {
+  if (intervaloPedidos) {
+    clearInterval(intervaloPedidos);
+    intervaloPedidos = null;
+  }
+}
+
+// Navegación
+document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+  ocultarTodo();
+  document.getElementById('pedidos-panel').classList.remove('d-none');
+  detenerActualizacionAutomatica();
+  cargarMisPedidos().then(() => {
+    iniciarActualizacionAutomatica();
+  });
+});
+
+document.getElementById('btn-mi-menu').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('filtros-menu').classList.remove('d-none');
+  document.getElementById('menu-listado').classList.remove('d-none');
+  cargarMenuCompleto();
+});
+
+document.getElementById('btn-agregar-item').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('menu-form').classList.remove('d-none');
+  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
+  document.getElementById('menu-form').reset();
+  document.getElementById('edit-item-id').value = '';
+});
+  
   function agregarEventosBotones() {
     // Seleccionamos todos los botones relevantes (los que se crean dinámicamente)
     document.querySelectorAll('.btn-listos, .btn-entregado, .btn-rechazar').forEach(btn => {
