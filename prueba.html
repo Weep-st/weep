@@ -848,462 +848,433 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   });
 
   // === PEDIDOS ===
-async function cargarMisPedidos() {
-  const contProceso = document.getElementById('pedidos-proceso-listado');
-  const contFinalizados = document.getElementById('pedidos-finalizados-listado');
 
-  // Loading
-  contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
-  contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+  async function cargarMisPedidos() {
+    const contProceso = document.getElementById('pedidos-proceso-listado');
+    const contFinalizados = document.getElementById('pedidos-finalizados-listado');
 
-  try {
-    const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-    const todosLosPedidos = await resLocales.json();
+    // Mostrar loading
+    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
 
-    if (!todosLosPedidos || todosLosPedidos.length === 0) {
-      contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
-      contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
+    try {
+      const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+      const todosLosPedidos = await resLocales.json();
+
+      if (!todosLosPedidos || todosLosPedidos.length === 0) {
+        contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
+        contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
+        return;
+      }
+
+      const enProceso = todosLosPedidos.filter(p => {
+        const estado = p[4] || 'Pendiente';
+        return estado === 'Pendiente' || estado === 'Listo';
+      });
+
+      const finalizados = todosLosPedidos.filter(p => {
+        const estado = p[4] || 'Pendiente';
+        return estado === 'Entregado' || estado === 'Rechazado';
+      });
+
+      pedidosData = [];
+
+      // Cargar primero los pedidos en proceso (aparecen rápido)
+      for (const localPedido of enProceso) {
+        const idPedidoLocal = localPedido[0];
+        const idPedido = localPedido[1];
+        const estadoActual = localPedido[4] || 'Pendiente';
+
+        const [resItems, resGeneral] = await Promise.all([
+          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
+        ]);
+
+        const items = await resItems.json();
+        const general = await resGeneral.json();
+
+        pedidosData.push({
+          idPedidoLocal,
+          idPedido,
+          estadoActual,
+          items,
+          direccion: general.direccion || 'Retiro en local',
+          observaciones: general.observaciones || 'Ninguna',
+          metodoPago: general.metodoPago || 'No especificado',
+          tipoEntrega: general.tipoEntrega || 'Para Retirar',
+          emailCliente: general.emailCliente || '',
+          nombreCliente: general.nombreCliente || 'Cliente'
+        });
+      }
+
+      // Ordenar: más viejos arriba
+      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
+
+      // Mostrar inmediatamente con "Todos" activo
+      activarFiltroTodos();
+      renderizarPedidosEnProceso('todos');
+
+      // Cargar finalizados en segundo plano
+      for (const localPedido of finalizados) {
+        const idPedidoLocal = localPedido[0];
+        const idPedido = localPedido[1];
+        const estadoActual = localPedido[4] || 'Pendiente';
+
+        const [resItems, resGeneral] = await Promise.all([
+          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
+        ]);
+
+        const items = await resItems.json();
+        const general = await resGeneral.json();
+
+        pedidosData.push({
+          idPedidoLocal,
+          idPedido,
+          estadoActual,
+          items,
+          direccion: general.direccion || 'Retiro en local',
+          observaciones: general.observaciones || 'Ninguna',
+          metodoPago: general.metodoPago || 'No especificado',
+          tipoEntrega: general.tipoEntrega || 'Para Retirar',
+          emailCliente: general.emailCliente || '',
+          nombreCliente: general.nombreCliente || 'Cliente'
+        });
+      }
+
+      renderizarPedidosFinalizados();
+
+    } catch (err) {
+      console.error('Error cargando pedidos:', err);
+      contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+      contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+    }
+  }
+
+  function activarFiltroTodos() {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-todos-proceso').classList.add('active');
+  }
+
+  function generarHtmlPedido(p, esFinalizado = false) {
+    let itemsHtml = '<ul class="item-list">';
+    let subtotal = 0;
+    p.items.forEach(item => {
+        const totalItem = item[7];
+        subtotal += totalItem;
+        itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
+    });
+    itemsHtml += '</ul>';
+
+    let badgeClass = 'bg-warning';
+    if (p.estadoActual === 'Listo') badgeClass = 'bg-info';
+    if (p.estadoActual === 'Entregado') badgeClass = 'bg-success';
+    if (p.estadoActual === 'Rechazado') badgeClass = 'bg-danger';
+
+    const tipoBadge = p.tipoEntrega === 'Con Envío'
+        ? '<span class="badge bg-primary ms-2">Con Envío</span>'
+        : '<span class="badge bg-secondary ms-2">Retiro</span>';
+
+    const botonesAccion = esFinalizado ? '' : `
+        <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
+            <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
+                <span class="spinner-border spinner-border-sm d-none"></span> Listo
+            </button>
+            <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
+                <span class="spinner-border spinner-border-sm d-none"></span> Entregado
+            </button>
+            <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
+                <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
+            </button>
+        </div>`;
+
+    return `
+        <div class="pedido-card">
+            <div class="pedido-header d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
+                </div>
+                <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
+            </div>
+            <div class="pedido-body">
+                <p><strong>Cliente:</strong> ${p.nombreCliente}</p>
+                <p><strong>Dirección/Retiro:</strong> ${p.direccion}</p>
+                <p><strong>Método de pago:</strong> ${p.metodoPago}</p>
+                <p><strong>Observaciones:</strong> ${p.observaciones}</p>
+                <h6 class="mt-3">Items:</h6>
+                ${itemsHtml}
+                <div class="text-end mt-3">
+                    <strong>Subtotal local: $${subtotal.toFixed(2)}</strong>
+                </div>
+                ${botonesAccion}
+            </div>
+        </div>`;
+  }
+
+  function renderizarPedidosEnProceso(filtro = 'todos') {
+    const cont = document.getElementById('pedidos-proceso-listado');
+    const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
+    let filtrados = pedidosProceso;
+    if (filtro === 'pendientes') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Pendiente');
+    if (filtro === 'listos') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Listo');
+
+    if (filtrados.length === 0) {
+      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos en este filtro</h5></div>';
       return;
     }
 
-    // Separar grupos
-    const enProceso = todosLosPedidos.filter(p => {
-      const estado = p[4] || 'Pendiente';
-      return estado === 'Pendiente' || estado === 'Listo';
-    });
+    let html = '';
+    filtrados.forEach(p => html += generarHtmlPedido(p));
+    cont.innerHTML = html;
+    agregarEventosBotones();
+  }
 
-    const finalizados = todosLosPedidos.filter(p => {
-      const estado = p[4] || 'Pendiente';
-      return estado === 'Entregado' || estado === 'Rechazado';
-    });
+  function renderizarPedidosFinalizados() {
+    const cont = document.getElementById('pedidos-finalizados-listado');
+    const finalizados = pedidosData.filter(p => p.estadoActual === 'Entregado' || p.estadoActual === 'Rechazado');
 
-    // ¡IMPORTANTE! Limpiamos antes de empezar
-    pedidosData = [];
-
-    // 1. Cargar rápido: solo pedidos activos
-    for (const localPedido of enProceso) {
-      const idPedidoLocal = localPedido[0];
-      const idPedido = localPedido[1];
-      const estadoActual = localPedido[4] || 'Pendiente';
-
-      const [resItems, resGeneral] = await Promise.all([
-        fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
-        fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
-      ]);
-
-      const items = await resItems.json();
-      const general = await resGeneral.json();
-
-      pedidosData.push({
-        idPedidoLocal,
-        idPedido,
-        estadoActual,
-        items,
-        direccion: general.direccion || 'Retiro en local',
-        observaciones: general.observaciones || 'Ninguna',
-        metodoPago: general.metodoPago || 'No especificado',
-        tipoEntrega: general.tipoEntrega || 'Para Retirar',
-        emailCliente: general.emailCliente || '',
-        nombreCliente: general.nombreCliente || 'Cliente'
-      });
+    if (finalizados.length === 0) {
+      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos finalizados</h5></div>';
+      return;
     }
 
-    // Orden cronológico
-    pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
+    let html = '';
+    finalizados.forEach(p => html += generarHtmlPedido(p, true));
+    cont.innerHTML = html;
+  }
 
-    // Mostrar inmediatamente
-    activarFiltroTodos();
+  // Filtros
+  document.getElementById('filtro-pendientes').addEventListener('click', () => {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-pendientes').classList.add('active');
+    renderizarPedidosEnProceso('pendientes');
+  });
+
+  document.getElementById('filtro-listos').addEventListener('click', () => {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-listos').classList.add('active');
+    renderizarPedidosEnProceso('listos');
+  });
+
+  document.getElementById('filtro-todos-proceso').addEventListener('click', () => {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-todos-proceso').classList.add('active');
     renderizarPedidosEnProceso('todos');
-
-    // 2. Finalizados en background
-    for (const localPedido of finalizados) {
-      const idPedidoLocal = localPedido[0];
-      const idPedido = localPedido[1];
-      const estadoActual = localPedido[4] || 'Pendiente';
-
-      const [resItems, resGeneral] = await Promise.all([
-        fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
-        fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
-      ]);
-
-      const items = await resItems.json();
-      const general = await resGeneral.json();
-
-      pedidosData.push({
-        idPedidoLocal,
-        idPedido,
-        estadoActual,
-        items,
-        direccion: general.direccion || 'Retiro en local',
-        observaciones: general.observaciones || 'Ninguna',
-        metodoPago: general.metodoPago || 'No especificado',
-        tipoEntrega: general.tipoEntrega || 'Para Retirar',
-        emailCliente: general.emailCliente || '',
-        nombreCliente: general.nombreCliente || 'Cliente'
-      });
-    }
-
-    renderizarPedidosFinalizados();
-
-  } catch (err) {
-    console.error('Error cargando pedidos:', err);
-    contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-    contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-  }
-}
-
-// Resto de funciones de renderizado y filtros (sin cambios)
-function activarFiltroTodos() {
-  document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('filtro-todos-proceso').classList.add('active');
-}
-
-function generarHtmlPedido(p, esFinalizado = false) {
-  let itemsHtml = '<ul class="item-list">';
-  let subtotal = 0;
-  p.items.forEach(item => {
-    const totalItem = item[7];
-    subtotal += totalItem;
-    itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
   });
-  itemsHtml += '</ul>';
-
-  let badgeClass = 'bg-warning';
-  if (p.estadoActual === 'Listo') badgeClass = 'bg-info';
-  if (p.estadoActual === 'Entregado') badgeClass = 'bg-success';
-  if (p.estadoActual === 'Rechazado') badgeClass = 'bg-danger';
-
-  const tipoBadge = p.tipoEntrega === 'Con Envío'
-    ? '<span class="badge bg-primary ms-2">Con Envío</span>'
-    : '<span class="badge bg-secondary ms-2">Retiro</span>';
-
-  const botonesAccion = esFinalizado ? '' : `
-    <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
-      <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-        <span class="spinner-border spinner-border-sm d-none"></span> Listo
-      </button>
-      <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-        <span class="spinner-border spinner-border-sm d-none"></span> Entregado
-      </button>
-      <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
-        <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
-      </button>
-    </div>`;
-
-  return `
-    <div class="pedido-card">
-      <div class="pedido-header d-flex justify-content-between align-items-center">
-        <div>
-          <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
-        </div>
-        <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
-      </div>
-      <div class="pedido-body">
-        <p><strong>Cliente:</strong> ${p.nombreCliente}</p>
-        <p><strong>Dirección/Retiro:</strong> ${p.direccion}</p>
-        <p><strong>Método de pago:</strong> ${p.metodoPago}</p>
-        <p><strong>Observaciones:</strong> ${p.observaciones}</p>
-        <h6 class="mt-3">Items:</h6>
-        ${itemsHtml}
-        <div class="text-end mt-3">
-          <strong>Subtotal local: $${subtotal.toFixed(2)}</strong>
-        </div>
-        ${botonesAccion}
-      </div>
-    </div>`;
-}
-
-function renderizarPedidosEnProceso(filtro = 'todos') {
-  const cont = document.getElementById('pedidos-proceso-listado');
-  const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
-  let filtrados = pedidosProceso;
-  if (filtro === 'pendientes') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Pendiente');
-  if (filtro === 'listos') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Listo');
-
-  if (filtrados.length === 0) {
-    cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos en este filtro</h5></div>';
-    return;
-  }
-
-  let html = '';
-  filtrados.forEach(p => html += generarHtmlPedido(p));
-  cont.innerHTML = html;
-  agregarEventosBotones();
-}
-
-function renderizarPedidosFinalizados() {
-  const cont = document.getElementById('pedidos-finalizados-listado');
-  const finalizados = pedidosData.filter(p => p.estadoActual === 'Entregado' || p.estadoActual === 'Rechazado');
-
-  if (finalizados.length === 0) {
-    cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos finalizados</h5></div>';
-    return;
-  }
-
-  let html = '';
-  finalizados.forEach(p => html += generarHtmlPedido(p, true));
-  cont.innerHTML = html;
-}
-
-// Filtros (sin cambios)
-document.getElementById('filtro-pendientes').addEventListener('click', () => {
-  document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('filtro-pendientes').classList.add('active');
-  renderizarPedidosEnProceso('pendientes');
-});
-
-document.getElementById('filtro-listos').addEventListener('click', () => {
-  document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('filtro-listos').classList.add('active');
-  renderizarPedidosEnProceso('listos');
-});
-
-document.getElementById('filtro-todos-proceso').addEventListener('click', () => {
-  document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('filtro-todos-proceso').classList.add('active');
-  renderizarPedidosEnProceso('todos');
-});
-
-// === ACTUALIZACIÓN AUTOMÁTICA + TIMBRE SOLO PARA PEDIDOS NUEVOS ===
-let pedidosConocidos = new Set(); // IDs vistos
-let intervaloPedidos = null;
-
-function iniciarActualizacionAutomatica() {
-  if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
-
-  // Inicializar conocidos
-  pedidosConocidos.clear();
-  pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
-
-  intervaloPedidos = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const pedidosActuales = await res.json();
-
-      if (!pedidosActuales || pedidosActuales.length === 0) return;
-
-      // ¿Hay algún ID realmente nuevo?
-      const nuevoPedido = pedidosActuales.find(p => !pedidosConocidos.has(p[0]));
-
-      if (nuevoPedido) {
-        console.log('¡NUEVO PEDIDO REAL detectado! Actualizando...');
-
-        // Intentar reproducir sonido (con manejo de error para autoplay)
-        const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav');
-        audio.play().catch(e => {
-          console.log("Autoplay bloqueado o sonido no cargó (normal en algunos navegadores):", e);
-        });
-
-        // Limpiar y recargar
-        pedidosData = [];
-        await cargarMisPedidos();
-
-        // Actualizar conocidos
-        pedidosConocidos.clear();
-        pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
-      }
-    } catch (err) {
-      console.error('Error en actualización automática:', err);
-    }
-  }, 30000); // 30 segundos
-}
-
-function detenerActualizacionAutomatica() {
-  if (intervaloPedidos) {
-    clearInterval(intervaloPedidos);
-    intervaloPedidos = null;
-  }
-}
-
-// Navegación
-document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
-  ocultarTodo();
-  document.getElementById('pedidos-panel').classList.remove('d-none');
-  detenerActualizacionAutomatica();
-  cargarMisPedidos().then(() => {
-    iniciarActualizacionAutomatica();
-  });
-});
-
-document.getElementById('btn-mi-menu').addEventListener('click', () => {
-  detenerActualizacionAutomatica();
-  ocultarTodo();
-  document.getElementById('filtros-menu').classList.remove('d-none');
-  document.getElementById('menu-listado').classList.remove('d-none');
-  cargarMenuCompleto();
-});
-
-document.getElementById('btn-agregar-item').addEventListener('click', () => {
-  detenerActualizacionAutomatica();
-  ocultarTodo();
-  document.getElementById('menu-form').classList.remove('d-none');
-  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-  document.getElementById('menu-form').reset();
-  document.getElementById('edit-item-id').value = '';
-});
 
   function agregarEventosBotones() {
-    // Seleccionamos todos los botones relevantes (los que se crean dinámicamente)
     document.querySelectorAll('.btn-listos, .btn-entregado, .btn-rechazar').forEach(btn => {
-        // Evitamos agregar múltiples listeners al mismo botón
-        if (btn.dataset.listenerAdded) return;
-        btn.dataset.listenerAdded = 'true';
+      btn.addEventListener('click', async function() {
+        const idPedidoLocal = this.dataset.id;
+        const pedido = pedidosData.find(p => p.idPedidoLocal == idPedidoLocal);
+        if (!pedido) return;
 
-        btn.addEventListener('click', async function() {
-            const idPedidoLocal = this.dataset.id;
-            const pedido = pedidosData.find(p => p.idPedidoLocal === idPedidoLocal);
-            if (!pedido) {
-                console.warn("No se encontró el pedido con id:", idPedidoLocal);
-                return;
+        let nuevoEstado = '';
+        let accionNotificacion = '';
+        if (this.classList.contains('btn-listos')) {
+          nuevoEstado = 'Listo';
+          accionNotificacion = 'listo';
+        } else if (this.classList.contains('btn-entregado')) {
+          nuevoEstado = 'Entregado';
+          accionNotificacion = 'entregado';
+        } else if (this.classList.contains('btn-rechazar')) {
+          nuevoEstado = 'Rechazado';
+          accionNotificacion = 'rechazado';
+        }
+
+        const spinner = this.querySelector('.spinner-border');
+        spinner.classList.remove('d-none');
+        this.disabled = true;
+
+        try {
+          const payloadEstado = {
+            action: 'updateEstadoLocalOrder',
+            idPedidoLocal: idPedidoLocal,
+            nuevoEstado: nuevoEstado
+          };
+          await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payloadEstado),
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors'
+          });
+
+          // Logo para emails
+          const logoHtml = `
+            <div style="text-align: center; margin: 20px 0 30px 0;">
+              <img src="https://i.postimg.cc/HW8j3XBr/Chat-GPT-Image-Jan-3-2026-01-27-57-AM.png"
+                   alt="Weep"
+                   width="120"
+                   style="max-width: 120px; height: auto; border-radius: 12px;">
+            </div>
+            <hr style="border: 0; border-top: 2px solid #d32f2f; margin: 30px 0;">
+          `;
+
+          let destinatario = '';
+          let asunto = '';
+          let mensaje = '';
+
+          if (accionNotificacion === 'listo') {
+            if (pedido.tipoEntrega === 'Con Envío') {
+              destinatario = EMAIL_MOTOMANDADO;
+              asunto = `¡Nuevo pedido listo para envío! - Pedido #${pedido.idPedido}`;
+              mensaje = `
+                ${logoHtml}
+                <h2 style="color: #d32f2f; text-align: center;">Pedido listo para retiro por motomandado</h2>
+                <p><strong>Cliente:</strong> ${pedido.nombreCliente}</p>
+                <p><strong>Dirección de entrega:</strong> ${pedido.direccion}</p>
+                <p><strong>Observaciones:</strong> ${pedido.observaciones || 'Ninguna'}</p>
+                <p><strong>Dirección del local:</strong> ${direccionLocal}</p>
+                <p style="font-weight: bold; color: #d32f2f;">
+                  Por favor coordinar retiro en el local lo antes posible.
+                </p>
+              `;
+            } else {
+              destinatario = pedido.emailCliente;
+              asunto = `¡Tu pedido está listo para retirar! - Pedido #${pedido.idPedido}`;
+              mensaje = `
+                ${logoHtml}
+                <h2 style="color: #d32f2f; text-align: center;">¡Tu pedido está listo!</h2>
+                <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
+                <p>Tu pedido ya está preparado y listo para que pases a retirarlo.</p>
+                <p><strong>Dirección del local:</strong> ${direccionLocal}</p>
+                <p>¡Gracias por elegirnos! Te esperamos</p>
+              `;
             }
+          } else if (accionNotificacion === 'entregado') {
+            destinatario = pedido.emailCliente;
+            asunto = `¡Tu pedido ha sido entregado! - Pedido #${pedido.idPedido}`;
+            mensaje = `
+              ${logoHtml}
+              <h2 style="color: #d32f2f; text-align: center;">¡Gracias por tu compra!</h2>
+              <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
+              <p>Tu pedido <strong>#${pedido.idPedido}</strong> ha sido entregado con éxito.</p>
+              <p>¿Cómo fue tu experiencia? Ayúdanos a mejorar:</p>
+              <div style="text-align:center; margin:30px 0;">
+                <a href="https://forms.gle/TU_ENLACE_DE_VALORACION_AQUI"
+                   style="display:inline-block; font-size:18px; padding:14px 28px; background:#d32f2f; color:white; text-decoration:none; border-radius:12px; font-weight:bold;">
+                  ⭐ Calificar con 5 estrellas
+                </a>
+              </div>
+              <p>¡Gracias por confiar en Weep!</p>
+            `;
+          } else if (accionNotificacion === 'rechazado') {
+            destinatario = pedido.emailCliente;
+            asunto = `Pedido rechazado - Pedido #${pedido.idPedido}`;
+            mensaje = `
+              ${logoHtml}
+              <h2 style="color: #d32f2f; text-align: center;">Lo sentimos</h2>
+              <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
+              <p>Lamentamos informarte que tu pedido <strong>#${pedido.idPedido}</strong> no pudo ser procesado en este momento.</p>
+              <p><strong>Motivo:</strong> [Indicar motivo si aplica]</p>
+              <p>Te devolveremos el dinero en los próximos días si corresponde.</p>
+              <p>Disculpa las molestias. Estamos aquí para ayudarte.</p>
+            `;
+          }
 
-            // Determinamos el nuevo estado según qué botón se presionó
-            let nuevoEstado = '';
-            let accionNotificacion = '';
-            let textoAccion = '';
+          if (destinatario && asunto && mensaje) {
+            const payloadEmail = {
+              action: 'enviarNotificacionEmail',
+              fromEmail: EMAIL_NOTIFICACIONES,
+              toEmail: destinatario,
+              subject: asunto,
+              htmlBody: mensaje
+            };
+            await fetch(API_URL, {
+              method: 'POST',
+              body: JSON.stringify(payloadEmail),
+              headers: { 'Content-Type': 'application/json' },
+              mode: 'no-cors'
+            });
+          }
 
-            if (this.classList.contains('btn-listos')) {
-                nuevoEstado = 'Listo';
-                accionNotificacion = 'listo';
-                textoAccion = 'Listo';
-            } else if (this.classList.contains('btn-entregado')) {
-                nuevoEstado = 'Entregado';
-                accionNotificacion = 'entregado';
-                textoAccion = 'Entregado';
-            } else if (this.classList.contains('btn-rechazar')) {
-                nuevoEstado = 'Rechazado';
-                accionNotificacion = 'rechazado';
-                textoAccion = 'Rechazado';
-            }
-
-            if (!nuevoEstado) return;
-
-            // Feedback visual inmediato
-            const spinner = this.querySelector('.spinner-border');
-            const textoOriginal = this.textContent.trim();
-            spinner.classList.remove('d-none');
-            this.disabled = true;
-            this.textContent = textoAccion + '...';
-
-            try {
-                // ────────────────────────────────────────────────
-                // Llamada GET (la forma más estable con Apps Script)
-                // ────────────────────────────────────────────────
-                const url = `${API_URL}?action=updateEstadoLocalOrder` +
-                           `&idPedidoLocal=${encodeURIComponent(idPedidoLocal)}` +
-                           `&nuevoEstado=${encodeURIComponent(nuevoEstado)}`;
-
-                console.log("Enviando GET →", url);
-
-                await fetch(url, {
-                    method: 'GET',
-                    mode: 'no-cors',       // necesario en muchos entornos GAS + frontend
-                    cache: 'no-cache'
-                });
-
-                // ────────────────────────────────────────────────
-                // Preparar y enviar notificación por email (si corresponde)
-                // ────────────────────────────────────────────────
-                const logoHtml = `
-                    <div style="text-align: center; margin: 20px 0 30px 0;">
-                        <img src="https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
-                             alt="Weep" width="120" style="border-radius:12px;">
-                    </div>
-                    <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-                `;
-
-                let destinatario = '';
-                let asunto = '';
-                let mensajeHtml = '';
-
-                if (accionNotificacion === 'listo') {
-                    if (pedido.tipoEntrega === 'Con Envío') {
-                        destinatario = EMAIL_MOTOMANDADO;
-                        asunto = `¡Pedido listo para envío! #${pedido.idPedido}`;
-                        mensajeHtml = `
-                            ${logoHtml}
-                            <h2 style="color:#d32f2f; text-align:center;">Pedido listo para retiro</h2>
-                            <p><strong>Cliente:</strong> ${pedido.nombreCliente}</p>
-                            <p><strong>Dirección:</strong> ${pedido.direccion}</p>
-                            <p><strong>Observaciones:</strong> ${pedido.observaciones || 'Ninguna'}</p>
-                            <p><strong>Local:</strong> ${direccionLocal}</p>
-                            <p style="font-weight:bold; color:#d32f2f;">
-                                Coordinar retiro lo antes posible.
-                            </p>
-                        `;
-                    } else {
-                        destinatario = pedido.emailCliente;
-                        asunto = `¡Tu pedido está listo para retirar! #${pedido.idPedido}`;
-                        mensajeHtml = `
-                            ${logoHtml}
-                            <h2 style="color:#d32f2f; text-align:center;">¡Tu pedido está listo!</h2>
-                            <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
-                            <p>Ya está preparado para que pases a retirarlo.</p>
-                            <p><strong>Dirección del local:</strong> ${direccionLocal}</p>
-                            <p>¡Te esperamos!</p>
-                        `;
-                    }
-                } else if (accionNotificacion === 'entregado') {
-                    destinatario = pedido.emailCliente;
-                    asunto = `¡Pedido entregado! #${pedido.idPedido}`;
-                    mensajeHtml = `
-                        ${logoHtml}
-                        <h2 style="color:#d32f2f; text-align:center;">¡Gracias por tu compra!</h2>
-                        <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
-                        <p>Tu pedido <strong>#${pedido.idPedido}</strong> fue entregado.</p>
-                        <p>¿Cómo estuvo? Ayúdanos a mejorar:</p>
-                        <div style="text-align:center; margin:30px 0;">
-                            <a href="https://forms.gle/TU_ENLACE_AQUI"
-                               style="background:#d32f2f; color:white; padding:14px 28px; border-radius:12px; text-decoration:none; font-weight:bold;">
-                                ⭐ Calificar experiencia
-                            </a>
-                        </div>
-                    `;
-                } else if (accionNotificacion === 'rechazado') {
-                    destinatario = pedido.emailCliente;
-                    asunto = `Pedido rechazado #${pedido.idPedido}`;
-                    mensajeHtml = `
-                        ${logoHtml}
-                        <h2 style="color:#d32f2f; text-align:center;">Lo sentimos</h2>
-                        <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
-                        <p>Tu pedido <strong>#${pedido.idPedido}</strong> no pudo procesarse.</p>
-                        <p>Te contactaremos si corresponde devolución.</p>
-                        <p>Disculpas por las molestias.</p>
-                    `;
-                }
-
-                // Enviar email si hay destinatario y mensaje
-                if (destinatario && asunto && mensajeHtml) {
-                    const emailParams = new URLSearchParams({
-                        action: 'enviarNotificacionEmail',
-                        toEmail: destinatario,
-                        subject: asunto,
-                        htmlBody: mensajeHtml
-                    });
-
-                    await fetch(`${API_URL}?${emailParams}`, {
-                        method: 'GET',
-                        mode: 'no-cors',
-                        cache: 'no-cache'
-                    });
-                }
-
-                alert(`Pedido marcado como ${nuevoEstado}${accionNotificacion !== 'rechazado' ? ' → notificación enviada' : ''}`);
-                
-                // Recargar la lista de pedidos
-                cargarMisPedidos();
-
-            } catch (err) {
-                console.error("Error al procesar acción:", err);
-                alert("Error al actualizar el estado del pedido");
-            } finally {
-                spinner.classList.add('d-none');
-                this.disabled = false;
-                this.textContent = textoOriginal;
-            }
-        });
+          alert(`Pedido marcado como ${nuevoEstado}${accionNotificacion !== 'rechazado' ? ' y notificación enviada' : ''}`);
+          cargarMisPedidos();
+        } catch (err) {
+          console.error(err);
+          alert('Error al procesar el pedido o enviar notificación');
+        } finally {
+          spinner.classList.add('d-none');
+          this.disabled = false;
+        }
+      });
     });
-}
+  }
+
+  // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS ===
+  let ultimoPedidoConocido = null;
+  let intervaloPedidos = null;
+
+  function iniciarActualizacionAutomatica() {
+    if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
+
+    if (pedidosData.length > 0) {
+      ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
+    }
+
+    intervaloPedidos = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+        const pedidosActuales = await res.json();
+
+        if (!pedidosActuales || pedidosActuales.length === 0) return;
+
+        const pedidoMasReciente = pedidosActuales.reduce((max, p) => 
+          p[0].localeCompare(max[0], undefined, {numeric: true, sensitivity: 'base'}) > 0 ? p : max,
+          pedidosActuales[0]
+        );
+        const idMasReciente = pedidoMasReciente[0];
+
+        if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true, sensitivity: 'base'}) > 0) {
+          console.log('¡Nuevo pedido detectado! Actualizando...');
+
+          // SONIDO CORREGIDO: timbre de mostrador (funciona en todos los navegadores)
+          new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav').play();
+
+          pedidosData = [];
+          await cargarMisPedidos();
+
+          ultimoPedidoConocido = idMasReciente;
+        }
+      } catch (err) {
+        console.error('Error en actualización automática:', err);
+      }
+    }, 30000); // Cada 30 segundos
+  }
+
+  function detenerActualizacionAutomatica() {
+    if (intervaloPedidos) {
+      clearInterval(intervaloPedidos);
+      intervaloPedidos = null;
+    }
+  }
+
+  // Navegación
+  document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+    ocultarTodo();
+    document.getElementById('pedidos-panel').classList.remove('d-none');
+    detenerActualizacionAutomatica();
+    cargarMisPedidos().then(() => {
+      iniciarActualizacionAutomatica();
+    });
+  });
+
+  document.getElementById('btn-mi-menu').addEventListener('click', () => {
+    detenerActualizacionAutomatica();
+    ocultarTodo();
+    document.getElementById('filtros-menu').classList.remove('d-none');
+    document.getElementById('menu-listado').classList.remove('d-none');
+    cargarMenuCompleto();
+  });
+
+  document.getElementById('btn-agregar-item').addEventListener('click', () => {
+    detenerActualizacionAutomatica();
+    ocultarTodo();
+    document.getElementById('menu-form').classList.remove('d-none');
+    document.getElementById('form-titulo').textContent = 'Nuevo Plato';
+    document.getElementById('menu-form').reset();
+    document.getElementById('edit-item-id').value = '';
+  });
 
 </script>
 </body>
