@@ -1221,87 +1221,99 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     });
 }
 
-// === ACTUALIZACIÓN AUTOMÁTICA + TIMBRE ===
-  let ultimoPedidoConocido = null;
-  let intervaloPedidos = null;
+// === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE COMPATIBLE ===
+let ultimoPedidoConocido = null;
+let intervaloPedidos = null;
 
-  function iniciarActualizacionAutomatica() {
-    if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
+function iniciarActualizacionAutomatica() {
+  // Evitar duplicar intervalos si ya existe uno activo
+  if (intervaloPedidos) {
+    clearInterval(intervaloPedidos);
+  }
 
-    if (pedidosData.length > 0) {
-      ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
-    }
+  if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
 
-    intervaloPedidos = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-        const pedidosActuales = await res.json();
+  // Tomar el ID más reciente actual (el último de la lista ordenada)
+  if (pedidosData.length > 0) {
+    ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
+  }
 
-        if (!pedidosActuales || pedidosActuales.length === 0) return;
+  intervaloPedidos = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+      const pedidosActuales = await res.json();
 
-        const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
-          p[0].localeCompare(max[0], undefined, {numeric: true, sensitivity: 'base'}) > 0 ? p : max,
-          pedidosActuales[0]
-        );
+      if (!pedidosActuales || pedidosActuales.length === 0) return;
 
-        const idMasReciente = pedidoMasReciente[0];
+      // Encontrar el pedido con ID más alto (más reciente)
+      const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
+        p[0].localeCompare(max[0], undefined, { numeric: true, sensitivity: 'base' }) > 0 ? p : max,
+        pedidosActuales[0]
+      );
 
-        if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true, sensitivity: 'base'}) > 0) {
-          console.log('¡Nuevo pedido detectado! Actualizando...');
+      const idMasReciente = pedidoMasReciente[0];
 
-          // TIMBRE - sonido de campanita de mostrador (muy compatible)
-          try {
-            const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav');
-            audio.volume = 0.7; // no muy fuerte
-            audio.play().catch(e => console.log("Audio bloqueado por navegador:", e));
-          } catch (e) {
-            console.log("No se pudo reproducir timbre:", e);
-          }
+      // Solo actuamos si hay un pedido más nuevo que el conocido
+      if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
+        console.log('¡Nuevo pedido detectado! Actualizando... ID:', idMasReciente);
 
-          pedidosData = [];
-          await cargarMisPedidos();
-
-          ultimoPedidoConocido = idMasReciente;
+        // TIMBRE - sonido compatible y corto (campanita de restaurante)
+        try {
+          const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
+          audio.volume = 0.6; // volumen moderado
+          await audio.play(); // await para esperar que termine de cargar
+        } catch (audioErr) {
+          console.log("El navegador bloqueó o no soporta el audio:", audioErr.message);
+          // No rompemos nada, solo no suena
         }
-      } catch (err) {
-        console.error('Error en actualización automática:', err);
+
+        // Limpiar y recargar datos
+        pedidosData = [];
+        await cargarMisPedidos();
+
+        // Actualizar el último conocido
+        ultimoPedidoConocido = idMasReciente;
       }
-    }, 30000); // 30 segundos - puedes cambiar a 20000 (20s) si querés más frecuente
-  }
-
-  function detenerActualizacionAutomatica() {
-    if (intervaloPedidos) {
-      clearInterval(intervaloPedidos);
-      intervaloPedidos = null;
+    } catch (err) {
+      console.error('Error en chequeo automático de pedidos:', err);
     }
+  }, 30000); // 30 segundos — puedes bajar a 15000 si quieres más frecuente
+}
+
+function detenerActualizacionAutomatica() {
+  if (intervaloPedidos) {
+    clearInterval(intervaloPedidos);
+    intervaloPedidos = null;
   }
+}
 
-  // Navegación con control de actualización automática
-  document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
-    ocultarTodo();
-    document.getElementById('pedidos-panel').classList.remove('d-none');
-    detenerActualizacionAutomatica();
-    cargarMisPedidos().then(() => {
-      iniciarActualizacionAutomatica();
-    });
+// === NAVEGACIÓN CON CONTROL DE INTERVALO ===
+document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+  ocultarTodo();
+  document.getElementById('pedidos-panel').classList.remove('d-none');
+  
+  detenerActualizacionAutomatica();       // Limpiar cualquier intervalo viejo
+  cargarMisPedidos().then(() => {
+    iniciarActualizacionAutomatica();     // Iniciar nuevo intervalo limpio
   });
+});
 
-  document.getElementById('btn-mi-menu').addEventListener('click', () => {
-    detenerActualizacionAutomatica();
-    ocultarTodo();
-    document.getElementById('filtros-menu').classList.remove('d-none');
-    document.getElementById('menu-listado').classList.remove('d-none');
-    cargarMenuCompleto();
-  });
+document.getElementById('btn-mi-menu').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('filtros-menu').classList.remove('d-none');
+  document.getElementById('menu-listado').classList.remove('d-none');
+  cargarMenuCompleto();
+});
 
-  document.getElementById('btn-agregar-item').addEventListener('click', () => {
-    detenerActualizacionAutomatica();
-    ocultarTodo();
-    document.getElementById('menu-form').classList.remove('d-none');
-    document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-    document.getElementById('menu-form').reset();
-    document.getElementById('edit-item-id').value = '';
-  });
+document.getElementById('btn-agregar-item').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('menu-form').classList.remove('d-none');
+  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
+  document.getElementById('menu-form').reset();
+  document.getElementById('edit-item-id').value = '';
+});
 
 </script>
 </body>
