@@ -1166,89 +1166,84 @@ actualizarBadgePedidosPendientes();
   
 // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE 100% COMPATIBLE ===
 let intervaloPedidos = null;
+let estaRecargando = false;  // ← bandera nueva para evitar recursión
 
 function iniciarActualizacionAutomatica() {
-  // 1. Siempre limpiar primero (la más importante)
+  // Siempre limpiar primero
   detenerActualizacionAutomatica();
 
-  // 2. Solo activar si estamos realmente en la pestaña de pedidos
   if (document.getElementById('pedidos-panel').classList.contains('d-none')) {
     console.log("No se inicia polling: no estamos en Mis Pedidos");
     return;
   }
 
-  // 3. Guardar el último ID conocido (defensivo)
+  // Guardar último conocido
   if (pedidosData.length > 0) {
     ultimoPedidoConocido = pedidosData
       .map(p => p.idPedidoLocal)
-      .sort((a,b) => b.localeCompare(a, undefined, {numeric:true}))
-      [0];  // el más alto
+      .sort((a,b) => b.localeCompare(a, undefined, {numeric:true}))[0];
     console.log('Inicio polling → último conocido:', ultimoPedidoConocido);
   } else {
     ultimoPedidoConocido = null;
   }
 
-  // 4. Crear intervalo (30 segundos)
   intervaloPedidos = setInterval(async () => {
-  try {
-    const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-    const pedidosActuales = await res.json();
-    if (!Array.isArray(pedidosActuales) || pedidosActuales.length === 0) return;
+    // Si ya estamos recargando → no hacer nada en este ciclo
+    if (estaRecargando) {
+      console.log("Polling pausado: recarga en curso");
+      return;
+    }
 
-    // Tomar el ID más alto (más reciente)
-    const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
-      return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
-    }, pedidosActuales[0]);
+    try {
+      estaRecargando = true;  // bloquear
 
-    const idMasReciente = pedidoMasReciente[0];
+      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+      const pedidosActuales = await res.json();
 
-    // ←←← AQUÍ VA EL BLOQUE NUEVO ←←←
-    if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
-      
-      if (estaProcesandoNuevoPedido) {
-        console.log("Procesamiento en curso, ignorando detección repetida");
+      if (!Array.isArray(pedidosActuales) || pedidosActuales.length === 0) {
+        estaRecargando = false;
         return;
       }
-      
-      estaProcesandoNuevoPedido = true;
-      
-      console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
-      
-      // Intento de sonido + fallback visual
-      try {
-        if (document.visibilityState === 'visible') {
+
+      const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
+        return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
+      }, pedidosActuales[0]);
+
+      const idMasReciente = pedidoMasReciente[0];
+
+      if (!ultimoPedidoConocido || 
+          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
+        
+        console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
+
+        // Detener el intervalo ANTES de recargar
+        detenerActualizacionAutomatica();
+
+        try {
           const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
           audio.volume = 0.6;
-          setTimeout(() => {
-            audio.play().catch(err => {
-              console.warn("Sonido bloqueado (sin interacción):", err.message);
-              // Fallback visual: pulse en el badge
-              const badge = document.getElementById('badge-pendientes');
-              if (badge) {
-                badge.style.animation = 'pulse 1.5s infinite';
-                setTimeout(() => { badge.style.animation = ''; }, 6000); // quitar después de 6s
-              }
-            });
-          }, 300);
+          await audio.play();
+        } catch (err) {
+          console.warn("No se pudo reproducir sonido:", err.message);
         }
-      } catch (err) {
-        console.warn("Error intentando sonido:", err);
-      }
-      
-      try {
-        await cargarMisPedidos();
-        ultimoPedidoConocido = idMasReciente;
-      } finally {
-        estaProcesandoNuevoPedido = false;
-      }
-    }
-  } catch (err) {
-    console.error('Error en polling:', err);
-  }
-}, 30000);
 
-  await cargarMisPedidos();
-  ultimoPedidoConocido = idMasReciente;
+        // Recargar datos
+        await cargarMisPedidos();
+
+        // Actualizar último conocido
+        ultimoPedidoConocido = idMasReciente;
+
+        // Reiniciar polling limpio después de recargar
+        iniciarActualizacionAutomatica();
+      }
+    } catch (err) {
+      console.error('Error en polling:', err);
+    } finally {
+      estaRecargando = false;  // desbloquear
+    }
+  }, 30000);
+
+  console.log("Polling iniciado (intervalo ID:", intervaloPedidos, ")");
 }
       
 function detenerActualizacionAutomatica() {
