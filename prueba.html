@@ -426,6 +426,7 @@
   let menuItems = [];
   let pedidosData = [];
   let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
+  let estaProcesandoNuevoPedido = false;
   if (localToken) mostrarPanelPrincipal();
   
   function mostrarPanelPrincipal() {
@@ -1189,47 +1190,67 @@ function iniciarActualizacionAutomatica() {
 
   // 4. Crear intervalo (30 segundos)
   intervaloPedidos = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const pedidosActuales = await res.json();
+  try {
+    const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+    const pedidosActuales = await res.json();
+    if (!Array.isArray(pedidosActuales) || pedidosActuales.length === 0) return;
 
-      if (!Array.isArray(pedidosActuales) || pedidosActuales.length === 0) return;
+    // Tomar el ID más alto (más reciente)
+    const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
+      return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
+    }, pedidosActuales[0]);
 
-      // Tomar el ID más alto (más reciente)
-      const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
-        return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
-      }, pedidosActuales[0]);
+    const idMasReciente = pedidoMasReciente[0];
 
-      const idMasReciente = pedidoMasReciente[0];
-
-      if (!ultimoPedidoConocido || 
-          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
-        
-        console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
-        
-        // Intento de sonido (con try-catch más completo)
-        try {
+    // ←←← AQUÍ VA EL BLOQUE NUEVO ←←←
+    if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
+      
+      if (estaProcesandoNuevoPedido) {
+        console.log("Procesamiento en curso, ignorando detección repetida");
+        return;
+      }
+      
+      estaProcesandoNuevoPedido = true;
+      
+      console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
+      
+      // Intento de sonido + fallback visual
+      try {
+        if (document.visibilityState === 'visible') {
           const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
           audio.volume = 0.6;
-          await audio.play();  // ← await aquí ayuda a depurar
-        } catch (err) {
-          console.warn("No se pudo reproducir sonido:", err.message);
+          setTimeout(() => {
+            audio.play().catch(err => {
+              console.warn("Sonido bloqueado (sin interacción):", err.message);
+              // Fallback visual: pulse en el badge
+              const badge = document.getElementById('badge-pendientes');
+              if (badge) {
+                badge.style.animation = 'pulse 1.5s infinite';
+                setTimeout(() => { badge.style.animation = ''; }, 6000); // quitar después de 6s
+              }
+            });
+          }, 300);
         }
-
-        // Recargar TODO
-        await cargarMisPedidos();
-
-        // Actualizar referencia
-        ultimoPedidoConocido = idMasReciente;
+      } catch (err) {
+        console.warn("Error intentando sonido:", err);
       }
-    } catch (err) {
-      console.error('Error en polling:', err);
+      
+      try {
+        await cargarMisPedidos();
+        ultimoPedidoConocido = idMasReciente;
+      } finally {
+        estaProcesandoNuevoPedido = false;
+      }
     }
-  }, 30000);
+  } catch (err) {
+    console.error('Error en polling:', err);
+  }
+}, 30000);
 
-  console.log("Polling iniciado (intervalo ID:", intervaloPedidos, ")");
+  await cargarMisPedidos();
+  ultimoPedidoConocido = idMasReciente;
 }
-
+      
 function detenerActualizacionAutomatica() {
   if (intervaloPedidos) {
     clearInterval(intervaloPedidos);
