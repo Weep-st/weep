@@ -852,6 +852,7 @@ async function cargarMisPedidos() {
   const contProceso = document.getElementById('pedidos-proceso-listado');
   const contFinalizados = document.getElementById('pedidos-finalizados-listado');
 
+  // Loading
   contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
   contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
 
@@ -865,7 +866,7 @@ async function cargarMisPedidos() {
       return;
     }
 
-    // Separar: prioridad a los en proceso
+    // Separar grupos
     const enProceso = todosLosPedidos.filter(p => {
       const estado = p[4] || 'Pendiente';
       return estado === 'Pendiente' || estado === 'Listo';
@@ -876,9 +877,10 @@ async function cargarMisPedidos() {
       return estado === 'Entregado' || estado === 'Rechazado';
     });
 
+    // ¡IMPORTANTE! Limpiamos antes de empezar
     pedidosData = [];
 
-    // 1. Cargar y mostrar SOLO los en proceso (rápido)
+    // 1. Cargar rápido: solo pedidos activos
     for (const localPedido of enProceso) {
       const idPedidoLocal = localPedido[0];
       const idPedido = localPedido[1];
@@ -906,14 +908,14 @@ async function cargarMisPedidos() {
       });
     }
 
-    // Orden: más viejos arriba
+    // Orden cronológico
     pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
 
     // Mostrar inmediatamente
     activarFiltroTodos();
     renderizarPedidosEnProceso('todos');
 
-    // 2. Cargar finalizados después (no bloquea)
+    // 2. Finalizados en background
     for (const localPedido of finalizados) {
       const idPedidoLocal = localPedido[0];
       const idPedido = localPedido[1];
@@ -950,6 +952,7 @@ async function cargarMisPedidos() {
   }
 }
 
+// Resto de funciones de renderizado y filtros (sin cambios)
 function activarFiltroTodos() {
   document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
   document.getElementById('filtro-todos-proceso').classList.add('active');
@@ -1042,7 +1045,7 @@ function renderizarPedidosFinalizados() {
   cont.innerHTML = html;
 }
 
-// Filtros
+// Filtros (sin cambios)
 document.getElementById('filtro-pendientes').addEventListener('click', () => {
   document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
   document.getElementById('filtro-pendientes').classList.add('active');
@@ -1062,13 +1065,13 @@ document.getElementById('filtro-todos-proceso').addEventListener('click', () => 
 });
 
 // === ACTUALIZACIÓN AUTOMÁTICA + TIMBRE SOLO PARA PEDIDOS NUEVOS ===
-let pedidosConocidos = new Set(); // IDs de todos los pedidos vistos
+let pedidosConocidos = new Set(); // IDs vistos
 let intervaloPedidos = null;
 
 function iniciarActualizacionAutomatica() {
   if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
 
-  // Inicializar con los pedidos actuales
+  // Inicializar conocidos
   pedidosConocidos.clear();
   pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
 
@@ -1079,21 +1082,23 @@ function iniciarActualizacionAutomatica() {
 
       if (!pedidosActuales || pedidosActuales.length === 0) return;
 
-      // Buscar si hay algún ID que NO estaba antes
+      // ¿Hay algún ID realmente nuevo?
       const nuevoPedido = pedidosActuales.find(p => !pedidosConocidos.has(p[0]));
 
       if (nuevoPedido) {
         console.log('¡NUEVO PEDIDO REAL detectado! Actualizando...');
 
-        // Sonido (timbre de mostrador – muy compatible)
+        // Intentar reproducir sonido (con manejo de error para autoplay)
         const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav');
-        audio.play().catch(e => console.log("Autoplay bloqueado o sonido no cargó:", e));
+        audio.play().catch(e => {
+          console.log("Autoplay bloqueado o sonido no cargó (normal en algunos navegadores):", e);
+        });
 
-        // Recargar
+        // Limpiar y recargar
         pedidosData = [];
         await cargarMisPedidos();
 
-        // Actualizar el Set
+        // Actualizar conocidos
         pedidosConocidos.clear();
         pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
       }
