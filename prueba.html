@@ -427,6 +427,7 @@
   let pedidosData = [];
   let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
   if (localToken) mostrarPanelPrincipal();
+  
   function mostrarPanelPrincipal() {
   document.getElementById('auth-section').classList.add('d-none');
   document.getElementById('panel-principal').classList.remove('d-none');
@@ -435,13 +436,19 @@
   cargarFotoPerfilHeader();
   cargarDireccionLocal();
 
-  // ─── CAMBIO PRINCIPAL ───
-  // Mostrar directamente Mis Pedidos al entrar
+  // Mostrar directamente Mis Pedidos
   ocultarTodo();
   document.getElementById('pedidos-panel').classList.remove('d-none');
-  cargarMisPedidos().then(() => {
-    iniciarActualizacionAutomatica();
-  });
+
+  // Cargar + iniciar polling explícitamente
+  cargarMisPedidos()
+    .then(() => {
+      iniciarActualizacionAutomatica();
+      console.log("Polling iniciado al cargar panel principal");
+    })
+    .catch(err => {
+      console.error("Error al cargar pedidos al entrar:", err);
+    });
 }
 
   function actualizarBadgePedidosPendientes() {
@@ -894,6 +901,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
         });
       }
       renderizarPedidosFinalizados();
+      actualizarBadgePedidosPendientes();   // ← aquí
     } catch (err) {
       console.error('Error cargando pedidos:', err);
       contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
@@ -968,6 +976,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     filtrados.forEach(p => html += generarHtmlPedido(p));
     cont.innerHTML = html;
     agregarEventosBotones();
+    actualizarBadgePedidosPendientes();
   }
   function renderizarPedidosFinalizados() {
     const cont = document.getElementById('pedidos-finalizados-listado');
@@ -1129,7 +1138,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
                     });
                 }
                 alert(`Pedido marcado como ${nuevoEstado}${accionNotificacion !== 'rechazado' ? ' → notificación enviada' : ''}`);
-               
+               actualizarBadgePedidosPendientes();  // ← opcional, pero ayuda
                 // Recargar la lista de pedidos
                 cargarMisPedidos();
             } catch (err) {
@@ -1229,24 +1238,19 @@ function detenerActualizacionAutomatica() {
   }
 }
   
-// Elimina cualquier listener anterior (por si se ejecutó varias veces el script)
 const btnPedidos = document.getElementById('btn-mis-pedidos');
-btnPedidos.removeEventListener('click', handleClickMisPedidos); // por si acaso
-btnPedidos.addEventListener('click', handleClickMisPedidos);
+if (btnPedidos) {
+  btnPedidos.removeEventListener('click', handleClickMisPedidos);
+  btnPedidos.addEventListener('click', handleClickMisPedidos);
+}
 
 function handleClickMisPedidos() {
   ocultarTodo();
   document.getElementById('pedidos-panel').classList.remove('d-none');
-  
-  // Limpieza estricta ANTES de cargar
   detenerActualizacionAutomatica();
-  
-  // Cargar y luego iniciar polling
-  cargarMisPedidos().then(() => {
-    iniciarActualizacionAutomatica();
-  }).catch(err => {
-    console.error("Fallo al cargar pedidos iniciales:", err);
-  });
+  cargarMisPedidos()
+    .then(() => iniciarActualizacionAutomatica())
+    .catch(err => console.error("Error al cargar pedidos iniciales:", err));
 }
   
   // Al final del script
