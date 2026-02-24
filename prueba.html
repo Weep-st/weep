@@ -191,13 +191,6 @@
     color: white; 
   }
 </style>
-
-    <!-- Sonido de notificación -->
-<audio id="notificationSound" preload="auto">
-  <source src="https://assets.mixkit.co/sfx/preview/mixkit-notification-bell-01-573.mp3" type="audio/mpeg">
-  Tu navegador no soporta audio.
-</audio>
-    
 </head>
 <body>
   <header class="header">
@@ -440,40 +433,6 @@
   let menuItems = [];
   let pedidosData = [];
   let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
-let ultimaCantidadPendientes = 0;
-let pedidosPendientesCount = 0;
-const notificationAudio = document.getElementById('notificationSound');
-  let puedeReproducirSonido = false;
-
-// Función para "desbloquear" audio (se llama en interacciones)
-function desbloquearAudio() {
-  if (!puedeReproducirSonido) {
-    // Intentamos reproducir y pausar inmediatamente (truco común)
-    notificationAudio.play().then(() => {
-      notificationAudio.pause();
-      notificationAudio.currentTime = 0;
-      puedeReproducirSonido = true;
-      console.log("Audio desbloqueado");
-    }).catch(() => {
-      // Si falla, igual marcamos (quizá ya estaba desbloqueado)
-      puedeReproducirSonido = true;
-    });
-  }
-}
-
-// Llamar desbloquearAudio() en varios eventos de interacción
-['click', 'touchstart'].forEach(evento => {
-  document.addEventListener(evento, desbloquearAudio, { once: true, passive: true });
-});
-
-// Modificar playNotificationSound para respetar el flag
-function playNotificationSound() {
-  if (!notificationAudio || !puedeReproducirSonido) return;
-  notificationAudio.currentTime = 0;
-  notificationAudio.play().catch(err => {
-    console.warn("Fallo al reproducir (autoplay?):", err);
-  });
-}
 
   if (localToken) mostrarPanelPrincipal();
 
@@ -484,10 +443,7 @@ function playNotificationSound() {
     cargarMenuCompleto();
     cargarFotoPerfilHeader();
     cargarDireccionLocal(); // Cargamos la dirección al iniciar
-
-    // ← agregar
-  setTimeout(actualizarContadorPedidosPendientes, 1200); // pequeño retraso para que carguen datos
-}
+  }
 
   async function cargarDireccionLocal() {
     try {
@@ -943,58 +899,12 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
       renderizarPedidosEnProceso('todos');
       renderizarPedidosFinalizados();
 
-        // ← AGREGAR ESTO
-    actualizarContadorPedidosPendientes();
-    agregarEventosBotones();
-
     } catch (err) {
       console.error('Error cargando pedidos:', err);
       contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
       contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
     }
   }
-
-    function actualizarContadorPedidosPendientes() {
-  const pendientes = pedidosData.filter(p => p.estadoActual === 'Pendiente').length;
-  
-  // Actualizar burbuja
-  let badge = document.getElementById('pedidos-pendientes-badge');
-  if (!badge) {
-    // Crear si no existe
-    badge = document.createElement('span');
-    badge.id = 'pedidos-pendientes-badge';
-    badge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
-    badge.style.fontSize = '0.75rem';
-    badge.style.minWidth = '1.4rem';
-    badge.style.height = '1.4rem';
-    badge.style.lineHeight = '1.4rem';
-    badge.style.padding = '0';
-    
-    const btnPedidos = document.getElementById('btn-mis-pedidos');
-    if (btnPedidos) {
-      btnPedidos.style.position = 'relative';
-      btnPedidos.appendChild(badge);
-    }
-  }
-
-  if (pendientes > 0) {
-    badge.textContent = pendientes > 99 ? '99+' : pendientes;
-    badge.style.display = 'inline-block';
-  } else {
-    badge.style.display = 'none';
-  }
-
-  // ─── Notificación sonora solo cuando AUMENTA la cantidad ───
-  if (pendientes > ultimaCantidadPendientes && pendientes > 0) {
-    playNotificationSound();
-    // Opcional: título parpadeante o toast muy sutil
-    document.title = `¡${pendientes} pedido${pendientes === 1 ? '' : 's'}!`;
-    setTimeout(() => { document.title = "Weep - Panel de Gestión de Negocios"; }, 4000);
-  }
-
-  ultimaCantidadPendientes = pendientes;
-  pedidosPendientesCount = pendientes;
-}
 
   function generarHtmlPedido(p, esFinalizado = false) {
     let itemsHtml = '<ul class="item-list">';
@@ -1267,50 +1177,82 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     renderizarPedidosEnProceso('todos');
   });
 
-    setInterval(() => {
-  if (!localToken) return;
+  // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS - VERSIÓN CORREGIDA (SOLO PEDIDOS REALMENTE NUEVOS) ===
+let pedidosConocidos = new Set();  // Todos los IDs que ya vimos
+let intervaloPedidos = null;
 
-  const estaViendoPedidos = !document.getElementById('pedidos-panel').classList.contains('d-none');
+function iniciarActualizacionAutomatica() {
+  if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
 
-  if (estaViendoPedidos) {
-    cargarMisPedidos();           // recarga todo → actualiza pedidosData y contador
-  } else {
-    // Versión ligera: solo número
-    fetch(`${API_URL}?action=contarPedidosPendientesByLocal&localId=${localToken}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && typeof data.pendientes === 'number') {
-          const nuevosPendientes = data.pendientes;
+  // Al entrar, guardamos todos los IDs actuales como "ya conocidos"
+  pedidosConocidos.clear();
+  pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
 
-          // Actualizamos solo el badge (sin tocar pedidosData)
-          let badge = document.getElementById('pedidos-pendientes-badge');
-          if (!badge) {
-            // crear badge como antes...
-            badge = document.createElement('span');
-            // ... resto igual
-            document.getElementById('btn-mis-pedidos').appendChild(badge);
-          }
+  intervaloPedidos = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+      const pedidosActuales = await res.json();
 
-          if (nuevosPendientes > 0) {
-            badge.textContent = nuevosPendientes > 99 ? '99+' : nuevosPendientes;
-            badge.style.display = 'inline-block';
+      if (!pedidosActuales || pedidosActuales.length === 0) return;
 
-            // Sonido SOLO si aumenta y ya desbloqueado
-            if (nuevosPendientes > ultimaCantidadPendientes && nuevosPendientes > 0) {
-              playNotificationSound();
-              document.title = `¡${nuevosPendientes} pedido${nuevosPendientes === 1 ? '' : 's'}!`;
-              setTimeout(() => { document.title = "Weep - Panel de Gestión de Negocios"; }, 4000);
-            }
-          } else {
-            badge.style.display = 'none';
-          }
+      // Buscamos si hay AL MENOS UN ID que NO estaba antes
+      const hayNuevo = pedidosActuales.some(p => !pedidosConocidos.has(p[0]));
 
-          ultimaCantidadPendientes = nuevosPendientes;
-        }
-      })
-      .catch(() => {});
+      if (hayNuevo) {
+        console.log('¡NUEVO PEDIDO REAL detectado! Actualizando...');
+
+        // Sonido (timbre de mostrador - funciona perfecto)
+        new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav').play();
+
+        // Recargar todo
+        pedidosData = [];
+        await cargarMisPedidos();
+
+        // Actualizar el conjunto con los IDs actuales (incluyendo los nuevos)
+        pedidosConocidos.clear();
+        pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
+      }
+
+    } catch (err) {
+      console.error('Error en actualización automática:', err);
+    }
+  }, 30000); // 30 segundos
+}
+
+function detenerActualizacionAutomatica() {
+  if (intervaloPedidos) {
+    clearInterval(intervaloPedidos);
+    intervaloPedidos = null;
   }
-}, 15000);
+}
+
+// Navegación (aseguramos que se reinicie el Set al entrar en Mis Pedidos)
+document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+  ocultarTodo();
+  document.getElementById('pedidos-panel').classList.remove('d-none');
+  detenerActualizacionAutomatica();
+  cargarMisPedidos().then(() => {
+    iniciarActualizacionAutomatica();
+  });
+});
+
+document.getElementById('btn-mi-menu').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('filtros-menu').classList.remove('d-none');
+  document.getElementById('menu-listado').classList.remove('d-none');
+  cargarMenuCompleto();
+});
+
+document.getElementById('btn-agregar-item').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('menu-form').classList.remove('d-none');
+  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
+  document.getElementById('menu-form').reset();
+  document.getElementById('edit-item-id').value = '';
+});
+
 
 </script>
 </body>
