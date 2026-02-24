@@ -1,3 +1,5 @@
+añade el timbre y la logica a
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -851,34 +853,47 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   async function cargarMisPedidos() {
     const contProceso = document.getElementById('pedidos-proceso-listado');
     const contFinalizados = document.getElementById('pedidos-finalizados-listado');
-    
-    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando...</p></div>';
-    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando...</p></div>';
+
+    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
 
     try {
       const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const locales = await resLocales.json();
+      const todosLosPedidos = await resLocales.json();
 
-      if (!locales || locales.length === 0) {
+      if (!todosLosPedidos || todosLosPedidos.length === 0) {
         contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
         contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
         return;
       }
 
+      const enProceso = todosLosPedidos.filter(p => {
+        const estado = p[4] || 'Pendiente';
+        return estado === 'Pendiente' || estado === 'Listo';
+      });
+
+      const finalizados = todosLosPedidos.filter(p => {
+        const estado = p[4] || 'Pendiente';
+        return estado === 'Entregado' || estado === 'Rechazado';
+      });
+
       pedidosData = [];
 
-      for (const localPedido of locales) {
+      // Cargar primero los en proceso (prioridad alta)
+      for (const localPedido of enProceso) {
         const idPedidoLocal = localPedido[0];
         const idPedido = localPedido[1];
         const estadoActual = localPedido[4] || 'Pendiente';
 
-        const resItems = await fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`);
-        const items = await resItems.json();
+        const [resItems, resGeneral] = await Promise.all([
+          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
+        ]);
 
-        const resGeneral = await fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`);
+        const items = await resItems.json();
         const general = await resGeneral.json();
 
-        const pedidoInfo = {
+        pedidosData.push({
           idPedidoLocal,
           idPedido,
           estadoActual,
@@ -889,14 +904,42 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
           tipoEntrega: general.tipoEntrega || 'Para Retirar',
           emailCliente: general.emailCliente || '',
           nombreCliente: general.nombreCliente || 'Cliente'
-        };
-
-        pedidosData.push(pedidoInfo);
+        });
       }
 
-      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal));
+      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
 
+      activarFiltroTodos();
       renderizarPedidosEnProceso('todos');
+
+      // Cargar finalizados después
+      for (const localPedido of finalizados) {
+        const idPedidoLocal = localPedido[0];
+        const idPedido = localPedido[1];
+        const estadoActual = localPedido[4] || 'Pendiente';
+
+        const [resItems, resGeneral] = await Promise.all([
+          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
+        ]);
+
+        const items = await resItems.json();
+        const general = await resGeneral.json();
+
+        pedidosData.push({
+          idPedidoLocal,
+          idPedido,
+          estadoActual,
+          items,
+          direccion: general.direccion || 'Retiro en local',
+          observaciones: general.observaciones || 'Ninguna',
+          metodoPago: general.metodoPago || 'No especificado',
+          tipoEntrega: general.tipoEntrega || 'Para Retirar',
+          emailCliente: general.emailCliente || '',
+          nombreCliente: general.nombreCliente || 'Cliente'
+        });
+      }
+
       renderizarPedidosFinalizados();
 
     } catch (err) {
@@ -906,13 +949,18 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     }
   }
 
+  function activarFiltroTodos() {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-todos-proceso').classList.add('active');
+  }
+
   function generarHtmlPedido(p, esFinalizado = false) {
     let itemsHtml = '<ul class="item-list">';
     let subtotal = 0;
     p.items.forEach(item => {
-        const totalItem = item[7];
-        subtotal += totalItem;
-        itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
+      const totalItem = item[7];
+      subtotal += totalItem;
+      itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
     });
     itemsHtml += '</ul>';
 
@@ -921,45 +969,96 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     if (p.estadoActual === 'Entregado') badgeClass = 'bg-success';
     if (p.estadoActual === 'Rechazado') badgeClass = 'bg-danger';
 
-    const tipoBadge = p.tipoEntrega === 'Con Envío' 
-        ? '<span class="badge bg-primary ms-2">Con Envío</span>' 
-        : '<span class="badge bg-secondary ms-2">Retiro</span>';
+    const tipoBadge = p.tipoEntrega === 'Con Envío'
+      ? '<span class="badge bg-primary ms-2">Con Envío</span>'
+      : '<span class="badge bg-secondary ms-2">Retiro</span>';
 
     const botonesAccion = esFinalizado ? '' : `
-        <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
-            <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Listo
-            </button>
-            <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Entregado
-            </button>
-            <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
-            </button>
-        </div>`;
+      <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
+        <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
+          <span class="spinner-border spinner-border-sm d-none"></span> Listo
+        </button>
+        <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
+          <span class="spinner-border spinner-border-sm d-none"></span> Entregado
+        </button>
+        <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
+          <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
+        </button>
+      </div>`;
 
     return `
-        <div class="pedido-card">
-            <div class="pedido-header d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
-                </div>
-                <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
-            </div>
-            <div class="pedido-body">
-                <p><strong>Cliente:</strong> ${p.nombreCliente}</p>
-                <p><strong>Dirección/Retiro:</strong> ${p.direccion}</p>
-                <p><strong>Método de pago:</strong> ${p.metodoPago}</p>
-                <p><strong>Observaciones:</strong> ${p.observaciones}</p>
-                <h6 class="mt-3">Items:</h6>
-                ${itemsHtml}
-                <div class="text-end mt-3">
-                    <strong>Subtotal local: $${subtotal.toFixed(2)}</strong>
-                </div>
-                ${botonesAccion}
-            </div>
-        </div>`;
-}
+      <div class="pedido-card">
+        <div class="pedido-header d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
+          </div>
+          <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
+        </div>
+        <div class="pedido-body">
+          <p><strong>Cliente:</strong> ${p.nombreCliente}</p>
+          <p><strong>Dirección/Retiro:</strong> ${p.direccion}</p>
+          <p><strong>Método de pago:</strong> ${p.metodoPago}</p>
+          <p><strong>Observaciones:</strong> ${p.observaciones}</p>
+          <h6 class="mt-3">Items:</h6>
+          ${itemsHtml}
+          <div class="text-end mt-3">
+            <strong>Subtotal local: $${subtotal.toFixed(2)}</strong>
+          </div>
+          ${botonesAccion}
+        </div>
+      </div>`;
+  }
+
+  function renderizarPedidosEnProceso(filtro = 'todos') {
+    const cont = document.getElementById('pedidos-proceso-listado');
+    const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
+    let filtrados = pedidosProceso;
+    if (filtro === 'pendientes') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Pendiente');
+    if (filtro === 'listos') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Listo');
+
+    if (filtrados.length === 0) {
+      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos en este filtro</h5></div>';
+      return;
+    }
+
+    let html = '';
+    filtrados.forEach(p => html += generarHtmlPedido(p));
+    cont.innerHTML = html;
+    agregarEventosBotones();
+  }
+
+  function renderizarPedidosFinalizados() {
+    const cont = document.getElementById('pedidos-finalizados-listado');
+    const finalizados = pedidosData.filter(p => p.estadoActual === 'Entregado' || p.estadoActual === 'Rechazado');
+
+    if (finalizados.length === 0) {
+      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos finalizados</h5></div>';
+      return;
+    }
+
+    let html = '';
+    finalizados.forEach(p => html += generarHtmlPedido(p, true));
+    cont.innerHTML = html;
+  }
+
+  // Filtros
+  document.getElementById('filtro-pendientes').addEventListener('click', () => {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-pendientes').classList.add('active');
+    renderizarPedidosEnProceso('pendientes');
+  });
+
+  document.getElementById('filtro-listos').addEventListener('click', () => {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-listos').classList.add('active');
+    renderizarPedidosEnProceso('listos');
+  });
+
+  document.getElementById('filtro-todos-proceso').addEventListener('click', () => {
+    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('filtro-todos-proceso').classList.add('active');
+    renderizarPedidosEnProceso('todos');
+  });
 
   function agregarEventosBotones() {
     // Seleccionamos todos los botones relevantes (los que se crean dinámicamente)
@@ -1124,60 +1223,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     });
 }
 
-  function renderizarPedidosEnProceso(filtro = 'todos') {
-    const cont = document.getElementById('pedidos-proceso-listado');
-    const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
-    let filtrados = pedidosProceso;
-    if (filtro === 'pendientes') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Pendiente');
-    if (filtro === 'listos') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Listo');
-
-    if (filtrados.length === 0) {
-      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos en este filtro</h5></div>';
-      return;
-    }
-
-    let html = '';
-    filtrados.forEach(p => {
-      html += generarHtmlPedido(p);
-    });
-    cont.innerHTML = html;
-    agregarEventosBotones();
-  }
-
-  function renderizarPedidosFinalizados() {
-    const cont = document.getElementById('pedidos-finalizados-listado');
-    const finalizados = pedidosData.filter(p => p.estadoActual === 'Entregado' || p.estadoActual === 'Rechazado');
-    if (finalizados.length === 0) {
-      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos finalizados</h5></div>';
-      return;
-    }
-    let html = '';
-    finalizados.forEach(p => {
-      html += generarHtmlPedido(p, true);
-    });
-    cont.innerHTML = html;
-  }
-
-  // Filtros de pedidos
-  document.getElementById('filtro-pendientes').addEventListener('click', () => {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-pendientes').classList.add('active');
-    renderizarPedidosEnProceso('pendientes');
-  });
-
-  document.getElementById('filtro-listos').addEventListener('click', () => {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-listos').classList.add('active');
-    renderizarPedidosEnProceso('listos');
-  });
-
-  document.getElementById('filtro-todos-proceso').addEventListener('click', () => {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-todos-proceso').classList.add('active');
-    renderizarPedidosEnProceso('todos');
-  });
-
-  // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS ===
+// === ACTUALIZACIÓN AUTOMÁTICA + TIMBRE ===
   let ultimoPedidoConocido = null;
   let intervaloPedidos = null;
 
@@ -1189,33 +1235,41 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     }
 
     intervaloPedidos = setInterval(async () => {
-  try {
-    const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-    const pedidosActuales = await res.json();
+      try {
+        const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+        const pedidosActuales = await res.json();
 
-    if (!pedidosActuales || pedidosActuales.length === 0) return;
+        if (!pedidosActuales || pedidosActuales.length === 0) return;
 
-    const pedidoMasReciente = pedidosActuales.reduce((max, p) => 
-      p[0].localeCompare(max[0], undefined, {numeric: true, sensitivity: 'base'}) > 0 ? p : max,
-      pedidosActuales[0]
-    );
-    const idMasReciente = pedidoMasReciente[0];
+        const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
+          p[0].localeCompare(max[0], undefined, {numeric: true, sensitivity: 'base'}) > 0 ? p : max,
+          pedidosActuales[0]
+        );
 
-    if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true, sensitivity: 'base'}) > 0) {
-      console.log('¡Nuevo pedido detectado! Actualizando...');
-      
-      // ← TIMBRE CORREGIDO AQUÍ
-      new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav').play();
+        const idMasReciente = pedidoMasReciente[0];
 
-      pedidosData = [];
-      await cargarMisPedidos();
+        if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true, sensitivity: 'base'}) > 0) {
+          console.log('¡Nuevo pedido detectado! Actualizando...');
 
-      ultimoPedidoConocido = idMasReciente;
-    }
-  } catch (err) {
-    console.error('Error en actualización automática:', err);
+          // TIMBRE - sonido de campanita de mostrador (muy compatible)
+          try {
+            const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav');
+            audio.volume = 0.7; // no muy fuerte
+            audio.play().catch(e => console.log("Audio bloqueado por navegador:", e));
+          } catch (e) {
+            console.log("No se pudo reproducir timbre:", e);
+          }
+
+          pedidosData = [];
+          await cargarMisPedidos();
+
+          ultimoPedidoConocido = idMasReciente;
+        }
+      } catch (err) {
+        console.error('Error en actualización automática:', err);
+      }
+    }, 30000); // 30 segundos - puedes cambiar a 20000 (20s) si querés más frecuente
   }
-}, 30000);
 
   function detenerActualizacionAutomatica() {
     if (intervaloPedidos) {
@@ -1224,7 +1278,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     }
   }
 
-  // Navegación
+  // Navegación con control de actualización automática
   document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
     ocultarTodo();
     document.getElementById('pedidos-panel').classList.remove('d-none');
@@ -1250,7 +1304,6 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
   });
-
 
 </script>
 </body>
