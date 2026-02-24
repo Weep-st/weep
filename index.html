@@ -2686,7 +2686,7 @@ function saveAddressChange() {
 }
         async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
     try {
-        const action = 'createOrder'; // ← SIEMPRE createOrder, no importa si es pagado o no
+        const action = 'createOrder';
         const cartString = encodeURIComponent(JSON.stringify(cart));
         const url = `${scriptUrl}?action=${action}` +
             `&userId=${encodeURIComponent(userId)}` +
@@ -2698,30 +2698,149 @@ function saveAddressChange() {
             `&total=${encodeURIComponent(prices.total)}` +
             `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
             `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
-        console.log("Enviando pedido vía GET:", url);
-        const response = await fetch(url, {
-            method: 'GET',
-            cache: 'no-cache'
-        });
+
+        console.log("Creando pedido...", url);
+
+        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
         const result = await response.json();
-        console.log("Respuesta backend:", result);
-        if (result.success) {
-            alert("¡Pedido registrado exitosamente! ID: " + result.idPedido);
-            cart = [];
-            updateCartCount();
-            updateCartDisplay();
-            document.getElementById('cart-section').style.display = 'none';
-            document.getElementById('mercadopago-checkout').style.display = 'none';
-            document.getElementById('checkout-btn').style.display = 'block';
-            document.getElementById('checkout-form').reset();
-        } else {
-            throw new Error(result.error || "Error desconocido");
+
+        if (!result.success) {
+            throw new Error(result.error || "Error desconocido al crear pedido");
         }
+
+        const idPedido = result.idPedido;
+        alert("¡Pedido #" + idPedido + " registrado exitosamente!");
+
+        // ────────────────────────────────────────────────
+        // NUEVO: Enviar notificaciones a los locales desde frontend
+        // ────────────────────────────────────────────────
+        await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones);
+
+        // Limpieza
+        cart = [];
+        updateCartCount();
+        updateCartDisplay();
+        closeCart();
+        document.getElementById('checkout-form').reset();
+
     } catch (err) {
-        console.error("Error al enviar pedido:", err);
-        alert("El pago fue confirmado pero hubo un error al registrar el pedido.\nContacta soporte con ID de pago: " + (pendingOrderData?.paymentId || "desconocido"));
+        console.error("Error al crear pedido:", err);
+        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
     }
 }
+
+        async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones) {
+    // 1. Agrupamos el carrito por local (igual que hacías en backend)
+    const groupedByLocal = {};
+    cart.forEach(item => {
+        const localId = item.idLocal || item.local_id;
+        if (!localId) return;
+        if (!groupedByLocal[localId]) {
+            groupedByLocal[localId] = {
+                items: [],
+                nombreLocal: item.nombreLocal || 'Local',
+                emailLocal: null,
+                subtotal: 0
+            };
+        }
+        groupedByLocal[localId].items.push(item);
+        groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
+    });
+
+    // 2. Obtenemos emails de locales (necesitamos una llamada o caché)
+    // Opción A: si ya tenés los emails en los datos del menú → usalos directamente
+    // Opción B: hacemos una llamada extra para obtener emails (recomendado)
+
+    for (const localId in groupedByLocal) {
+        const group = groupedByLocal[localId];
+
+        // Intentamos obtener email (puedes mejorar esta parte)
+        // Por ahora asumimos que viene en los items (agregalo en fetchMenus si no está)
+        group.emailLocal = group.items[0]?.emailLocal || null;
+
+        if (!group.emailLocal) {
+            console.warn(`No se encontró email para local ${localId}`);
+            continue;
+        }
+
+        // 3. Construimos texto de items
+        const itemsText = group.items.map(i =>
+            `${i.nombreProducto} × ${i.cantidad}   $${(i.precioUnitario * i.cantidad).toFixed(0)}` +
+            (i.variantes ? ` (${i.variantes})` : '')
+        ).join('\n');
+
+        const costoEnvio = (tipoEntrega === 'envio' && prices.shipping > 0) ? 2500 : 0;
+        const totalLocal = group.subtotal + costoEnvio;
+
+        // 4. HTML con estilo similar al ejemplo 1
+        const logoHtml = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
+                     alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+        `;
+
+        const htmlBody = `
+            ${logoHtml}
+            <h2 style="color:#d32f2f; text-align:center; margin-bottom:8px;">
+                ¡NUEVO PEDIDO!
+            </h2>
+            <p style="text-align:center; color:#555; margin-bottom:28px;">
+                Pedido #${idPedido} – ${group.nombreLocal}
+            </p>
+
+            <p><strong>Cliente:</strong> ${localStorage.getItem('userName') || 'Cliente'} (${localStorage.getItem('userEmail') || '—'})</p>
+            <p><strong>Tipo:</strong> ${tipoEntrega === 'envio' ? 'Con envío' : 'Retiro en local'}</p>
+
+            ${tipoEntrega === 'envio' ? `
+                <p><strong>Dirección:</strong> ${direccion}</p>
+            ` : ''}
+
+            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+
+            <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos</h3>
+            <div style="background:#f9f9f9; padding:16px; border-radius:8px; margin:16px 0;">
+                <pre style="margin:0; font-family:Arial,sans-serif; white-space:pre-wrap; line-height:1.5;">
+${itemsText}
+                </pre>
+            </div>
+
+            <p><strong>Subtotal:</strong> $${group.subtotal.toFixed(0)}</p>
+            <p><strong>Envío:</strong> ${costoEnvio === 0 ? 'GRATIS' : '$' + costoEnvio}</p>
+            <p style="font-size:1.15em; font-weight:bold; color:#d32f2f; text-align:right; margin-top:20px;">
+                Total local: $${totalLocal.toFixed(0)}
+            </p>
+
+            <hr style="border:0; border-top:1px solid #eee; margin:32px 0;">
+
+            <p style="text-align:center; color:#666; font-size:0.95em;">
+                Por favor prepara el pedido lo antes posible.<br>
+                ¡Gracias por formar parte de Weep!
+            </p>
+        `;
+
+        // 5. Enviamos el email usando el endpoint existente
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: group.emailLocal,
+            subject: `¡NUEVO PEDIDO! #${idPedido} - ${group.nombreLocal}`,
+            htmlBody: htmlBody
+        });
+
+        try {
+            await fetch(`${scriptUrl}?${emailParams}`, {
+                method: 'GET',
+                mode: 'no-cors',
+                cache: 'no-cache'
+            });
+            console.log(`Notificación enviada a ${group.emailLocal}`);
+        } catch (err) {
+            console.error(`Error enviando email a ${group.emailLocal}:`, err);
+        }
+    }
+}
+        
         // Esta función debería llamarse SOLO cuando el pago está aprobado
 async function createConfirmedOrder(orderData) {
     const payload = {
