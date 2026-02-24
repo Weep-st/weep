@@ -852,7 +852,6 @@ async function cargarMisPedidos() {
   const contProceso = document.getElementById('pedidos-proceso-listado');
   const contFinalizados = document.getElementById('pedidos-finalizados-listado');
 
-  // Loading inicial
   contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
   contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
 
@@ -866,7 +865,7 @@ async function cargarMisPedidos() {
       return;
     }
 
-    // Separar: en proceso primero (para mostrar rápido)
+    // Separar: prioridad a los en proceso
     const enProceso = todosLosPedidos.filter(p => {
       const estado = p[4] || 'Pendiente';
       return estado === 'Pendiente' || estado === 'Listo';
@@ -907,14 +906,14 @@ async function cargarMisPedidos() {
       });
     }
 
-    // Orden cronológico ascendente (más viejos arriba)
+    // Orden: más viejos arriba
     pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
 
-    // Mostrar inmediatamente con "Todos" activo
+    // Mostrar inmediatamente
     activarFiltroTodos();
     renderizarPedidosEnProceso('todos');
 
-    // 2. Cargar finalizados en segundo plano (no bloquea la vista)
+    // 2. Cargar finalizados después (no bloquea)
     for (const localPedido of finalizados) {
       const idPedidoLocal = localPedido[0];
       const idPedido = localPedido[1];
@@ -1080,20 +1079,21 @@ function iniciarActualizacionAutomatica() {
 
       if (!pedidosActuales || pedidosActuales.length === 0) return;
 
-      // ¿Hay algún ID nuevo que no vimos antes?
+      // Buscar si hay algún ID que NO estaba antes
       const nuevoPedido = pedidosActuales.find(p => !pedidosConocidos.has(p[0]));
 
       if (nuevoPedido) {
         console.log('¡NUEVO PEDIDO REAL detectado! Actualizando...');
 
-        // Timbre profesional (campana de mostrador)
-        new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav').play();
+        // Sonido (timbre de mostrador – muy compatible)
+        const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.wav');
+        audio.play().catch(e => console.log("Autoplay bloqueado o sonido no cargó:", e));
 
-        // Recargar todo
+        // Recargar
         pedidosData = [];
         await cargarMisPedidos();
 
-        // Actualizar el Set con los nuevos IDs
+        // Actualizar el Set
         pedidosConocidos.clear();
         pedidosData.forEach(p => pedidosConocidos.add(p.idPedidoLocal));
       }
@@ -1110,7 +1110,7 @@ function detenerActualizacionAutomatica() {
   }
 }
 
-// Activar/desactivar al navegar
+// Navegación
 document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
   ocultarTodo();
   document.getElementById('pedidos-panel').classList.remove('d-none');
