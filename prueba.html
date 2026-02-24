@@ -8,15 +8,13 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
   <!-- FAVICON - agrégalo aquí -->
   <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
-
   <!-- Opcional: theme-color para móviles -->
   <meta name="theme-color" content="#c62828">
-  
+ 
   <style>
   body {
     font-family: 'Poppins', sans-serif;
@@ -25,23 +23,23 @@
     display: flex;
     flex-direction: column;
   }
-  .container { 
-    max-width: 1200px; 
-    flex: 1; 
+  .container {
+    max-width: 1200px;
+    flex: 1;
   }
-  h1, h2, h3, h5 { 
-    font-weight: 600; 
-    color: #c62828; 
+  h1, h2, h3, h5 {
+    font-weight: 600;
+    color: #c62828;
   }
-  .text-rojo { 
-    color: #d32f2f; 
+  .text-rojo {
+    color: #d32f2f;
   }
-  .btn-rojo { 
-    background-color: #d32f2f; 
-    border: none; 
+  .btn-rojo {
+    background-color: #d32f2f;
+    border: none;
   }
-  .btn-rojo:hover { 
-    background-color: #b71c1c; 
+  .btn-rojo:hover {
+    background-color: #b71c1c;
   }
   .header {
     background: white;
@@ -76,75 +74,75 @@
     color: #999;
   }
   .status-toggle-sm {
-    width: 70px; 
-    height: 36px; 
-    position: relative; 
+    width: 70px;
+    height: 36px;
+    position: relative;
     display: inline-block;
   }
-  .status-toggle-sm input { 
-    opacity: 0; 
-    width: 0; 
-    height: 0; 
+  .status-toggle-sm input {
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
   .status-slider-sm {
-    position: absolute; 
-    cursor: pointer; 
-    top: 0; 
-    left: 0; 
-    right: 0; 
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
     bottom: 0;
-    background-color: #ccc; 
-    transition: .4s; 
+    background-color: #ccc;
+    transition: .4s;
     border-radius: 34px;
   }
   .status-slider-sm:before {
-    position: absolute; 
-    content: ""; 
-    height: 28px; 
+    position: absolute;
+    content: "";
+    height: 28px;
     width: 28px;
-    left: 4px; 
-    bottom: 4px; 
-    background-color: white; 
-    transition: .4s; 
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
     border-radius: 50%;
   }
-  input:checked + .status-slider-sm { 
-    background-color: #27ae60; 
+  input:checked + .status-slider-sm {
+    background-color: #27ae60;
   }
-  input:checked + .status-slider-sm:before { 
-    transform: translateX(34px); 
+  input:checked + .status-slider-sm:before {
+    transform: translateX(34px);
   }
   .menu-card-horizontal {
-    display: flex; 
-    align-items: center; 
-    background: white; 
+    display: flex;
+    align-items: center;
+    background: white;
     border-radius: 16px;
-    overflow: hidden; 
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
     margin-bottom: 1rem;
   }
   .menu-card-horizontal:hover {
-    transform: translateY(-5px); 
+    transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(211,47,47,0.2);
   }
   .menu-card-horizontal img {
-    width: 120px; 
-    height: 120px; 
+    width: 120px;
+    height: 120px;
     object-fit: cover;
   }
-  .card-body-horizontal { 
-    padding: 1.5rem; 
-    flex: 1; 
+  .card-body-horizontal {
+    padding: 1.5rem;
+    flex: 1;
   }
-  .precio { 
-    font-size: 1.8rem; 
-    font-weight: 700; 
-    color: #d32f2f; 
+  .precio {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #d32f2f;
   }
-  .loading { 
-    color: #d32f2f; 
-    font-weight: 600; 
+  .loading {
+    color: #d32f2f;
+    font-weight: 600;
   }
   .pedido-card {
     background: white;
@@ -170,32 +168,28 @@
     padding: 0.5rem 0;
     border-bottom: 1px solid #eee;
   }
-  .item-list li:last-child { 
-    border-bottom: none; 
+  .item-list li:last-child {
+    border-bottom: none;
   }
   .estado-badge {
     font-size: 1rem;
     padding: 0.5rem 1rem;
   }
   footer {
-    background: #c62828; 
-    color: white; 
-    padding: 2rem 0; 
+    background: #c62828;
+    color: white;
+    padding: 2rem 0;
     margin-top: auto;
   }
-  footer a { 
-    color: #ffcdd2; 
-    text-decoration: none; 
+  footer a {
+    color: #ffcdd2;
+    text-decoration: none;
   }
-  footer a:hover { 
-    color: white; 
+  footer a:hover {
+    color: white;
   }
 </style>
 </head>
-  <audio id="notification-sound" preload="auto">
-  <source src="https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3" type="audio/mpeg">
-</audio>
-  
 <body>
   <header class="header">
     <div class="container text-center">
@@ -231,7 +225,6 @@
     </form>
     <div id="auth-status" class="mt-3"></div>
   </div>
-
   <!-- PANEL PRINCIPAL -->
   <div id="panel-principal" class="d-none">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -259,13 +252,16 @@
         </div>
       </div>
     </div>
-
     <div class="text-center mb-5">
       <button id="btn-mi-menu" class="btn btn-success btn-lg px-5 me-4">Mi Menú</button>
       <button id="btn-agregar-item" class="btn btn-rojo btn-lg px-5 me-3">Agregar Plato</button>
-      <button id="btn-mis-pedidos" class="btn btn-primary btn-lg px-5">Mis Pedidos</button>
+      <button id="btn-mis-pedidos" class="btn btn-primary btn-lg px-5 position-relative">
+  Mis Pedidos
+  <span id="badge-pendientes" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
+    0
+  </span>
+</button>
     </div>
-
     <div id="filtros-menu" class="card p-4 mb-4 d-none">
       <div class="row g-3 align-items-center">
         <div class="col-md-6">
@@ -281,7 +277,6 @@
         </div>
       </div>
     </div>
-
 <!-- FORMULARIO PLATO -->
     <form id="menu-form" class="card shadow-lg p-4 mb-5 d-none">
       <h3 class="mb-4 text-rojo" id="form-titulo">Nuevo Plato</h3>
@@ -323,14 +318,12 @@
     <button type="button" id="cancelar-form" class="btn btn-secondary btn-lg me-3">
       Cancelar
     </button>
-
     <button type="submit" class="btn btn-success btn-lg px-5" id="guardar-btn">
       <span class="spinner-border spinner-border-sm d-none" role="status"></span>
       Guardar Plato
     </button>
   </div>
 </form>
-
     <!-- FORMULARIO EDITAR PERFIL (con dirección) -->
     <div id="perfil-form" class="card shadow-lg p-4 mb-5 d-none">
       <h3 class="mb-4 text-rojo">Editar Perfil del Local</h3>
@@ -365,7 +358,6 @@
       </div>
       <div id="perfil-status" class="mt-3"></div>
     </div>
-
     <!-- LISTADO MENÚ -->
     <div id="menu-listado">
       <div class="text-center py-5 loading">
@@ -373,7 +365,6 @@
         <p class="mt-3">Cargando menú...</p>
       </div>
     </div>
-
     <!-- MIS PEDIDOS - CON PESTAÑAS -->
     <div id="pedidos-panel" class="d-none">
       <h2 class="mb-4 text-rojo text-center">Mis Pedidos</h2>
@@ -411,14 +402,13 @@
 <footer class="text-center">
     <div class="container">
         <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-        
+       
         <p class="small mb-4">
             <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
         </p>
-
         <p class="small mb-0">
-            <a href="#" data-bs-toggle="modal" data-bs-target="#terminosModal">Términos</a> • 
-            <a href="#">Privacidad</a> • 
+            <a href="#" data-bs-toggle="modal" data-bs-target="#terminosModal">Términos</a> •
+            <a href="#">Privacidad</a> •
             <a href="mailto:bajoneando.st@gmail.com">Soporte</a>
         </p>
     </div>
@@ -432,58 +422,41 @@
   // Emails fijos para notificaciones
   const EMAIL_NOTIFICACIONES = 'weep.notificaciones@gmail.com';
   const EMAIL_MOTOMANDADO = 'bajoneando.st@gmail.com';
-
   let localToken = localStorage.getItem('localToken');
   let menuItems = [];
   let pedidosData = [];
   let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
-
   if (localToken) mostrarPanelPrincipal();
-
-  // ────────────────────────────────────────────────
-// NUEVAS VARIABLES GLOBALES
-// ────────────────────────────────────────────────
-let ultimoIdPedidoLocalConocido = null;     // string (el ID más alto conocido)
-let cantidadPendientesMostrada = 0;
-const audioNotificacion = document.getElementById('notification-sound');
-
-// ────────────────────────────────────────────────
-// MEJORA: Carga inicial al entrar al panel principal
-// ────────────────────────────────────────────────
-function mostrarPanelPrincipal() {
+  function mostrarPanelPrincipal() {
   document.getElementById('auth-section').classList.add('d-none');
   document.getElementById('panel-principal').classList.remove('d-none');
 
   cargarEstadoLocal();
-  cargarMenuCompleto();
   cargarFotoPerfilHeader();
   cargarDireccionLocal();
 
-  // NUEVO: Cargar pedidos al iniciar (para mostrar la burbuja)
+  // ─── CAMBIO PRINCIPAL ───
+  // Mostrar directamente Mis Pedidos al entrar
+  ocultarTodo();
+  document.getElementById('pedidos-panel').classList.remove('d-none');
   cargarMisPedidos().then(() => {
-    actualizarBadgePendientes();
+    iniciarActualizacionAutomatica();
   });
 }
 
-// ────────────────────────────────────────────────
-// Actualizar el badge de pendientes (rojo con número)
-// ────────────────────────────────────────────────
-function actualizarBadgePendientes() {
-  const pendientes = pedidosData.filter(p => p.estadoActual === 'Pendiente').length;
-  
-  const badge = document.getElementById('pedidos-pendientes-badge');
+  function actualizarBadgePedidosPendientes() {
+  const badge = document.getElementById('badge-pendientes');
   if (!badge) return;
 
+  const pendientes = pedidosData.filter(p => p.estadoActual === 'Pendiente').length;
+
   if (pendientes > 0) {
-    badge.textContent = pendientes;
+    badge.textContent = pendientes > 99 ? '99+' : pendientes;
     badge.classList.remove('d-none');
   } else {
     badge.classList.add('d-none');
   }
-
-  cantidadPendientesMostrada = pendientes;
 }
-
   async function cargarDireccionLocal() {
     try {
       const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
@@ -497,7 +470,6 @@ function actualizarBadgePendientes() {
       direccionLocal = 'Dirección no disponible';
     }
   }
-
   function ocultarTodo() {
     document.getElementById('menu-form').classList.add('d-none');
     document.getElementById('perfil-form').classList.add('d-none');
@@ -505,18 +477,15 @@ function actualizarBadgePendientes() {
     document.getElementById('pedidos-panel').classList.add('d-none');
     document.getElementById('filtros-menu').classList.add('d-none');
   }
-
   // === AUTENTICACIÓN ===
   document.getElementById('show-register').addEventListener('click', () => {
     document.getElementById('local-register-form').classList.remove('d-none');
     document.getElementById('local-login-form').classList.add('d-none');
   });
-
   document.getElementById('show-login').addEventListener('click', () => {
     document.getElementById('local-login-form').classList.remove('d-none');
     document.getElementById('local-register-form').classList.add('d-none');
   });
-
   // Registro con dirección
   document.getElementById('local-register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -530,7 +499,6 @@ function actualizarBadgePendientes() {
     document.getElementById('show-login').click();
     document.getElementById('local-register-form').reset();
   });
-
   // Login
   document.getElementById('local-login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -554,14 +522,12 @@ function actualizarBadgePendientes() {
     script.src = url;
     document.head.appendChild(script);
   });
-
   document.getElementById('logout').addEventListener('click', (e) => {
     e.preventDefault();
     localStorage.removeItem('localToken');
     localToken = null;
     location.reload();
   });
-
   // === NAVEGACIÓN ===
   document.getElementById('btn-mi-menu').addEventListener('click', () => {
     ocultarTodo();
@@ -569,7 +535,6 @@ function actualizarBadgePendientes() {
     document.getElementById('menu-listado').classList.remove('d-none');
     cargarMenuCompleto();
   });
-
   document.getElementById('btn-agregar-item').addEventListener('click', () => {
     ocultarTodo();
     document.getElementById('menu-form').classList.remove('d-none');
@@ -577,18 +542,15 @@ function actualizarBadgePendientes() {
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
   });
-
   document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
     ocultarTodo();
     document.getElementById('pedidos-panel').classList.remove('d-none');
     cargarMisPedidos();
   });
-
   document.getElementById('cancelar-form').addEventListener('click', () => {
     document.getElementById('menu-form').classList.add('d-none');
     cargarMenuCompleto();
   });
-
   // === SUBIR IMAGEN ===
   async function subirImagen(file) {
     if (!file) return '';
@@ -606,8 +568,6 @@ function actualizarBadgePendientes() {
       return '';
     }
   }
-
-
 async function agregarPlato() {
   const data = {
     action: document.getElementById('edit-item-id').value ? "updateMenuItem" : "addMenuItem",
@@ -623,7 +583,6 @@ async function agregarPlato() {
     tiempo_preparacion: document.getElementById("tiempo_preparacion").value || '',
     imagen_url: '' // se llenará si subes imagen
   };
-
   // Subir imagen si corresponde
   const file = document.getElementById('foto').files[0];
   if (file) {
@@ -633,7 +592,6 @@ async function agregarPlato() {
       console.error('Error subiendo imagen:', err);
     }
   }
-
   // Validaciones mínimas
   if (!data.localId) {
     alert("No estás logueado (falta localId)");
@@ -643,48 +601,37 @@ async function agregarPlato() {
     alert("Faltan datos obligatorios: nombre, categoría y precio > 0");
     return;
   }
-
   console.log("Datos a enviar:", data);
-
   // Convertir a query string para GET
   const queryParams = new URLSearchParams(data).toString();
-
   try {
     const url = `${API_URL}?${queryParams}`;
     console.log("Enviando vía GET: " + url.substring(0, 200) + "..."); // Log truncado para no saturar
-
     const response = await fetch(url, {
-      method: 'GET',  // ← Cambio clave: usa GET en lugar de POST
+      method: 'GET', // ← Cambio clave: usa GET en lugar de POST
       mode: 'no-cors',
       cache: 'no-cache'
     });
-
     console.log("Solicitud GET enviada → asumimos éxito");
-
     alert("Plato guardado correctamente (verifica en la hoja 'Menú' del Sheet)");
-
     // Limpiar y recargar
     document.getElementById('menu-form').classList.add('d-none');
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
     cargarMenuCompleto();
-
   } catch (error) {
     console.error("Error al enviar GET:", error);
     alert("Error al intentar guardar.\nRevisa la consola y la hoja Menú.");
   }
 }
-
 // Conectar el formulario con la función agregarPlato
 document.getElementById('menu-form').addEventListener('submit', async function(e) {
   e.preventDefault(); // Evita recarga de página
-
   const btn = document.getElementById('guardar-btn');
   const spinner = btn.querySelector('.spinner-border');
-  
+ 
   spinner.classList.remove('d-none');
   btn.disabled = true;
-
   try {
     await agregarPlato();
     // El alert y el cierre del form ya están dentro de agregarPlato()
@@ -696,7 +643,7 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     btn.disabled = false;
   }
 });
-  
+ 
   // === MENÚ ===
   async function cargarMenuCompleto() {
     const cont = document.getElementById('menu-listado');
@@ -718,7 +665,6 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
       cont.innerHTML = '<div class="alert alert-danger">Error al cargar el menú</div>';
     }
   }
-
   function renderizarMenu(items) {
     const cont = document.getElementById('menu-listado');
     if (items.length === 0) {
@@ -754,14 +700,12 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
         </div>`;
     });
     cont.innerHTML = html;
-
     // Eventos dinámicos
     document.querySelectorAll('.toggle-disponibilidad').forEach(el => {
       el.addEventListener('change', async () => {
         await fetch(`${API_URL}?action=updateDisponibilidad&itemId=${el.dataset.id}&disponibilidad=${el.checked ? "Sí" : "No"}`);
       });
     });
-
     document.querySelectorAll('.eliminar-item').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('¿Eliminar este plato permanentemente?')) return;
@@ -769,7 +713,6 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
         cargarMenuCompleto();
       });
     });
-
     document.querySelectorAll('.editar-plato').forEach(btn => {
       btn.addEventListener('click', () => {
         const item = menuItems.find(i => i.id === btn.dataset.id);
@@ -789,10 +732,8 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
       });
     });
   }
-
   document.getElementById('buscador-plato').addEventListener('input', filtrarMenu);
   document.getElementById('filtro-categoria').addEventListener('change', filtrarMenu);
-
   function filtrarMenu() {
     const texto = document.getElementById('buscador-plato').value.toLowerCase();
     const cat = document.getElementById('filtro-categoria').value;
@@ -803,7 +744,6 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     });
     renderizarMenu(filtrados);
   }
-
   // === ESTADO LOCAL ===
   async function cargarEstadoLocal() {
     const res = await fetch(`${API_URL}?action=getLocalEstado&localId=${localToken}`);
@@ -812,13 +752,11 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     document.getElementById('estado-local-toggle').checked = activo;
     document.getElementById('estado-texto').textContent = activo ? "Abierto" : "Cerrado";
   }
-
   document.getElementById('estado-local-toggle').addEventListener('change', async function() {
     const estado = this.checked ? "Activo" : "Inactivo";
     document.getElementById('estado-texto').textContent = this.checked ? "Abierto" : "Cerrado";
     await fetch(`${API_URL}?action=updateLocalEstado&localId=${localToken}&estado=${estado}`);
   });
-
   // === PERFIL ===
   async function cargarFotoPerfilHeader() {
     try {
@@ -829,7 +767,6 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
       }
     } catch (e) {}
   }
-
   document.getElementById('editar-perfil-btn').addEventListener('click', async () => {
     ocultarTodo();
     document.getElementById('perfil-form').classList.remove('d-none');
@@ -851,12 +788,10 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
       direccionLocal = data.direccion || 'Dirección no configurada';
     }
   });
-
   document.getElementById('cancelar-perfil').addEventListener('click', () => {
     document.getElementById('perfil-form').classList.add('d-none');
     cargarMenuCompleto();
   });
-
   document.getElementById('guardar-perfil').addEventListener('click', async () => {
     const btn = document.getElementById('guardar-perfil');
     btn.disabled = true;
@@ -872,7 +807,6 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     };
     if (document.getElementById('perfil-password').value) payload.password = document.getElementById('perfil-password').value;
     if (fotoUrl) payload.foto_url = fotoUrl;
-
     await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -885,217 +819,91 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     document.getElementById('perfil-form').classList.add('d-none');
     btn.disabled = false;
   });
-
   // === PEDIDOS ===
-  // ────────────────────────────────────────────────
-// Variables globales relacionadas con pedidos (asegúrate de tenerlas arriba)
-let pedidosData = [];
-let ultimoIdPedidoLocalConocido = null;
-let pollingInterval = null;
-const audioNotificacion = document.getElementById('notification-sound');
-
-// ────────────────────────────────────────────────
-// Carga de pedidos (con control de sonido y duplicados)
-async function cargarMisPedidos(silencioso = false) {
-    const contProceso    = document.getElementById('pedidos-proceso-listado');
+  async function cargarMisPedidos() {
+    const contProceso = document.getElementById('pedidos-proceso-listado');
     const contFinalizados = document.getElementById('pedidos-finalizados-listado');
-
-    if (!silencioso) {
-        contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
-        contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
-    }
-
+    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
     try {
-        const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-        const todosLosPedidos = await res.json();
-
-        if (!todosLosPedidos || !Array.isArray(todosLosPedidos) || todosLosPedidos.length === 0) {
-            if (!silencioso) {
-                contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
-                contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
-            }
-            pedidosData = [];
-            ultimoIdPedidoLocalConocido = null;
-            actualizarBadgePendientes();
-            return;
-        }
-
-        // Encontramos el ID más alto ANTES de procesar
-        const idMasAltoActual = todosLosPedidos.reduce((max, row) => {
-            return row[0] > max ? row[0] : max;
-        }, "0");
-
-        // Si no cambió el ID más alto → no hay pedidos nuevos
-        if (ultimoIdPedidoLocalConocido && idMasAltoActual === ultimoIdPedidoLocalConocido) {
-            if (!silencioso) {
-                await procesarYRenderizarPedidos(todosLosPedidos);
-            }
-            actualizarBadgePendientes();
-            return;
-        }
-
-        // Hay al menos un pedido nuevo (o es primera carga)
-        ultimoIdPedidoLocalConocido = idMasAltoActual;
-
-        // Sonido SOLO si no es modo silencioso y ya había un valor previo
-        if (!silencioso && ultimoIdPedidoLocalConocido) {
-            try {
-                audioNotificacion.currentTime = 0;
-                await audioNotificacion.play();
-            } catch (e) {
-                console.log("No se pudo reproducir sonido:", e);
-            }
-        }
-
-        await procesarYRenderizarPedidos(todosLosPedidos);
-
-    } catch (err) {
-        console.error('Error cargando pedidos:', err);
-        if (!silencioso) {
-            contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-            contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-        }
-    }
-}
-
-// ────────────────────────────────────────────────
-async function procesarYRenderizarPedidos(todosLosPedidos) {
-    pedidosData = [];
-
-    const enProceso = todosLosPedidos.filter(p => {
-        const est = (p[4] || 'Pendiente').trim();
-        return est === 'Pendiente' || est === 'Listo';
-    });
-
-    const finalizados = todosLosPedidos.filter(p => {
-        const est = (p[4] || 'Pendiente').trim();
-        return est === 'Entregado' || est === 'Rechazado';
-    });
-
-    // ── Procesar pedidos en proceso ─────────────────────────────
-    for (const row of enProceso) {
-        const idLocal  = row[0];
-        const idGeneral = row[1];
-        const estado    = row[4] || 'Pendiente';
-
-        const [itemsRes, generalRes] = await Promise.all([
-            fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idLocal}`),
-            fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idGeneral}`)
+      const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+      const todosLosPedidos = await resLocales.json();
+      if (!todosLosPedidos || todosLosPedidos.length === 0) {
+        contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
+        contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
+        return;
+      }
+      const enProceso = todosLosPedidos.filter(p => {
+        const estado = p[4] || 'Pendiente';
+        return estado === 'Pendiente' || estado === 'Listo';
+      });
+      const finalizados = todosLosPedidos.filter(p => {
+        const estado = p[4] || 'Pendiente';
+        return estado === 'Entregado' || estado === 'Rechazado';
+      });
+      pedidosData = [];
+      // Cargar primero los en proceso (prioridad alta)
+      for (const localPedido of enProceso) {
+        const idPedidoLocal = localPedido[0];
+        const idPedido = localPedido[1];
+        const estadoActual = localPedido[4] || 'Pendiente';
+        const [resItems, resGeneral] = await Promise.all([
+          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
         ]);
-
-        const items   = await itemsRes.json();
-        const general = await generalRes.json();
-
+        const items = await resItems.json();
+        const general = await resGeneral.json();
         pedidosData.push({
-            idPedidoLocal: idLocal,
-            idPedido: idGeneral,
-            estadoActual: estado,
-            items,
-            direccion: general.direccion || 'Retiro en local',
-            observaciones: general.observaciones || 'Ninguna',
-            metodoPago: general.metodoPago || 'No especificado',
-            tipoEntrega: general.tipoEntrega || 'Para Retirar',
-            emailCliente: general.emailCliente || '',
-            nombreCliente: general.nombreCliente || 'Cliente'
+          idPedidoLocal,
+          idPedido,
+          estadoActual,
+          items,
+          direccion: general.direccion || 'Retiro en local',
+          observaciones: general.observaciones || 'Ninguna',
+          metodoPago: general.metodoPago || 'No especificado',
+          tipoEntrega: general.tipoEntrega || 'Para Retirar',
+          emailCliente: general.emailCliente || '',
+          nombreCliente: general.nombreCliente || 'Cliente'
         });
-    }
-
-    // ── Procesar pedidos finalizados ────────────────────────────
-    // Usamos Promise.all para ir más rápido (paralelo)
-    const promesasFinalizados = finalizados.map(async (row) => {
-        const idLocal   = row[0];
-        const idGeneral = row[1];
-        const estado    = row[4] || 'Pendiente';
-
-        const [itemsRes, generalRes] = await Promise.all([
-            fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idLocal}`),
-            fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idGeneral}`)
+      }
+      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
+      activarFiltroTodos();
+      renderizarPedidosEnProceso('todos');
+      // Cargar finalizados después
+      for (const localPedido of finalizados) {
+        const idPedidoLocal = localPedido[0];
+        const idPedido = localPedido[1];
+        const estadoActual = localPedido[4] || 'Pendiente';
+        const [resItems, resGeneral] = await Promise.all([
+          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
+          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
         ]);
-
-        const items   = await itemsRes.json();
-        const general = await generalRes.json();
-
-        return {
-            idPedidoLocal: idLocal,
-            idPedido: idGeneral,
-            estadoActual: estado,
-            items,
-            direccion: general.direccion || 'Retiro en local',
-            observaciones: general.observaciones || 'Ninguna',
-            metodoPago: general.metodoPago || 'No especificado',
-            tipoEntrega: general.tipoEntrega || 'Para Retirar',
-            emailCliente: general.emailCliente || '',
-            nombreCliente: general.nombreCliente || 'Cliente'
-        };
-    });
-
-    const finalizadosProcesados = await Promise.all(promesasFinalizados);
-    pedidosData.push(...finalizadosProcesados);
-
-    // Orden descendente (más nuevos arriba)
-    pedidosData.sort((a, b) =>
-        b.idPedidoLocal.localeCompare(a.idPedidoLocal, undefined, { numeric: true })
-    );
-
-    // Renderizar
-    renderizarPedidosEnProceso('todos');
-    renderizarPedidosFinalizados();
-    actualizarBadgePendientes();
-}
-
-// ────────────────────────────────────────────────
-// Polling cada 30 segundos (solo cuando estamos viendo Mis Pedidos)
-// ────────────────────────────────────────────────
-function iniciarPollingPedidos() {
-    detenerPollingPedidos();
-
-    pollingInterval = setInterval(() => {
-        // Solo si la sección está visible
-        if (!document.getElementById('pedidos-panel').classList.contains('d-none')) {
-            cargarMisPedidos(true); // true = silencioso (sin spinner ni sonido)
-        }
-    }, 30000);
-}
-
-function detenerPollingPedidos() {
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = null;
+        const items = await resItems.json();
+        const general = await resGeneral.json();
+        pedidosData.push({
+          idPedidoLocal,
+          idPedido,
+          estadoActual,
+          items,
+          direccion: general.direccion || 'Retiro en local',
+          observaciones: general.observaciones || 'Ninguna',
+          metodoPago: general.metodoPago || 'No especificado',
+          tipoEntrega: general.tipoEntrega || 'Para Retirar',
+          emailCliente: general.emailCliente || '',
+          nombreCliente: general.nombreCliente || 'Cliente'
+        });
+      }
+      renderizarPedidosFinalizados();
+    } catch (err) {
+      console.error('Error cargando pedidos:', err);
+      contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+      contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
     }
-}
-
-// ────────────────────────────────────────────────
-// Actualizamos los eventos de navegación
-// ────────────────────────────────────────────────
-document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
-    ocultarTodo();
-    document.getElementById('pedidos-panel').classList.remove('d-none');
-    cargarMisPedidos();           // primera vez → con loading y posible sonido
-    iniciarPollingPedidos();
-});
-
-document.getElementById('btn-mi-menu').addEventListener('click', () => {
-    detenerPollingPedidos();
-    ocultarTodo();
-    document.getElementById('filtros-menu').classList.remove('d-none');
-    document.getElementById('menu-listado').classList.remove('d-none');
-    cargarMenuCompleto();
-});
-
-document.getElementById('btn-agregar-item').addEventListener('click', () => {
-    detenerPollingPedidos();
-    ocultarTodo();
-    document.getElementById('menu-form').classList.remove('d-none');
-    document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-    document.getElementById('menu-form').reset();
-    document.getElementById('edit-item-id').value = '';
-});
-
+  }
   function activarFiltroTodos() {
     document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
     document.getElementById('filtro-todos-proceso').classList.add('active');
   }
-
   function generarHtmlPedido(p, esFinalizado = false) {
     let itemsHtml = '<ul class="item-list">';
     let subtotal = 0;
@@ -1105,16 +913,13 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
       itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
     });
     itemsHtml += '</ul>';
-
     let badgeClass = 'bg-warning';
     if (p.estadoActual === 'Listo') badgeClass = 'bg-info';
     if (p.estadoActual === 'Entregado') badgeClass = 'bg-success';
     if (p.estadoActual === 'Rechazado') badgeClass = 'bg-danger';
-
     const tipoBadge = p.tipoEntrega === 'Con Envío'
       ? '<span class="badge bg-primary ms-2">Con Envío</span>'
       : '<span class="badge bg-secondary ms-2">Retiro</span>';
-
     const botonesAccion = esFinalizado ? '' : `
       <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
         <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
@@ -1127,7 +932,6 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
           <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
         </button>
       </div>`;
-
     return `
       <div class="pedido-card">
         <div class="pedido-header d-flex justify-content-between align-items-center">
@@ -1150,65 +954,54 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
         </div>
       </div>`;
   }
-
   function renderizarPedidosEnProceso(filtro = 'todos') {
     const cont = document.getElementById('pedidos-proceso-listado');
     const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
     let filtrados = pedidosProceso;
     if (filtro === 'pendientes') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Pendiente');
     if (filtro === 'listos') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Listo');
-
     if (filtrados.length === 0) {
       cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos en este filtro</h5></div>';
       return;
     }
-
     let html = '';
     filtrados.forEach(p => html += generarHtmlPedido(p));
     cont.innerHTML = html;
     agregarEventosBotones();
   }
-
   function renderizarPedidosFinalizados() {
     const cont = document.getElementById('pedidos-finalizados-listado');
     const finalizados = pedidosData.filter(p => p.estadoActual === 'Entregado' || p.estadoActual === 'Rechazado');
-
     if (finalizados.length === 0) {
       cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos finalizados</h5></div>';
       return;
     }
-
     let html = '';
     finalizados.forEach(p => html += generarHtmlPedido(p, true));
     cont.innerHTML = html;
   }
-
   // Filtros
   document.getElementById('filtro-pendientes').addEventListener('click', () => {
     document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
     document.getElementById('filtro-pendientes').classList.add('active');
     renderizarPedidosEnProceso('pendientes');
   });
-
   document.getElementById('filtro-listos').addEventListener('click', () => {
     document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
     document.getElementById('filtro-listos').classList.add('active');
     renderizarPedidosEnProceso('listos');
   });
-
   document.getElementById('filtro-todos-proceso').addEventListener('click', () => {
     document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
     document.getElementById('filtro-todos-proceso').classList.add('active');
     renderizarPedidosEnProceso('todos');
   });
-
   function agregarEventosBotones() {
     // Seleccionamos todos los botones relevantes (los que se crean dinámicamente)
     document.querySelectorAll('.btn-listos, .btn-entregado, .btn-rechazar').forEach(btn => {
         // Evitamos agregar múltiples listeners al mismo botón
         if (btn.dataset.listenerAdded) return;
         btn.dataset.listenerAdded = 'true';
-
         btn.addEventListener('click', async function() {
             const idPedidoLocal = this.dataset.id;
             const pedido = pedidosData.find(p => p.idPedidoLocal === idPedidoLocal);
@@ -1216,12 +1009,10 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
                 console.warn("No se encontró el pedido con id:", idPedidoLocal);
                 return;
             }
-
             // Determinamos el nuevo estado según qué botón se presionó
             let nuevoEstado = '';
             let accionNotificacion = '';
             let textoAccion = '';
-
             if (this.classList.contains('btn-listos')) {
                 nuevoEstado = 'Listo';
                 accionNotificacion = 'listo';
@@ -1235,16 +1026,13 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
                 accionNotificacion = 'rechazado';
                 textoAccion = 'Rechazado';
             }
-
             if (!nuevoEstado) return;
-
             // Feedback visual inmediato
             const spinner = this.querySelector('.spinner-border');
             const textoOriginal = this.textContent.trim();
             spinner.classList.remove('d-none');
             this.disabled = true;
             this.textContent = textoAccion + '...';
-
             try {
                 // ────────────────────────────────────────────────
                 // Llamada GET (la forma más estable con Apps Script)
@@ -1252,15 +1040,12 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
                 const url = `${API_URL}?action=updateEstadoLocalOrder` +
                            `&idPedidoLocal=${encodeURIComponent(idPedidoLocal)}` +
                            `&nuevoEstado=${encodeURIComponent(nuevoEstado)}`;
-
                 console.log("Enviando GET →", url);
-
                 await fetch(url, {
                     method: 'GET',
-                    mode: 'no-cors',       // necesario en muchos entornos GAS + frontend
+                    mode: 'no-cors', // necesario en muchos entornos GAS + frontend
                     cache: 'no-cache'
                 });
-
                 // ────────────────────────────────────────────────
                 // Preparar y enviar notificación por email (si corresponde)
                 // ────────────────────────────────────────────────
@@ -1271,11 +1056,9 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
                     </div>
                     <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
                 `;
-
                 let destinatario = '';
                 let asunto = '';
                 let mensajeHtml = '';
-
                 if (accionNotificacion === 'listo') {
                     if (pedido.tipoEntrega === 'Con Envío') {
                         destinatario = EMAIL_MOTOMANDADO;
@@ -1331,7 +1114,6 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
                         <p>Disculpas por las molestias.</p>
                     `;
                 }
-
                 // Enviar email si hay destinatario y mensaje
                 if (destinatario && asunto && mensajeHtml) {
                     const emailParams = new URLSearchParams({
@@ -1340,19 +1122,16 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
                         subject: asunto,
                         htmlBody: mensajeHtml
                     });
-
                     await fetch(`${API_URL}?${emailParams}`, {
                         method: 'GET',
                         mode: 'no-cors',
                         cache: 'no-cache'
                     });
                 }
-
                 alert(`Pedido marcado como ${nuevoEstado}${accionNotificacion !== 'rechazado' ? ' → notificación enviada' : ''}`);
-                
+               
                 // Recargar la lista de pedidos
                 cargarMisPedidos();
-
             } catch (err) {
                 console.error("Error al procesar acción:", err);
                 alert("Error al actualizar el estado del pedido");
@@ -1365,10 +1144,19 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
     });
 }
 
+  // Al final de cargarMisPedidos(), después de renderizar todo:
+actualizarBadgePedidosPendientes();
+
+// Al final de renderizarPedidosEnProceso():
+actualizarBadgePedidosPendientes();
+
+// Dentro del .then() de la actualización de estado (en agregarEventosBotones):
+// después de alert(...) y antes de cargarMisPedidos()
+actualizarBadgePedidosPendientes();
+  
 // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE 100% COMPATIBLE ===
 let ultimoPedidoConocido = null;
 let intervaloPedidos = null;
-
 function iniciarActualizacionAutomatica() {
   // 1. LIMPIAR CUALQUIER INTERVALO ANTERIOR (evita duplicados)
   if (intervaloPedidos) {
@@ -1376,36 +1164,28 @@ function iniciarActualizacionAutomatica() {
     intervaloPedidos = null;
     console.log('Intervalo anterior detenido para evitar duplicación');
   }
-
   // 2. Solo activar si estamos viendo Mis Pedidos
   if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
-
   // 3. Guardar el ID más reciente conocido
   if (pedidosData.length > 0) {
     ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
     console.log('Último pedido conocido al iniciar:', ultimoPedidoConocido);
   }
-
   // 4. Iniciar chequeo cada 30 segundos
   intervaloPedidos = setInterval(async () => {
     try {
       const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
       const pedidosActuales = await res.json();
-
       if (!pedidosActuales || pedidosActuales.length === 0) return;
-
       // Encontrar el pedido más reciente (ID más alto)
       const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
         p[0].localeCompare(max[0], undefined, { numeric: true, sensitivity: 'base' }) > 0 ? p : max,
         pedidosActuales[0]
       );
-
       const idMasReciente = pedidoMasReciente[0];
-
       // Solo actuar si hay un pedido NUEVO (ID mayor)
       if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
         console.log('¡Nuevo pedido detectado! Actualizando... ID:', idMasReciente);
-
         // TIMBRE - sonido muy compatible y corto (campanita de mostrador)
         try {
           const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
@@ -1416,11 +1196,9 @@ function iniciarActualizacionAutomatica() {
         } catch (e) {
           console.log("Error al intentar reproducir timbre:", e);
         }
-
         // Limpiar y recargar TODOS los pedidos
         pedidosData = [];
         await cargarMisPedidos();
-
         // Actualizar referencia
         ultimoPedidoConocido = idMasReciente;
       }
@@ -1429,7 +1207,6 @@ function iniciarActualizacionAutomatica() {
     }
   }, 30000); // 30 segundos — puedes poner 20000 para 20s si prefieres
 }
-
 function detenerActualizacionAutomatica() {
   if (intervaloPedidos) {
     clearInterval(intervaloPedidos);
@@ -1437,21 +1214,17 @@ function detenerActualizacionAutomatica() {
     console.log('Actualización automática detenida');
   }
 }
-
 // === NAVEGACIÓN - Control estricto de intervalos ===
 document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
   ocultarTodo();
   document.getElementById('pedidos-panel').classList.remove('d-none');
-
   // Siempre limpiar antes
   detenerActualizacionAutomatica();
-
   // Cargar y luego activar actualización
   cargarMisPedidos().then(() => {
     iniciarActualizacionAutomatica();
   });
 });
-
 document.getElementById('btn-mi-menu').addEventListener('click', () => {
   detenerActualizacionAutomatica();
   ocultarTodo();
@@ -1459,7 +1232,6 @@ document.getElementById('btn-mi-menu').addEventListener('click', () => {
   document.getElementById('menu-listado').classList.remove('d-none');
   cargarMenuCompleto();
 });
-
 document.getElementById('btn-agregar-item').addEventListener('click', () => {
   detenerActualizacionAutomatica();
   ocultarTodo();
@@ -1468,7 +1240,6 @@ document.getElementById('btn-agregar-item').addEventListener('click', () => {
   document.getElementById('menu-form').reset();
   document.getElementById('edit-item-id').value = '';
 });
-
 </script>
 </body>
 </html>
