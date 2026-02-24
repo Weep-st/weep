@@ -1221,23 +1221,28 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     });
 }
 
-// === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE COMPATIBLE ===
+// === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE 100% COMPATIBLE ===
 let ultimoPedidoConocido = null;
 let intervaloPedidos = null;
 
 function iniciarActualizacionAutomatica() {
-  // Evitar duplicar intervalos si ya existe uno activo
+  // 1. LIMPIAR CUALQUIER INTERVALO ANTERIOR (evita duplicados)
   if (intervaloPedidos) {
     clearInterval(intervaloPedidos);
+    intervaloPedidos = null;
+    console.log('Intervalo anterior detenido para evitar duplicación');
   }
 
+  // 2. Solo activar si estamos viendo Mis Pedidos
   if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
 
-  // Tomar el ID más reciente actual (el último de la lista ordenada)
+  // 3. Guardar el ID más reciente conocido
   if (pedidosData.length > 0) {
     ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
+    console.log('Último pedido conocido al iniciar:', ultimoPedidoConocido);
   }
 
+  // 4. Iniciar chequeo cada 30 segundos
   intervaloPedidos = setInterval(async () => {
     try {
       const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
@@ -1245,7 +1250,7 @@ function iniciarActualizacionAutomatica() {
 
       if (!pedidosActuales || pedidosActuales.length === 0) return;
 
-      // Encontrar el pedido con ID más alto (más reciente)
+      // Encontrar el pedido más reciente (ID más alto)
       const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
         p[0].localeCompare(max[0], undefined, { numeric: true, sensitivity: 'base' }) > 0 ? p : max,
         pedidosActuales[0]
@@ -1253,48 +1258,53 @@ function iniciarActualizacionAutomatica() {
 
       const idMasReciente = pedidoMasReciente[0];
 
-      // Solo actuamos si hay un pedido más nuevo que el conocido
+      // Solo actuar si hay un pedido NUEVO (ID mayor)
       if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
         console.log('¡Nuevo pedido detectado! Actualizando... ID:', idMasReciente);
 
-        // TIMBRE - sonido compatible y corto (campanita de restaurante)
+        // TIMBRE - sonido muy compatible y corto (campanita de mostrador)
         try {
           const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
-          audio.volume = 0.6; // volumen moderado
-          await audio.play(); // await para esperar que termine de cargar
-        } catch (audioErr) {
-          console.log("El navegador bloqueó o no soporta el audio:", audioErr.message);
-          // No rompemos nada, solo no suena
+          audio.volume = 0.65; // moderado
+          audio.play().catch(err => {
+            console.log("Audio no reproducido (probable bloqueo autoplay o formato):", err.message);
+          });
+        } catch (e) {
+          console.log("Error al intentar reproducir timbre:", e);
         }
 
-        // Limpiar y recargar datos
+        // Limpiar y recargar TODOS los pedidos
         pedidosData = [];
         await cargarMisPedidos();
 
-        // Actualizar el último conocido
+        // Actualizar referencia
         ultimoPedidoConocido = idMasReciente;
       }
     } catch (err) {
-      console.error('Error en chequeo automático de pedidos:', err);
+      console.error('Error en chequeo automático:', err);
     }
-  }, 30000); // 30 segundos — puedes bajar a 15000 si quieres más frecuente
+  }, 30000); // 30 segundos — puedes poner 20000 para 20s si prefieres
 }
 
 function detenerActualizacionAutomatica() {
   if (intervaloPedidos) {
     clearInterval(intervaloPedidos);
     intervaloPedidos = null;
+    console.log('Actualización automática detenida');
   }
 }
 
-// === NAVEGACIÓN CON CONTROL DE INTERVALO ===
+// === NAVEGACIÓN - Control estricto de intervalos ===
 document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
   ocultarTodo();
   document.getElementById('pedidos-panel').classList.remove('d-none');
-  
-  detenerActualizacionAutomatica();       // Limpiar cualquier intervalo viejo
+
+  // Siempre limpiar antes
+  detenerActualizacionAutomatica();
+
+  // Cargar y luego activar actualización
   cargarMisPedidos().then(() => {
-    iniciarActualizacionAutomatica();     // Iniciar nuevo intervalo limpio
+    iniciarActualizacionAutomatica();
   });
 });
 
