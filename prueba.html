@@ -443,6 +443,37 @@
 let ultimaCantidadPendientes = 0;
 let pedidosPendientesCount = 0;
 const notificationAudio = document.getElementById('notificationSound');
+  let puedeReproducirSonido = false;
+
+// Función para "desbloquear" audio (se llama en interacciones)
+function desbloquearAudio() {
+  if (!puedeReproducirSonido) {
+    // Intentamos reproducir y pausar inmediatamente (truco común)
+    notificationAudio.play().then(() => {
+      notificationAudio.pause();
+      notificationAudio.currentTime = 0;
+      puedeReproducirSonido = true;
+      console.log("Audio desbloqueado");
+    }).catch(() => {
+      // Si falla, igual marcamos (quizá ya estaba desbloqueado)
+      puedeReproducirSonido = true;
+    });
+  }
+}
+
+// Llamar desbloquearAudio() en varios eventos de interacción
+['click', 'touchstart'].forEach(evento => {
+  document.addEventListener(evento, desbloquearAudio, { once: true, passive: true });
+});
+
+// Modificar playNotificationSound para respetar el flag
+function playNotificationSound() {
+  if (!notificationAudio || !puedeReproducirSonido) return;
+  notificationAudio.currentTime = 0;
+  notificationAudio.play().catch(err => {
+    console.warn("Fallo al reproducir (autoplay?):", err);
+  });
+}
 
   if (localToken) mostrarPanelPrincipal();
 
@@ -456,15 +487,6 @@ const notificationAudio = document.getElementById('notificationSound');
 
     // ← agregar
   setTimeout(actualizarContadorPedidosPendientes, 1200); // pequeño retraso para que carguen datos
-}
-
-    // Función auxiliar para reproducir sonido (con manejo de errores comunes)
-function playNotificationSound() {
-  if (!notificationAudio) return;
-  notificationAudio.currentTime = 0;
-  notificationAudio.play().catch(err => {
-    console.warn("No se pudo reproducir sonido (posible restricción autoplay):", err);
-  });
 }
 
   async function cargarDireccionLocal() {
@@ -1245,30 +1267,50 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     renderizarPedidosEnProceso('todos');
   });
 
-    // Polling para actualizar pedidos y contador en segundo plano
-setInterval(() => {
-  if (localToken) {  // solo si está logueado
-    // Si estamos viendo Mis Pedidos → recarga completa
-    if (!document.getElementById('pedidos-panel').classList.contains('d-none')) {
-      cargarMisPedidos();
-    } 
-    // Siempre actualizamos el contador (incluso si estamos en menú o perfil)
-    else {
-      // Versión ligera: solo contamos pendientes sin recargar todo
-      fetch(`${API_URL}?action=contarPedidosPendientesByLocal&localId=${localToken}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && typeof data.pendientes === 'number') {
-            pedidosData = pedidosData.map(p => p); // dummy para mantener referencia
-            // Forzamos actualización del contador
-            ultimaCantidadPendientes = -1; // truco para que siempre suene si hay cambio
-            actualizarContadorPedidosPendientes();
+    setInterval(() => {
+  if (!localToken) return;
+
+  const estaViendoPedidos = !document.getElementById('pedidos-panel').classList.contains('d-none');
+
+  if (estaViendoPedidos) {
+    cargarMisPedidos();           // recarga todo → actualiza pedidosData y contador
+  } else {
+    // Versión ligera: solo número
+    fetch(`${API_URL}?action=contarPedidosPendientesByLocal&localId=${localToken}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && typeof data.pendientes === 'number') {
+          const nuevosPendientes = data.pendientes;
+
+          // Actualizamos solo el badge (sin tocar pedidosData)
+          let badge = document.getElementById('pedidos-pendientes-badge');
+          if (!badge) {
+            // crear badge como antes...
+            badge = document.createElement('span');
+            // ... resto igual
+            document.getElementById('btn-mis-pedidos').appendChild(badge);
           }
-        })
-        .catch(() => {});
-    }
+
+          if (nuevosPendientes > 0) {
+            badge.textContent = nuevosPendientes > 99 ? '99+' : nuevosPendientes;
+            badge.style.display = 'inline-block';
+
+            // Sonido SOLO si aumenta y ya desbloqueado
+            if (nuevosPendientes > ultimaCantidadPendientes && nuevosPendientes > 0) {
+              playNotificationSound();
+              document.title = `¡${nuevosPendientes} pedido${nuevosPendientes === 1 ? '' : 's'}!`;
+              setTimeout(() => { document.title = "Weep - Panel de Gestión de Negocios"; }, 4000);
+            }
+          } else {
+            badge.style.display = 'none';
+          }
+
+          ultimaCantidadPendientes = nuevosPendientes;
+        }
+      })
+      .catch(() => {});
   }
-}, 15000);   // cada 15 segundos — puedes bajar a 10000 o subir a 20000
+}, 15000);
 
 </script>
 </body>
