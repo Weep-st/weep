@@ -1140,36 +1140,7 @@
     document.getElementById('menu-form').reset();
     document.getElementById('edit-item-id').value = '';
   });
-  function detenerActualizacionAutomatica() {
-    if (intervaloPedidos) {
-      clearInterval(intervaloPedidos);
-      intervaloPedidos = null;
-    }
-  }
-  // Navegación
-  document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
-    ocultarTodo();
-    document.getElementById('pedidos-panel').classList.remove('d-none');
-    detenerActualizacionAutomatica();
-    cargarMisPedidos().then(() => {
-      iniciarActualizacionAutomatica();
-    });
-  });
-  document.getElementById('btn-mi-menu').addEventListener('click', () => {
-    detenerActualizacionAutomatica();
-    ocultarTodo();
-    document.getElementById('filtros-menu').classList.remove('d-none');
-    document.getElementById('menu-listado').classList.remove('d-none');
-    cargarMenuCompleto();
-  });
-  document.getElementById('btn-agregar-item').addEventListener('click', () => {
-    detenerActualizacionAutomatica();
-    ocultarTodo();
-    document.getElementById('menu-form').classList.remove('d-none');
-    document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-    document.getElementById('menu-form').reset();
-    document.getElementById('edit-item-id').value = '';
-  });
+  
 </script>
 </body>
 </html>
