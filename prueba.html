@@ -1155,90 +1155,103 @@ actualizarBadgePedidosPendientes();
 actualizarBadgePedidosPendientes();
   
 // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE 100% COMPATIBLE ===
-let ultimoPedidoConocido = null;
 let intervaloPedidos = null;
+
 function iniciarActualizacionAutomatica() {
-  // 1. LIMPIAR CUALQUIER INTERVALO ANTERIOR (evita duplicados)
-  if (intervaloPedidos) {
-    clearInterval(intervaloPedidos);
-    intervaloPedidos = null;
-    console.log('Intervalo anterior detenido para evitar duplicación');
+  // 1. Siempre limpiar primero (la más importante)
+  detenerActualizacionAutomatica();
+
+  // 2. Solo activar si estamos realmente en la pestaña de pedidos
+  if (document.getElementById('pedidos-panel').classList.contains('d-none')) {
+    console.log("No se inicia polling: no estamos en Mis Pedidos");
+    return;
   }
-  // 2. Solo activar si estamos viendo Mis Pedidos
-  if (document.getElementById('pedidos-panel').classList.contains('d-none')) return;
-  // 3. Guardar el ID más reciente conocido
+
+  // 3. Guardar el último ID conocido (defensivo)
   if (pedidosData.length > 0) {
-    ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
-    console.log('Último pedido conocido al iniciar:', ultimoPedidoConocido);
+    ultimoPedidoConocido = pedidosData
+      .map(p => p.idPedidoLocal)
+      .sort((a,b) => b.localeCompare(a, undefined, {numeric:true}))
+      [0];  // el más alto
+    console.log('Inicio polling → último conocido:', ultimoPedidoConocido);
+  } else {
+    ultimoPedidoConocido = null;
   }
-  // 4. Iniciar chequeo cada 30 segundos
+
+  // 4. Crear intervalo (30 segundos)
   intervaloPedidos = setInterval(async () => {
     try {
       const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
       const pedidosActuales = await res.json();
-      if (!pedidosActuales || pedidosActuales.length === 0) return;
-      // Encontrar el pedido más reciente (ID más alto)
-      const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
-        p[0].localeCompare(max[0], undefined, { numeric: true, sensitivity: 'base' }) > 0 ? p : max,
-        pedidosActuales[0]
-      );
+
+      if (!Array.isArray(pedidosActuales) || pedidosActuales.length === 0) return;
+
+      // Tomar el ID más alto (más reciente)
+      const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
+        return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
+      }, pedidosActuales[0]);
+
       const idMasReciente = pedidoMasReciente[0];
-      // Solo actuar si hay un pedido NUEVO (ID mayor)
-      if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
-        console.log('¡Nuevo pedido detectado! Actualizando... ID:', idMasReciente);
-        // TIMBRE - sonido muy compatible y corto (campanita de mostrador)
+
+      if (!ultimoPedidoConocido || 
+          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
+        
+        console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
+        
+        // Intento de sonido (con try-catch más completo)
         try {
           const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
-          audio.volume = 0.65; // moderado
-          audio.play().catch(err => {
-            console.log("Audio no reproducido (probable bloqueo autoplay o formato):", err.message);
-          });
-        } catch (e) {
-          console.log("Error al intentar reproducir timbre:", e);
+          audio.volume = 0.6;
+          await audio.play();  // ← await aquí ayuda a depurar
+        } catch (err) {
+          console.warn("No se pudo reproducir sonido:", err.message);
         }
-        // Limpiar y recargar TODOS los pedidos
-        pedidosData = [];
+
+        // Recargar TODO
         await cargarMisPedidos();
+
         // Actualizar referencia
         ultimoPedidoConocido = idMasReciente;
       }
     } catch (err) {
-      console.error('Error en chequeo automático:', err);
+      console.error('Error en polling:', err);
     }
-  }, 30000); // 30 segundos — puedes poner 20000 para 20s si prefieres
+  }, 30000);
+
+  console.log("Polling iniciado (intervalo ID:", intervaloPedidos, ")");
 }
+
 function detenerActualizacionAutomatica() {
   if (intervaloPedidos) {
     clearInterval(intervaloPedidos);
     intervaloPedidos = null;
-    console.log('Actualización automática detenida');
+    console.log("Polling detenido");
   }
 }
-// === NAVEGACIÓN - Control estricto de intervalos ===
-document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+  
+// Elimina cualquier listener anterior (por si se ejecutó varias veces el script)
+const btnPedidos = document.getElementById('btn-mis-pedidos');
+btnPedidos.removeEventListener('click', handleClickMisPedidos); // por si acaso
+btnPedidos.addEventListener('click', handleClickMisPedidos);
+
+function handleClickMisPedidos() {
   ocultarTodo();
   document.getElementById('pedidos-panel').classList.remove('d-none');
-  // Siempre limpiar antes
+  
+  // Limpieza estricta ANTES de cargar
   detenerActualizacionAutomatica();
-  // Cargar y luego activar actualización
+  
+  // Cargar y luego iniciar polling
   cargarMisPedidos().then(() => {
     iniciarActualizacionAutomatica();
+  }).catch(err => {
+    console.error("Fallo al cargar pedidos iniciales:", err);
   });
-});
-document.getElementById('btn-mi-menu').addEventListener('click', () => {
+}
+  
+  // Al final del script
+window.addEventListener('beforeunload', () => {
   detenerActualizacionAutomatica();
-  ocultarTodo();
-  document.getElementById('filtros-menu').classList.remove('d-none');
-  document.getElementById('menu-listado').classList.remove('d-none');
-  cargarMenuCompleto();
-});
-document.getElementById('btn-agregar-item').addEventListener('click', () => {
-  detenerActualizacionAutomatica();
-  ocultarTodo();
-  document.getElementById('menu-form').classList.remove('d-none');
-  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-  document.getElementById('menu-form').reset();
-  document.getElementById('edit-item-id').value = '';
 });
 </script>
 </body>
