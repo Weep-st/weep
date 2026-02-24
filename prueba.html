@@ -436,14 +436,49 @@
 
   if (localToken) mostrarPanelPrincipal();
 
-  function mostrarPanelPrincipal() {
-    document.getElementById('auth-section').classList.add('d-none');
-    document.getElementById('panel-principal').classList.remove('d-none');
-    cargarEstadoLocal();
-    cargarMenuCompleto();
-    cargarFotoPerfilHeader();
-    cargarDireccionLocal(); // Cargamos la dirección al iniciar
+  // ────────────────────────────────────────────────
+// NUEVAS VARIABLES GLOBALES
+// ────────────────────────────────────────────────
+let ultimoIdPedidoLocalConocido = null;     // string (el ID más alto conocido)
+let cantidadPendientesMostrada = 0;
+const audioNotificacion = document.getElementById('notification-sound');
+
+// ────────────────────────────────────────────────
+// MEJORA: Carga inicial al entrar al panel principal
+// ────────────────────────────────────────────────
+function mostrarPanelPrincipal() {
+  document.getElementById('auth-section').classList.add('d-none');
+  document.getElementById('panel-principal').classList.remove('d-none');
+
+  cargarEstadoLocal();
+  cargarMenuCompleto();
+  cargarFotoPerfilHeader();
+  cargarDireccionLocal();
+
+  // NUEVO: Cargar pedidos al iniciar (para mostrar la burbuja)
+  cargarMisPedidos().then(() => {
+    actualizarBadgePendientes();
+  });
+}
+
+// ────────────────────────────────────────────────
+// Actualizar el badge de pendientes (rojo con número)
+// ────────────────────────────────────────────────
+function actualizarBadgePendientes() {
+  const pendientes = pedidosData.filter(p => p.estadoActual === 'Pendiente').length;
+  
+  const badge = document.getElementById('pedidos-pendientes-badge');
+  if (!badge) return;
+
+  if (pendientes > 0) {
+    badge.textContent = pendientes;
+    badge.classList.remove('d-none');
+  } else {
+    badge.classList.add('d-none');
   }
+
+  cantidadPendientesMostrada = pendientes;
+}
 
   async function cargarDireccionLocal() {
     try {
@@ -848,104 +883,209 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   });
 
   // === PEDIDOS ===
-  async function cargarMisPedidos() {
-    const contProceso = document.getElementById('pedidos-proceso-listado');
+  // ────────────────────────────────────────────────
+// Variables globales relacionadas con pedidos (asegúrate de tenerlas arriba)
+let pedidosData = [];
+let ultimoIdPedidoLocalConocido = null;
+let pollingInterval = null;
+const audioNotificacion = document.getElementById('notification-sound');
+
+// ────────────────────────────────────────────────
+// Carga de pedidos (con control de sonido y duplicados)
+async function cargarMisPedidos(silencioso = false) {
+    const contProceso    = document.getElementById('pedidos-proceso-listado');
     const contFinalizados = document.getElementById('pedidos-finalizados-listado');
 
-    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
-    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+    if (!silencioso) {
+        contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+        contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
+    }
 
     try {
-      const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const todosLosPedidos = await resLocales.json();
+        const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
+        const todosLosPedidos = await res.json();
 
-      if (!todosLosPedidos || todosLosPedidos.length === 0) {
-        contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
-        contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
-        return;
-      }
+        if (!todosLosPedidos || !Array.isArray(todosLosPedidos) || todosLosPedidos.length === 0) {
+            if (!silencioso) {
+                contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
+                contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
+            }
+            pedidosData = [];
+            ultimoIdPedidoLocalConocido = null;
+            actualizarBadgePendientes();
+            return;
+        }
 
-      const enProceso = todosLosPedidos.filter(p => {
-        const estado = p[4] || 'Pendiente';
-        return estado === 'Pendiente' || estado === 'Listo';
-      });
+        // Encontramos el ID más alto ANTES de procesar
+        const idMasAltoActual = todosLosPedidos.reduce((max, row) => {
+            return row[0] > max ? row[0] : max;
+        }, "0");
 
-      const finalizados = todosLosPedidos.filter(p => {
-        const estado = p[4] || 'Pendiente';
-        return estado === 'Entregado' || estado === 'Rechazado';
-      });
+        // Si no cambió el ID más alto → no hay pedidos nuevos
+        if (ultimoIdPedidoLocalConocido && idMasAltoActual === ultimoIdPedidoLocalConocido) {
+            if (!silencioso) {
+                await procesarYRenderizarPedidos(todosLosPedidos);
+            }
+            actualizarBadgePendientes();
+            return;
+        }
 
-      pedidosData = [];
+        // Hay al menos un pedido nuevo (o es primera carga)
+        ultimoIdPedidoLocalConocido = idMasAltoActual;
 
-      // Cargar primero los en proceso (prioridad alta)
-      for (const localPedido of enProceso) {
-        const idPedidoLocal = localPedido[0];
-        const idPedido = localPedido[1];
-        const estadoActual = localPedido[4] || 'Pendiente';
+        // Sonido SOLO si no es modo silencioso y ya había un valor previo
+        if (!silencioso && ultimoIdPedidoLocalConocido) {
+            try {
+                audioNotificacion.currentTime = 0;
+                await audioNotificacion.play();
+            } catch (e) {
+                console.log("No se pudo reproducir sonido:", e);
+            }
+        }
 
-        const [resItems, resGeneral] = await Promise.all([
-          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
-          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
-        ]);
-
-        const items = await resItems.json();
-        const general = await resGeneral.json();
-
-        pedidosData.push({
-          idPedidoLocal,
-          idPedido,
-          estadoActual,
-          items,
-          direccion: general.direccion || 'Retiro en local',
-          observaciones: general.observaciones || 'Ninguna',
-          metodoPago: general.metodoPago || 'No especificado',
-          tipoEntrega: general.tipoEntrega || 'Para Retirar',
-          emailCliente: general.emailCliente || '',
-          nombreCliente: general.nombreCliente || 'Cliente'
-        });
-      }
-
-      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
-
-      activarFiltroTodos();
-      renderizarPedidosEnProceso('todos');
-
-      // Cargar finalizados después
-      for (const localPedido of finalizados) {
-        const idPedidoLocal = localPedido[0];
-        const idPedido = localPedido[1];
-        const estadoActual = localPedido[4] || 'Pendiente';
-
-        const [resItems, resGeneral] = await Promise.all([
-          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
-          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
-        ]);
-
-        const items = await resItems.json();
-        const general = await resGeneral.json();
-
-        pedidosData.push({
-          idPedidoLocal,
-          idPedido,
-          estadoActual,
-          items,
-          direccion: general.direccion || 'Retiro en local',
-          observaciones: general.observaciones || 'Ninguna',
-          metodoPago: general.metodoPago || 'No especificado',
-          tipoEntrega: general.tipoEntrega || 'Para Retirar',
-          emailCliente: general.emailCliente || '',
-          nombreCliente: general.nombreCliente || 'Cliente'
-        });
-      }
-
-      renderizarPedidosFinalizados();
+        await procesarYRenderizarPedidos(todosLosPedidos);
 
     } catch (err) {
-      console.error('Error cargando pedidos:', err);
-      contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-      contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+        console.error('Error cargando pedidos:', err);
+        if (!silencioso) {
+            contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+            contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
+        }
     }
-  }
+}
+
+// ────────────────────────────────────────────────
+async function procesarYRenderizarPedidos(todosLosPedidos) {
+    pedidosData = [];
+
+    const enProceso = todosLosPedidos.filter(p => {
+        const est = (p[4] || 'Pendiente').trim();
+        return est === 'Pendiente' || est === 'Listo';
+    });
+
+    const finalizados = todosLosPedidos.filter(p => {
+        const est = (p[4] || 'Pendiente').trim();
+        return est === 'Entregado' || est === 'Rechazado';
+    });
+
+    // ── Procesar pedidos en proceso ─────────────────────────────
+    for (const row of enProceso) {
+        const idLocal  = row[0];
+        const idGeneral = row[1];
+        const estado    = row[4] || 'Pendiente';
+
+        const [itemsRes, generalRes] = await Promise.all([
+            fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idLocal}`),
+            fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idGeneral}`)
+        ]);
+
+        const items   = await itemsRes.json();
+        const general = await generalRes.json();
+
+        pedidosData.push({
+            idPedidoLocal: idLocal,
+            idPedido: idGeneral,
+            estadoActual: estado,
+            items,
+            direccion: general.direccion || 'Retiro en local',
+            observaciones: general.observaciones || 'Ninguna',
+            metodoPago: general.metodoPago || 'No especificado',
+            tipoEntrega: general.tipoEntrega || 'Para Retirar',
+            emailCliente: general.emailCliente || '',
+            nombreCliente: general.nombreCliente || 'Cliente'
+        });
+    }
+
+    // ── Procesar pedidos finalizados ────────────────────────────
+    // Usamos Promise.all para ir más rápido (paralelo)
+    const promesasFinalizados = finalizados.map(async (row) => {
+        const idLocal   = row[0];
+        const idGeneral = row[1];
+        const estado    = row[4] || 'Pendiente';
+
+        const [itemsRes, generalRes] = await Promise.all([
+            fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idLocal}`),
+            fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idGeneral}`)
+        ]);
+
+        const items   = await itemsRes.json();
+        const general = await generalRes.json();
+
+        return {
+            idPedidoLocal: idLocal,
+            idPedido: idGeneral,
+            estadoActual: estado,
+            items,
+            direccion: general.direccion || 'Retiro en local',
+            observaciones: general.observaciones || 'Ninguna',
+            metodoPago: general.metodoPago || 'No especificado',
+            tipoEntrega: general.tipoEntrega || 'Para Retirar',
+            emailCliente: general.emailCliente || '',
+            nombreCliente: general.nombreCliente || 'Cliente'
+        };
+    });
+
+    const finalizadosProcesados = await Promise.all(promesasFinalizados);
+    pedidosData.push(...finalizadosProcesados);
+
+    // Orden descendente (más nuevos arriba)
+    pedidosData.sort((a, b) =>
+        b.idPedidoLocal.localeCompare(a.idPedidoLocal, undefined, { numeric: true })
+    );
+
+    // Renderizar
+    renderizarPedidosEnProceso('todos');
+    renderizarPedidosFinalizados();
+    actualizarBadgePendientes();
+}
+
+// ────────────────────────────────────────────────
+// Polling cada 30 segundos (solo cuando estamos viendo Mis Pedidos)
+// ────────────────────────────────────────────────
+function iniciarPollingPedidos() {
+    detenerPollingPedidos();
+
+    pollingInterval = setInterval(() => {
+        // Solo si la sección está visible
+        if (!document.getElementById('pedidos-panel').classList.contains('d-none')) {
+            cargarMisPedidos(true); // true = silencioso (sin spinner ni sonido)
+        }
+    }, 30000);
+}
+
+function detenerPollingPedidos() {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+}
+
+// ────────────────────────────────────────────────
+// Actualizamos los eventos de navegación
+// ────────────────────────────────────────────────
+document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+    ocultarTodo();
+    document.getElementById('pedidos-panel').classList.remove('d-none');
+    cargarMisPedidos();           // primera vez → con loading y posible sonido
+    iniciarPollingPedidos();
+});
+
+document.getElementById('btn-mi-menu').addEventListener('click', () => {
+    detenerPollingPedidos();
+    ocultarTodo();
+    document.getElementById('filtros-menu').classList.remove('d-none');
+    document.getElementById('menu-listado').classList.remove('d-none');
+    cargarMenuCompleto();
+});
+
+document.getElementById('btn-agregar-item').addEventListener('click', () => {
+    detenerPollingPedidos();
+    ocultarTodo();
+    document.getElementById('menu-form').classList.remove('d-none');
+    document.getElementById('form-titulo').textContent = 'Nuevo Plato';
+    document.getElementById('menu-form').reset();
+    document.getElementById('edit-item-id').value = '';
+});
 
   function activarFiltroTodos() {
     document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
