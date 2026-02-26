@@ -1255,25 +1255,20 @@ function iniciarActualizacionAutomatica() {
 
       const idMasReciente = pedidoMasReciente[0];
 
-      if (!ultimoPedidoConocido || 
-          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
-        
-        console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
+      if (!ultimoPedidoConocido ||
+    idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
+    
+    console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
 
-        // Detener el intervalo ANTES de recargar
-detenerActualizacionAutomatica();
+    // ── AQUÍ VA EL SONIDO ──
+    reproducirSonidoNuevoPedido();   // ← llamada principal
 
-// ── SONIDO ──
-reproducirSonidoPedido();
-
-// Recargar datos
-await cargarMisPedidos();
-
-// Actualizar último conocido
-ultimoPedidoConocido = idMasReciente;
-
-// Reiniciar polling limpio
-iniciarActualizacionAutomatica();
+    // (el resto sigue igual)
+    detenerActualizacionAutomatica();
+    await cargarMisPedidos();
+    ultimoPedidoConocido = idMasReciente;
+    iniciarActualizacionAutomatica();
+}
 
         try {
           const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
@@ -1324,92 +1319,35 @@ function handleClickMisPedidos() {
     .then(() => iniciarActualizacionAutomatica())
     .catch(err => console.error("Error al cargar pedidos iniciales:", err));
 }
+
+  function reproducirSonidoNuevoPedido() {
+    if (!userHasInteracted) {
+        console.log("Sonido bloqueado → aún no hubo interacción del usuario");
+        return;
+    }
+
+    try {
+        const audio = new Audio('https://www.soundjay.com/buttons/sounds/button-09.wav');
+        audio.volume = 0.7;           // ← podés ajustar 0.0 a 1.0
+        audio.currentTime = 0;
+        const promise = audio.play();
+
+        if (promise !== undefined) {
+            promise.catch(err => {
+                console.warn("No se pudo reproducir el timbre:", err.message);
+                // Opcional: fallback a otro sonido si falla
+            });
+        }
+    } catch (e) {
+        console.error("Error al crear/reproducir Audio:", e);
+    }
+}
   
   // Al final del script
 window.addEventListener('beforeunload', () => {
   detenerActualizacionAutomatica();
 });
 
-
-// ────────────────────────────────────────────────
-//          DIAGNÓSTICO Y REPRODUCCIÓN DE SONIDO
-// ────────────────────────────────────────────────
-
-// Detectamos la PRIMERA interacción real (clic, toque, etc.)
-document.addEventListener('click', function firstInteraction() {
-  userHasInteracted = true;
-  console.log("[AUDIO] Usuario interactuó → sonido debería estar permitido ahora");
-  document.removeEventListener('click', firstInteraction); // solo una vez
-}, { once: true });
-
-// Función principal de reproducción con diagnóstico completo
-function reproducirSonidoPedido() {
-  const audio = document.getElementById('pedidoSound');
-  if (!audio) {
-    console.error("[AUDIO ERROR] No se encontró el elemento <audio id='pedidoSound'>");
-    alert("Error: No se encontró el elemento de audio en la página.\nRevisa que esté en el HTML.");
-    return;
-  }
-
-  console.group("[AUDIO DIAGNÓSTICO]");
-  console.log("userHasInteracted:", userHasInteracted);
-  console.log("audio.readyState:", audio.readyState); // 0=no info, 4=can play
-  console.log("audio.networkState:", audio.networkState);
-  console.log("audio.paused:", audio.paused);
-  console.log("audio.muted:", audio.muted);
-  console.log("audio.src:", audio.currentSrc || audio.src);
-
-  if (audio.readyState < 2) {
-    console.warn("[AUDIO] El archivo aún no está listo (readyState bajo)");
-  }
-
-  audio.currentTime = 0;
-  audio.muted = false; // aseguramos que no esté silenciado
-
-  const playPromise = audio.play();
-
-  if (playPromise !== undefined) {
-    playPromise
-      .then(() => {
-        console.log("[AUDIO] Reproducción iniciada con éxito");
-        console.groupEnd();
-      })
-      .catch(err => {
-        console.error("[AUDIO ERROR] Falló play():", err.name, err.message);
-        console.groupEnd();
-
-        let mensaje = "No se pudo reproducir el sonido.\n\n";
-
-        if (err.name === "NotAllowedError") {
-          mensaje += "El navegador bloquea autoplay porque no hubo interacción previa.\n\n";
-          mensaje += "SOLUCIÓN: Hacé clic en cualquier botón de la página (o en 'Probar Sonido') y volvé a intentarlo.";
-        } else if (err.name === "AbortError" || err.name === "NotSupportedError") {
-          mensaje += "Problema con el archivo de audio o formato no soportado.\nPrueba con otro navegador o verifica la URL.";
-        } else {
-          mensaje += "Error desconocido: " + err.message + "\nRevisa la consola (F12).";
-        }
-
-        alert(mensaje);
-      });
-  }
-}
-
-// Botón de prueba (diagnóstico rápido)
-document.getElementById('btn-test-sound')?.addEventListener('click', () => {
-  console.log("[TEST] Botón 'Probar Sonido' presionado");
-  reproducirSonidoPedido();
-
-  // Feedback visual temporal
-  const btn = document.getElementById('btn-test-sound');
-  const originalText = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Probando...';
-  
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-  }, 3000);
-});
 </script>
 </body>
 </html>
