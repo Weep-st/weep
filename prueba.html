@@ -823,6 +823,71 @@ document.addEventListener('DOMContentLoaded', () => {
       if (texto) texto.textContent = "Error al cargar estado";
     });
 });
+
+  // ←←← AQUÍ VA EL CÓDIGO PARA ACTUALIZAR EL ESTADO →→→
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Cargar estado inicial (ya lo tienes)
+  cargarEstadoLocal()
+    .then(() => console.log("Estado local cargado correctamente"))
+    .catch(err => {
+      console.error("No se pudo cargar estado:", err);
+      const texto = document.getElementById('estado-texto');
+      if (texto) texto.textContent = "Error al cargar";
+    });
+
+  // 2. ← Evento para CAMBIAR el estado cuando el usuario toca el toggle
+  const toggle = document.getElementById('estado-local-toggle');
+  if (toggle) {
+    toggle.addEventListener('change', async function() {
+      const nuevoEstado = this.checked ? "Activo" : "Inactivo";
+      
+      // Feedback inmediato (optimista)
+      document.getElementById('estado-texto').textContent = this.checked ? "Abierto" : "Cerrado";
+
+      try {
+        const url = `${API_URL}?action=updateLocalEstado` +
+                    `&localId=${encodeURIComponent(localToken)}` +
+                    `&estado=${encodeURIComponent(nuevoEstado)}`;
+
+        console.log("Enviando actualización de estado:", url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'text/plain'  // evita preflight innecesario
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          console.log("Estado actualizado correctamente:", data.nuevoEstado);
+          // Opcional: mostrar un mensaje de éxito más bonito
+          // alert("Estado actualizado: " + (this.checked ? "Abierto" : "Cerrado"));
+        } else {
+          console.error("Fallo en la actualización:", data.message);
+          // Revertir cambio visual si falla
+          this.checked = !this.checked;
+          document.getElementById('estado-texto').textContent = this.checked ? "Abierto" : "Cerrado";
+          alert("No se pudo actualizar el estado:\n" + (data.message || "Error desconocido"));
+        }
+      } catch (err) {
+        console.error("Error al intentar actualizar estado:", err);
+        // Revertir visual
+        this.checked = !this.checked;
+        document.getElementById('estado-texto').textContent = this.checked ? "Abierto" : "Cerrado";
+        alert("Error de conexión o servidor al actualizar estado");
+      }
+    });
+  } else {
+    console.warn("No se encontró el elemento #estado-local-toggle");
+  }
+});
   
   // === PERFIL ===
   async function cargarFotoPerfilHeader() {
