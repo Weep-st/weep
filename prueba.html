@@ -757,47 +757,71 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   }
   
   // === ESTADO LOCAL ===
-  async function cargarEstadoLocal() {
-  const localId = localToken; // o como lo tengas
+ async function cargarEstadoLocal() {
+  const localId = localToken; // asegúrate que esta variable existe y tiene valor
+  if (!localId) {
+    console.error("localToken no está definido o está vacío");
+    return;
+  }
+
   const scriptUrl = "https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec";
 
   return new Promise((resolve, reject) => {
-    const callbackName = "jsonpCallback_" + Math.random().toString(36).slice(2);
+    const callbackName = "jsonp_" + Date.now() + Math.random().toString(36).slice(2, 8);
 
     window[callbackName] = function(data) {
-      delete window[callbackName];               // limpiar
-      document.body.removeChild(script);         // limpiar
+      console.log("JSONP recibido:", data); // ← muy importante para depurar
+      delete window[callbackName];
+      if (script.parentNode) document.body.removeChild(script);
 
-      if (data && data.estado) {
-        const activo = data.estado === "Activo" || data.estado === "activo";
-        document.getElementById('estado-local-toggle').checked = activo;
-        document.getElementById('estado-texto').textContent = activo ? "Abierto" : "Cerrado";
+      if (data && typeof data === 'object' && 'estado' in data) {
+        const activo = String(data.estado).toLowerCase() === 'activo';
+        const toggle = document.getElementById('estado-local-toggle');
+        const texto = document.getElementById('estado-texto');
+
+        if (toggle && texto) {
+          toggle.checked = activo;
+          texto.textContent = activo ? "Abierto" : "Cerrado";
+        }
+
         resolve(data);
       } else {
-        reject(new Error("Respuesta inválida"));
+        reject(new Error("Respuesta JSONP inválida: " + JSON.stringify(data)));
       }
     };
 
     const url = `${scriptUrl}?action=getLocalEstado&localId=${encodeURIComponent(localId)}&callback=${callbackName}`;
 
+    console.log("Intentando cargar JSONP desde:", url);
+
     const script = document.createElement("script");
     script.src = url;
-    script.onerror = () => {
+    script.async = true;
+    script.onerror = function(err) {
+      console.error("Error al cargar el script JSONP:", err);
       delete window[callbackName];
-      document.body.removeChild(script);
-      reject(new Error("Error en JSONP"));
+      if (script.parentNode) document.body.removeChild(script);
+      reject(new Error("Fallo al cargar el script (onerror) - ver consola/network"));
+    };
+
+    script.onload = function() {
+      console.log("Script JSONP cargado (onload disparado)");
     };
 
     document.body.appendChild(script);
   });
 }
 
-// Llamar al cargar la página
-window.addEventListener('load', () => {
-  cargarEstadoLocal().catch(err => {
-    console.error("No se pudo cargar estado:", err);
-    // opcional: mostrar mensaje al usuario
-  });
+// Llamada al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+  cargarEstadoLocal()
+    .then(() => console.log("Estado local cargado correctamente"))
+    .catch(err => {
+      console.error("No se pudo cargar estado:", err);
+      // Opcional: mostrar mensaje al usuario
+      const texto = document.getElementById('estado-texto');
+      if (texto) texto.textContent = "Error al cargar estado";
+    });
 });
   
   // === PERFIL ===
