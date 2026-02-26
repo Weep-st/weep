@@ -368,12 +368,6 @@
     </div>
     <!-- MIS PEDIDOS - CON PESTAÑAS -->
     <div id="pedidos-panel" class="d-none">
-
-      <div class="text-center mb-3">
-  <button id="btn-probar-sonido" class="btn btn-warning btn-lg">
-    <i class="bi bi-bell-fill me-2"></i> Probar Sonido de Pedido
-  </button>
-</div>
       
       <h2 class="mb-4 text-rojo text-center">Mis Pedidos</h2>
       <ul class="nav nav-tabs mb-4" id="pedidosTabs" role="tablist">
@@ -1227,7 +1221,7 @@ function iniciarActualizacionAutomatica() {
         // ── SONIDO ────────────────────────────────────────────────
         try {
           // Opción 1: sonido corto y limpio (recomendado)
-          const audio = new Audio('https://foldr.space/f/bIACMEjb8r6ISDfz');
+          const audio = new Audio('https://orangefreesounds.com/wp-content/uploads/2022/11/Alert-bell-sound.mp3');
           audio.volume = 0.8;
           await audio.play();
           console.log("Timbre reproducido correctamente");
