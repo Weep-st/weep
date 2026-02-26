@@ -1175,32 +1175,34 @@ actualizarBadgePedidosPendientes();
   
 // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS + TIMBRE 100% COMPATIBLE ===
 let intervaloPedidos = null;
-let estaRecargando = false;  // ← bandera nueva para evitar recursión
+let estaRecargando = false; // evita recursión infinita o solapamientos
+let ultimoPedidoConocido = null;
 
 function iniciarActualizacionAutomatica() {
-  // Siempre limpiar primero
+  // Limpiar cualquier intervalo previo
   detenerActualizacionAutomatica();
 
+  // Solo activar si estamos viendo Mis Pedidos
   if (document.getElementById('pedidos-panel').classList.contains('d-none')) {
     console.log("No se inicia polling: no estamos en Mis Pedidos");
     return;
   }
 
-  // Guardar último conocido
-  let ultimoPedidoConocido = null;
+  // Guardar el ID más reciente que conocemos actualmente
   if (pedidosData.length > 0) {
+    // Tomamos el ID más alto (más reciente)
     ultimoPedidoConocido = pedidosData
       .map(p => p.idPedidoLocal)
-      .sort((a,b) => b.localeCompare(a, undefined, {numeric:true}))[0];
-    console.log('Inicio polling → último conocido:', ultimoPedidoConocido);
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0];
+    console.log('Inicio polling → último pedido conocido:', ultimoPedidoConocido);
   }
 
   intervaloPedidos = setInterval(async () => {
-    if (estaRecargando) return;
+    if (estaRecargando) return; // ya está procesando → salimos
+
+    estaRecargando = true;
 
     try {
-      estaRecargando = true;
-
       const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
       const pedidosActuales = await res.json();
 
@@ -1209,68 +1211,110 @@ function iniciarActualizacionAutomatica() {
         return;
       }
 
-      // Encontrar el pedido más reciente (por idPedidoLocal)
+      // Encontrar el pedido con ID más alto (más reciente)
       const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
-        return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
+        return p[0].localeCompare(max[0], undefined, { numeric: true, sensitivity: 'base' }) > 0 ? p : max;
       }, pedidosActuales[0]);
 
       const idMasReciente = pedidoMasReciente[0];
 
-      // ────────────────────────────────────────────────
-      //  NUEVO PEDIDO DETECTADO
-      // ────────────────────────────────────────────────
+      // ¿Hay un pedido nuevo?
       if (!ultimoPedidoConocido || 
-          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
+          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, { numeric: true }) > 0) {
         
         console.log('¡NUEVO PEDIDO DETECTADO! ID:', idMasReciente);
 
-        // ── SONIDO SIMPLE ───────────────────────────────
+        // ── SONIDO ────────────────────────────────────────────────
         try {
-          const sonido = new Audio('https://www.soundjay.com/buttons/sounds/button-09.wav');
-          sonido.volume = 0.7;           // 0.0 a 1.0 — podés ajustar
-          await sonido.play();
-          console.log("Sonido de nuevo pedido reproducido");
-        } catch (err) {
-          console.warn("No se pudo reproducir el sonido:", err.message);
-          // Opcional: alert o fallback visual si querés
+          // Opción 1: sonido corto y limpio (recomendado)
+          const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
+          audio.volume = 0.8;
+          await audio.play();
+          console.log("Timbre reproducido correctamente");
+        } catch (audioErr) {
+          console.warn("No se pudo reproducir el sonido:", audioErr.message);
+          // Fallback: puedes mostrar un alert o un toast si querés
+          // alert("¡Nuevo pedido!");
         }
 
-        // Detener polling antes de recargar (evita solapamientos)
+        // Detener polling antes de recargar para evitar conflictos
         detenerActualizacionAutomatica();
 
-        // Recargar toda la vista de pedidos
+        // Recargar la vista completa
         await cargarMisPedidos();
 
-        // Actualizar el último conocido
+        // Actualizar último conocido
         ultimoPedidoConocido = idMasReciente;
 
         // Reiniciar polling limpio
         iniciarActualizacionAutomatica();
       }
-
     } catch (err) {
-      console.error('Error en polling:', err);
+      console.error('Error en polling de pedidos:', err);
     } finally {
       estaRecargando = false;
     }
-  }, 30000);   // ← cada 30 segundos — podés bajar a 15000 o 20000 si querés más rápido
+  }, 25000); // 25 segundos — un buen equilibrio entre rapidez y consumo
 
-  console.log("Polling iniciado (intervalo ID:", intervaloPedidos, ")");
+  console.log("Polling + timbre iniciado (intervalo ID:", intervaloPedidos, ")");
 }
-      
+
 function detenerActualizacionAutomatica() {
   if (intervaloPedidos) {
     clearInterval(intervaloPedidos);
     intervaloPedidos = null;
-    console.log("Polling detenido");
+    console.log("Polling + timbre detenido");
   }
 }
+
+// Botón Mis Pedidos → activar polling al entrar
+document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
+  ocultarTodo();
+  document.getElementById('pedidos-panel').classList.remove('d-none');
   
-const btnPedidos = document.getElementById('btn-mis-pedidos');
-if (btnPedidos) {
-  btnPedidos.removeEventListener('click', handleClickMisPedidos);
-  btnPedidos.addEventListener('click', handleClickMisPedidos);
-}
+  detenerActualizacionAutomatica();
+  cargarMisPedidos()
+    .then(() => {
+      iniciarActualizacionAutomatica();
+    })
+    .catch(err => console.error("Error al cargar pedidos iniciales:", err));
+});
+
+// Detener al salir de la sección
+document.getElementById('btn-mi-menu').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('filtros-menu').classList.remove('d-none');
+  document.getElementById('menu-listado').classList.remove('d-none');
+  cargarMenuCompleto();
+});
+
+document.getElementById('btn-agregar-item').addEventListener('click', () => {
+  detenerActualizacionAutomatica();
+  ocultarTodo();
+  document.getElementById('menu-form').classList.remove('d-none');
+  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
+  document.getElementById('menu-form').reset();
+  document.getElementById('edit-item-id').value = '';
+});
+
+// Detener al cerrar/refrescar la pestaña
+window.addEventListener('beforeunload', () => {
+  detenerActualizacionAutomatica();
+});
+
+// Botón de prueba de sonido (ya lo tenés en el HTML)
+document.getElementById('btn-probar-sonido')?.addEventListener('click', async () => {
+  try {
+    const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
+    audio.volume = 0.8;
+    await audio.play();
+    alert("¡Sonido de pedido reproducido! Si no lo escuchaste, revisa el volumen o permisos del navegador.");
+  } catch (err) {
+    alert("No se pudo reproducir el sonido. Error: " + err.message + "\n(Revisa consola para más detalles)");
+    console.error("Error al probar sonido:", err);
+  }
+});
 
 function handleClickMisPedidos() {
   ocultarTodo();
