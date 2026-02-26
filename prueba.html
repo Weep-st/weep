@@ -189,13 +189,6 @@
     color: white;
   }
 </style>
-
-  <!-- Sonido nuevo pedido -->
-<audio id="pedidoSound" preload="auto" style="display: none;">
-  <source src="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-1005.mp3" type="audio/mpeg">
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6d4f8d8e0f.mp3?filename=ding-101377.mp3" type="audio/mpeg">
-  Tu navegador no soporta el elemento audio.
-</audio>
   
 </head>
 <body>
@@ -442,34 +435,6 @@
   let pedidosData = [];
   let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
   let estaProcesandoNuevoPedido = false;
-  let userHasInteracted = false;
-
-// Detectar la primera interacción real del usuario
-document.addEventListener('click', () => {
-  userHasInteracted = true;
-}, { once: true });  // solo se ejecuta una vez
-
-function reproducirSonidoPedido() {
-  if (!userHasInteracted) {
-    console.log("Sonido bloqueado: aún no hubo interacción del usuario");
-    return;
-  }
-
-  const audio = document.getElementById("pedidoSound");
-  if (!audio) {
-    console.warn("Elemento de audio no encontrado");
-    return;
-  }
-
-  audio.currentTime = 0; // reiniciar desde el principio
-  audio.play()
-    .then(() => {
-      console.log("Sonido de pedido reproducido");
-    })
-    .catch(e => {
-      console.warn("Error al reproducir sonido:", e.message);
-    });
-}
   
   if (localToken) mostrarPanelPrincipal();
   
@@ -1222,24 +1187,19 @@ function iniciarActualizacionAutomatica() {
   }
 
   // Guardar último conocido
+  let ultimoPedidoConocido = null;
   if (pedidosData.length > 0) {
     ultimoPedidoConocido = pedidosData
       .map(p => p.idPedidoLocal)
       .sort((a,b) => b.localeCompare(a, undefined, {numeric:true}))[0];
     console.log('Inicio polling → último conocido:', ultimoPedidoConocido);
-  } else {
-    ultimoPedidoConocido = null;
   }
 
   intervaloPedidos = setInterval(async () => {
-    // Si ya estamos recargando → no hacer nada en este ciclo
-    if (estaRecargando) {
-      console.log("Polling pausado: recarga en curso");
-      return;
-    }
+    if (estaRecargando) return;
 
     try {
-      estaRecargando = true;  // bloquear
+      estaRecargando = true;
 
       const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
       const pedidosActuales = await res.json();
@@ -1249,50 +1209,51 @@ function iniciarActualizacionAutomatica() {
         return;
       }
 
+      // Encontrar el pedido más reciente (por idPedidoLocal)
       const pedidoMasReciente = pedidosActuales.reduce((max, p) => {
         return p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max;
       }, pedidosActuales[0]);
 
       const idMasReciente = pedidoMasReciente[0];
 
-      if (!ultimoPedidoConocido ||
-    idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
-    
-    console.log('¡Nuevo pedido detectado! ID:', idMasReciente);
+      // ────────────────────────────────────────────────
+      //  NUEVO PEDIDO DETECTADO
+      // ────────────────────────────────────────────────
+      if (!ultimoPedidoConocido || 
+          idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
+        
+        console.log('¡NUEVO PEDIDO DETECTADO! ID:', idMasReciente);
 
-    // ── AQUÍ VA EL SONIDO ──
-    reproducirSonidoNuevoPedido();   // ← llamada principal
-
-    // (el resto sigue igual)
-    detenerActualizacionAutomatica();
-    await cargarMisPedidos();
-    ultimoPedidoConocido = idMasReciente;
-    iniciarActualizacionAutomatica();
-}
-
+        // ── SONIDO SIMPLE ───────────────────────────────
         try {
-          const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-store-door-bell-ring-934.mp3');
-          audio.volume = 0.6;
-          await audio.play();
+          const sonido = new Audio('https://www.soundjay.com/buttons/sounds/button-09.wav');
+          sonido.volume = 0.7;           // 0.0 a 1.0 — podés ajustar
+          await sonido.play();
+          console.log("Sonido de nuevo pedido reproducido");
         } catch (err) {
-          console.warn("No se pudo reproducir sonido:", err.message);
+          console.warn("No se pudo reproducir el sonido:", err.message);
+          // Opcional: alert o fallback visual si querés
         }
 
-        // Recargar datos
+        // Detener polling antes de recargar (evita solapamientos)
+        detenerActualizacionAutomatica();
+
+        // Recargar toda la vista de pedidos
         await cargarMisPedidos();
 
-        // Actualizar último conocido
+        // Actualizar el último conocido
         ultimoPedidoConocido = idMasReciente;
 
-        // Reiniciar polling limpio después de recargar
+        // Reiniciar polling limpio
         iniciarActualizacionAutomatica();
       }
+
     } catch (err) {
       console.error('Error en polling:', err);
     } finally {
-      estaRecargando = false;  // desbloquear
+      estaRecargando = false;
     }
-  }, 30000);
+  }, 30000);   // ← cada 30 segundos — podés bajar a 15000 o 20000 si querés más rápido
 
   console.log("Polling iniciado (intervalo ID:", intervaloPedidos, ")");
 }
@@ -1318,29 +1279,6 @@ function handleClickMisPedidos() {
   cargarMisPedidos()
     .then(() => iniciarActualizacionAutomatica())
     .catch(err => console.error("Error al cargar pedidos iniciales:", err));
-}
-
-  function reproducirSonidoNuevoPedido() {
-    if (!userHasInteracted) {
-        console.log("Sonido bloqueado → aún no hubo interacción del usuario");
-        return;
-    }
-
-    try {
-        const audio = new Audio('https://www.soundjay.com/buttons/sounds/button-09.wav');
-        audio.volume = 0.7;           // ← podés ajustar 0.0 a 1.0
-        audio.currentTime = 0;
-        const promise = audio.play();
-
-        if (promise !== undefined) {
-            promise.catch(err => {
-                console.warn("No se pudo reproducir el timbre:", err.message);
-                // Opcional: fallback a otro sonido si falla
-            });
-        }
-    } catch (e) {
-        console.error("Error al crear/reproducir Audio:", e);
-    }
 }
   
   // Al final del script
