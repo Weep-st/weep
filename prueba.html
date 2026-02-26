@@ -755,19 +755,34 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
     });
     renderizarMenu(filtrados);
   }
+  
   // === ESTADO LOCAL ===
   async function cargarEstadoLocal() {
-    const res = await fetch(`${API_URL}?action=getLocalEstado&localId=${localToken}`);
+  try {
+    const res = await fetch(
+      `${API_URL}?action=getLocalEstado&localId=${localToken}`,
+      {
+        method: "GET",
+        mode: "cors",           // explícito (por defecto ya es cors)
+        cache: "no-cache",      // evita caché rara
+        redirect: "follow"
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
     const data = await res.json();
     const activo = data.estado === "Activo";
     document.getElementById('estado-local-toggle').checked = activo;
     document.getElementById('estado-texto').textContent = activo ? "Abierto" : "Cerrado";
+  } catch (err) {
+    console.error("Error al cargar estado:", err);
+    // Opcional: mostrar mensaje al usuario
   }
-  document.getElementById('estado-local-toggle').addEventListener('change', async function() {
-    const estado = this.checked ? "Activo" : "Inactivo";
-    document.getElementById('estado-texto').textContent = this.checked ? "Abierto" : "Cerrado";
-    await fetch(`${API_URL}?action=updateLocalEstado&localId=${localToken}&estado=${estado}`);
-  });
+}
+  
   // === PERFIL ===
   async function cargarFotoPerfilHeader() {
     try {
