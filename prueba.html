@@ -758,30 +758,47 @@ document.getElementById('menu-form').addEventListener('submit', async function(e
   
   // === ESTADO LOCAL ===
   async function cargarEstadoLocal() {
-  try {
-    const res = await fetch(
-      `${API_URL}?action=getLocalEstado&localId=${localToken}`,
-      {
-        method: "GET",
-        mode: "cors",           // explícito (por defecto ya es cors)
-        cache: "no-cache",      // evita caché rara
-        redirect: "follow"
+  const localId = localToken; // o como lo tengas
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec";
+
+  return new Promise((resolve, reject) => {
+    const callbackName = "jsonpCallback_" + Math.random().toString(36).slice(2);
+
+    window[callbackName] = function(data) {
+      delete window[callbackName];               // limpiar
+      document.body.removeChild(script);         // limpiar
+
+      if (data && data.estado) {
+        const activo = data.estado === "Activo" || data.estado === "activo";
+        document.getElementById('estado-local-toggle').checked = activo;
+        document.getElementById('estado-texto').textContent = activo ? "Abierto" : "Cerrado";
+        resolve(data);
+      } else {
+        reject(new Error("Respuesta inválida"));
       }
-    );
+    };
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    const url = `${scriptUrl}?action=getLocalEstado&localId=${encodeURIComponent(localId)}&callback=${callbackName}`;
 
-    const data = await res.json();
-    const activo = data.estado === "Activo";
-    document.getElementById('estado-local-toggle').checked = activo;
-    document.getElementById('estado-texto').textContent = activo ? "Abierto" : "Cerrado";
-  } catch (err) {
-    console.error("Error al cargar estado:", err);
-    // Opcional: mostrar mensaje al usuario
-  }
+    const script = document.createElement("script");
+    script.src = url;
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error("Error en JSONP"));
+    };
+
+    document.body.appendChild(script);
+  });
 }
+
+// Llamar al cargar la página
+window.addEventListener('load', () => {
+  cargarEstadoLocal().catch(err => {
+    console.error("No se pudo cargar estado:", err);
+    // opcional: mostrar mensaje al usuario
+  });
+});
   
   // === PERFIL ===
   async function cargarFotoPerfilHeader() {
