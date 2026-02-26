@@ -374,6 +374,9 @@
     </div>
     <!-- MIS PEDIDOS - CON PESTAÑAS -->
     <div id="pedidos-panel" class="d-none">
+
+      <h2 class="mb-4 text-rojo text-center">Mis Pedidos</h2>
+      
       <h2 class="mb-4 text-rojo text-center">Mis Pedidos</h2>
       <ul class="nav nav-tabs mb-4" id="pedidosTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -1320,6 +1323,34 @@ function handleClickMisPedidos() {
   // Al final del script
 window.addEventListener('beforeunload', () => {
   detenerActualizacionAutomatica();
+});
+
+
+// Botón para probar el sonido manualmente
+document.getElementById('btn-probar-sonido')?.addEventListener('click', () => {
+  const audio = document.getElementById('pedidoSound');
+  if (!audio) {
+    alert("No se encontró el elemento de audio. Revisa el HTML.");
+    return;
+  }
+
+  audio.currentTime = 0; // Reiniciar desde el inicio
+  audio.play()
+    .then(() => {
+      console.log("Sonido de prueba reproducido correctamente");
+      // Opcional: feedback visual
+      const btn = document.getElementById('btn-probar-sonido');
+      btn.classList.add('btn-success');
+      btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> ¡Sonó!';
+      setTimeout(() => {
+        btn.classList.remove('btn-success');
+        btn.innerHTML = '<i class="bi bi-bell-fill me-2"></i> Probar Sonido de Pedido';
+      }, 2000);
+    })
+    .catch(err => {
+      console.error("Error al reproducir sonido de prueba:", err);
+      alert("No se pudo reproducir el sonido.\n\nPosibles razones:\n- El navegador bloquea autoplay hasta que hagas clic en la página\n- El archivo de audio no se cargó\n- Problema de formato o CORS");
+    });
 });
 </script>
 </body>
