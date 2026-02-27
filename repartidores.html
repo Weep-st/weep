@@ -269,229 +269,158 @@
   </footer>
 
 <script>
-  const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec'; // Reemplazá con tu URL real de Apps Script
-  
-  let userData = null; // Guardará los datos del usuario logueado
-  
-  // Funciones de Auth
-  function mostrarRegistro() {
-    document.getElementById('login-form').classList.add('hidden');
-    document.getElementById('register-form').classList.remove('hidden');
-  }
-  
-  function mostrarLogin() {
-    document.getElementById('register-form').classList.add('hidden');
-    document.getElementById('login-form').classList.remove('hidden');
-  }
-  
-  async function register(event) {
-    event.preventDefault();
-    const data = {
-      func: 'registrarRepartidor',
-      nombre: document.getElementById('nombre').value,
-      telefono: document.getElementById('telefono').value,
-      email: document.getElementById('email').value,
-      password: document.getElementById('password').value,
-      patente: document.getElementById('patente').value,
-      marcaModelo: document.getElementById('marca-modelo').value
-    };
-    
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (result.success) {
-        mostrarNotificacion('Registro exitoso. Iniciá sesión.', 'success');
-        mostrarLogin();
-      } else {
-        mostrarNotificacion(result.error || 'Error en registro', 'error');
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec';
+
+    let repartidorId = localStorage.getItem('repartidorId');
+
+    if (repartidorId) mostrarPanelPrincipal();
+
+    function mostrarPanelPrincipal() {
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      cargarDatosRepartidor();
+    }
+
+    function mostrarRegistro() {
+      document.getElementById('login-card').classList.add('hidden');
+      document.getElementById('register-card').classList.remove('hidden');
+    }
+
+    function mostrarLogin() {
+      document.getElementById('register-card').classList.add('hidden');
+      document.getElementById('login-card').classList.remove('hidden');
+    }
+
+    // Registro - GET + JSONP (igual que registerLocal)
+    document.getElementById('register-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const params = {
+        nombre: document.getElementById('nombre').value.trim(),
+        telefono: document.getElementById('telefono').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+        patente: document.getElementById('patente').value.trim().toUpperCase(),
+        marcaModelo: document.getElementById('marca-modelo').value.trim()
+      };
+
+      const qs = new URLSearchParams(params).toString();
+      const cb = 'jsonp_reg_' + Date.now();
+
+      window[cb] = function(data) {
+        delete window[cb];
+        const s = document.querySelector(`script[src*="${cb}"]`);
+        if (s) s.remove();
+
+        if (data.success) {
+          alert('Registro exitoso. Inicia sesión.');
+          mostrarLogin();
+        } else {
+          alert(data.error || 'Error al registrarte');
+        }
+      };
+
+      const script = document.createElement('script');
+      script.src = `${API_URL}?action=repartidor_register&${qs}&callback=${cb}`;
+      document.head.appendChild(script);
+    });
+
+    // Login - JSONP (igual que loginLocal)
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('email-login').value.trim();
+      const password = document.getElementById('password-login').value;
+
+      const cb = 'jsonp_login_' + Date.now();
+
+      window[cb] = function(data) {
+        delete window[cb];
+        const s = document.querySelector(`script[src*="${cb}"]`);
+        if (s) s.remove();
+
+        if (data.success && data.data) {
+          repartidorId = data.data.ID;
+          localStorage.setItem('repartidorId', repartidorId);
+          mostrarPanelPrincipal();
+        } else {
+          alert(data.error || 'Credenciales inválidas');
+        }
+      };
+
+      const script = document.createElement('script');
+      script.src = `${API_URL}?action=repartidor_login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&callback=${cb}`;
+      document.head.appendChild(script);
+    });
+
+    // Logout
+    function logout() {
+      localStorage.removeItem('repartidorId');
+      repartidorId = null;
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('auth-section').classList.remove('hidden');
+      mostrarLogin();
+    }
+
+    // Cargar datos (JSONP)
+    function cargarDatosRepartidor() {
+      if (!repartidorId) return;
+
+      const cb = 'jsonp_datos_' + Date.now();
+
+      window[cb] = function(data) {
+        delete window[cb];
+        const s = document.querySelector(`script[src*="${cb}"]`);
+        if (s) s.remove();
+
+        if (data.success && data.data) {
+          document.getElementById('nombre-usuario').textContent = data.data.Nombre;
+          document.getElementById('pedidos-hoy').textContent = data.data.PedidosHoy || 0;
+
+          const isActive = data.data.Estado === 'Activo';
+          document.getElementById('toggle-estado').checked = isActive;
+          document.getElementById('estado-actual').textContent = isActive ? 'Activo' : 'Inactivo';
+        } else {
+          logout();
+        }
+      };
+
+      const script = document.createElement('script');
+      script.src = `${API_URL}?action=repartidor_getDatos&id=${encodeURIComponent(repartidorId)}&callback=${cb}`;
+      document.head.appendChild(script);
+    }
+
+    // Toggle estado - GET simple
+    function toggleEstado(isChecked) {
+      if (!repartidorId) {
+        alert('No estás logueado');
+        return;
       }
-    } catch (err) {
-      mostrarNotificacion('Error de conexión', 'error');
+
+      const nuevoEstado = isChecked ? 'Activo' : 'Inactivo';
+      document.getElementById('estado-actual').textContent = nuevoEstado; // optimista
+
+      const url = `${API_URL}?action=repartidor_actualizarEstado&id=${encodeURIComponent(repartidorId)}&estado=${encodeURIComponent(nuevoEstado)}`;
+
+      fetch(url, { method: 'GET', cache: 'no-cache' })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            alert(data.error || 'No se pudo cambiar estado');
+            document.getElementById('toggle-estado').checked = !isChecked;
+            document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
+          }
+        })
+        .catch(() => {
+          alert('Error de conexión');
+          document.getElementById('toggle-estado').checked = !isChecked;
+          document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
+        });
     }
-  }
-  
-  async function login(event) {
-    event.preventDefault();
-    const data = {
-      func: 'loginRepartidor',
-      email: document.getElementById('email-login').value,
-      password: document.getElementById('password-login').value
-    };
-    
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (result.success) {
-        userData = result.data;
-        localStorage.setItem('userId', userData.ID); // Guardamos ID para sesiones
-        cargarDashboard();
-      } else {
-        mostrarNotificacion(result.error || 'Credenciales inválidas', 'error');
-      }
-    } catch (err) {
-      mostrarNotificacion('Error de conexión', 'error');
+
+    // Inicialización
+    if (repartidorId) {
+      mostrarPanelPrincipal();
     }
-  }
-  
-  function logout() {
-    localStorage.removeItem('userId');
-    document.getElementById('dashboard').classList.add('hidden');
-    document.getElementById('auth-container').classList.remove('hidden');
-    mostrarLogin();
-  }
-  
-  // Cargar dashboard si ya está logueado
-  window.onload = () => {
-    const savedId = localStorage.getItem('userId');
-    if (savedId) {
-      cargarDatosUsuario(savedId);
-    }
-  };
-  
-  async function cargarDatosUsuario(id) {
-    const res = await fetch(`${BACKEND_URL}?func=getRepartidor&id=${id}`);
-    const result = await res.json();
-    if (result.success) {
-      userData = result.data;
-      cargarDashboard();
-    } else {
-      logout();
-    }
-  }
-  
-  function cargarDashboard() {
-    document.getElementById('auth-container').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
-    document.getElementById('nombre-usuario').textContent = userData.Nombre;
-    document.getElementById('pedidos-hoy').textContent = userData.PedidosHoy || 0;
-    
-    // Configurar toggle
-    const isActive = userData.Estado === 'Activo';
-    document.getElementById('toggle-estado').checked = isActive;
-    document.getElementById('estado-actual').textContent = isActive ? 'Activo' : 'Inactivo';
-    
-    // Cargar viaje actual (asumimos una función backend que devuelve el viaje asignado)
-    cargarViajeActual();
-  }
-  
-  async function toggleEstado(isActive) {
-    const nuevoEstado = isActive ? 'Activo' : 'Inactivo';
-    const data = {
-      func: 'actualizarEstado',
-      id: userData.ID,
-      estado: nuevoEstado
-    };
-    
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (result.success) {
-        userData.Estado = nuevoEstado;
-        document.getElementById('estado-actual').textContent = nuevoEstado;
-        mostrarNotificacion(`Estado actualizado a ${nuevoEstado}`, 'success');
-      } else {
-        mostrarNotificacion('Error al actualizar', 'error');
-        document.getElementById('toggle-estado').checked = !isActive; // Revertir toggle
-      }
-    } catch (err) {
-      mostrarNotificacion('Error de conexión', 'error');
-      document.getElementById('toggle-estado').checked = !isActive;
-    }
-  }
-  
-  async function cargarViajeActual() {
-    const res = await fetch(`${BACKEND_URL}?func=getViajeActual&id=${userData.ID}`);
-    const result = await res.json();
-    if (result.success && result.viaje) {
-      document.getElementById('viaje-actual').classList.remove('hidden');
-      document.getElementById('detalles-viaje').innerHTML = `
-        De: ${result.viaje.origen}<br>
-        A: ${result.viaje.destino}<br>
-        Cliente: ${result.viaje.cliente}<br>
-        Notas: ${result.viaje.notas || 'Ninguna'}
-      `;
-      // Asumir que el viaje tiene un estado: 'Asignado', 'Recibido', 'Entregado'
-      if (result.viaje.estado === 'Recibido') {
-        document.getElementById('btn-recibido').disabled = true;
-        document.getElementById('btn-entregado').disabled = false;
-      } else if (result.viaje.estado === 'Entregado') {
-        document.getElementById('btn-recibido').disabled = true;
-        document.getElementById('btn-entregado').disabled = true;
-      }
-    } else {
-      document.getElementById('viaje-actual').classList.add('hidden');
-    }
-  }
-  
-  async function marcarRecibido() {
-    const data = {
-      func: 'actualizarViaje',
-      idRepartidor: userData.ID,
-      accion: 'Recibido'
-    };
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (result.success) {
-        mostrarNotificacion('Pedido marcado como recibido', 'success');
-        document.getElementById('btn-recibido').disabled = true;
-        document.getElementById('btn-entregado').disabled = false;
-      } else {
-        mostrarNotificacion('Error', 'error');
-      }
-    } catch (err) {
-      mostrarNotificacion('Error de conexión', 'error');
-    }
-  }
-  
-  async function marcarEntregado() {
-    const data = {
-      func: 'actualizarViaje',
-      idRepartidor: userData.ID,
-      accion: 'Entregado'
-    };
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (result.success) {
-        mostrarNotificacion('Pedido marcado como entregado', 'success');
-        document.getElementById('btn-entregado').disabled = true;
-        // Actualizar PedidosHoy
-        userData.PedidosHoy = (userData.PedidosHoy || 0) + 1;
-        document.getElementById('pedidos-hoy').textContent = userData.PedidosHoy;
-        // Recargar viaje (probablemente ya no hay)
-        cargarViajeActual();
-      } else {
-        mostrarNotificacion('Error', 'error');
-      }
-    } catch (err) {
-      mostrarNotificacion('Error de conexión', 'error');
-    }
-  }
-  
-  function mostrarNotificacion(mensaje, tipo) {
-    const notif = document.createElement('div');
-    notif.className = `notificacion ${tipo}`;
-    notif.textContent = mensaje;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 3000);
-  }
-</script>
+  </script>
 
 </body>
 </html>
