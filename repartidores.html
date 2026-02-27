@@ -142,61 +142,66 @@
     .error { background: #d32f2f; }
   </style>
 </head>
-<body>
-
+  <body>
+<!-- Header siempre visible -->
   <header class="header">
     <div class="container text-center">
-      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Logo Weep" class="logo-plataforma mb-3">
+      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" 
+           alt="Logo Weep" class="logo-plataforma mb-3">
       <h1 class="display-5 fw-bold text-rojo">Panel de Repartidores</h1>
     </div>
   </header>
 
   <main class="container container-main py-4">
 
+    <!-- Solo autenticación al inicio -->
     <div id="auth-section">
+      <!-- Login -->
       <div id="login-card" class="card card-repartidor mx-auto" style="max-width: 500px;">
         <div class="card-body p-4">
           <h3 class="text-center mb-4 text-rojo">Iniciar Sesión</h3>
           <form id="login-form">
             <div class="mb-3">
-              <input type="email" class="form-control" id="email-login" placeholder="Email" required>
+              <input type="email" class="form-control form-control-lg" id="email-login" placeholder="Email" required>
             </div>
             <div class="mb-3">
-              <input type="password" class="form-control" id="password-login" placeholder="Contraseña" required>
+              <input type="password" class="form-control form-control-lg" id="password-login" placeholder="Contraseña" required>
             </div>
-            <button type="submit" class="btn btn-rojo w-100 py-3 fw-bold">Ingresar</button>
+            <button type="submit" class="btn btn-rojo btn-lg w-100">Ingresar</button>
           </form>
-          <p class="text-center mt-3 mb-0">
-            ¿No tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarRegistro()">Registrate</a>
+          <p class="text-center mt-4">
+            ¿No tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarRegistro()">Registrate aquí</a>
           </p>
         </div>
       </div>
 
+      <!-- Registro (oculto por defecto) -->
       <div id="register-card" class="card card-repartidor mx-auto hidden" style="max-width: 500px;">
         <div class="card-body p-4">
           <h3 class="text-center mb-4 text-rojo">Crear Cuenta</h3>
           <form id="register-form">
-            <div class="mb-3"><input type="text" class="form-control" id="nombre" placeholder="Nombre completo" required></div>
-            <div class="mb-3"><input type="tel" class="form-control" id="telefono" placeholder="Teléfono" required></div>
-            <div class="mb-3"><input type="email" class="form-control" id="email" placeholder="Email" required></div>
-            <div class="mb-3"><input type="password" class="form-control" id="password" placeholder="Contraseña" required></div>
-            <div class="mb-3"><input type="text" class="form-control" id="patente" placeholder="Patente" required></div>
-            <div class="mb-3"><input type="text" class="form-control" id="marca-modelo" placeholder="Marca y Modelo" required></div>
-            <button type="submit" class="btn btn-rojo w-100 py-3 fw-bold">Registrarme</button>
+            <div class="mb-3"><input type="text" class="form-control form-control-lg" id="nombre" placeholder="Nombre completo" required></div>
+            <div class="mb-3"><input type="tel" class="form-control form-control-lg" id="telefono" placeholder="Teléfono" required></div>
+            <div class="mb-3"><input type="email" class="form-control form-control-lg" id="email" placeholder="Email" required></div>
+            <div class="mb-3"><input type="password" class="form-control form-control-lg" id="password" placeholder="Contraseña" required></div>
+            <div class="mb-3"><input type="text" class="form-control form-control-lg" id="patente" placeholder="Patente" required></div>
+            <div class="mb-3"><input type="text" class="form-control form-control-lg" id="marca-modelo" placeholder="Marca y Modelo" required></div>
+            <button type="submit" class="btn btn-rojo btn-lg w-100">Registrarme</button>
           </form>
-          <p class="text-center mt-3 mb-0">
+          <p class="text-center mt-4">
             ¿Ya tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarLogin()">Iniciar Sesión</a>
           </p>
         </div>
       </div>
     </div>
 
+    <!-- Dashboard (completamente oculto al inicio) -->
     <div id="dashboard" class="hidden">
       <div class="text-center mb-5">
         <h2>Bienvenido, <span id="nombre-usuario" class="text-rojo"></span></h2>
         <div class="d-flex justify-content-center align-items-center gap-4 mt-4 flex-wrap">
-          <label class="fw-bold me-2">Estado:</label>
-          <span id="estado-actual" class="fw-bold">Cargando...</span>
+          <label class="fw-bold me-2">Estado actual:</label>
+          <span id="estado-actual" class="fw-bold text-muted">Cargando...</span>
           <label class="status-toggle">
             <input type="checkbox" id="toggle-estado" onchange="toggleEstado(this.checked)">
             <span class="status-slider"></span>
@@ -206,21 +211,20 @@
 
       <div class="row justify-content-center mb-5">
         <div class="col-md-6 col-lg-4">
-          <div class="stats-box text-center">
-            <h5 class="text-muted mb-1">Viajes hoy</h5>
+          <div class="stats-box">
+            <h5 class="text-muted mb-1">Viajes completados hoy</h5>
             <h2 id="pedidos-hoy" class="display-5 fw-bold text-rojo">0</h2>
           </div>
         </div>
       </div>
 
-      <div id="viaje-actual" class="viaje-card hidden mb-5">
-        <div class="viaje-header"><h4 class="mb-0">Viaje Asignado</h4></div>
-        <div class="card-body p-4">
-          <div id="detalles-viaje" class="mb-4"></div>
-          <div class="d-grid gap-3 d-md-flex justify-content-md-center">
-            <button id="btn-recibido" class="btn btn-verde btn-lg px-5 py-3 fw-bold" onclick="marcarRecibido()">Recibido</button>
-            <button id="btn-entregado" class="btn btn-rojo btn-lg px-5 py-3 fw-bold" disabled onclick="marcarEntregado()">Entregado</button>
-          </div>
+      <div id="viaje-actual" class="viaje-card mb-5 hidden">
+        <div class="viaje-header">
+          <h4 class="mb-0">Viaje Asignado</h4>
+        </div>
+        <div class="card-body p-4 text-center">
+          <p class="lead mb-4">No hay viaje asignado en este momento</p>
+          <small class="text-muted">Cuando te asignen un pedido aparecerá aquí</small>
         </div>
       </div>
 
@@ -228,6 +232,7 @@
         <button class="btn btn-outline-danger btn-lg px-5" onclick="logout()">Cerrar Sesión</button>
       </div>
     </div>
+
   </main>
 
   <footer class="text-center">
