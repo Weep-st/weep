@@ -144,7 +144,6 @@
 </head>
 <body>
 
-  <!-- Header siempre visible -->
   <header class="header">
     <div class="container text-center">
       <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" 
@@ -153,32 +152,32 @@
     </div>
   </header>
 
-  <main class="container container-main py-4">
+  <main class="container container-main py-5">
 
-    <!-- Solo autenticación al inicio -->
+    <!-- Autenticación - SIEMPRE visible al inicio -->
     <div id="auth-section">
-      <!-- Login -->
+      <!-- Login (visible por defecto) -->
       <div id="login-card" class="card card-repartidor mx-auto" style="max-width: 500px;">
-        <div class="card-body p-4">
+        <div class="card-body p-5">
           <h3 class="text-center mb-4 text-rojo">Iniciar Sesión</h3>
           <form id="login-form">
-            <div class="mb-3">
+            <div class="mb-4">
               <input type="email" class="form-control form-control-lg" id="email-login" placeholder="Email" required>
             </div>
-            <div class="mb-3">
+            <div class="mb-4">
               <input type="password" class="form-control form-control-lg" id="password-login" placeholder="Contraseña" required>
             </div>
             <button type="submit" class="btn btn-rojo btn-lg w-100">Ingresar</button>
           </form>
-          <p class="text-center mt-4">
+          <p class="text-center mt-4 mb-0">
             ¿No tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarRegistro()">Registrate aquí</a>
           </p>
         </div>
       </div>
 
-      <!-- Registro (oculto por defecto) -->
+      <!-- Registro (oculto al inicio) -->
       <div id="register-card" class="card card-repartidor mx-auto hidden" style="max-width: 500px;">
-        <div class="card-body p-4">
+        <div class="card-body p-5">
           <h3 class="text-center mb-4 text-rojo">Crear Cuenta</h3>
           <form id="register-form">
             <div class="mb-3"><input type="text" class="form-control form-control-lg" id="nombre" placeholder="Nombre completo" required></div>
@@ -189,20 +188,20 @@
             <div class="mb-3"><input type="text" class="form-control form-control-lg" id="marca-modelo" placeholder="Marca y Modelo" required></div>
             <button type="submit" class="btn btn-rojo btn-lg w-100">Registrarme</button>
           </form>
-          <p class="text-center mt-4">
+          <p class="text-center mt-4 mb-0">
             ¿Ya tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarLogin()">Iniciar Sesión</a>
           </p>
         </div>
       </div>
     </div>
 
-    <!-- Dashboard (completamente oculto al inicio) -->
+    <!-- Dashboard (oculto hasta login exitoso) -->
     <div id="dashboard" class="hidden">
       <div class="text-center mb-5">
         <h2>Bienvenido, <span id="nombre-usuario" class="text-rojo"></span></h2>
         <div class="d-flex justify-content-center align-items-center gap-4 mt-4 flex-wrap">
-          <label class="fw-bold me-2">Estado actual:</label>
-          <span id="estado-actual" class="fw-bold text-muted">Cargando...</span>
+          <label class="fw-bold me-2 fs-5">Estado actual:</label>
+          <span id="estado-actual" class="fw-bold text-muted fs-5">Cargando...</span>
           <label class="status-toggle">
             <input type="checkbox" id="toggle-estado" onchange="toggleEstado(this.checked)">
             <span class="status-slider"></span>
@@ -212,9 +211,9 @@
 
       <div class="row justify-content-center mb-5">
         <div class="col-md-6 col-lg-4">
-          <div class="stats-box">
+          <div class="stats-box text-center">
             <h5 class="text-muted mb-1">Viajes completados hoy</h5>
-            <h2 id="pedidos-hoy" class="display-5 fw-bold text-rojo">0</h2>
+            <h2 id="pedidos-hoy" class="display-4 fw-bold text-rojo">0</h2>
           </div>
         </div>
       </div>
@@ -223,20 +222,20 @@
         <div class="viaje-header">
           <h4 class="mb-0">Viaje Asignado</h4>
         </div>
-        <div class="card-body p-4 text-center">
-          <p class="lead mb-4">No hay viaje asignado en este momento</p>
-          <small class="text-muted">Cuando te asignen un pedido aparecerá aquí</small>
+        <div class="card-body p-5 text-center">
+          <p class="lead mb-4 text-muted">No hay viaje asignado en este momento</p>
+          <small class="text-muted">Aparecerá aquí cuando te asignen un pedido</small>
         </div>
       </div>
 
-      <div class="text-center">
-        <button class="btn btn-outline-danger btn-lg px-5" onclick="logout()">Cerrar Sesión</button>
+      <div class="text-center mt-5">
+        <button class="btn btn-outline-danger btn-lg px-5 py-3" onclick="logout()">Cerrar Sesión</button>
       </div>
     </div>
 
   </main>
 
-  <footer class="text-center">
+  <footer>
     <div class="container">
       <p class="mb-1">© 2026 Weep - Todos los derechos reservados</p>
       <p class="mb-0 small">Plataforma de pedidos y delivery</p>
@@ -248,17 +247,19 @@
 
     let repartidorId = localStorage.getItem('repartidorId');
 
-    // Ocultar dashboard desde el inicio (por seguridad)
-    document.getElementById('dashboard').classList.add('hidden');
+    // Forzar ocultamiento inicial (por si falla CSS)
+    function initVisibility() {
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('auth-section').classList.remove('hidden');
+      document.getElementById('login-card').classList.remove('hidden');
+      document.getElementById('register-card').classList.add('hidden');
+    }
 
-    // Mostrar solo auth al cargar
+    // Ejecutar al cargar
     window.addEventListener('DOMContentLoaded', () => {
+      initVisibility();
       if (repartidorId) {
         mostrarPanelPrincipal();
-      } else {
-        document.getElementById('auth-section').classList.remove('hidden');
-        document.getElementById('login-card').classList.remove('hidden');
-        document.getElementById('register-card').classList.add('hidden');
       }
     });
 
@@ -278,7 +279,7 @@
       document.getElementById('login-card').classList.remove('hidden');
     }
 
-    // Registro con JSONP
+    // Registro - JSONP
     document.getElementById('register-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const params = {
@@ -297,7 +298,7 @@
         const s = document.querySelector(`script[src*="${cb}"]`);
         if (s) s.remove();
         if (data && data.success) {
-          alert('Registro exitoso. Inicia sesión.');
+          alert('¡Registro exitoso! Inicia sesión.');
           mostrarLogin();
           document.getElementById('register-form').reset();
         } else {
@@ -310,7 +311,7 @@
       document.head.appendChild(script);
     });
 
-    // Login con JSONP
+    // Login - JSONP
     document.getElementById('login-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const email = document.getElementById('email-login').value.trim();
@@ -335,7 +336,7 @@
       document.head.appendChild(script);
     });
 
-    // Toggle estado
+    // Toggle
     function toggleEstado(isChecked) {
       if (!repartidorId) {
         alert('No estás logueado');
@@ -362,7 +363,7 @@
         });
     }
 
-    // Cargar datos repartidor
+    // Cargar datos
     function cargarDatosRepartidor() {
       if (!repartidorId) return logout();
 
@@ -381,6 +382,7 @@
           document.getElementById('toggle-estado').checked = isActive;
           document.getElementById('estado-actual').textContent = isActive ? 'Activo' : 'Inactivo';
         } else {
+          alert('Error al cargar datos. Vuelve a iniciar sesión.');
           logout();
         }
       };
@@ -399,6 +401,5 @@
       mostrarLogin();
     }
   </script>
-
 </body>
 </html>
