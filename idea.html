@@ -2397,7 +2397,7 @@ function showAddedToCartToast(nombreProducto) {
     // Mensaje envío gratis
     if (prices.shipping === 0 && cart.length > 0) {
         notice.innerHTML = prices.delivery === 'retiro'
-            ? '<div class="free-shipping-msg">¡Retiro en local! Envío gratis.</div>'
+            ? '<div class="free-shipping-msg">¡Retiro en local! Sin costo de envío.</div>'
             : '<div class="free-shipping-msg">¡Envío GRATIS por agregar una bebida!</div>';
         drinksPanel.style.display = 'none';
     } else if (prices.delivery === 'envio' && !hasDrink() && cart.length > 0) {
@@ -2409,7 +2409,7 @@ function showAddedToCartToast(nombreProducto) {
     // Actualizar dirección según tipo entrega
     const dirInput = document.getElementById('direccion');
     if (prices.delivery === 'retiro') {
-        dirInput.placeholder = "No requerida (retirás en local)";
+        dirInput.placeholder = "Dirección no requerida (retirás en local)";
         dirInput.required = false;
     } else {
         dirInput.placeholder = "Dirección de entrega (requerida)";
