@@ -146,15 +146,14 @@
 
   <header class="header">
     <div class="container text-center">
-      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" 
-           alt="Logo Weep" class="logo-plataforma mb-3">
+      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Logo Weep" class="logo-plataforma mb-3">
       <h1 class="display-5 fw-bold text-rojo">Panel de Repartidores</h1>
     </div>
   </header>
 
   <main class="container container-main py-5">
 
-    <!-- Autenticación - SIEMPRE visible al inicio -->
+    <!-- Solo autenticación visible al inicio -->
     <div id="auth-section">
       <!-- Login (visible por defecto) -->
       <div id="login-card" class="card card-repartidor mx-auto" style="max-width: 500px;">
@@ -169,13 +168,13 @@
             </div>
             <button type="submit" class="btn btn-rojo btn-lg w-100">Ingresar</button>
           </form>
-          <p class="text-center mt-4 mb-0">
+          <p class="text-center mt-4">
             ¿No tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarRegistro()">Registrate aquí</a>
           </p>
         </div>
       </div>
 
-      <!-- Registro (oculto al inicio) -->
+      <!-- Registro (oculto) -->
       <div id="register-card" class="card card-repartidor mx-auto hidden" style="max-width: 500px;">
         <div class="card-body p-5">
           <h3 class="text-center mb-4 text-rojo">Crear Cuenta</h3>
@@ -188,14 +187,14 @@
             <div class="mb-3"><input type="text" class="form-control form-control-lg" id="marca-modelo" placeholder="Marca y Modelo" required></div>
             <button type="submit" class="btn btn-rojo btn-lg w-100">Registrarme</button>
           </form>
-          <p class="text-center mt-4 mb-0">
+          <p class="text-center mt-4">
             ¿Ya tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarLogin()">Iniciar Sesión</a>
           </p>
         </div>
       </div>
     </div>
 
-    <!-- Dashboard (oculto hasta login exitoso) -->
+    <!-- Dashboard (oculto hasta login) -->
     <div id="dashboard" class="hidden">
       <div class="text-center mb-5">
         <h2>Bienvenido, <span id="nombre-usuario" class="text-rojo"></span></h2>
@@ -224,7 +223,6 @@
         </div>
         <div class="card-body p-5 text-center">
           <p class="lead mb-4 text-muted">No hay viaje asignado en este momento</p>
-          <small class="text-muted">Aparecerá aquí cuando te asignen un pedido</small>
         </div>
       </div>
 
@@ -247,21 +245,25 @@
 
     let repartidorId = localStorage.getItem('repartidorId');
 
-    // Forzar ocultamiento inicial (por si falla CSS)
-    function initVisibility() {
+    // Forzar visibilidad correcta al cargar
+    function initPage() {
+      // Ocultar todo lo que no debe verse
       document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('viaje-actual').classList.add('hidden');
+
+      // Mostrar solo autenticación
       document.getElementById('auth-section').classList.remove('hidden');
       document.getElementById('login-card').classList.remove('hidden');
       document.getElementById('register-card').classList.add('hidden');
-    }
 
-    // Ejecutar al cargar
-    window.addEventListener('DOMContentLoaded', () => {
-      initVisibility();
+      // Si hay sesión guardada → intentar cargar dashboard
       if (repartidorId) {
         mostrarPanelPrincipal();
       }
-    });
+    }
+
+    // Ejecutar al cargar el DOM
+    document.addEventListener('DOMContentLoaded', initPage);
 
     function mostrarPanelPrincipal() {
       document.getElementById('auth-section').classList.add('hidden');
@@ -336,7 +338,7 @@
       document.head.appendChild(script);
     });
 
-    // Toggle
+    // Toggle estado
     function toggleEstado(isChecked) {
       if (!repartidorId) {
         alert('No estás logueado');
@@ -363,7 +365,7 @@
         });
     }
 
-    // Cargar datos
+    // Cargar datos repartidor
     function cargarDatosRepartidor() {
       if (!repartidorId) return logout();
 
