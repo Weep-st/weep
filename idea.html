@@ -2809,17 +2809,16 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
 
         const idPedido = result.idPedido;
         console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
-
         alert(`¡Pedido #${idPedido} registrado exitosamente!`);
 
-        // ── Notificar a los locales ───────────────────────────────
+        // Notificar locales (ya existe)
         const notificacionesOk = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
 
-        if (!notificacionesOk) {
-            console.warn("[NOTIFICACIÓN] Algún local no recibió el aviso");
-            alert("Pedido creado, pero hubo un problema al notificar a uno o más locales.\n" +
-                  "El local debería verlo en el sistema de todas formas.");
-        }
+        // ── NUEVO ── Notificar repartidor (solo si es envío)
++       let repartidorNotificado = false;
++       if (tipoEntrega === 'envio') {
++           repartidorNotificado = await notifyRepartidorAboutNewOrder(idPedido, direccion, observaciones, prices);
++       }
 
         // Limpieza final
         cart = [];
@@ -2828,12 +2827,49 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
         closeCart();
         document.getElementById('checkout-form').reset();
 
++       // Mensaje final más claro
++       if (tipoEntrega === 'envio') {
++           if (repartidorNotificado) {
++               alert(`¡Pedido #${idPedido} creado!\nFue asignado a un repartidor y ya fue notificado.`);
++           } else {
++               alert(`¡Pedido #${idPedido} creado!\nNo se pudo notificar al repartidor en este momento.\nEl sistema lo intentará nuevamente.`);
++           }
++       }
+
     } catch (err) {
         console.error("[PEDIDO] Error grave:", err);
         alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
     }
 }
 
+        // ------------------------------------------------------------------
+// Notificar al repartidor (nueva función)
+// ------------------------------------------------------------------
+async function notifyRepartidorAboutNewOrder(idPedido, direccion, observaciones, prices) {
+    try {
+        const params = new URLSearchParams({
+            action: 'assignAndNotifyRepartidor',
+            idPedido: idPedido,
+            direccion: direccion || '',
+            observaciones: observaciones || '',
+            total: prices.total,
+            envioGratis: prices.shipping === 0 ? 'true' : 'false'
+        });
+
+        const res = await fetch(`${scriptUrl}?${params.toString()}`, {
+            method: 'GET',
+            cache: 'no-cache'
+        });
+
+        const data = await res.json();
+        return data.success === true;
+
+    } catch (err) {
+        console.error("Error al notificar repartidor:", err);
+        return false;
+    }
+}
+        
 // ------------------------------------------------------------------
 // 2. notifyLocalsAboutNewOrder – versión robusta
 // ------------------------------------------------------------------
