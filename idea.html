@@ -2783,6 +2783,9 @@ function saveAddressChange() {
 // ------------------------------------------------------------------
 // createOrderNormal – crea pedido + notifica locales + asigna y notifica repartidor (si es envío)
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// createOrderNormal – crea pedido + notifica locales + asigna y notifica repartidor (si es envío)
+// ------------------------------------------------------------------
 async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
     try {
         const action = 'createOrder';
@@ -2820,7 +2823,7 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
         console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
 
         // ────────────────────────────────────────────────────────────────
-        // 1. Notificar a los locales (ya existía)
+        // 1. Notificar a los locales
         // ────────────────────────────────────────────────────────────────
         const localesNotificados = await notifyLocalsAboutNewOrder(
             idPedido, 
@@ -2831,10 +2834,11 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
         );
 
         // ────────────────────────────────────────────────────────────────
-        // 2. Si es con envío → asignar repartidor y notificar
+        // 2. Si es con envío → asignar repartidor, notificar y GUARDAR ID en columna J
         // ────────────────────────────────────────────────────────────────
         let repartidorAsignado = null;
         let repartidorNotificado = false;
+        let repartidorId = null;
 
         if (tipoEntrega === 'envio') {
             const respRepartidor = await notifyRepartidorAboutNewOrder(
@@ -2845,24 +2849,30 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
             );
 
             repartidorNotificado = respRepartidor.success;
-            repartidorAsignado = respRepartidor.repartidor || null;
+            repartidorAsignado = respRepartidor.repartidorNombre || null;
+            repartidorId = respRepartidor.repartidorId || null;
+
+            // NUEVO: Guardar el ID del repartidor en columna J de Pedidos GENERAL
+            if (repartidorId && idPedido) {
+                await guardarRepartidorEnPedido(idPedido, repartidorId);
+            }
         }
 
         // ────────────────────────────────────────────────────────────────
-        // Mensajes al usuario según resultado
+        // Mensaje final al usuario
         // ────────────────────────────────────────────────────────────────
         let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
 
         if (tipoEntrega === 'envio') {
-            if (repartidorNotificado) {
-                mensajeFinal += `\n\nFue asignado al repartidor ${repartidorAsignado || 'seleccionado'} y ya fue notificado.`;
+            if (repartidorNotificado && repartidorAsignado) {
+                mensajeFinal += `\n\nAsignado al repartidor: ${repartidorAsignado}`;
             } else {
-                mensajeFinal += `\n\nNo se pudo asignar/notificar repartidor en este momento (puede ser temporal). El sistema lo intentará de nuevo.`;
+                mensajeFinal += `\n\nNo se pudo asignar o notificar repartidor en este momento (puede ser temporal).`;
             }
         }
 
         if (!localesNotificados) {
-            mensajeFinal += `\n\nHubo un problema al notificar a uno o más locales, pero el pedido ya está registrado.`;
+            mensajeFinal += `\n\nAdvertencia: hubo problema al notificar a uno o más locales (pedido ya creado).`;
         }
 
         alert(mensajeFinal);
@@ -2883,6 +2893,40 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
             "Por favor intenta nuevamente o contacta soporte.\n\n" +
             "(Error: " + (err.message || "desconocido") + ")"
         );
+    }
+}
+
+// ------------------------------------------------------------------
+// NUEVA FUNCIÓN: Guardar ID del repartidor en columna J (índice 10)
+// ------------------------------------------------------------------
+async function guardarRepartidorEnPedido(idPedido, repartidorId) {
+    try {
+        const params = new URLSearchParams({
+            action: 'actualizarColumnaPedido',
+            idPedido: idPedido,
+            columna: 'J',           // o puedes usar el índice 10 si prefieres
+            valor: repartidorId
+        });
+
+        const res = await fetch(`${scriptUrl}?${params.toString()}`, {
+            method: 'GET',
+            cache: 'no-cache'
+        });
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (data.success) {
+            console.log(`[PEDIDO #${idPedido}] Repartidor ID ${repartidorId} guardado en columna J`);
+        } else {
+            console.warn(`No se pudo guardar repartidor en columna J: ${data.error || 'sin mensaje'}`);
+        }
+
+    } catch (err) {
+        console.error("[guardarRepartidorEnPedido] Error:", err);
+        // No lanzamos error para no frenar el flujo principal
     }
 }
 
