@@ -146,88 +146,95 @@
 
   <header class="header">
     <div class="container text-center">
-      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Logo Weep" class="logo-plataforma mb-3">
+      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" 
+           alt="Logo Weep" class="logo-plataforma mb-3">
       <h1 class="display-5 fw-bold text-rojo">Panel de Repartidores</h1>
     </div>
   </header>
 
   <main class="container container-main py-5">
 
-    <!-- Solo autenticación visible al inicio -->
-    <div id="auth-section">
-      <!-- Login (visible por defecto) -->
-      <div id="login-card" class="card card-repartidor mx-auto" style="max-width: 500px;">
-        <div class="card-body p-5">
-          <h3 class="text-center mb-4 text-rojo">Iniciar Sesión</h3>
-          <form id="login-form">
-            <div class="mb-4">
-              <input type="email" class="form-control form-control-lg" id="email-login" placeholder="Email" required>
-            </div>
-            <div class="mb-4">
-              <input type="password" class="form-control form-control-lg" id="password-login" placeholder="Contraseña" required>
-            </div>
-            <button type="submit" class="btn btn-rojo btn-lg w-100">Ingresar</button>
-          </form>
-          <p class="text-center mt-4">
-            ¿No tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarRegistro()">Registrate aquí</a>
-          </p>
-        </div>
+    <!-- Sección de autenticación (visible al inicio) -->
+    <div id="auth-section" class="card shadow-lg p-5 mb-5 bg-white rounded-4 mx-auto" style="max-width: 600px;">
+      <h2 class="text-center mb-4 text-rojo">Acceso Repartidor</h2>
+      <div class="text-center mb-4">
+        <button id="show-register" class="btn btn-outline-danger btn-lg me-3">Registrarme</button>
+        <button id="show-login" class="btn btn-rojo btn-lg">Iniciar Sesión</button>
       </div>
 
-      <!-- Registro (oculto) -->
-      <div id="register-card" class="card card-repartidor mx-auto hidden" style="max-width: 500px;">
-        <div class="card-body p-5">
-          <h3 class="text-center mb-4 text-rojo">Crear Cuenta</h3>
-          <form id="register-form">
-            <div class="mb-3"><input type="text" class="form-control form-control-lg" id="nombre" placeholder="Nombre completo" required></div>
-            <div class="mb-3"><input type="tel" class="form-control form-control-lg" id="telefono" placeholder="Teléfono" required></div>
-            <div class="mb-3"><input type="email" class="form-control form-control-lg" id="email" placeholder="Email" required></div>
-            <div class="mb-3"><input type="password" class="form-control form-control-lg" id="password" placeholder="Contraseña" required></div>
-            <div class="mb-3"><input type="text" class="form-control form-control-lg" id="patente" placeholder="Patente" required></div>
-            <div class="mb-3"><input type="text" class="form-control form-control-lg" id="marca-modelo" placeholder="Marca y Modelo" required></div>
-            <button type="submit" class="btn btn-rojo btn-lg w-100">Registrarme</button>
-          </form>
-          <p class="text-center mt-4">
-            ¿Ya tenés cuenta? <a href="#" class="text-rojo fw-bold" onclick="mostrarLogin()">Iniciar Sesión</a>
-          </p>
+      <!-- Formulario de registro (oculto por defecto) -->
+      <form id="register-form" class="mt-4 hidden">
+        <div class="mb-3">
+          <input type="text" id="reg-nombre" class="form-control form-control-lg" placeholder="Nombre completo" required>
         </div>
-      </div>
+        <div class="mb-3">
+          <input type="tel" id="reg-telefono" class="form-control form-control-lg" placeholder="Teléfono (ej: +54911...)" required>
+        </div>
+        <div class="mb-3">
+          <input type="email" id="reg-email" class="form-control form-control-lg" placeholder="Email" required>
+        </div>
+        <div class="mb-3">
+          <input type="password" id="reg-password" class="form-control form-control-lg" placeholder="Contraseña" required>
+        </div>
+        <div class="mb-3">
+          <input type="text" id="reg-patente" class="form-control form-control-lg" placeholder="Patente de la moto" required>
+        </div>
+        <div class="mb-3">
+          <input type="text" id="reg-marca-modelo" class="form-control form-control-lg" placeholder="Marca y modelo" required>
+        </div>
+        <button type="submit" class="btn btn-success btn-lg w-100">
+          <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+          Registrarme
+        </button>
+      </form>
+
+      <!-- Formulario de login (visible por defecto) -->
+      <form id="login-form" class="mt-4">
+        <div class="mb-3">
+          <input type="email" id="login-email" class="form-control form-control-lg" placeholder="Email" required>
+        </div>
+        <div class="mb-3">
+          <input type="password" id="login-password" class="form-control form-control-lg" placeholder="Contraseña" required>
+        </div>
+        <button type="submit" class="btn btn-rojo btn-lg w-100">
+          <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+          Iniciar Sesión
+        </button>
+      </form>
+
+      <div id="auth-status" class="mt-3 text-center"></div>
     </div>
 
-    <!-- Dashboard (oculto hasta login) -->
-    <div id="dashboard" class="hidden">
-      <div class="text-center mb-5">
-        <h2>Bienvenido, <span id="nombre-usuario" class="text-rojo"></span></h2>
-        <div class="d-flex justify-content-center align-items-center gap-4 mt-4 flex-wrap">
-          <label class="fw-bold me-2 fs-5">Estado actual:</label>
-          <span id="estado-actual" class="fw-bold text-muted fs-5">Cargando...</span>
+    <!-- Panel principal (oculto hasta login exitoso) -->
+    <div id="panel-principal" class="hidden">
+      <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-4">
           <label class="status-toggle">
-            <input type="checkbox" id="toggle-estado" onchange="toggleEstado(this.checked)">
+            <input type="checkbox" id="toggle-estado">
             <span class="status-slider"></span>
           </label>
+          <span class="fw-bold fs-5" id="estado-texto">Inactivo</span>
+        </div>
+        <button class="btn btn-outline-danger btn-lg" id="logout-btn">Cerrar sesión</button>
+      </div>
+
+      <div class="card shadow-lg p-4 mb-5 text-center">
+        <h3>Bienvenido, <span id="nombre-repartidor" class="text-rojo"></span></h3>
+        <div class="mt-4">
+          <h5 class="text-muted">Viajes completados hoy</h5>
+          <h2 id="pedidos-hoy" class="display-4 fw-bold text-rojo">0</h2>
         </div>
       </div>
 
-      <div class="row justify-content-center mb-5">
-        <div class="col-md-6 col-lg-4">
-          <div class="stats-box text-center">
-            <h5 class="text-muted mb-1">Viajes completados hoy</h5>
-            <h2 id="pedidos-hoy" class="display-4 fw-bold text-rojo">0</h2>
-          </div>
-        </div>
-      </div>
-
-      <div id="viaje-actual" class="viaje-card mb-5 hidden">
+      <!-- Tarjeta de viaje (placeholder - se puede expandir después) -->
+      <div id="viaje-actual" class="viaje-card hidden mb-5">
         <div class="viaje-header">
           <h4 class="mb-0">Viaje Asignado</h4>
         </div>
         <div class="card-body p-5 text-center">
           <p class="lead mb-4 text-muted">No hay viaje asignado en este momento</p>
+          <small class="text-muted">Cuando te asignen un pedido aparecerá aquí</small>
         </div>
-      </div>
-
-      <div class="text-center mt-5">
-        <button class="btn btn-outline-danger btn-lg px-5 py-3" onclick="logout()">Cerrar Sesión</button>
       </div>
     </div>
 
@@ -245,63 +252,62 @@
 
     let repartidorId = localStorage.getItem('repartidorId');
 
-    // Forzar visibilidad correcta al cargar
-    function initPage() {
-      // Ocultar todo lo que no debe verse
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('viaje-actual').classList.add('hidden');
-
-      // Mostrar solo autenticación
+    // Inicialización segura: ocultar dashboard desde el principio
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('panel-principal').classList.add('hidden');
       document.getElementById('auth-section').classList.remove('hidden');
-      document.getElementById('login-card').classList.remove('hidden');
-      document.getElementById('register-card').classList.add('hidden');
 
-      // Si hay sesión guardada → intentar cargar dashboard
+      // Mostrar login por defecto
+      document.getElementById('login-form').classList.remove('hidden');
+      document.getElementById('register-form').classList.add('hidden');
+
+      // Si hay token → cargar panel
       if (repartidorId) {
         mostrarPanelPrincipal();
       }
-    }
+    });
 
-    // Ejecutar al cargar el DOM
-    document.addEventListener('DOMContentLoaded', initPage);
+    // Mostrar/ocultar formularios
+    document.getElementById('show-register').addEventListener('click', () => {
+      document.getElementById('register-form').classList.remove('hidden');
+      document.getElementById('login-form').classList.add('hidden');
+    });
 
-    function mostrarPanelPrincipal() {
-      document.getElementById('auth-section').classList.add('hidden');
-      document.getElementById('dashboard').classList.remove('hidden');
-      cargarDatosRepartidor();
-    }
+    document.getElementById('show-login').addEventListener('click', () => {
+      document.getElementById('login-form').classList.remove('hidden');
+      document.getElementById('register-form').classList.add('hidden');
+    });
 
-    function mostrarRegistro() {
-      document.getElementById('login-card').classList.add('hidden');
-      document.getElementById('register-card').classList.remove('hidden');
-    }
-
-    function mostrarLogin() {
-      document.getElementById('register-card').classList.add('hidden');
-      document.getElementById('login-card').classList.remove('hidden');
-    }
-
-    // Registro - JSONP
+    // Registro (GET + JSONP)
     document.getElementById('register-form').addEventListener('submit', function(e) {
       e.preventDefault();
+      const btn = this.querySelector('button');
+      const spinner = btn.querySelector('.spinner-border');
+      spinner.classList.remove('d-none');
+      btn.disabled = true;
+
       const params = {
-        nombre: document.getElementById('nombre').value.trim(),
-        telefono: document.getElementById('telefono').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        password: document.getElementById('password').value,
-        patente: document.getElementById('patente').value.trim().toUpperCase(),
-        marcaModelo: document.getElementById('marca-modelo').value.trim()
+        nombre: document.getElementById('reg-nombre').value.trim(),
+        telefono: document.getElementById('reg-telefono').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        password: document.getElementById('reg-password').value,
+        patente: document.getElementById('reg-patente').value.trim().toUpperCase(),
+        marcaModelo: document.getElementById('reg-marca-modelo').value.trim()
       };
+
       const qs = new URLSearchParams(params).toString();
       const cb = 'jsonp_reg_' + Date.now();
 
       window[cb] = function(data) {
+        spinner.classList.add('d-none');
+        btn.disabled = false;
         delete window[cb];
         const s = document.querySelector(`script[src*="${cb}"]`);
         if (s) s.remove();
+
         if (data && data.success) {
-          alert('¡Registro exitoso! Inicia sesión.');
-          mostrarLogin();
+          alert('Registro exitoso. Inicia sesión.');
+          document.getElementById('show-login').click();
           document.getElementById('register-form').reset();
         } else {
           alert(data?.error || 'Error al registrarte');
@@ -313,23 +319,32 @@
       document.head.appendChild(script);
     });
 
-    // Login - JSONP
+    // Login (JSONP - igual que locales.html)
     document.getElementById('login-form').addEventListener('submit', function(e) {
       e.preventDefault();
-      const email = document.getElementById('email-login').value.trim();
-      const password = document.getElementById('password-login').value.trim();
+      const btn = this.querySelector('button');
+      const spinner = btn.querySelector('.spinner-border');
+      spinner.classList.remove('d-none');
+      btn.disabled = true;
+
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+
       const cb = 'jsonp_login_' + Date.now();
 
       window[cb] = function(data) {
+        spinner.classList.add('d-none');
+        btn.disabled = false;
         delete window[cb];
         const s = document.querySelector(`script[src*="${cb}"]`);
         if (s) s.remove();
+
         if (data && data.success && data.data) {
           repartidorId = data.data.ID;
           localStorage.setItem('repartidorId', repartidorId);
           mostrarPanelPrincipal();
         } else {
-          alert(data?.error || 'Credenciales inválidas');
+          alert(data?.error || 'Credenciales incorrectas');
         }
       };
 
@@ -338,34 +353,14 @@
       document.head.appendChild(script);
     });
 
-    // Toggle estado
-    function toggleEstado(isChecked) {
-      if (!repartidorId) {
-        alert('No estás logueado');
-        return;
-      }
-      const nuevoEstado = isChecked ? 'Activo' : 'Inactivo';
-      document.getElementById('estado-actual').textContent = nuevoEstado;
-
-      const url = `${API_URL}?action=repartidor_actualizarEstado&id=${encodeURIComponent(repartidorId)}&estado=${encodeURIComponent(nuevoEstado)}`;
-
-      fetch(url, { method: 'GET', cache: 'no-cache' })
-        .then(r => r.json())
-        .then(data => {
-          if (!data.success) {
-            alert(data.error || 'No se pudo actualizar');
-            document.getElementById('toggle-estado').checked = !isChecked;
-            document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
-          }
-        })
-        .catch(() => {
-          alert('Error de conexión');
-          document.getElementById('toggle-estado').checked = !isChecked;
-          document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
-        });
+    // Mostrar panel principal
+    function mostrarPanelPrincipal() {
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('panel-principal').classList.remove('hidden');
+      cargarDatosRepartidor();
     }
 
-    // Cargar datos repartidor
+    // Cargar datos del repartidor (JSONP)
     function cargarDatosRepartidor() {
       if (!repartidorId) return logout();
 
@@ -377,14 +372,14 @@
         if (s) s.remove();
 
         if (data && data.success && data.data) {
-          document.getElementById('nombre-usuario').textContent = data.data.Nombre;
+          document.getElementById('nombre-repartidor').textContent = data.data.Nombre;
           document.getElementById('pedidos-hoy').textContent = data.data.PedidosHoy || 0;
 
           const isActive = data.data.Estado === 'Activo';
           document.getElementById('toggle-estado').checked = isActive;
-          document.getElementById('estado-actual').textContent = isActive ? 'Activo' : 'Inactivo';
+          document.getElementById('estado-texto').textContent = isActive ? 'Activo' : 'Inactivo';
         } else {
-          alert('Error al cargar datos. Vuelve a iniciar sesión.');
+          alert(data?.error || 'Error al cargar datos');
           logout();
         }
       };
@@ -394,14 +389,37 @@
       document.head.appendChild(script);
     }
 
+    // Toggle estado (GET simple)
+    document.getElementById('toggle-estado').addEventListener('change', function() {
+      const nuevoEstado = this.checked ? 'Activo' : 'Inactivo';
+      document.getElementById('estado-texto').textContent = nuevoEstado;
+
+      const url = `${API_URL}?action=repartidor_actualizarEstado&id=${encodeURIComponent(repartidorId)}&estado=${encodeURIComponent(nuevoEstado)}`;
+
+      fetch(url, { method: 'GET', cache: 'no-cache' })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            alert(data.error || 'No se pudo actualizar el estado');
+            this.checked = !this.checked;
+            document.getElementById('estado-texto').textContent = this.checked ? 'Activo' : 'Inactivo';
+          }
+        })
+        .catch(err => {
+          alert('Error de conexión');
+          this.checked = !this.checked;
+          document.getElementById('estado-texto').textContent = this.checked ? 'Activo' : 'Inactivo';
+        });
+    });
+
     // Logout
-    function logout() {
+    document.getElementById('logout-btn').addEventListener('click', () => {
       localStorage.removeItem('repartidorId');
       repartidorId = null;
-      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('panel-principal').classList.add('hidden');
       document.getElementById('auth-section').classList.remove('hidden');
-      mostrarLogin();
-    }
+      document.getElementById('show-login').click();
+    });
   </script>
 </body>
 </html>
