@@ -142,8 +142,9 @@
     .error { background: #d32f2f; }
   </style>
 </head>
-  <body>
-<!-- Header siempre visible -->
+<body>
+
+  <!-- Header siempre visible -->
   <header class="header">
     <div class="container text-center">
       <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" 
@@ -242,12 +243,24 @@
     </div>
   </footer>
 
-<script>
+  <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec';
 
     let repartidorId = localStorage.getItem('repartidorId');
 
-    if (repartidorId) mostrarPanelPrincipal();
+    // Ocultar dashboard desde el inicio (por seguridad)
+    document.getElementById('dashboard').classList.add('hidden');
+
+    // Mostrar solo auth al cargar
+    window.addEventListener('DOMContentLoaded', () => {
+      if (repartidorId) {
+        mostrarPanelPrincipal();
+      } else {
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('login-card').classList.remove('hidden');
+        document.getElementById('register-card').classList.add('hidden');
+      }
+    });
 
     function mostrarPanelPrincipal() {
       document.getElementById('auth-section').classList.add('hidden');
@@ -265,7 +278,7 @@
       document.getElementById('login-card').classList.remove('hidden');
     }
 
-    // Registro - GET + JSONP (igual que registerLocal)
+    // Registro con JSONP
     document.getElementById('register-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const params = {
@@ -276,7 +289,6 @@
         patente: document.getElementById('patente').value.trim().toUpperCase(),
         marcaModelo: document.getElementById('marca-modelo').value.trim()
       };
-
       const qs = new URLSearchParams(params).toString();
       const cb = 'jsonp_reg_' + Date.now();
 
@@ -284,12 +296,12 @@
         delete window[cb];
         const s = document.querySelector(`script[src*="${cb}"]`);
         if (s) s.remove();
-
-        if (data.success) {
+        if (data && data.success) {
           alert('Registro exitoso. Inicia sesión.');
           mostrarLogin();
+          document.getElementById('register-form').reset();
         } else {
-          alert(data.error || 'Error al registrarte');
+          alert(data?.error || 'Error al registrarte');
         }
       };
 
@@ -298,25 +310,23 @@
       document.head.appendChild(script);
     });
 
-    // Login - JSONP (igual que loginLocal)
+    // Login con JSONP
     document.getElementById('login-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const email = document.getElementById('email-login').value.trim();
-      const password = document.getElementById('password-login').value;
-
+      const password = document.getElementById('password-login').value.trim();
       const cb = 'jsonp_login_' + Date.now();
 
       window[cb] = function(data) {
         delete window[cb];
         const s = document.querySelector(`script[src*="${cb}"]`);
         if (s) s.remove();
-
-        if (data.success && data.data) {
+        if (data && data.success && data.data) {
           repartidorId = data.data.ID;
           localStorage.setItem('repartidorId', repartidorId);
           mostrarPanelPrincipal();
         } else {
-          alert(data.error || 'Credenciales inválidas');
+          alert(data?.error || 'Credenciales inválidas');
         }
       };
 
@@ -325,18 +335,36 @@
       document.head.appendChild(script);
     });
 
-    // Logout
-    function logout() {
-      localStorage.removeItem('repartidorId');
-      repartidorId = null;
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('auth-section').classList.remove('hidden');
-      mostrarLogin();
+    // Toggle estado
+    function toggleEstado(isChecked) {
+      if (!repartidorId) {
+        alert('No estás logueado');
+        return;
+      }
+      const nuevoEstado = isChecked ? 'Activo' : 'Inactivo';
+      document.getElementById('estado-actual').textContent = nuevoEstado;
+
+      const url = `${API_URL}?action=repartidor_actualizarEstado&id=${encodeURIComponent(repartidorId)}&estado=${encodeURIComponent(nuevoEstado)}`;
+
+      fetch(url, { method: 'GET', cache: 'no-cache' })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            alert(data.error || 'No se pudo actualizar');
+            document.getElementById('toggle-estado').checked = !isChecked;
+            document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
+          }
+        })
+        .catch(() => {
+          alert('Error de conexión');
+          document.getElementById('toggle-estado').checked = !isChecked;
+          document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
+        });
     }
 
-    // Cargar datos (JSONP)
+    // Cargar datos repartidor
     function cargarDatosRepartidor() {
-      if (!repartidorId) return;
+      if (!repartidorId) return logout();
 
       const cb = 'jsonp_datos_' + Date.now();
 
@@ -345,7 +373,7 @@
         const s = document.querySelector(`script[src*="${cb}"]`);
         if (s) s.remove();
 
-        if (data.success && data.data) {
+        if (data && data.success && data.data) {
           document.getElementById('nombre-usuario').textContent = data.data.Nombre;
           document.getElementById('pedidos-hoy').textContent = data.data.PedidosHoy || 0;
 
@@ -362,37 +390,13 @@
       document.head.appendChild(script);
     }
 
-    // Toggle estado - GET simple
-    function toggleEstado(isChecked) {
-      if (!repartidorId) {
-        alert('No estás logueado');
-        return;
-      }
-
-      const nuevoEstado = isChecked ? 'Activo' : 'Inactivo';
-      document.getElementById('estado-actual').textContent = nuevoEstado; // optimista
-
-      const url = `${API_URL}?action=repartidor_actualizarEstado&id=${encodeURIComponent(repartidorId)}&estado=${encodeURIComponent(nuevoEstado)}`;
-
-      fetch(url, { method: 'GET', cache: 'no-cache' })
-        .then(r => r.json())
-        .then(data => {
-          if (!data.success) {
-            alert(data.error || 'No se pudo cambiar estado');
-            document.getElementById('toggle-estado').checked = !isChecked;
-            document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
-          }
-        })
-        .catch(() => {
-          alert('Error de conexión');
-          document.getElementById('toggle-estado').checked = !isChecked;
-          document.getElementById('estado-actual').textContent = isChecked ? 'Inactivo' : 'Activo';
-        });
-    }
-
-    // Inicialización
-    if (repartidorId) {
-      mostrarPanelPrincipal();
+    // Logout
+    function logout() {
+      localStorage.removeItem('repartidorId');
+      repartidorId = null;
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('auth-section').classList.remove('hidden');
+      mostrarLogin();
     }
   </script>
 
