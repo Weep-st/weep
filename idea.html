@@ -2779,13 +2779,15 @@ function saveAddressChange() {
             alert('Error de conexión al actualizar dirección');
         });
 }
-        // ------------------------------------------------------------------
-// 1. createOrderNormal – crea pedido + notifica locales
+        
+// ------------------------------------------------------------------
+// createOrderNormal – crea pedido + notifica locales + asigna y notifica repartidor (si es envío)
 // ------------------------------------------------------------------
 async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
     try {
         const action = 'createOrder';
         const cartString = encodeURIComponent(JSON.stringify(cart));
+        
         const url = `${scriptUrl}?action=${action}` +
             `&userId=${encodeURIComponent(userId)}` +
             `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
@@ -2799,46 +2801,88 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
 
         console.log("[PEDIDO] Enviando creación →", url);
 
-        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const response = await fetch(url, { 
+            method: 'GET', 
+            cache: 'no-cache' 
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
 
         const result = await response.json();
+
         if (!result.success) {
             throw new Error(result.error || "Error desconocido al crear pedido");
         }
 
         const idPedido = result.idPedido;
         console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
-        alert(`¡Pedido #${idPedido} registrado exitosamente!`);
 
-        // Notificar locales (ya existe)
-        const notificacionesOk = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+        // ────────────────────────────────────────────────────────────────
+        // 1. Notificar a los locales (ya existía)
+        // ────────────────────────────────────────────────────────────────
+        const localesNotificados = await notifyLocalsAboutNewOrder(
+            idPedido, 
+            direccion, 
+            tipoEntrega, 
+            observaciones, 
+            prices
+        );
 
-        // ── NUEVO ── Notificar repartidor (solo si es envío)
-+       let repartidorNotificado = false;
-+       if (tipoEntrega === 'envio') {
-+           repartidorNotificado = await notifyRepartidorAboutNewOrder(idPedido, direccion, observaciones, prices);
-+       }
+        // ────────────────────────────────────────────────────────────────
+        // 2. Si es con envío → asignar repartidor y notificar
+        // ────────────────────────────────────────────────────────────────
+        let repartidorAsignado = null;
+        let repartidorNotificado = false;
 
+        if (tipoEntrega === 'envio') {
+            const respRepartidor = await notifyRepartidorAboutNewOrder(
+                idPedido, 
+                direccion, 
+                observaciones, 
+                prices
+            );
+
+            repartidorNotificado = respRepartidor.success;
+            repartidorAsignado = respRepartidor.repartidor || null;
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        // Mensajes al usuario según resultado
+        // ────────────────────────────────────────────────────────────────
+        let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
+
+        if (tipoEntrega === 'envio') {
+            if (repartidorNotificado) {
+                mensajeFinal += `\n\nFue asignado al repartidor ${repartidorAsignado || 'seleccionado'} y ya fue notificado.`;
+            } else {
+                mensajeFinal += `\n\nNo se pudo asignar/notificar repartidor en este momento (puede ser temporal). El sistema lo intentará de nuevo.`;
+            }
+        }
+
+        if (!localesNotificados) {
+            mensajeFinal += `\n\nHubo un problema al notificar a uno o más locales, pero el pedido ya está registrado.`;
+        }
+
+        alert(mensajeFinal);
+
+        // ────────────────────────────────────────────────────────────────
         // Limpieza final
+        // ────────────────────────────────────────────────────────────────
         cart = [];
         updateCartCount();
         updateCartDisplay();
         closeCart();
         document.getElementById('checkout-form').reset();
 
-+       // Mensaje final más claro
-+       if (tipoEntrega === 'envio') {
-+           if (repartidorNotificado) {
-+               alert(`¡Pedido #${idPedido} creado!\nFue asignado a un repartidor y ya fue notificado.`);
-+           } else {
-+               alert(`¡Pedido #${idPedido} creado!\nNo se pudo notificar al repartidor en este momento.\nEl sistema lo intentará nuevamente.`);
-+           }
-+       }
-
     } catch (err) {
         console.error("[PEDIDO] Error grave:", err);
-        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
+        alert(
+            "Hubo un problema al registrar el pedido.\n" +
+            "Por favor intenta nuevamente o contacta soporte.\n\n" +
+            "(Error: " + (err.message || "desconocido") + ")"
+        );
     }
 }
 
