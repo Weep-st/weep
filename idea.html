@@ -1,1142 +1,3108 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weep - Panel de Gestión</title>
-  <link href="<https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css>" rel="stylesheet">
-  <link href="<https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap>" rel="stylesheet">
-  <link rel="stylesheet" href="<https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css>">
-  <style>
-  body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    min-height: 100vh;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weep - Plataforma de Pedidos y Delivery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    /* Header */
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background-color: #fff;
+        padding: 12px 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        border-radius: 0 0 20px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    body {
+        padding-top: 140px;
+    }
+    @media (max-width: 768px) {
+        body {
+            padding-top: 110px;
+        }
+        header {
+            padding: 10px 12px;
+            border-radius: 0;
+        }
+    }
+    .logo {
+        height: 90px;
+    }
+    .logo img {
+        height: 100%;
+        object-fit: contain;
+    }
+    .search-bar {
+        flex: 1;
+        min-width: 200px;
+        max-width: 500px;
+        margin: 0 10px;
+    }
+    .search-bar input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ccc;
+        border-radius: 30px;
+        font-size: 15px;
+        outline: none;
+    }
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .cart-icon {
+        position: relative;
+        cursor: pointer;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cart-icon img {
+        width: 85%;
+        height: 85%;
+        object-fit: contain;
+    }
+    .cart-count {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        background: #d32f2f;
+        color: white;
+        border-radius: 50%;
+        min-width: 22px;
+        height: 22px;
+        font-size: 12px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    h1 {
+        text-align: center;
+        color: #c62828;
+        font-size: 1.8rem;
+        margin: 30px 0;
+    }
+    h2 {
+        text-align: center;
+        color: #c62828;
+        font-size: 1.5rem;
+        margin: 30px 0 20px;
+    }
+        /* Contenedor principal más inteligente */
+main {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px; /* base */
+    width: 100%; /* ocupa todo el ancho disponible */
+    box-sizing: border-box;
+}
+/* Ajustes progresivos para mejor centrado en tablets y mobile grande */
+@media (max-width: 992px) {
+    main {
+        padding: 0 12px;
+    }
+}
+@media (max-width: 768px) {
+    main {
+        padding: 0 10px;
+    }
+}
+@media (max-width: 576px) {
+    main {
+        padding: 0 8px;
+    }
+}
+/* Aseguramos que los bloques internos se centren bien */
+.menu-items,
+.suggestions,
+.categories-carousel-wrapper {
+    width: 100%;
+    max-width: 100%; /* evita que se desborden */
+    margin-left: auto;
+    margin-right: auto;
+}
+/* Para .menu-items específicamente (donde más se nota el problema) */
+.menu-items {
     display: flex;
     flex-direction: column;
-  }
-  .container {
-    max-width: 1200px;
-    flex: 1;
-  }
-  h1, h2, h3, h5 {
-    font-weight: 600;
-    color: #c62828;
-  }
-  .text-rojo {
-    color: #d32f2f;
-  }
-  .btn-rojo {
-    background-color: #d32f2f;
-    border: none;
-  }
-  .btn-rojo:hover {
-    background-color: #b71c1c;
-  }
-  .header {
+    gap: 12px;
+    padding: 0; /* quitamos padding lateral aquí */
+    margin: 0 auto;
+    width: 100%;
+    max-width: 900px; /* limita el ancho máximo */
+    box-sizing: border-box;
+}
+/* En mobile, permitimos que ocupe casi todo el ancho */
+@media (max-width: 768px) {
+    .menu-items {
+        max-width: 100%;
+        padding: 0 4px; /* muy poco padding para que se vea centrado */
+    }
+}
+/* Lo mismo para sugerencias y categorías */
+.suggestions {
+    padding: 0 4px; /* ajustado */
+}
+.categories-carousel-wrapper {
+    padding: 0 8px; /* menos en mobile */
+    margin: 0 auto;
+}
+    /* === TARJETAS DE MENÚ HORIZONTALES SIEMPRE (incluso en mobile) === */
+.menu-item {
+    display: flex;
+    align-items: stretch;
     background: white;
-    padding: 2rem 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    border-radius: 0 0 20px 20px;
-    margin-bottom: 3rem;
-  }
-  .logo-plataforma {
-    width: 100px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    transition: all 0.25s ease;
+    position: relative;
+    min-height: 100px; /* altura mínima más baja aún */
+}
+.menu-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(211,47,47,0.22);
+}
+.menu-item img {
+    width: 100px; /* más chica en mobile */
     height: 100px;
-    object-fit: contain;
-  }
-  .logo-perfil-sm {
-    width: 50px;
-    height: 50px;
     object-fit: cover;
+    flex-shrink: 0;
+}
+.menu-item .card-body-horizontal {
+    padding: 10px 12px; /* menos padding en general */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.menu-item .local-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.menu-item .local-logo {
+    width: 28px; /* un poco más chico en mobile */
+    height: 28px;
     border-radius: 50%;
-    border: 3px solid #d32f2f;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  }
-  .logo-perfil-placeholder {
-    width: 50px;
-    height: 50px;
-    background: #f5f5f5;
-    border: 3px dashed #d32f2f;
+    object-fit: contain;
+    background: #f8f8f8;
+    border: 1px solid #eee;
+    padding: 3px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.menu-item .local-name {
+    font-size: 0.85rem; /* más pequeño */
+    font-weight: 600;
+    color: #444;
+}
+.menu-item h3 {
+    font-size: 1.05rem; /* título más compacto */
+    margin: 2px 0 4px 0;
+    font-weight: 600;
+    color: #222;
+    line-height: 1.2;
+}
+.menu-item p {
+    margin: 2px 0 6px 0;
+    color: #666;
+    font-size: 0.82rem; /* descripción más chica */
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* máximo 2 líneas */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.menu-item .precio {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #d32f2f;
+    margin: 4px 0 6px 0;
+}
+.menu-item .actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+.menu-item button.add-to-cart {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 120px;
+}
+.menu-item button.add-to-cart:hover {
+    background: #b71c1c;
+}
+/* Ajustes específicos para mobile (manteniendo horizontal) */
+@media (max-width: 576px) {
+    .menu-item {
+        min-height: 90px; /* aún más bajo en celular */
+    }
+    .menu-item img {
+        width: 90px; /* imagen más chica en pantallas pequeñas */
+        height: 90px;
+    }
+    .menu-item .card-body-horizontal {
+        padding: 8px 10px; /* menos padding interno */
+    }
+    .menu-item .local-logo {
+        width: 26px;
+        height: 26px;
+    }
+    .menu-item h3 {
+        font-size: 1rem;
+    }
+    .menu-item p {
+        font-size: 0.78rem;
+        -webkit-line-clamp: 2;
+    }
+    .menu-item .precio {
+        font-size: 1.25rem;
+    }
+    .menu-item button.add-to-cart {
+        padding: 7px 10px;
+        font-size: 0.85rem;
+        min-width: 110px;
+    }
+    .menu-item .actions {
+        gap: 6px;
+    }
+}
+    /* Botón favorito circular (sin cambios, ya está bien) */
+    .menu-item .fav-btn {
+        position: absolute !important;
+        top: 8px !important;
+        right: 8px !important;
+        width: 38px !important;
+        height: 38px !important;
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: none !important;
+        border-radius: 50% !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18) !important;
+        transition: all 0.2s ease !important;
+        z-index: 15 !important;
+        padding: 4px;
+        overflow: hidden;
+    }
+    .fav-btn:hover {
+        transform: scale(1.14) !important;
+        background: white !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+    }
+    .fav-btn img {
+        width: 85% !important;
+        height: 85% !important;
+        object-fit: contain;
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        transition: opacity 0.2s ease;
+    }
+    .fav-btn .fav-empty { opacity: 1; }
+    .fav-btn.active .fav-empty { opacity: 0; }
+    .fav-btn .fav-filled { opacity: 0; }
+    .fav-btn.active .fav-filled { opacity: 1; }
+    /* Categorías */
+    .categories-carousel-wrapper {
+        position: relative;
+        width: 100%;
+        margin: 0 auto 30px auto;
+        padding: 0 20px;
+        box-sizing: border-box;
+    }
+    .categories {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        padding: 10px 0;
+        margin: 0 -20px;
+        scrollbar-width: none;
+    }
+    .categories::-webkit-scrollbar { display: none; }
+    .category {
+        flex: 0 0 auto;
+        width: clamp(80px, 22vw, 100px);
+        height: clamp(80px, 22vw, 100px);
+        min-width: 80px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        cursor: pointer;
+        transition: transform 0.18s ease;
+    }
+    .category:hover, .category:active { transform: scale(1.05); }
+    .category span {
+        position: absolute;
+        bottom: 6px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: white;
+        font-weight: 600;
+        font-size: clamp(10px, 3.1vw, 13px);
+        text-shadow: 0 1px 4px #000;
+        z-index: 1;
+        padding: 0 4px;
+    }
+    .carousel-btn.categories-btn {
+        display: none;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 38px;
+        height: 38px;
+        background: rgba(211, 47, 47, 0.75);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .carousel-btn.categories-btn:hover {
+        background: rgba(211, 47, 47, 0.9);
+        transform: translateY(-50%) scale(1.1);
+    }
+    .carousel-btn.left.categories-btn { left: 8px; }
+    .carousel-btn.right.categories-btn { right: 8px; }
+    @media (max-width: 820px) {
+        .carousel-btn.categories-btn { display: flex; }
+    }
+    @media (max-width: 420px) {
+        .category {
+            width: clamp(70px, 21vw, 85px);
+            height: clamp(70px, 21vw, 85px);
+        }
+        .carousel-btn.categories-btn {
+            width: 34px;
+            height: 34px;
+            font-size: 18px;
+        }
+    }
+    @media (min-width: 821px) {
+        .categories-carousel-wrapper { padding: 0; }
+        .categories {
+            justify-content: center;
+            gap: 16px;
+            margin: 0;
+            padding: 15px 0;
+        }
+        .category {
+            width: 130px;
+            height: 130px;
+        }
+        .category span {
+            font-size: 15px;
+            bottom: 10px;
+        }
+    }
+    .categories-carousel-wrapper {
+        position: relative;
+        margin-top: -70px;
+        z-index: 5;
+    }
+    @media (max-width: 768px) {
+        .categories-carousel-wrapper { margin-top: -20px; }
+    }
+    @media (min-width: 769px) {
+        .categories-carousel-wrapper { margin-top: -40px; }
+    }
+    /* Sugerencias / Locales */
+    .suggestions {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    /* Eliminamos o neutralizamos la regla antigua que rompe el carrusel */
+#suggestion-items {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important; /* importante para que no se centren verticalmente */
+    gap: 20px;
+    padding: 20px 0;
+    margin: 0;
+    width: 100%;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+#suggestion-items::-webkit-scrollbar {
+    display: none;
+}
+
+        /* Contenedor base */
+.suggestion {
+    position: relative;               /* Necesario para posicionar el ::after */
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    overflow: visible;                /* Cambiado a visible para que el punto no se corte */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: white;                /* fondo para que el punto contraste bien */
+}
+
+/* Punto verde FIJO y siempre visible en locales abiertos */
+.suggestion.abierto::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 14px;
+    height: 14px;
+    background: #00ff00;              /* verde brillante */
+    border: 2.5px solid #ffffff;
     border-radius: 50%;
+    box-shadow: 
+        0 0 8px rgba(0, 255, 0, 0.8),
+        0 0 12px rgba(0, 255, 0, 0.5);
+    z-index: 20;                      /* muy alto para que no quede tapado */
+    pointer-events: none;             /* no interfiere con clics */
+    display: block !important;        /* fuerza visibilidad */
+}
+
+/* Efecto pulsing opcional (latido sutil) */
+.suggestion.abierto.pulse::after {
+    animation: pulse 2.8s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%      { transform: scale(1.18); opacity: 0.9; }
+}
+
+/* Hover: solo agranda la tarjeta, NO afecta al punto */
+.suggestion:hover {
+    transform: scale(1.1);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+/* El punto NO cambia ni desaparece en hover */
+.suggestion.abierto:hover::after,
+.suggestion.abierto:active::after {
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;       /* opcional: quitar pulse al hover si molesta */
+}
+
+/* Locales cerrados: sin punto, más opacos */
+.suggestion.cerrado {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+        
+    .suggestion:hover, .suggestion:active {
+        transform: scale(1.1);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+    }
+    .suggestion img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    .suggestion:hover img {
+        transform: scale(1.15);
+    }
+    .suggestion-categoria {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 10px 6px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+        transition: all 0.25s ease;
+        width: 110px;
+        height: auto;
+        min-height: 130px;
+    }
+    .suggestion-categoria:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    }
+    .suggestion-categoria img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+        border-radius: 50%;
+        border: 2px solid #ffebee;
+        background: #fff;
+        padding: 3px;
+        margin-bottom: 8px;
+    }
+    .suggestion-categoria .suggestion-info { width: 100%; }
+    .suggestion-categoria .local-name {
+        font-weight: 600;
+        font-size: 0.84rem;
+        color: #333;
+        margin-bottom: 5px;
+        line-height: 1.2;
+    }
+    .suggestion-categoria .categoria-precio {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.78rem;
+    }
+    .suggestion-categoria .cat {
+        color: #d32f2f;
+        font-weight: 500;
+        background: #ffebee;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+    }
+    .suggestion-categoria .precio-min {
+        color: #2e7d32;
+        font-weight: 700;
+    }
+        /* ============================================= */
+/* === CARRUSEL SIEMPRE CENTRADO ============== */
+/* ============================================= */
+.carousel-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: 0 10px; /* margen lateral para que no choque con bordes */
+}
+/* Contenedor que permite el scroll */
+.carousel-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 20px 40px; /* ← padding lateral grande para centrar visualmente */
+    margin: 0 -40px; /* compensa el padding para que ocupe todo el ancho */
+    width: calc(100% + 80px); /* compensa los -40px de cada lado */
+    box-sizing: border-box;
+    justify-content: center; /* ¡clave! centra el grupo de tarjetas */
+}
+.carousel-container::-webkit-scrollbar {
+    display: none;
+}
+/* Cuando hay pocas tarjetas → forzamos centrado total */
+.carousel-wrapper.few-items .carousel-container {
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+    width: 100%;
+}
+/* Las tarjetas no crecen ni se achican */
+.carousel-container .suggestion,
+.carousel-container .suggestion-categoria {
+    flex: 0 0 auto;
+}
+/* Botones de navegación (flechas) */
+.carousel-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 42px;
+    height: 42px;
+    background: rgba(211, 47, 47, 0.75);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.carousel-btn:hover {
+    background: rgba(211, 47, 47, 0.9);
+}
+.carousel-btn.left { left: 5px; }
+.carousel-btn.right { right: 5px; }
+@media (max-width: 920px) {
+    .carousel-btn {
+        display: flex;
+    }
+}
+    /* Carrito */
+    .cart-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        pointer-events: none;
+    }
+    .cart-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+    .cart-sidebar {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 100%;
+        max-width: 420px;
+        height: 100%;
+        background: white;
+        z-index: 2000;
+        transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: -8px 0 30px rgba(0,0,0,0.25);
+        display: flex;
+        flex-direction: column;
+    }
+    .cart-sidebar.active { right: 0; }
+    .cart-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        position: relative;
+        z-index: 5;
+    }
+    .cart-header h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        color: #c62828;
+    }
+    .cart-close {
+        background: none;
+        border: none;
+        font-size: 2.2rem;
+        line-height: 1;
+        color: #555;
+        cursor: pointer;
+    }
+    .cart-close:hover { color: #d32f2f; }
+    .cart-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 28px 20px 80px 20px;
+    }
+    @media (max-width: 768px) {
+        .cart-sidebar { max-width: 380px; }
+        .cart-header { padding: 14px 18px; }
+        .cart-header h2 { font-size: 1.38rem; }
+        .cart-close { font-size: 2.3rem; }
+        .cart-body { padding: 24px 16px 100px 16px; }
+    }
+    @media (max-width: 500px) {
+        .cart-sidebar { max-width: 340px; }
+        .cart-header { padding: 12px 16px; }
+        .cart-body { padding: 22px 14px 110px 14px; }
+    }
+    .delivery-option select {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    .cart-item {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .cart-item-left {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+    .cart-item-name { font-weight: 500; font-size: 1.1rem; }
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .quantity-btn {
+        width: 40px;
+        height: 40px;
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    .quantity {
+        font-size: 1.2rem;
+        font-weight: bold;
+        min-width: 50px;
+        text-align: center;
+    }
+    .cart-item-price { font-weight: bold; font-size: 1.2rem; }
+    .remove-btn {
+        background: #ff5252;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    .price-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        font-size: 1.1rem;
+    }
+    .price-line.total {
+        font-size: 1.6rem;
+        font-weight: bold;
+        color: #d32f2f;
+        border-top: 2px solid #ddd;
+        padding-top: 20px;
+        margin-top: 15px;
+    }
+    .free-shipping-msg {
+        background: #e8f5e8;
+        color: #2e7d32;
+        padding: 16px;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 600;
+        margin: 15px 0;
+        font-size: 1.1rem;
+    }
+    /* Loading */
+    .loading {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    color: #999;
-  }
-  .status-toggle-sm {
-    width: 70px;
-    height: 36px;
-    position: relative;
-    display: inline-block;
-  }
-  .status-toggle-sm input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .status-slider-sm {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-  }
-  .status-slider-sm:before {
-    position: absolute;
-    content: "";
-    height: 28px;
-    width: 28px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-  }
-  input:checked + .status-slider-sm {
-    background-color: #27ae60;
-  }
-  input:checked + .status-slider-sm:before {
-    transform: translateX(34px);
-  }
-  .menu-card-horizontal {
-    display: flex;
-    align-items: center;
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    margin-bottom: 1rem;
-  }
-  .menu-card-horizontal:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(211,47,47,0.2);
-  }
-  .menu-card-horizontal img {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-  }
-  .card-body-horizontal {
-    padding: 1.5rem;
-    flex: 1;
-  }
-  .precio {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #d32f2f;
-  }
-  .loading {
+    min-height: 180px; /* suficiente para que se vea bien centrado, pero no ocupa demasiado */
+    width: 100%;
     color: #d32f2f;
     font-weight: 600;
-  }
-  .pedido-card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-  }
-  .pedido-header {
-    background: #d32f2f;
-    color: white;
-    padding: 1rem 1.5rem;
-  }
-  .pedido-body {
-    padding: 1.5rem;
-  }
-  .item-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .item-list li {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
-  }
-  .item-list li:last-child {
-    border-bottom: none;
-  }
-  .estado-badge {
-    font-size: 1rem;
-    padding: 0.5rem 1rem;
-  }
-  footer {
-    background: #c62828;
-    color: white;
-    padding: 2rem 0;
-    margin-top: auto;
-  }
-  footer a {
-    color: #ffcdd2;
-    text-decoration: none;
-  }
-  footer a:hover {
-    color: white;
-  }
+    font-size: 1.1rem; /* un poco más chico que 1.15rem para que combine mejor con spinner pequeño */
+    padding: 50px 20px;
+    text-align: center;
+    gap: 10px; /* espacio entre spinner y texto */
+}
+.loading .spinner {
+    border: 4px solid #f3f3f3; /* ← color de fondo más neutro */
+    border-top: 4px solid #d32f2f;
+    border-radius: 50%;
+    width: 28px; /* ← tamaño original aproximado (antes era 24px) */
+    height: 28px;
+    animation: spin 1s linear infinite;
+}
+/* Opcional: si querés que ocupe más espacio en secciones altas (como menú de platos) */
+#suggestion-items .loading,
+.menu-display .loading {
+    min-height: 200px;
+}
+/* Mobile: ajustamos un poco para que no se vea muy grande */
+@media (max-width: 576px) {
+    .loading {
+        min-height: 160px;
+        padding: 40px 15px;
+        font-size: 1rem;
+        gap: 8px;
+    }
+   
+    .loading .spinner {
+        width: 26px;
+        height: 26px;
+        border-width: 4px;
+    }
+}
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Carousel de bebidas */
+    .drinks-panel { margin: 30px 0; }
+    .drinks-carousel {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+    }
+    .drinks-container {
+        display: flex;
+        transition: transform 0.4s ease;
+        gap: 12px;
+        padding: 10px 0;
+    }
+    .drink-card {
+        flex: 0 0 calc(80% - 12px);
+        background: white;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        text-align: center;
+    }
+    .drink-card img {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+    }
+    .drink-card h4 {
+        margin: 12px 10px 6px;
+        font-size: 1rem;
+    }
+    .drink-card .price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #d32f2f;
+        margin: 10px 0;
+    }
+    .drink-card button {
+        width: 90%;
+        margin: 0 auto 15px;
+        padding: 12px;
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .carousel-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(211,47,47,0.8);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 22px;
+        cursor: pointer;
+        z-index: 10;
+    }
+    .carousel-btn.left { left: 10px; }
+    .carousel-btn.right { right: 10px; }
+    /* Formulario checkout */
+    #checkout-form input,
+    #checkout-form select,
+    #checkout-form textarea {
+        width: 100%;
+        padding: 14px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        font-size: 16px;
+    }
+    #checkout-btn {
+        width: 100%;
+        padding: 16px;
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #checkout-btn:hover, #checkout-btn:active {
+        background: #b71c1c;
+    }
+    /* Footer */
+    footer {
+        background-color: #c62828;
+        padding: 30px 20px;
+        text-align: center;
+        margin-top: auto;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+    }
+    footer p {
+        margin: 8px 0;
+        color: #ffffff;
+    }
+    footer p strong { color: #ffffff; }
+    footer a {
+        color: #ffffff;
+        text-decoration: none;
+        margin: 0 10px;
+    }
+    footer a:hover { text-decoration: underline; }
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    /* Responsive general */
+    @media (max-width: 768px) {
+        .search-bar {
+            order: 3;
+            width: 100%;
+            margin: -10px 0 0;
+            max-width: none;
+        }
+        .header-right { gap: 12px; }
+        .logo { height: 75px; }
+        .suggestion {
+            width: 75px;
+            height: 75px;
+        }
+        .suggestion-items {
+            gap: 14px;
+            padding: 15px 0;
+        }
+        h1 { font-size: 1.6rem; }
+        h2 { font-size: 1.4rem; }
+    }
+    @media (max-width: 480px) {
+        .logo { height: 65px; }
+        .suggestion {
+            width: 70px;
+            height: 70px;
+        }
+        .suggestion-items {
+            gap: 12px;
+            padding: 10px 0;
+        }
+    }
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+        background-color: #fff;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 400px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .modal-content h2 {
+        text-align: center;
+        color: #c62828;
+    }
+    .modal-content input {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+    .modal-content button {
+        width: 100%;
+        padding: 12px;
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    .modal-content button:hover { background: #b71c1c; }
+    .modal-content p {
+        text-align: center;
+        margin-top: 10px;
+    }
+    .modal-content a {
+        color: #d32f2f;
+        cursor: pointer;
+    }
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close:hover, .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    /* Perfil */
+    .profile-container { position: relative; display: inline-block; }
+    .profile-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 30px;
+        background-color: #f5f5f5;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+    }
+    .profile-button:hover { background-color: #e0e0e0; }
+    .profile-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #d32f2f;
+    }
+    .profile-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background: white;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.18);
+        border-radius: 12px;
+        min-width: 180px;
+        z-index: 1000;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+    .profile-dropdown.active { display: block; }
+    .dropdown-item {
+        display: block;
+        padding: 12px 18px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.95rem;
+        transition: background 0.2s;
+    }
+    .dropdown-item:hover { background-color: #ffebee; }
+    .dropdown-item.logout {
+        color: #d32f2f;
+        border-top: 1px solid #eee;
+    }
+    @media (max-width: 480px) {
+        .profile-icon { width: 28px; height: 28px; }
+        .profile-button { padding: 6px 10px; font-size: 0.9rem; }
+    }
+    .modal-content label {
+        display: block;
+        margin: 12px 0 6px;
+        font-weight: 500;
+        color: #444;
+    }
+    .modal-content input[type="password"] { margin-bottom: 8px; }
+    /* Loading y spinner ya están definidos arriba */
+        /* Aseguramos que el botón quede bien debajo y centrado */
+#ver-todo-categoria-container {
+    width: 100%;
+    text-align: center;
+}
+/* Si quieres más espacio o efecto visual */
+.ver-todo-categoria {
+    margin-top: 20px; /* más separación del carrusel */
+}
 </style>
+    <!-- PWA - Manifest -->
+<link rel="manifest" href="/manifest.json">
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
+<!-- Mejoras para iOS -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#c62828">
+    <!-- Color de la barra de estado en móviles -->
+    <meta name="theme-color" content="#c62828">
 </head>
 <body>
-  <header class="header">
-    <div class="container text-center">
-      <img src="<https://i.postimg.cc/7PpF3zRP/Chat-GPT-Image-Jan-3-2026-01-27-57-AM-(1).png>" alt="Logo Weep" class="logo-plataforma mb-3">
-      <h1 class="display-5 fw-bold text-rojo">Panel de Gestión</h1>
-    </div>
-  </header>
-  <div class="container pb-5">
-  <!-- SECCIÓN DE AUTENTICACIÓN -->
-  <div id="auth-section" class="card shadow-lg p-5 mb-5 bg-white rounded-4">
-    <h2 class="text-center mb-4 text-rojo">Acceso Local</h2>
-    <div class="text-center mb-4">
-      <button id="show-register" class="btn btn-outline-danger btn-lg me-3">Registrar Local</button>
-      <button id="show-login" class="btn btn-rojo btn-lg">Iniciar Sesión</button>
-    </div>
-    <form id="local-register-form" class="mt-4 d-none">
-      <input type="text" id="reg-local-name" placeholder="Nombre del Local" class="form-control form-control-lg mb-3" required>
-      <input type="text" id="reg-local-direccion" placeholder="Dirección del local (calle, número, barrio)" class="form-control form-control-lg mb-3" required>
-      <input type="email" id="reg-local-email" placeholder="Email" class="form-control form-control-lg mb-3" required>
-      <input type="password" id="reg-local-password" placeholder="Contraseña" class="form-control form-control-lg mb-3" required>
-      <button type="submit" class="btn btn-success btn-lg w-100">
-        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-        Registrar Local
-      </button>
-    </form>
-    <form id="local-login-form" class="mt-4">
-      <input type="email" id="login-local-email" placeholder="Email" class="form-control form-control-lg mb-3" required>
-      <input type="password" id="login-local-password" placeholder="Contraseña" class="form-control form-control-lg mb-3" required>
-      <button type="submit" class="btn btn-rojo btn-lg w-100">
-        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-        Iniciar Sesión
-      </button>
-    </form>
-    <div id="auth-status" class="mt-3"></div>
-  </div>
-  <!-- PANEL PRINCIPAL -->
-  <div id="panel-principal" class="d-none">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-      <div class="d-flex align-items-center gap-3">
-        <div class="text-center">
-          <label class="status-toggle-sm">
-            <input type="checkbox" id="estado-local-toggle">
-            <span class="status-slider-sm"></span>
-          </label>
-          <small class="d-block mt-1 text-rojo fw-bold" id="estado-texto">Cerrado</small>
+    <header>
+        <div class="logo">
+            <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep Logo">
         </div>
-        <span class="fw-medium">Estado del Local</span>
-      </div>
-      <div class="d-flex align-items-center gap-3">
-        <div id="perfil-foto-container">
-          <div class="logo-perfil-placeholder">Foto</div>
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Buscar menús o locales...">
         </div>
-        <div class="dropdown">
-          <button class="btn btn-outline-danger btn-lg dropdown-toggle" data-bs-toggle="dropdown">Mi Perfil</button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" id="editar-perfil-btn">Editar Perfil</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#" id="logout">Cerrar sesión</a></li>
-          </ul>
+        <div class="header-right">
+    <div class="profile-container" id="profile-container">
+        <div class="profile-button" id="profile-button">
+            <img
+                src="https://thumbs.dreamstime.com/b/simple-clean-vector-icon-user-profile-avatar-features-white-silhouette-person-s-head-shoulders-subtle-hair-396756147.jpg"
+                alt="Perfil"
+                class="profile-icon">
+            <span>Mi Perfil</span>
         </div>
-      </div>
-    </div>
-    <div class="text-center mb-5">
-      <button id="btn-mi-menu" class="btn btn-success btn-lg px-5 me-4">Mi Menú</button>
-      <button id="btn-agregar-item" class="btn btn-rojo btn-lg px-5 me-3">Agregar Plato</button>
-      <button id="btn-mis-pedidos" class="btn btn-primary btn-lg px-5">Mis Pedidos</button>
-    </div>
-    <div id="filtros-menu" class="card p-4 mb-4 d-none">
-      <div class="row g-3 align-items-center">
-        <div class="col-md-6">
-          <div class="input-group input-group-lg">
-            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" id="buscador-plato" class="form-control" placeholder="Buscar plato...">
-          </div>
-        </div>
-        <div class="col-md-6">
-          <select id="filtro-categoria" class="form-select form-select-lg">
-            <option value="">Todas las categorías</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <!-- FORMULARIO PLATO -->
-    <form id="menu-form" class="card shadow-lg p-4 mb-5 d-none">
-      <h3 class="mb-4 text-rojo" id="form-titulo">Nuevo Plato</h3>
-      <input type="hidden" id="edit-item-id">
-      <div class="row g-3">
-        <div class="col-md-6"><input type="text" id="nombre" class="form-control form-control-lg" placeholder="Nombre del plato" required></div>
-        <div class="col-md-6">
-          <select id="categoria" class="form-select form-select-lg" required>
-            <option value="">Seleccionar categoría</option>
-            <option value="Hamburguesas">Hamburguesas</option>
-            <option value="Pizza">Pizza</option>
-            <option value="Helados">Helados</option>
-            <option value="Postres">Postres</option>
-            <option value="Merienda">Merienda</option>
-            <option value="Bebidas">Bebidas</option>
-            <option value="Platos principales">Platos principales</option>
-          </select>
-        </div>
-        <div class="col-12"><textarea id="descripcion" class="form-control" rows="2" placeholder="Descripción breve" required></textarea></div>
-        <div class="col-md-4"><input type="number" id="precio" class="form-control form-control-lg" placeholder="Precio" step="0.01" required></div>
-        <div class="col-md-4">
-          <select id="disponibilidad" class="form-select form-select-lg">
-            <option value="Sí">Disponible</option>
-            <option value="No">No disponible</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <select id="tamano_porcion" class="form-select form-select-lg">
-            <option value="">Tamaño/Porción</option>
-            <option value="1 persona">1 persona</option>
-            <option value="2 personas">2 personas</option>
-            <option value="3 personas">3 personas</option>
-            <option value="4+ personas">4+ personas</option>
-          </select>
-        </div>
-        <div class="col-md-6"><input type="text" id="variantes" class="form-control form-control-lg" placeholder="Variantes (ej: con cheddar)"></div>
-        <div class="col-md-6"><input type="number" id="tiempo_preparacion" class="form-control form-control-lg" placeholder="Tiempo preparación (min)"></div>
-        <div class="col-12"><input type="file" id="foto" class="form-control form-control-lg" accept="image/*"></div>
-      </div>
-      <div class="mt-4 text-end">
-        <button type="button" id="cancelar-form" class="btn btn-secondary btn-lg me-3">Cancelar</button>
-        <button type="submit" class="btn btn-success btn-lg px-5" id="guardar-btn">
-          <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-          Guardar Plato
-        </button>
-      </div>
-    </form>
-    <!-- FORMULARIO EDITAR PERFIL (con dirección) -->
-    <div id="perfil-form" class="card shadow-lg p-4 mb-5 d-none">
-      <h3 class="mb-4 text-rojo">Editar Perfil del Local</h3>
-      <div class="text-center mb-4">
-        <img id="perfil-foto-preview" src="" alt="Foto del local" class="img-fluid rounded" style="max-width:200px; display:none;">
-        <div id="perfil-foto-placeholder" class="logo-perfil-placeholder mx-auto">Sin foto</div>
-        <div class="mt-3">
-          <input type="file" id="perfil-foto" class="form-control form-control-lg" accept="image/*">
-          <small class="text-muted">Sube una nueva foto (opcional)</small>
-        </div>
-      </div>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <input type="text" id="perfil-nombre" class="form-control form-control-lg" placeholder="Nombre del local" required>
-        </div>
-        <div class="col-md-6">
-          <input type="text" id="perfil-direccion" class="form-control form-control-lg" placeholder="Dirección del local" required>
-        </div>
-        <div class="col-md-6">
-          <input type="email" id="perfil-email" class="form-control form-control-lg" placeholder="Email" required>
-        </div>
-        <div class="col-12">
-          <input type="password" id="perfil-password" class="form-control form-control-lg" placeholder="Nueva contraseña (dejar vacío para no cambiar)">
-        </div>
-      </div>
-      <div class="mt-4 text-end">
-        <button type="button" id="cancelar-perfil" class="btn btn-secondary btn-lg me-3">Cancelar</button>
-        <button type="button" id="guardar-perfil" class="btn btn-success btn-lg px-5">
-          <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-          Guardar Cambios
-        </button>
-      </div>
-      <div id="perfil-status" class="mt-3"></div>
-    </div>
-    <!-- LISTADO MENÚ -->
-    <div id="menu-listado">
-      <div class="text-center py-5 loading">
-        <div class="spinner-border text-danger" role="status"></div>
-        <p class="mt-3">Cargando menú...</p>
-      </div>
-    </div>
-    <!-- MIS PEDIDOS - CON PESTAÑAS -->
-    <div id="pedidos-panel" class="d-none">
-      <h2 class="mb-4 text-rojo text-center">Mis Pedidos</h2>
-      <ul class="nav nav-tabs mb-4" id="pedidosTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="proceso-tab" data-bs-toggle="tab" data-bs-target="#proceso" type="button" role="tab">
-            Pedidos en Proceso
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="finalizados-tab" data-bs-toggle="tab" data-bs-target="#finalizados" type="button" role="tab">
-            Pedidos Finalizados
-          </button>
-        </li>
-      </ul>
-      <div class="tab-content">
-        <div class="tab-pane fade show active" id="proceso" role="tabpanel">
-          <div class="mb-3 text-center">
-            <div class="btn-group" role="group">
-              <button type="button" class="btn btn-outline-primary" id="filtro-pendientes">Pendientes</button>
-              <button type="button" class="btn btn-outline-primary" id="filtro-listos">Listos</button>
-              <button type="button" class="btn btn-outline-primary active" id="filtro-todos-proceso">Todos</button>
-            </div>
-          </div>
-          <div id="pedidos-proceso-listado"></div>
-        </div>
-        <div class="tab-pane fade" id="finalizados" role="tabpanel">
-          <div id="pedidos-finalizados-listado"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+        <!-- Menú desplegable -->
+        <div class="profile-dropdown" id="profile-dropdown">
+    <a href="#" class="dropdown-item" onclick="openEditProfileModal()">Editar perfil</a>
+    <a href="#" class="dropdown-item" onclick="openChangeAddressModal()">Cambiar dirección</a>
+    <a href="#" class="dropdown-item logout" id="logout-link">Cerrar sesión</a>
 </div>
-  <footer class="text-center">
-    <div class="container">
-      <p class="mb-2">© 2026 <strong>Weep</strong> - Panel de Gestión</p>
-      <p class="small mb-0">
-        <a href="#">Términos</a> • <a href="#">Privacidad</a> • <a href="#">Soporte</a>
-      </p>
     </div>
-  </footer>
-<script>
-  // === CONFIGURACIÓN ===
-  const API_URL = '<https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec>';
-  const CLOUDINARY_URL = '<https://api.cloudinary.com/v1_1/dw10wkbac/image/upload>';
-  const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
-  // Emails fijos para notificaciones
-  const EMAIL_NOTIFICACIONES = '<weep.notificaciones@gmail.com>';
-  const EMAIL_MOTOMANDADO = '<bajoneando.st@gmail.com>';
-  let localToken = localStorage.getItem('localToken');
-  let menuItems = [];
-  let pedidosData = [];
-  let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
-  if (localToken) mostrarPanelPrincipal();
-  function mostrarPanelPrincipal() {
-    document.getElementById('auth-section').classList.add('d-none');
-    document.getElementById('panel-principal').classList.remove('d-none');
-    cargarEstadoLocal();
-    cargarMenuCompleto();
-    cargarFotoPerfilHeader();
-    cargarDireccionLocal(); // Cargamos la dirección al iniciar
-  }
-  async function cargarDireccionLocal() {
-    try {
-      const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
-      const data = await res.json();
-      if (data.success && data.direccion) {
-        direccionLocal = data.direccion.trim();
-      } else {
-        direccionLocal = 'Dirección no configurada';
-      }
-    } catch (e) {
-      direccionLocal = 'Dirección no disponible';
-    }
-  }
-  function ocultarTodo() {
-    document.getElementById('menu-form').classList.add('d-none');
-    document.getElementById('perfil-form').classList.add('d-none');
-    document.getElementById('menu-listado').classList.add('d-none');
-    document.getElementById('pedidos-panel').classList.add('d-none');
-    document.getElementById('filtros-menu').classList.add('d-none');
-  }
-  // === AUTENTICACIÓN ===
-  document.getElementById('show-register').addEventListener('click', () => {
-    document.getElementById('local-register-form').classList.remove('d-none');
-    document.getElementById('local-login-form').classList.add('d-none');
-  });
-  document.getElementById('show-login').addEventListener('click', () => {
-    document.getElementById('local-login-form').classList.remove('d-none');
-    document.getElementById('local-register-form').classList.add('d-none');
-  });
-  // Registro con dirección
-  document.getElementById('local-register-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nombre = document.getElementById('reg-local-name').value.trim();
-    const direccion = document.getElementById('reg-local-direccion').value.trim();
-    const email = document.getElementById('reg-local-email').value.trim();
-    const password = document.getElementById('reg-local-password').value;
-    if (!nombre || !direccion || !email || !password) return alert('Completa todos los campos');
-    await fetch(`${API_URL}?action=registerLocal&nombre=${encodeURIComponent(nombre)}&direccion=${encodeURIComponent(direccion)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-    alert('Local registrado con éxito. Ahora inicia sesión.');
-    document.getElementById('show-login').click();
-    document.getElementById('local-register-form').reset();
-  });
-  // Login
-  document.getElementById('local-login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-local-email').value.trim();
-    const password = document.getElementById('login-local-password').value;
-    const url = `${API_URL}?action=loginLocal&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&callback=loginCallback`;
-    window.loginCallback = function(data) {
-      if (data.success && data.localId) {
-        localStorage.setItem('localToken', data.localId);
-        localToken = data.localId;
-        mostrarPanelPrincipal();
-      } else {
-        alert('Credenciales incorrectas');
-      }
-      delete window.loginCallback;
-      const script = document.getElementById('loginScript');
-      if (script) script.remove();
-    };
-    const script = document.createElement('script');
-    [script.id](http://script.id) = 'loginScript';
-    script.src = url;
-    document.head.appendChild(script);
-  });
-  document.getElementById('logout').addEventListener('click', (e) => {
-    e.preventDefault();
-    localStorage.removeItem('localToken');
-    localToken = null;
-    location.reload();
-  });
-  // === NAVEGACIÓN ===
-  document.getElementById('btn-mi-menu').addEventListener('click', () => {
-    ocultarTodo();
-    document.getElementById('filtros-menu').classList.remove('d-none');
-    document.getElementById('menu-listado').classList.remove('d-none');
-    cargarMenuCompleto();
-  });
-  document.getElementById('btn-agregar-item').addEventListener('click', () => {
-    ocultarTodo();
-    document.getElementById('menu-form').classList.remove('d-none');
-    document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-    document.getElementById('menu-form').reset();
-    document.getElementById('edit-item-id').value = '';
-  });
-  document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
-    ocultarTodo();
-    document.getElementById('pedidos-panel').classList.remove('d-none');
-    cargarMisPedidos();
-  });
-  document.getElementById('cancelar-form').addEventListener('click', () => {
-    document.getElementById('menu-form').classList.add('d-none');
-    cargarMenuCompleto();
-  });
-  // === SUBIR IMAGEN ===
-  async function subirImagen(file) {
-    if (!file) return '';
-    const MAX_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_SIZE) { alert('Imagen muy grande (máx 10MB)'); return ''; }
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    try {
-      const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
-      const data = await res.json();
-      return [data.secure](http://data.secure)_url || '';
-    } catch (e) {
-      alert('Error al subir imagen');
-      return '';
-    }
-  }
-  // === GUARDAR PLATO ===
-  document.getElementById('menu-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('guardar-btn');
-    const spinner = btn.querySelector('.spinner-border');
-    spinner.classList.remove('d-none');
-    btn.disabled = true;
-    try {
-      let imagenUrl = '';
-      const file = document.getElementById('foto').files[0];
-      if (file) imagenUrl = await subirImagen(file);
-      const payload = {
-        action: document.getElementById('edit-item-id').value ? 'updateMenuItem' : 'addMenuItem',
-        localId: localToken,
-        nombre: document.getElementById('nombre').value.trim(),
-        categoria: document.getElementById('categoria').value,
-        descripcion: document.getElementById('descripcion').value.trim(),
-        precio: parseFloat(document.getElementById('precio').value),
-        disponibilidad: document.getElementById('disponibilidad').value,
-        tamano_porcion: document.getElementById('tamano_porcion').value || '',
-        variantes: document.getElementById('variantes').value.trim(),
-        tiempo_preparacion: parseInt(document.getElementById('tiempo_preparacion').value) || 0
-      };
-      if (imagenUrl) payload.imagen_url = imagenUrl;
-      if (document.getElementById('edit-item-id').value) payload.itemId = document.getElementById('edit-item-id').value;
-      if (!payload.nombre || !payload.categoria || payload.precio <= 0) {
-        alert('Faltan datos obligatorios');
-        return;
-      }
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'no-cors'
-      });
-      alert(payload.action === 'addMenuItem' ? 'Plato agregado' : 'Plato actualizado');
-      document.getElementById('menu-form').classList.add('d-none');
-      cargarMenuCompleto();
-    } catch (err) {
-      console.error(err);
-      alert('Error al guardar. Revisa la consola.');
-    } finally {
-      spinner.classList.add('d-none');
-      btn.disabled = false;
-    }
-  });
-  // === MENÚ ===
-  async function cargarMenuCompleto() {
-    const cont = document.getElementById('menu-listado');
-    cont.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando menú...</p></div>';
-    try {
-      const res = await fetch(`${API_URL}?action=getMenuByLocalIdColK&localId=${localToken}`);
-      menuItems = await res.json();
-      const select = document.getElementById('filtro-categoria');
-      select.innerHTML = '<option value="">Todas las categorías</option>';
-      const categorias = [...new Set([menuItems.map](http://menuItems.map)(i => i.categoria).filter(Boolean))].sort();
-      categorias.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        select.appendChild(opt);
-      });
-      renderizarMenu(menuItems);
-    } catch (err) {
-      cont.innerHTML = '<div class="alert alert-danger">Error al cargar el menú</div>';
-    }
-  }
-  
-  function renderizarMenu(items) {
-    const cont = document.getElementById('menu-listado');
-    if (items.length === 0) {
-      cont.innerHTML = '<div class="text-center py-5"><h4>No hay platos aún</h4><p>¡Agrega tu primer plato!</p></div>';
-      return;
-    }
-    let html = '';
-    items.forEach(item => {
-      const disponible = item.disponibilidad === "Sí";
-      html += `
-        <div class="menu-card-horizontal">
-          ${item.imagen_url ? `<img src="${item.imagen_url}" alt="${item.nombre}">` : '<div style="width:120px;height:120px;background:#eee;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.9rem;">Sin foto</div>'}
-          <div class="card-body-horizontal">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <h5 class="fw-bold mb-1">${item.nombre}</h5>
-                <p class="text-muted small mb-2">${item.descripcion || ''}</p>
-                <span class="badge bg-secondary mb-2">${item.categoria || 'Sin categoría'}</span>
-              </div>
-              <span class="precio">$${parseFloat(item.precio).toFixed(2)}</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <div class="form-check form-switch">
-                <input class="form-check-input toggle-disponibilidad" type="checkbox" id="disp-${[item.id](http://item.id)}" ${disponible ? 'checked' : ''} data-id="${[item.id](http://item.id)}">
-                <label class="form-check-label" for="disp-${[item.id](http://item.id)}">${disponible ? 'Disponible' : 'No disponible'}</label>
-              </div>
-              <div>
-                <button class="btn btn-warning btn-sm me-2 editar-plato" data-id="${[item.id](http://item.id)}">Editar</button>
-                <button class="btn btn-danger btn-sm eliminar-item" data-id="${[item.id](http://item.id)}">Eliminar</button>
-              </div>
-            </div>
-          </div>
-        </div>`;
-    });
-    cont.innerHTML = html;
-    // Eventos dinámicos
-    document.querySelectorAll('.toggle-disponibilidad').forEach(el => {
-      el.addEventListener('change', async () => {
-        await fetch(`${API_URL}?action=updateDisponibilidad&itemId=${[el.dataset.id](http://el.dataset.id)}&disponibilidad=${el.checked ? "Sí" : "No"}`);
-      });
-    });
-    document.querySelectorAll('.eliminar-item').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('¿Eliminar este plato permanentemente?')) return;
-        await fetch(`${API_URL}?action=deleteMenuItem&itemId=${[btn.dataset.id](http://btn.dataset.id)}`);
-        cargarMenuCompleto();
-      });
-    });
-    document.querySelectorAll('.editar-plato').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = menuItems.find(i => [i.id](http://i.id) === [btn.dataset.id](http://btn.dataset.id));
-        if (!item) return;
-        ocultarTodo();
-        document.getElementById('menu-form').classList.remove('d-none');
-        document.getElementById('form-titulo').textContent = 'Editar Plato';
-        document.getElementById('edit-item-id').value = [item.id](http://item.id);
-        document.getElementById('nombre').value = item.nombre;
-        document.getElementById('categoria').value = item.categoria || '';
-        document.getElementById('descripcion').value = item.descripcion || '';
-        document.getElementById('precio').value = item.precio;
-        document.getElementById('disponibilidad').value = item.disponibilidad;
-        document.getElementById('tamano_porcion').value = item.tamano_porcion || '';
-        document.getElementById('variantes').value = item.variantes || '';
-        document.getElementById('tiempo_preparacion').value = item.tiempo_preparacion || '';
-      });
-    });
-  }
-  document.getElementById('buscador-plato').addEventListener('input', filtrarMenu);
-  document.getElementById('filtro-categoria').addEventListener('change', filtrarMenu);
-  function filtrarMenu() {
-    const texto = document.getElementById('buscador-plato').value.toLowerCase();
-    const cat = document.getElementById('filtro-categoria').value;
-    const filtrados = menuItems.filter(item => {
-      const nombreOk = item.nombre.toLowerCase().includes(texto);
-      const catOk = !cat || item.categoria === cat;
-      return nombreOk && catOk;
-    });
-    renderizarMenu(filtrados);
-  }
-                                                                                
-  // === ESTADO LOCAL ===
-  async function cargarEstadoLocal() {
-    const res = await fetch(`${API_URL}?action=getLocalEstado&localId=${localToken}`);
-    const data = await res.json();
-    const activo = data.estado === "Activo";
-    document.getElementById('estado-local-toggle').checked = activo;
-    document.getElementById('estado-texto').textContent = activo ? "Abierto" : "Cerrado";
-  }
-  document.getElementById('estado-local-toggle').addEventListener('change', async function() {
-    const estado = this.checked ? "Activo" : "Inactivo";
-    document.getElementById('estado-texto').textContent = this.checked ? "Abierto" : "Cerrado";
-    await fetch(`${API_URL}?action=updateLocalEstado&localId=${localToken}&estado=${estado}`);
-  });
-  
-  // === PERFIL ===
-  async function cargarFotoPerfilHeader() {
-    try {
-      const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
-      const data = await res.json();
-      if (data.success && data.foto_url) {
-        document.getElementById('perfil-foto-container').innerHTML = `<img src="${data.foto_url}" class="logo-perfil-sm" alt="Perfil">`;
-      }
-    } catch (e) {}
-  }
-  document.getElementById('editar-perfil-btn').addEventListener('click', async () => {
-    ocultarTodo();
-    document.getElementById('perfil-form').classList.remove('d-none');
-    const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById('perfil-nombre').value = data.nombre || '';
-      document.getElementById('perfil-direccion').value = data.direccion || '';
-      document.getElementById('perfil-email').value = [data.email](http://data.email) || '';
-      if (data.foto_url) {
-        document.getElementById('perfil-foto-preview').src = data.foto_url;
-        document.getElementById('perfil-foto-preview').style.display = 'block';
-        document.getElementById('perfil-foto-placeholder').style.display = 'none';
-      } else {
-        document.getElementById('perfil-foto-preview').style.display = 'none';
-        document.getElementById('perfil-foto-placeholder').style.display = 'flex';
-      }
-      // Actualizamos dirección global
-      direccionLocal = data.direccion || 'Dirección no configurada';
-    }
-  });
-  document.getElementById('cancelar-perfil').addEventListener('click', () => {
-    document.getElementById('perfil-form').classList.add('d-none');
-    cargarMenuCompleto();
-  });
-  document.getElementById('guardar-perfil').addEventListener('click', async () => {
-    const btn = document.getElementById('guardar-perfil');
-    btn.disabled = true;
-    let fotoUrl = '';
-    const file = document.getElementById('perfil-foto').files[0];
-    if (file) fotoUrl = await subirImagen(file);
-    const payload = {
-      action: 'updatePerfilLocal',
-      localId: localToken,
-      nombre: document.getElementById('perfil-nombre').value.trim(),
-      direccion: document.getElementById('perfil-direccion').value.trim(),
-      email: document.getElementById('perfil-email').value.trim()
-    };
-    if (document.getElementById('perfil-password').value) payload.password = document.getElementById('perfil-password').value;
-    if (fotoUrl) payload.foto_url = fotoUrl;
-    await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
-      mode: 'no-cors'
-    });
-    alert('Perfil actualizado');
-    direccionLocal = payload.direccion;
-    cargarFotoPerfilHeader();
-    document.getElementById('perfil-form').classList.add('d-none');
-    btn.disabled = false;
-  });
-      asi es correcto?
- 
-async function cargarMisPedidos() {
-    const contProceso = document.getElementById('pedidos-proceso-listado');
-    const contFinalizados = document.getElementById('pedidos-finalizados-listado');
-    // Mostrar loading
-    contProceso.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
-    contFinalizados.innerHTML = '<div class="text-center py-5 loading"><div class="spinner-border text-danger"></div><p>Cargando pedidos...</p></div>';
-    try {
-      // Usamos la acción que SÍ existe
-      const resLocales = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const todosLosPedidos = await resLocales.json();
-      if (!todosLosPedidos || todosLosPedidos.length === 0) {
-        contProceso.innerHTML = '<div class="text-center py-5"><h4>No tienes pedidos en proceso</h4></div>';
-        contFinalizados.innerHTML = '<div class="text-center py-5"><h4>No hay pedidos finalizados</h4></div>';
-        return;
-      }
-      // Separamos temprano: pedidos en proceso vs finalizados
-      const enProceso = todosLosPedidos.filter(p => {
-        const estado = p[4] || 'Pendiente';
-        return estado === 'Pendiente' || estado === 'Listo';
-      });
-      const finalizados = todosLosPedidos.filter(p => {
-        const estado = p[4] || 'Pendiente';
-        return estado === 'Entregado' || estado === 'Rechazado';
-      });
-      pedidosData = [];
-      // === PRIORIDAD: Cargar primero los pedidos en proceso (para que aparezcan rápido) ===
-      for (const localPedido of enProceso) {
-        const idPedidoLocal = localPedido[0];
-        const idPedido = localPedido[1];
-        const estadoActual = localPedido[4] || 'Pendiente';
-        const [resItems, resGeneral] = await Promise.all([
-          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
-          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
-        ]);
-        const items = await resItems.json();
-        const general = await resGeneral.json();
-        pedidosData.push({
-          idPedidoLocal,
-          idPedido,
-          estadoActual,
-          items,
-          direccion: general.direccion || 'Retiro en local',
-          observaciones: general.observaciones || 'Ninguna',
-          metodoPago: general.metodoPago || 'No especificado',
-          tipoEntrega: general.tipoEntrega || 'Para Retirar',
-          emailCliente: general.emailCliente || '',
-          nombreCliente: general.nombreCliente || 'Cliente'
-        });
-      }
-      // Ordenar por ID ascendente (más viejos arriba)
-      pedidosData.sort((a, b) => a.idPedidoLocal.localeCompare(b.idPedidoLocal, undefined, {numeric: true, sensitivity: 'base'}));
-      // MOSTRAR INMEDIATAMENTE los pedidos en proceso con "Todos" activo
-      activarFiltroTodos();
-      renderizarPedidosEnProceso('todos');
-      // === DESPUÉS: cargar los finalizados en segundo plano (no bloquea) ===
-      for (const localPedido of finalizados) {
-        const idPedidoLocal = localPedido[0];
-        const idPedido = localPedido[1];
-        const estadoActual = localPedido[4] || 'Pendiente';
-        const [resItems, resGeneral] = await Promise.all([
-          fetch(`${API_URL}?action=getItemsByPedidoLocal&idPedidoLocal=${idPedidoLocal}`),
-          fetch(`${API_URL}?action=getPedidoGeneral&idPedido=${idPedido}`)
-        ]);
-        const items = await resItems.json();
-        const general = await resGeneral.json();
-        pedidosData.push({
-          idPedidoLocal,
-          idPedido,
-          estadoActual,
-          items,
-          direccion: general.direccion || 'Retiro en local',
-          observaciones: general.observaciones || 'Ninguna',
-          metodoPago: general.metodoPago || 'No especificado',
-          tipoEntrega: general.tipoEntrega || 'Para Retirar',
-          emailCliente: general.emailCliente || '',
-          nombreCliente: general.nombreCliente || 'Cliente'
-        });
-      }
-      // Actualizar finalizados cuando termine
-      renderizarPedidosFinalizados();
-    } catch (err) {
-      console.error('Error cargando pedidos:', err);
-      contProceso.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-      contFinalizados.innerHTML = '<div class="alert alert-danger">Error al cargar pedidos</div>';
-    }
-  }
-  
-  function activarFiltroTodos() {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-todos-proceso').classList.add('active');
-  }
-  
-  function generarHtmlPedido(p, esFinalizado = false) {
-    // (esta función queda exactamente igual que antes)
-    let itemsHtml = '<ul class="item-list">';
-    let subtotal = 0;
-    p.items.forEach(item => {
-        const totalItem = item[7];
-        subtotal += totalItem;
-        itemsHtml += `<li><strong>${item[4]}</strong> × ${item[6]} ${item[8] ? '(' + item[8] + ')' : ''} — $${totalItem}</li>`;
-    });
-    itemsHtml += '</ul>';
-    let badgeClass = 'bg-warning';
-    if (p.estadoActual === 'Listo') badgeClass = 'bg-info';
-    if (p.estadoActual === 'Entregado') badgeClass = 'bg-success';
-    if (p.estadoActual === 'Rechazado') badgeClass = 'bg-danger';
-    const tipoBadge = p.tipoEntrega === 'Con Envío'
-        ? '<span class="badge bg-primary ms-2">Con Envío</span>'
-        : '<span class="badge bg-secondary ms-2">Retiro</span>';
-    const botonesAccion = esFinalizado ? '' : `
-        <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
-            <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Listo
-            </button>
-            <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Entregado
-            </button>
-            <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
-                <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
-            </button>
-        </div>`;
-    return `
-        <div class="pedido-card">
-            <div class="pedido-header d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
-                </div>
-                <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
-            </div>
-            <div class="pedido-body">
-                <p><strong>Cliente:</strong> ${p.nombreCliente}</p>
-                <p><strong>Dirección/Retiro:</strong> ${p.direccion}</p>
-                <p><strong>Método de pago:</strong> ${p.metodoPago}</p>
-                <p><strong>Observaciones:</strong> ${p.observaciones}</p>
-                <h6 class="mt-3">Items:</h6>
-                ${itemsHtml}
-                <div class="text-end mt-3">
-                    <strong>Subtotal local: $${subtotal.toFixed(2)}</strong>
-                </div>
-                ${botonesAccion}
-            </div>
-        </div>`;
-  }
-  function renderizarPedidosEnProceso(filtro = 'todos') {
-    const cont = document.getElementById('pedidos-proceso-listado');
-    const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
-    let filtrados = pedidosProceso;
-    if (filtro === 'pendientes') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Pendiente');
-    if (filtro === 'listos') filtrados = pedidosProceso.filter(p => p.estadoActual === 'Listo');
-    if (filtrados.length === 0) {
-      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos en este filtro</h5></div>';
-      return;
-    }
-    let html = '';
-    filtrados.forEach(p => {
-      html += generarHtmlPedido(p);
-    });
-    cont.innerHTML = html;
-    agregarEventosBotones();
-  }
-  function renderizarPedidosFinalizados() {
-    const cont = document.getElementById('pedidos-finalizados-listado');
-    const finalizados = pedidosData.filter(p => p.estadoActual === 'Entregado' || p.estadoActual === 'Rechazado');
-    if (finalizados.length === 0) {
-      cont.innerHTML = '<div class="text-center py-5"><h5>No hay pedidos finalizados</h5></div>';
-      return;
-    }
-    let html = '';
-    finalizados.forEach(p => {
-      html += generarHtmlPedido(p, true);
-    });
-    cont.innerHTML = html;
-  }
-  // Filtros de pedidos - ahora solo cambian el filtro visual y renderizan
-  document.getElementById('filtro-pendientes').addEventListener('click', () => {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-pendientes').classList.add('active');
-    renderizarPedidosEnProceso('pendientes');
-  });
-  document.getElementById('filtro-listos').addEventListener('click', () => {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-listos').classList.add('active');
-    renderizarPedidosEnProceso('listos');
-  });
-  document.getElementById('filtro-todos-proceso').addEventListener('click', () => {
-    document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('filtro-todos-proceso').classList.add('active');
-    renderizarPedidosEnProceso('todos');
-  });
-  function agregarEventosBotones() {
-    document.querySelectorAll('.btn-listos, .btn-entregado, .btn-rechazar').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        const idPedidoLocal = [this.dataset.id](http://this.dataset.id);
-        const pedido = pedidosData.find(p => p.idPedidoLocal == idPedidoLocal);
-        if (!pedido) return;
-        let nuevoEstado = '';
-        let accionNotificacion = '';
-        if (this.classList.contains('btn-listos')) {
-          nuevoEstado = 'Listo';
-          accionNotificacion = 'listo';
-        } else if (this.classList.contains('btn-entregado')) {
-          nuevoEstado = 'Entregado';
-          accionNotificacion = 'entregado';
-        } else if (this.classList.contains('btn-rechazar')) {
-          nuevoEstado = 'Rechazado';
-          accionNotificacion = 'rechazado';
-        }
-        const spinner = this.querySelector('.spinner-border');
-        spinner.classList.remove('d-none');
-        this.disabled = true;
-        try {
-          // Actualizar estado
-          const payloadEstado = {
-            action: 'updateEstadoLocalOrder',
-            idPedidoLocal: idPedidoLocal,
-            nuevoEstado: nuevoEstado
-          };
-          await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payloadEstado),
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'no-cors'
-          });
-          // Logo para emails
-          const logoHtml = `
-            <div style="text-align: center; margin: 20px 0 30px 0;">
-              <img src="<https://i.postimg.cc/HW8j3XBr/Chat-GPT-Image-Jan-3-2026-01-27-57-AM.png>"
-                   alt="Weep"
-                   width="120"
-                   style="max-width: 120px; height: auto; border-radius: 12px;">
-            </div>
-            <hr style="border: 0; border-top: 2px solid #d32f2f; margin: 30px 0;">
-          `;
-          let destinatario = '';
-          let asunto = '';
-          let mensaje = '';
-          if (accionNotificacion === 'listo') {
-            if (pedido.tipoEntrega === 'Con Envío') {
-              destinatario = EMAIL_MOTOMANDADO;
-              asunto = `¡Nuevo pedido listo para envío! - Pedido #${pedido.idPedido}`;
-              mensaje = `
-                ${logoHtml}
-                <h2 style="color: #d32f2f; text-align: center;">Pedido listo para retiro por motomandado</h2>
-                <p><strong>Cliente:</strong> ${pedido.nombreCliente}</p>
-                <p><strong>Dirección de entrega:</strong> ${pedido.direccion}</p>
-                <p><strong>Observaciones:</strong> ${pedido.observaciones || 'Ninguna'}</p>
-                <p><strong>Dirección del local:</strong> ${direccionLocal}</p>
-                <p style="font-weight: bold; color: #d32f2f;">
-                  Por favor coordinar retiro en el local lo antes posible.
-                </p>
-              `;
-            } else {
-              destinatario = pedido.emailCliente;
-              asunto = `¡Tu pedido está listo para retirar! - Pedido #${pedido.idPedido}`;
-              mensaje = `
-                ${logoHtml}
-                <h2 style="color: #d32f2f; text-align: center;">¡Tu pedido está listo!</h2>
-                <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
-                <p>Tu pedido ya está preparado y listo para que pases a retirarlo.</p>
-                <p><strong>Dirección del local:</strong> ${direccionLocal}</p>
-                <p>¡Gracias por elegirnos! Te esperamos</p>
-              `;
-            }
-          } else if (accionNotificacion === 'entregado') {
-            destinatario = pedido.emailCliente;
-            asunto = `¡Tu pedido ha sido entregado! - Pedido #${pedido.idPedido}`;
-            mensaje = `
-              ${logoHtml}
-              <h2 style="color: #d32f2f; text-align: center;">¡Gracias por tu compra!</h2>
-              <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
-              <p>Tu pedido <strong>#${pedido.idPedido}</strong> ha sido entregado con éxito.</p>
-              <p>¿Cómo fue tu experiencia? Ayúdanos a mejorar:</p>
-              <div style="text-align:center; margin:30px 0;">
-                <a href="<https://forms.gle/TU_ENLACE_DE_VALORACION_AQUI>"
-                   style="display:inline-block; font-size:18px; padding:14px 28px; background:#d32f2f; color:white; text-decoration:none; border-radius:12px; font-weight:bold;">
-                  ⭐ Calificar con 5 estrellas
-                </a>
-              </div>
-              <p>¡Gracias por confiar en Weep!</p>
-            `;
-          } else if (accionNotificacion === 'rechazado') {
-            destinatario = pedido.emailCliente;
-            asunto = `Pedido rechazado - Pedido #${pedido.idPedido}`;
-            mensaje = `
-              ${logoHtml}
-              <h2 style="color: #d32f2f; text-align: center;">Lo sentimos</h2>
-              <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
-              <p>Lamentamos informarte que tu pedido <strong>#${pedido.idPedido}</strong> no pudo ser procesado en este momento.</p>
-              <p><strong>Motivo:</strong> [Indicar motivo si aplica]</p>
-              <p>Te devolveremos el dinero en los próximos días si corresponde.</p>
-              <p>Disculpa las molestias. Estamos aquí para ayudarte.</p>
-            `;
-          }
-          if (destinatario && asunto && mensaje) {
-            const payloadEmail = {
-              action: 'enviarNotificacionEmail',
-              fromEmail: EMAIL_NOTIFICACIONES,
-              toEmail: destinatario,
-              subject: asunto,
-              htmlBody: mensaje
-            };
-            await fetch(API_URL, {
-              method: 'POST',
-              body: JSON.stringify(payloadEmail),
-              headers: { 'Content-Type': 'application/json' },
-              mode: 'no-cors'
-            });
-          }
-          alert(`Pedido marcado como ${nuevoEstado}${accionNotificacion !== 'rechazado' ? ' y notificación enviada' : ''}`);
-          cargarMisPedidos();
-        } catch (err) {
-          console.error(err);
-          alert('Error al procesar el pedido o enviar notificación');
-        } finally {
-          spinner.classList.add('d-none');
-          this.disabled = false;
-        }
-      });
-    });
-  }
-  // === ACTUALIZACIÓN AUTOMÁTICA DE PEDIDOS ===
-let ultimoPedidoConocido = null;
-let intervaloPedidos = null;
-function iniciarActualizacionAutomatica() {
-  if (document.getElementById('pedidos-panel').classList.contains('d-none')) {
-    return;
-  }
-  if (pedidosData.length > 0) {
-    ultimoPedidoConocido = pedidosData[pedidosData.length - 1].idPedidoLocal;
-  }
-  intervaloPedidos = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_URL}?action=getPedidosLocalesByLocal&localId=${localToken}`);
-      const pedidosActuales = await res.json();
-      if (!pedidosActuales || pedidosActuales.length === 0) return;
-      const pedidoMasReciente = pedidosActuales.reduce((max, p) =>
-        p[0].localeCompare(max[0], undefined, {numeric: true}) > 0 ? p : max
-      );
-      const idMasReciente = pedidoMasReciente[0];
-      if (!ultimoPedidoConocido || idMasReciente.localeCompare(ultimoPedidoConocido, undefined, {numeric: true}) > 0) {
-        console.log('¡Nuevo pedido detectado! Actualizando...');
+    <!-- Reemplaza el <div class="cart-icon"> actual por: -->
+<div class="cart-icon" id="cart-icon">
+  <img src="https://i.postimg.cc/vBY0wJNq/18611-(1).jpg" alt="Carrito de compras">
+  <div class="cart-count" id="cart-count">0</div>
+</div>
+    </header>
+    <main>
+        <h1>¿Qué se te antoja?</h1>
+        <div class="categories-carousel-wrapper">
+    <button class="carousel-btn left categories-btn" id="prev-category" aria-label="Categoría anterior">←</button>
+    <div class="categories" id="categories-container">
+        <div class="category" data-type="Hamburguesas" style="background-image: url('https://i.postimg.cc/wxrb5Vt2/hamburguesa-sencilla.jpg');">
+            <span>Burguers</span>
+        </div>
+        <div class="category" data-type="Pizzas" style="background-image: url('https://i.postimg.cc/4nC5DWt0/pizza-Mh3H4eany-BKEs-Stv1Ycl-PWTf9OUq-Ii.jpg');">
+            <span>Pizza</span>
+        </div>
+        <div class="category" data-type="Empanadas" style="background-image: url('https://i.postimg.cc/CLytD2fp/empanadas-de-carne.jpg');">
+            <span>Empanadas</span>
+        </div>
+        <div class="category" data-type="Panadería" style="background-image: url('https://i.postimg.cc/MKKWpH66/hq720.jpg');">
+            <span>Panadería</span>
+        </div>
+        <div class="category" data-type="Bebidas" style="background-image: url('https://i.postimg.cc/1zNz6zBH/290.webp');">
+            <span>Bebidas</span>
+        </div>
+    </div>
+    <button class="carousel-btn right categories-btn" id="next-category" aria-label="Siguiente categoría">→</button>
+</div>
+        <div class="suggestions">
+    <h2 id="suggestions-title">Sugerencias de Locales</h2>
+   
+    <div class="carousel-wrapper" id="suggestions-carousel-wrapper">
+        <button class="carousel-btn left" id="prev-suggestion">←</button>
        
-        // Sonido de notificación (opcional, podés borrarlo si no querés sonido)
-        new Audio('<https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3').play()>;
-        pedidosData = [];
-        await cargarMisPedidos();
-        ultimoPedidoConocido = idMasReciente;
-      }
-    } catch (err) {
-      console.error('Error en actualización automática:', err);
-    }
-  }, 30000); // Cada 30 segundos
-}
-function detenerActualizacionAutomatica() {
-  if (intervaloPedidos) {
-    clearInterval(intervaloPedidos);
-    intervaloPedidos = null;
-  }
-}
-// MODIFICAR EL BOTÓN "MIS PEDIDOS" PARA ACTIVAR LA ACTUALIZACIÓN
-document.getElementById('btn-mis-pedidos').addEventListener('click', () => {
-  ocultarTodo();
-  document.getElementById('pedidos-panel').classList.remove('d-none');
- 
-  detenerActualizacionAutomatica();
-  cargarMisPedidos().then(() => {
-    iniciarActualizacionAutomatica();
-  });
-});
-// DETENER CUANDO CAMBIÁS DE SECCIÓN
-document.getElementById('btn-mi-menu').addEventListener('click', () => {
-  detenerActualizacionAutomatica();
-  ocultarTodo();
-  document.getElementById('filtros-menu').classList.remove('d-none');
-  document.getElementById('menu-listado').classList.remove('d-none');
-  cargarMenuCompleto();
-});
-document.getElementById('btn-agregar-item').addEventListener('click', () => {
-  detenerActualizacionAutomatica();
-  ocultarTodo();
-  document.getElementById('menu-form').classList.remove('d-none');
-  document.getElementById('form-titulo').textContent = 'Nuevo Plato';
-  document.getElementById('menu-form').reset();
-  document.getElementById('edit-item-id').value = '';
-});
+        <div class="carousel-container" id="suggestion-items">
+            <!-- solo tarjetas aquí -->
+        </div>
+       
+        <button class="carousel-btn right" id="next-suggestion">→</button>
+    </div>
+    <!-- Contenedor exclusivo para el botón "Ver todo" -->
+    <div id="ver-todo-categoria-container" style="text-align: center; margin: 30px 0 50px;"></div>
+</div>
+       
+        <div id="menu-display" style="display:none;"></div>
+<!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
+<div id="cart-backdrop" class="cart-backdrop"></div>
+<!-- 2. Reemplaza completamente el <div id="cart-section"> original por este bloque -->
+<div id="cart-section" class="cart-sidebar">
+  <div class="cart-header">
+    <h2>Tu Carrito</h2>
+    <button type="button" class="cart-close" aria-label="Cerrar carrito">×</button>
+  </div>
+  <div class="cart-body">
+    <div class="delivery-option">
+                <label for="delivery-type">Tipo de entrega</label>
+                <select id="delivery-type">
+                    <option value="envio">Con envío a domicilio</option>
+                    <option value="retiro">Retirar en local</option>
+                </select>
+            </div>
+            <div class="cart-summary-panel">
+                <div class="cart-items-list" id="cart-items"></div>
+                <div class="price-summary">
+                    <div class="price-line"><span>Subtotal productos</span><span id="subtotal">$0</span></div>
+                    <div class="price-line"><span>Envío</span><span id="shipping-cost">$2.500</span></div>
+                    <div class="price-line total"><span>Total a pagar</span><span id="final-total">$2.500</span></div>
+                </div>
+                <div id="free-shipping-notice"></div>
+            </div>
+            <div id="drinks-panel" class="drinks-panel" style="display:none;">
+                <h3>¡Agregá una bebida y obtené ENVÍO GRATIS!</h3>
+                <div class="drinks-carousel">
+                    <button class="carousel-btn left" id="prev-drink">←</button>
+                    <div class="drinks-container" id="drinks-container"></div>
+                    <button class="carousel-btn right" id="next-drink">→</button>
+                </div>
+            </div>
+            <form id="checkout-form">
+                <input type="text" id="direccion" placeholder="Dirección de entrega (requerida si eliges envío)" required>
+                <select id="metodo-pago" required>
+    <option value="">Método de pago</option>
+    <option value="transferencia">Transferencia / Mercado Pago</option>
+    <option value="efectivo">Efectivo</option>
+</select>
+<!-- Contenedor donde se mostrará el checkout de MP -->
+<div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
+    
+                <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
+                <button type="button" id="checkout-btn">Realizar Pedido</button>
+            </form>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+<footer class="text-center">
+    <div class="container">
+        <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
+        
+        <p class="small mb-4">
+            <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
+        </p>
 
-</script>
+        <p class="small mb-0">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#terminosModal">Términos</a> • 
+            <a href="#">Privacidad</a> • 
+            <a href="mailto:bajoneando.st@gmail.com">Soporte</a>
+        </p>
+    </div>
+</footer>
+    
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('login-modal')">&times;</span>
+            <h2>Iniciar Sesión</h2>
+            <input type="email" id="login-email" placeholder="Correo electrónico" required>
+            <input type="password" id="login-password" placeholder="Contraseña" required>
+            <button onclick="loginUser()">Entrar</button>
+            <p>¿No tienes cuenta? <a onclick="switchToRegister()">Regístrate</a></p>
+        </div>
+    </div>
+    <!-- Register Modal -->
+<div id="register-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('register-modal')">×</span>
+        <h2>Registro</h2>
+        <input type="text" id="register-name" placeholder="Nombre completo" required>
+        <input type="email" id="register-email" placeholder="Correo electrónico" required>
+        <input type="password" id="register-password" placeholder="Contraseña" required>
+        <input type="text" id="register-address" placeholder="Dirección (opcional)">
+        <!-- El botón se queda SIN parámetros -->
+        <button onclick="registerUser()">Registrarse</button>
+        <p>¿Ya tienes cuenta? <a onclick="switchToLogin()">Inicia sesión</a></p>
+    </div>
+</div>
+    <!-- Modal Editar Perfil -->
+<div id="edit-profile-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('edit-profile-modal')">×</span>
+        <h2>Editar Perfil</h2>
+        <label for="edit-name">Nombre completo</label>
+        <input type="text" id="edit-name" placeholder="Nombre completo" required>
+        <label for="edit-email">Correo electrónico</label>
+        <input type="email" id="edit-email" placeholder="Correo electrónico" required>
+        <label for="edit-new-password">Nueva contraseña (opcional)</label>
+        <input type="password" id="edit-new-password" placeholder="Dejar en blanco si no deseas cambiarla">
+        <button onclick="saveProfileChanges()">Guardar cambios</button>
+    </div>
+</div>
+<!-- Modal Cambiar Dirección -->
+<div id="change-address-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('change-address-modal')">×</span>
+        <h2>Cambiar Dirección</h2>
+        <input type="text" id="edit-address" placeholder="Nueva dirección de entrega" required>
+        <button onclick="saveAddressChange()">Guardar dirección</button>
+    </div>
+</div>
+
+    <!-- Modal Términos -->
+<div class="modal fade" id="terminosModal" tabindex="-1" aria-labelledby="terminosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="terminosModalLabel">Términos y Condiciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-start small">
+                <p><strong>Última actualización: febrero 2026</strong></p>
+                
+                <p>Al usar Weep aceptás:</p>
+                <ul>
+                    <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
+                    <li>No publicar contenido falso, engañoso o ilegal.</li>
+                    <li>Que los pedidos generados son acuerdos entre el cliente y el local adherido.</li>
+                    <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
+                    <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
+                </ul>
+                
+                <p class="mt-3">Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com">bajoneando.st@gmail.com</a></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+    <script>
+const MP_ACCESS_TOKEN = "APP_USR-595288641172928-010710-d915bce4137b3ee26e0c6e04873f1ac1-695835795";
+const scriptUrl = 'https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec';
+let cart = [];
+let allDrinks = [];
+let currentDrinkIndex = 0;
+const CATEGORIA_BEBIDAS = "Bebidas";
+const COSTO_ENVIO = 2500;
+let isLoggedIn = false;
+let userId = null;
+let userAddress = '';
+let currentPreferenceId = null; // para saber qué preferencia estamos esperando
+let pendingOrderData = null; // guardamos temporalmente los datos del pedido
+let ultimaCategoriaSeleccionada = null; // ← nueva variable global
+// === NUEVA VARIABLE GLOBAL PARA FAVORITOS ===
+let userFavorites = []; // array de menuIds favoritos del usuario actual
+        // Caché de menús mostrados actualmente (para acceder rápido al hacer clic)
+let currentDisplayedMenus = {};
+// Elementos importantes del DOM
+const profileContainer = document.getElementById('profile-container');
+const profileButton = document.getElementById('profile-button');
+const profileDropdown = document.getElementById('profile-dropdown');
+// ==================== ESTADO DE SESIÓN ====================
+function checkLoginStatus() {
+    userId = localStorage.getItem('userId');
+    userAddress = localStorage.getItem('userAddress') || '';
+    if (userId) {
+        isLoggedIn = true;
+        profileButton.innerHTML = `
+            <img src="https://i.postimg.cc/xCzWfmjX/user-profile-sign-on-white-background-vector.jpg"
+                 alt="Perfil" class="profile-icon">
+            <span>Mi Perfil</span>
+        `;
+        // Cargar favoritos si el usuario está logueado
+        loadUserFavorites();
+        addFavoritesLinkToDropdown();
+    } else {
+        isLoggedIn = false;
+        profileButton.innerHTML = `
+            <span>Iniciar Sesión</span>
+        `;
+        userFavorites = []; // limpiar favoritos al cerrar sesión
+    }
+    // Evento click principal
+    profileButton.onclick = () => {
+        if (isLoggedIn) {
+            profileDropdown.classList.toggle('active');
+        } else {
+            showModal('login-modal');
+        }
+    };
+    // Evento cerrar sesión
+    const logoutLink = document.getElementById('logout-link');
+    if (logoutLink) {
+        logoutLink.onclick = (e) => {
+            e.preventDefault();
+            logoutUser();
+            profileDropdown.classList.remove('active');
+        };
+    }
+    // Cerrar dropdown al click fuera
+    document.addEventListener('click', function(event) {
+        if (profileContainer && !profileContainer.contains(event.target)) {
+            profileDropdown.classList.remove('active');
+        }
+    });
+}
+        // ==================== FUNCIONES BÁSICAS DE MODALES ====================
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.error('Modal no encontrado:', modalId);
+    }
+}
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+        // ==================== CAMBIAR ENTRE LOGIN Y REGISTRO ====================
+function switchToRegister() {
+    closeModal('login-modal');
+    showModal('register-modal');
+}
+function switchToLogin() {
+    closeModal('register-modal');
+    showModal('login-modal');
+}
+// ==================== CARGAR FAVORITOS DEL USUARIO ====================
+function loadUserFavorites() {
+    if (!userId) return;
+    fetch(`${scriptUrl}?action=getFavorites&userId=${userId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                userFavorites = data.map(item => item.menuId);
+                updateFavoriteButtons(); // actualizar visual en caso de que ya haya menús visibles
+            } else {
+                console.warn('Respuesta inesperada al cargar favoritos:', data);
+            }
+        })
+        .catch(err => console.error('Error al cargar favoritos:', err));
+}
+// ==================== TOGGLE FAVORITO ====================
+function toggleFavorite(menuId) {
+    if (!isLoggedIn) {
+        alert('Debes iniciar sesión para guardar favoritos');
+        showModal('login-modal');
+        return;
+    }
+    const isCurrentlyFavorite = userFavorites.includes(menuId);
+    const action = isCurrentlyFavorite ? 'removeFavorite' : 'addFavorite';
+    fetch(`${scriptUrl}?action=${action}&userId=${userId}&menuId=${menuId}`)
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                if (isCurrentlyFavorite) {
+                    userFavorites = userFavorites.filter(id => id !== menuId);
+                } else {
+                    userFavorites.push(menuId);
+                }
+                updateFavoriteButtons();
+                alert(result.message || (isCurrentlyFavorite ? 'Quitado de favoritos' : 'Agregado a favoritos'));
+            } else {
+                alert(result.message || 'Error al actualizar favorito');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión');
+        });
+}
+// ==================== ACTUALIZAR VISUAL DE BOTONES FAVORITOS ====================
+function updateFavoriteButtons() {
+    document.querySelectorAll('.fav-btn').forEach(btn => {
+        const menuId = btn.dataset.menuId;
+        if (userFavorites.includes(menuId)) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+// ==================== AGREGAR LINK "MIS FAVORITOS" AL DROPDOWN ====================
+function addFavoritesLinkToDropdown() {
+    if (document.getElementById('favorites-link')) return; // evitar duplicados
+    const link = document.createElement('a');
+    link.href = '#';
+    link.id = 'favorites-link';
+    link.className = 'dropdown-item';
+    link.textContent = 'Mis Favoritos';
+    link.onclick = (e) => {
+        e.preventDefault();
+        profileDropdown.classList.remove('active');
+        showMyFavorites();
+    };
+    // Insertar antes del primer elemento (arriba)
+    profileDropdown.insertBefore(link, profileDropdown.firstChild);
+}
+// ==================== MOSTRAR MIS FAVORITOS ====================
+function showMyFavorites() {
+    if (userFavorites.length === 0) {
+        alert('Aún no tienes platos favoritos.');
+        return;
+    }
+    const container = document.getElementById('menu-display');
+    showLoading(container);
+    // Obtenemos TODOS los menús y filtramos los favoritos
+    // (mejorable: crear endpoint getFavoriteMenus que devuelva solo los favoritos con datos completos)
+    fetch(`${scriptUrl}?action=getAllMenus`)
+        .then(r => r.json())
+        .then(data => {
+            const allMenus = data.menus || [];
+            const favoriteMenus = allMenus.filter(menu => userFavorites.includes(menu.id));
+            displayMenus(favoriteMenus, 'Mis Favoritos');
+        })
+        .catch(() => showError(container, 'Error al cargar tus favoritos'));
+}
+function displayMenus(menus, title, categoriaDestacada = null) {
+    const container = document.getElementById('menu-display');
+   
+    // Limpiamos y preparamos la estructura básica
+    container.innerHTML = `
+        <h2>${title}</h2>
+        <div class="menu-items"></div>
+    `;
+   
+    const itemsDiv = container.querySelector('.menu-items');
+    currentDisplayedMenus = {}; // Limpiamos caché de menús mostrados
+    // Caso: no hay menús
+    if (menus.length === 0) {
+        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px; font-size:1.1rem;">No se encontraron menús en este momento.</p>';
+    } else {
+        // Mostramos cada plato
+        menus.forEach((menu) => {
+            currentDisplayedMenus[menu.id] = menu;
+      
+            const div = document.createElement('div');
+            div.className = 'menu-item';
+      
+            // Resaltar si coincide con la categoría destacada
+            const esDeCategoria = categoriaDestacada &&
+                menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
+            if (esDeCategoria) {
+                div.classList.add('destacado-categoria');
+            }
+      
+            // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
+            let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
+            if (!menu.imagen_url && menu.categoria) {
+                const catLower = menu.categoria.toLowerCase();
+                if (catLower.includes('pizza')) {
+                    imgSrc = 'https://i.postimg.cc/BnSY4khb/pizza.jpg';
+                } else if (catLower.includes('empanada')) {
+                    imgSrc = 'https://i.postimg.cc/Qdf6tmPQ/emp.jpg';
+                } else if (catLower.includes('hamburguesa')) {
+                    imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
+                }
+            }
+      
+            div.innerHTML = `
+                <img src="${imgSrc}"
+                     alt="${menu.nombre}"
+                     onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
+                <div class="card-body-horizontal">
+                    <div class="local-info">
+                        <img class="local-logo"
+                             src="${menu.logo_url || 'https://placehold.co/36x36?text=Local'}"
+                             alt="${menu.nombre_local || 'Local'}"
+                             onerror="this.src='https://placehold.co/36x36?text=?'}">
+                        <span class="local-name">${menu.nombre_local || 'Local sin nombre'}</span>
+                    </div>
+                    <h3>${menu.nombre}</h3>
+                    <p>${menu.descripcion || 'Sin descripción'}</p>
+                    <div class="precio">$${Number(menu.precio).toLocaleString('es-AR')}</div>
+                    <div class="actions">
+                        <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar al carrito</button>
+                        <button class="fav-btn ${userFavorites.includes(menu.id) ? 'active' : ''}"
+                                data-menu-id="${menu.id}"
+                                onclick="toggleFavorite('${menu.id}')">
+                            <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
+                            <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
+                        </button>
+                    </div>
+                </div>
+            `;
+      
+            itemsDiv.appendChild(div);
+        });
+    }
+    // ────────────────────────────────────────────────────────────────
+    // Botón "Ver todo el menú" → solo aparece si estamos viendo un local filtrado por categoría
+    // ────────────────────────────────────────────────────────────────
+    let showFullMenuButton = false;
+    let currentLocalId = null;
+    let localName = 'este local';
+   
+    if (categoriaDestacada && menus.length > 0) {
+        currentLocalId = menus[0].local_id;
+        localName = menus[0].nombre_local || 'este local';
+  
+        // Verificamos que TODOS los menús sean del mismo local
+        if (currentLocalId && menus.every(menu => menu.local_id === currentLocalId)) {
+            showFullMenuButton = true;
+        }
+    }
+    if (showFullMenuButton) {
+        container.innerHTML += `
+            <div class="ver-todo-menu" style="text-align:center; margin: 30px 0 50px;">
+                <button style="
+                    background: #d32f2f;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 14px 28px;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(211,47,47,0.3);
+                    transition: all 0.2s;
+                "
+                onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 6px 18px rgba(211,47,47,0.4)'"
+                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(211,47,47,0.3)'"
+                >
+                    Ver todo el menú de ${localName}
+                </button>
+            </div>
+        `;
+       
+        // Asignamos el evento al botón recién creado
+        const fullMenuBtn = container.querySelector('.ver-todo-menu button');
+        fullMenuBtn.onclick = () => {
+            console.log(`Clic en "Ver todo el menú de ${localName}" → cargando menú completo`);
+            fetchMenus(null, currentLocalId, null); // Sin filtro de categoría
+        };
+    }
+    // Mostramos el contenedor de menús
+    container.style.display = 'block';
+    // Actualizamos visual de favoritos
+    setTimeout(updateFavoriteButtons, 100);
+    // ────────────────────────────────────────────────────────────────
+    // SCROLL AUTOMÁTICO HACIA LA SECCIÓN DE PLATOS (nueva funcionalidad)
+    // ────────────────────────────────────────────────────────────────
+    setTimeout(() => {
+        const header = document.querySelector('header');
+        const headerHeight = header ? header.offsetHeight : 140; // fallback
+        const extraOffset = 30; // espacio adicional para que no quede pegado al header
+        const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
+       
+        window.scrollTo({
+            top: elementTop - headerHeight - extraOffset,
+            behavior: 'smooth'
+        });
+    }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
+}
+    
+        function addToCartById(menuId) {
+    const menu = currentDisplayedMenus[menuId];
+    if (!menu) {
+        console.error('Menú no encontrado en caché:', menuId);
+        alert('Error: no se pudo encontrar el plato seleccionado');
+        return;
+    }
+    // Ahora sí llamamos a addToCart con el objeto completo
+    addToCart(menu);
+}
+// ==================== LOGIN (agregamos carga de favoritos) ====================
+function loginUser() {
+    const email = document.getElementById('login-email')?.value.trim().toLowerCase();
+    const password = document.getElementById('login-password')?.value.trim();
+    if (!email || !password) {
+        alert('Ingresa email y contraseña');
+        return;
+    }
+    const url = `${scriptUrl}?action=login`
+        + `&email=${encodeURIComponent(email)}`
+        + `&password=${encodeURIComponent(password)}`;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                localStorage.setItem('userId', data.userId);
+                localStorage.setItem('userAddress', data.address || '');
+                localStorage.setItem('userName', data.name || '');
+                localStorage.setItem('userEmail', data.email || email);
+                isLoggedIn = true;
+                userId = data.userId;
+                userAddress = data.address || '';
+                closeModal('login-modal');
+                checkLoginStatus();
+                loadUserFavorites(); // ← CARGAR FAVORITOS AQUÍ
+                alert('¡Bienvenido!');
+                const dirInput = document.getElementById('direccion');
+                if (dirInput && userAddress) dirInput.value = userAddress;
+            } else {
+                alert(data.message || 'Credenciales incorrectas');
+            }
+        })
+        .catch(() => alert('Error de conexión'));
+}
+    // ==================== CERRAR SESIÓN ====================
+    function logoutUser() {
+    if (!confirm('¿Realmente quieres cerrar sesión?')) return;
+    // Eliminamos todos los datos de sesión
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName'); // ← si lo estabas guardando
+    localStorage.removeItem('userEmail'); // ← si lo estabas guardando
+    localStorage.removeItem('userAddress');
+    isLoggedIn = false;
+    userId = null;
+    userAddress = '';
+    checkLoginStatus(); // Esto actualiza el botón a "Iniciar Sesión"
+    alert('Sesión cerrada correctamente');
+}
+        // ==================== CARGA INICIAL ====================
+    window.addEventListener('load', () => {
+        checkLoginStatus();
+        loadFilters();
+        setupSearch();
+        setupCart();
+        loadAllDrinks();
+    });
+        // Función para registrar un nuevo usuario (usando GET para evitar CORS)
+async function registerUser() {
+    // Leemos los valores directamente desde los inputs del modal
+    const nombre = document.getElementById('register-name')?.value?.trim() || '';
+    const email = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
+    const password = document.getElementById('register-password')?.value?.trim() || '';
+    const direccion = document.getElementById('register-address')?.value?.trim() || '';
+    // Validaciones básicas en frontend
+    if (!nombre) {
+        alert('El nombre es obligatorio');
+        return;
+    }
+    if (!email) {
+        alert('El email es obligatorio');
+        return;
+    }
+    if (!password || password.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres');
+        return;
+    }
+    // Deshabilitamos el botón mientras se procesa
+    const btn = document.querySelector('#register-modal button');
+    btn.disabled = true;
+    btn.textContent = 'Registrando...';
+    try {
+        // Construimos la URL con parámetros GET
+        const url = `${scriptUrl}?action=register` +
+            `&nombre=${encodeURIComponent(nombre)}` +
+            `&email=${encodeURIComponent(email)}` +
+            `&password=${encodeURIComponent(password)}` +
+            `&direccion=${encodeURIComponent(direccion)}`;
+        console.log("Enviando registro vía GET:", url);
+        const response = await fetch(url, {
+            method: 'GET',
+            cache: 'no-cache',
+            redirect: 'follow'
+        });
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        const result = await response.json();
+        if (result.success) {
+            alert('¡Registro exitoso! Bienvenid@ ' + nombre);
+   
+            // Guardamos datos en localStorage
+            localStorage.setItem('userId', result.userId);
+            localStorage.setItem('userName', nombre);
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userAddress', direccion);
+            // Cerramos modal y actualizamos interfaz
+            closeModal('register-modal');
+            checkLoginStatus();
+            // Limpieza opcional del formulario
+            document.querySelector('#register-modal').querySelectorAll('input').forEach(input => input.value = '');
+        } else {
+            alert(result.message || 'Error al registrar usuario');
+        }
+    } catch (error) {
+        console.error('Error en registerUser (GET):', error);
+        alert('Error de conexión: ' + (error.message || 'Intenta nuevamente'));
+    } finally {
+        // Restauramos el botón siempre
+        btn.disabled = false;
+        btn.textContent = 'Registrarse';
+    }
+}
+        function loadAllDrinks() {
+            fetch(`${scriptUrl}?action=getAllMenus`)
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    allDrinks = (data.menus || []).filter(menu =>
+                        menu.categoria && menu.categoria.trim() === CATEGORIA_BEBIDAS
+                    );
+                })
+                .catch(() => { allDrinks = []; });
+        }
+        function loadFilters() {
+    const container = document.getElementById('suggestion-items');
+    const titleElement = document.getElementById('suggestions-title');
+    const wrapper = document.getElementById('suggestions-carousel-wrapper');
+
+    if (!container || !wrapper) return;
+
+    showLoading(container);
+    titleElement.textContent = "Sugerencias de Locales";
+    wrapper.classList.remove('few-items');
+
+    fetch(scriptUrl + '?action=getFilters')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+            container.innerHTML = '';
+
+            if (data.locals?.length > 0) {
+                data.locals.forEach(local => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion';
+
+                    // Clases según estado
+                    const estaAbierto = local.estado?.toLowerCase() === 'activo';
+                    div.classList.add(estaAbierto ? 'abierto' : 'cerrado');
+                    // Opcional: agregar la clase pulse solo a abiertos
+                    if (estaAbierto) div.classList.add('pulse');
+
+                    div.dataset.local = local.local_id;
+
+                    div.innerHTML = `
+                        <img src="${local.imagen_url || 'https://placehold.co/200x200?text=' + encodeURIComponent(local.nombre_local)}"
+                             alt="${local.nombre_local}"
+                             onerror="this.src='https://placehold.co/200x200?text=Sin+Imagen'">
+                    `;
+
+                    // Comportamiento al clic
+                    if (estaAbierto) {
+                        div.onclick = () => fetchMenus(null, local.local_id);
+                    } else {
+                        div.onclick = () => alert('Este local está cerrado en este momento.');
+                    }
+
+                    container.appendChild(div);
+                });
+
+                // Centrado si hay pocas tarjetas
+                if (data.locals.length <= 4) {
+                    wrapper.classList.add('few-items');
+                }
+            } else {
+                container.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">Aún no hay locales registrados.</p>';
+                wrapper.classList.add('few-items');
+            }
+
+            // Actualizar visibilidad de flechas
+            setTimeout(() => {
+                const cont = document.getElementById('suggestion-items');
+                const hasOverflow = cont.scrollWidth > cont.clientWidth;
+                wrapper.querySelectorAll('.carousel-btn').forEach(btn => {
+                    btn.style.display = hasOverflow ? 'flex' : 'none';
+                });
+            }, 300);
+        })
+        .catch(() => showError(container, 'Error al cargar locales'));
+}
+       
+        function setupSearch() {
+            const input = document.getElementById('search-input');
+            let timeout;
+            input.addEventListener('input', e => {
+                clearTimeout(timeout);
+                const term = e.target.value.trim();
+                if (term.length >= 3) {
+                    timeout = setTimeout(() => performSearch(term), 600);
+                } else if (term === '') {
+                    document.getElementById('menu-display').style.display = 'none';
+                }
+            });
+        }
+        function performSearch(query) {
+            const container = document.getElementById('menu-display');
+            showLoading(container);
+            fetch(`${scriptUrl}?action=search&query=${encodeURIComponent(query)}`)
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(res => displayMenus(res.menus || [], `Resultados para "${query}"`))
+                .catch(() => showError(container, 'Error en búsqueda'));
+        }
+        // 1. Cambiamos el nombre de la función para que sea más clara su intención
+// y creamos una versión específica para categorías
+document.querySelector('.categories').addEventListener('click', e => {
+    const cat = e.target.closest('.category');
+    if (!cat) return;
+    const categoria = cat.dataset.type;
+    ultimaCategoriaSeleccionada = categoria;
+    fetchLocalesByCategoria(categoria);
+});
+// Nueva función dedicada
+function fetchLocalesByCategoria(categoria) {
+    const container = document.getElementById('menu-display');
+    const suggestionContainer = document.getElementById('suggestion-items');
+    // Ocultamos menú de platos y mostramos sección de locales
+    container.style.display = 'none';
+    suggestionContainer.innerHTML = ''; // limpiamos sugerencias normales
+    showLoading(suggestionContainer); // ← reutilizamos loading
+    const url = `${scriptUrl}?action=getLocalesByCategoria&type=${encodeURIComponent(categoria)}`;
+    fetch(url)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+            const locales = data.locales || [];
+            displayLocalesConCategoria(locales, categoria);
+        })
+        .catch(() => {
+            showError(suggestionContainer, 'No pudimos cargar los locales con esa categoría');
+        });
+}
+function displayLocalesConCategoria(locales, categoria) {
+    const container = document.getElementById('suggestion-items');
+    const titleElement = document.getElementById('suggestions-title');
+    const wrapper = document.getElementById('suggestions-carousel-wrapper');
+    const buttonContainer = document.getElementById('ver-todo-categoria-container'); // ← nuevo
+    if (!container || !wrapper || !buttonContainer) return;
+    container.innerHTML = ''; // limpiamos tarjetas
+    buttonContainer.innerHTML = ''; // limpiamos botón anterior
+    titleElement.textContent = `Locales con ${categoria}`;
+    wrapper.classList.remove('few-items');
+    if (locales.length === 0) {
+        container.innerHTML = `
+            <p style="text-align:center; padding:40px; color:#666; font-size:1.1rem; width:100%;">
+                No encontramos locales con <strong>${categoria}</strong> en este momento.
+            </p>`;
+        wrapper.classList.add('few-items');
+        return;
+    }
+    // Insertamos solo las tarjetas en el carrusel
+    locales.forEach(local => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-categoria';
+        div.dataset.local = local.local_id;
+        div.innerHTML = `
+            <img src="${local.logo_url || 'https://placehold.co/120x120?text=' + encodeURIComponent(local.nombre_local)}"
+                 alt="${local.nombre_local}"
+                 onerror="this.src='https://placehold.co/120x120?text=Local'">
+            <div class="suggestion-info">
+                <div class="local-name">${local.nombre_local}</div>
+                <div class="categoria-precio">
+                    <span class="cat">${categoria}</span>
+                    <span class="precio-min">desde $${Number(local.precio_min_categoria || 0).toLocaleString('es-AR')}</span>
+                </div>
+            </div>
+        `;
+        div.onclick = () => fetchMenus(null, local.local_id, ultimaCategoriaSeleccionada);
+        container.appendChild(div);
+    });
+    // Centrado si son pocas tarjetas
+    if (locales.length <= 4) {
+        wrapper.classList.add('few-items');
+    }
+    // Creamos y agregamos el botón FUERA del carrusel
+    const btnContainer = document.createElement('div');
+    btnContainer.className = 'ver-todo-categoria dinamica';
+    btnContainer.innerHTML = `
+        <button style="
+            background:#d32f2f;
+            color:white;
+            border:none;
+            border-radius:12px;
+            padding:14px 28px;
+            font-size:1.1rem;
+            font-weight:600;
+            cursor:pointer;
+            box-shadow:0 4px 12px rgba(211,47,47,0.3);
+        ">
+            Ver todo ${categoria}
+        </button>
+    `;
+    btnContainer.querySelector('button').onclick = () => {
+        ultimaCategoriaSeleccionada = categoria;
+        fetchMenus(categoria, null, null);
+    };
+    buttonContainer.appendChild(btnContainer); // ← se agrega AQUÍ, debajo del carrusel
+    // Visibilidad de flechas del carrusel
+    setTimeout(() => {
+        const hasOverflow = container.scrollWidth > container.clientWidth;
+        wrapper.querySelectorAll('.carousel-btn').forEach(btn => {
+            btn.style.display = hasOverflow ? 'flex' : 'none';
+        });
+    }, 300);
+}
+        function fetchMenus(tipoCategoria, localId, filtroCategoriaInicial = null) {
+    const container = document.getElementById('menu-display');
+    // Ocultamos el botón estático "Ver todo [categoría]" cuando entramos a ver menús
+    // (ya que ahora se usa solo debajo de los locales, no dentro del menú)
+    const verTodoCategoriaBtn = document.getElementById('ver-todo-categoria-btn');
+    if (verTodoCategoriaBtn) {
+        verTodoCategoriaBtn.style.display = 'none';
+    }
+    showLoading(container);
+    let url = `${scriptUrl}?action=getMenus`;
+    if (tipoCategoria) url += `&type=${encodeURIComponent(tipoCategoria)}`;
+    if (localId) url += `&local=${encodeURIComponent(localId)}`;
+    fetch(url)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+            let menus = data || [];
+            // Filtrado adicional en frontend (por si el backend no filtra perfectamente)
+            if (filtroCategoriaInicial && !tipoCategoria) {
+                const catLower = filtroCategoriaInicial.toLowerCase().trim();
+                menus = menus.filter(menu =>
+                    menu.categoria &&
+                    menu.categoria.toLowerCase().trim().includes(catLower)
+                );
+            }
+            // Determinamos el título según el contexto
+            let titulo = 'Menú del local';
+            if (tipoCategoria && !localId) {
+                titulo = `Todos los ${tipoCategoria}`;
+            }
+            else if (filtroCategoriaInicial && localId) {
+                titulo = `${filtroCategoriaInicial} - ${menus[0]?.nombre_local || 'Local'}`;
+            }
+            else if (tipoCategoria) {
+                titulo = tipoCategoria;
+            }
+            // Mostramos los menús
+            displayMenus(menus, titulo, tipoCategoria || filtroCategoriaInicial);
+        })
+        .catch(err => {
+            console.error('Error al cargar menús:', err);
+            showError(container, 'No pudimos cargar el menú en este momento');
+        });
+}
+        function showLoading(container) {
+    container.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+    // Solo aplicamos display: block al contenedor de menús
+    if (container.id === 'menu-display') {
+        container.style.display = 'block';
+    }
+    // Para suggestion-items (y cualquier otro), no hacemos nada → mantiene su flex + center
+}
+        function showError(container, msg) {
+            container.innerHTML = `<p style="text-align:center;color:#d32f2f;padding:40px;">¡Ups! ${msg}</p>`;
+        }
+        // ==================== CARRITO ====================
+    // ==================== CARRITO ====================
+// ====================== NUEVAS VARIABLES GLOBALES ======================
+let hasActiveRepartidores = true;   // por defecto permitimos envío
+
+// ====================== FUNCIÓN DE VERIFICACIÓN ======================
+async function checkActiveRepartidores() {
+    try {
+        const response = await fetch(`${scriptUrl}?action=checkActiveRepartidores`);
+        const data = await response.json();
+        hasActiveRepartidores = data.hasActive === true;
+    } catch (error) {
+        console.error("Error al verificar repartidores:", error);
+        hasActiveRepartidores = true; // fallback seguro
+    }
+}
+
+// ====================== ACTUALIZAR SELECT DE ENTREGA ======================
+function updateDeliveryOptions() {
+    const select = document.getElementById('delivery-type');
+    if (!select) return;
+
+    let envioOption = select.querySelector('option[value="envio"]');
+    if (!envioOption) return;
+
+    if (!hasActiveRepartidores) {
+        // Deshabilitar y poner gris
+        envioOption.disabled = true;
+        envioOption.textContent = 'Con envío a domicilio (Repartidor no disponible)';
+        envioOption.style.color = '#999999';
+        envioOption.style.backgroundColor = '#f5f5f5';
+
+        // Si estaba seleccionado envío → forzamos retiro
+        if (select.value === 'envio') {
+            select.value = 'retiro';
+        }
+    } else {
+        // Restaurar estado normal
+        envioOption.disabled = false;
+        envioOption.textContent = 'Con envío a domicilio';
+        envioOption.style.color = '';
+        envioOption.style.backgroundColor = '';
+    }
+}
+      
+function setupCart() {
+    // ────────────────────────────────────────────────────────────────
+    // Elementos del DOM relacionados con el carrito
+    // ────────────────────────────────────────────────────────────────
+    const cartIcon       = document.getElementById('cart-icon');
+    const closeBtn       = document.querySelector('.cart-close');
+    const backdrop       = document.getElementById('cart-backdrop');
+    const deliverySelect = document.getElementById('delivery-type');
+    const paymentSelect  = document.getElementById('metodo-pago');
+    const checkoutBtn    = document.getElementById('checkout-btn');
+
+    // ────────────────────────────────────────────────────────────────
+    // Abrir carrito (con verificación de repartidores)
+    // ────────────────────────────────────────────────────────────────
+    if (cartIcon) {
+        cartIcon.onclick = openCart;   // ← openCart ya es async y verifica repartidores
+    }
+
+    // Cerrar carrito
+    if (closeBtn) {
+        closeBtn.onclick = closeCart;
+    }
+
+    if (backdrop) {
+        backdrop.onclick = closeCart;
+    }
+
+    // Cerrar con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape" && document.getElementById('cart-section').classList.contains('active')) {
+            closeCart();
+        }
+    });
+
+    // ────────────────────────────────────────────────────────────────
+    // Listener cambio de tipo de entrega → seguridad extra
+    // ────────────────────────────────────────────────────────────────
+    if (deliverySelect) {
+        deliverySelect.addEventListener('change', () => {
+            // Si intentan seleccionar "envio" pero no hay repartidores → bloquear
+            if (deliverySelect.value === 'envio' && !hasActiveRepartidores) {
+                alert('🚫 No hay repartidores disponibles en este momento.');
+                deliverySelect.value = 'retiro';
+            }
+            updateCartDisplay();
+        });
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Listener cambio de método de pago
+    // ────────────────────────────────────────────────────────────────
+    if (paymentSelect) {
+        paymentSelect.addEventListener('change', updateCartDisplay);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Botón Realizar Pedido
+    // ────────────────────────────────────────────────────────────────
+    if (checkoutBtn) {
+        checkoutBtn.onclick = checkout;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Opcional: si quieres que al abrir el carrito siempre se refresque
+    // el estado de las opciones de entrega (por si cambió mientras estaba cerrado)
+    // puedes dejarlo comentado o activarlo según prefieras
+    // ────────────────────────────────────────────────────────────────
+    // document.addEventListener('cart-opened', async () => {
+    //     await checkActiveRepartidores();
+    //     updateDeliveryOptions();
+    //     updateCartDisplay();
+    // });
+}
+// ====================== MODIFICAR openCart ======================
+async function openCart() {
+    // ←←← VERIFICACIÓN OBLIGATORIA ANTES DE ABRIR EL CARRITO
+    await checkActiveRepartidores();
+    updateDeliveryOptions();
+
+    // Abrimos el carrito normalmente
+    document.getElementById('cart-section').classList.add('active');
+    document.getElementById('cart-backdrop').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    updateCartDisplay();
+}
+function closeCart() {
+    document.getElementById('cart-section').classList.remove('active');
+    document.getElementById('cart-backdrop').classList.remove('active');
+    document.body.style.overflow = '';
+}
+// Mantener TODAS las funciones originales del carrito
+function addToCart(menu) {
+    if (!isLoggedIn) {
+        showModal('login-modal');
+        alert('¡Debes iniciar sesión para agregar productos al carrito!');
+        return;
+    }
+    // Crear el objeto del ítem (esta es la estructura que ya usabas)
+    const item = {
+        idLocal: menu.local_id,
+        nombreLocal: menu.nombre_local || 'Local desconocido',
+        idProducto: menu.id,
+        nombreProducto: menu.nombre,
+        precioUnitario: Number(menu.precio),
+        cantidad: 1,
+        categoria: menu.categoria || ''
+    };
+    // ── Lógica de agregar / incrementar cantidad ────────────────────────
+    const existingIndex = cart.findIndex(i => i.idProducto === item.idProducto);
+    if (existingIndex !== -1) {
+        // Ya existe → incrementar cantidad
+        cart[existingIndex].cantidad += 1;
+    } else {
+        // Es nuevo → agregar al carrito
+        cart.push(item);
+    }
+    // ── Actualizaciones de UI ───────────────────────────────────────────
+    updateCartCount(); // actualiza el número en el ícono del carrito
+    updateCartDisplay(); // refresca el contenido del sidebar (si está abierto)
+    // Mostrar toast de éxito (no bloqueante)
+    showAddedToCartToast(menu.nombre);
+    // Opcional: pequeño feedback visual extra en el botón (si quieres)
+    // const btn = event.target; // si lo llamas desde onclick del botón
+    // btn.style.transform = 'scale(0.95)';
+    // setTimeout(() => btn.style.transform = 'scale(1)', 150);
+}
+// Nueva función auxiliar
+function showAddedToCartToast(nombreProducto) {
+    // Crear el contenedor del toast
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2e7d32;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        font-size: 1.05rem;
+        opacity: 0;
+        transition: all 0.4s ease;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        min-width: 320px;
+        max-width: 90%;
+        justify-content: space-between;
+        pointer-events: auto;
+    `;
+    // Contenido del toast
+    toast.innerHTML = `
+        <span>¡${nombreProducto} agregado al carrito! ✓</span>
+        <button id="toast-ver-carrito-btn" style="
+            background: white;
+            color: #2e7d32;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        ">
+            Ver carrito
+        </button>
+    `;
+    document.body.appendChild(toast);
+    // Animación de entrada
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.bottom = '40px';
+    }, 100);
+    // Evento del botón "Ver carrito"
+    const verCarritoBtn = toast.querySelector('#toast-ver-carrito-btn');
+    verCarritoBtn.addEventListener('click', () => {
+        openCart(); // abre el sidebar del carrito
+        toast.style.opacity = '0'; // desaparece el toast inmediatamente
+        toast.style.bottom = '20px';
+        setTimeout(() => toast.remove(), 400);
+    });
+    // También se puede hacer clic fuera del botón para cerrar (opcional)
+    toast.addEventListener('click', (e) => {
+        if (e.target !== verCarritoBtn) {
+            toast.style.opacity = '0';
+            toast.style.bottom = '20px';
+            setTimeout(() => toast.remove(), 400);
+        }
+    });
+    // Desaparecer automáticamente después de 4 segundos si no se interactúa
+    setTimeout(() => {
+        if (document.body.contains(toast)) {
+            toast.style.opacity = '0';
+            toast.style.bottom = '20px';
+            setTimeout(() => {
+                if (document.body.contains(toast)) toast.remove();
+            }, 500);
+        }
+    }, 4000);
+}
+    function updateCartCount() {
+        const total = cart.reduce((sum, i) => sum + i.cantidad, 0);
+        document.getElementById('cart-count').textContent = total;
+    }
+        function hasDrink() {
+            return cart.some(i => i.categoria && i.categoria.trim() === CATEGORIA_BEBIDAS);
+        }
+        function calculatePrices() {
+    const subtotal = cart.reduce((s, i) => s + i.precioUnitario * i.cantidad, 0);
+    const delivery = document.getElementById('delivery-type').value;
+    const metodoPago = document.getElementById('metodo-pago').value; // ← nuevo: leemos el método
+    // Envío
+    let shipping = delivery === 'envio' ? (hasDrink() ? 0 : COSTO_ENVIO) : 0;
+    // Comisión 4% SOLO si es Transferencia / Mercado Pago
+    let comision = 0;
+    if (metodoPago === "transferencia") {
+        comision = subtotal * 0.04; // 4%
+    }
+    const total = subtotal + shipping + comision;
+    return {
+        subtotal,
+        shipping,
+        comision, // ← nuevo campo
+        total,
+        delivery,
+        metodoPago
+    };
+}
+        function updateCartDisplay() {
+    const list = document.getElementById('cart-items');
+    const notice = document.getElementById('free-shipping-notice');
+    const drinksPanel = document.getElementById('drinks-panel');
+    list.innerHTML = '';
+    notice.innerHTML = '';
+    if (cart.length === 0) {
+        list.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">Tu carrito está vacío</p>';
+    } else {
+        cart.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'cart-item';
+            div.innerHTML = `
+                <div class="cart-item-left">
+                    <div class="cart-item-name">${item.nombreProducto}</div>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" onclick="changeQuantity(${idx}, -1)">–</button>
+                        <span class="quantity">${item.cantidad}</span>
+                        <button class="quantity-btn" onclick="changeQuantity(${idx}, 1)">+</button>
+                    </div>
+                </div>
+                <div class="cart-item-price">$${(item.precioUnitario * item.cantidad).toFixed(2)}</div>
+                <button class="remove-btn" onclick="removeFromCart(${idx})">Eliminar</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+    const prices = calculatePrices();
+    // Mostrar subtotal
+    document.getElementById('subtotal').textContent = `$${prices.subtotal.toFixed(2)}`;
+    // Envío
+    document.getElementById('shipping-cost').textContent = prices.shipping === 0 ? 'GRATIS' : `$${prices.shipping.toFixed(2)}`;
+    // Nueva línea: Comisión (solo aparece si hay comisión)
+    let comisionLine = '';
+    if (prices.comision > 0) {
+        comisionLine = `<div class="price-line"><span>Comisión 4% (Mercado Pago)</span><span>+$${prices.comision.toFixed(2)}</span></div>`;
+    }
+    // Actualizar el HTML del resumen de precios dinámicamente
+    const priceSummary = document.querySelector('.price-summary');
+    priceSummary.innerHTML = `
+        <div class="price-line"><span>Subtotal productos</span><span id="subtotal">$${prices.subtotal.toFixed(2)}</span></div>
+        <div class="price-line"><span>Envío</span><span id="shipping-cost">${prices.shipping === 0 ? 'GRATIS' : '$'+prices.shipping.toFixed(2)}</span></div>
+        ${comisionLine}
+        <div class="price-line total"><span>Total a pagar</span><span id="final-total">$${prices.total.toFixed(2)}</span></div>
+    `;
+    // Mensaje envío gratis
+    if (prices.shipping === 0 && cart.length > 0) {
+        notice.innerHTML = prices.delivery === 'retiro'
+            ? '<div class="free-shipping-msg">¡Retiro en local! Envío gratis.</div>'
+            : '<div class="free-shipping-msg">¡Envío GRATIS por agregar una bebida!</div>';
+        drinksPanel.style.display = 'none';
+    } else if (prices.delivery === 'envio' && !hasDrink() && cart.length > 0) {
+        drinksPanel.style.display = 'block';
+        renderDrinksCarousel();
+    } else {
+        drinksPanel.style.display = 'none';
+    }
+    // Actualizar dirección según tipo entrega
+    const dirInput = document.getElementById('direccion');
+    if (prices.delivery === 'retiro') {
+        dirInput.placeholder = "No requerida (retirás en local)";
+        dirInput.required = false;
+    } else {
+        dirInput.placeholder = "Dirección de entrega (requerida)";
+        dirInput.required = true;
+    }
+}
+        // Modificar cantidad de un ítem en el carrito
+function changeQuantity(index, delta) {
+    if (!cart[index]) return;
+    const nuevaCantidad = cart[index].cantidad + delta;
+    if (nuevaCantidad < 1) {
+        // En lugar de dejar en 1, eliminamos directamente
+        removeFromCart(index);
+        return;
+    }
+    cart[index].cantidad = nuevaCantidad;
+    updateCartCount();
+    updateCartDisplay();
+}
+// Eliminar un ítem del carrito
+function removeFromCart(index) {
+    if (confirm(`¿Eliminar ${cart[index].nombreProducto} del carrito?`)) {
+        cart.splice(index, 1);
+        updateCartCount();
+        updateCartDisplay();
+    }
+}
+        function renderDrinksCarousel() {
+            const container = document.getElementById('drinks-container');
+            container.innerHTML = '';
+            if (allDrinks.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;width:100%;">No hay bebidas disponibles.</p>';
+                return;
+            }
+            allDrinks.forEach(drink => {
+                const card = document.createElement('div');
+                card.className = 'drink-card';
+                card.innerHTML = `
+                    <img src="${drink.imagen_url || 'https://placehold.co/300x140?text=Bebida'}" alt="${drink.nombre}" onerror="this.src='https://placehold.co/300x140?text=Sin+Imagen'">
+                    <h4>${drink.nombre}</h4>
+                    <div class="price">$${drink.precio}</div>
+                    <button>Agregar</button>
+                `;
+                card.querySelector('button').onclick = () => addToCart(drink);
+                container.appendChild(card);
+            });
+            currentDrinkIndex = 0;
+            scrollCarousel();
+            setupCarouselControls();
+        }
+        function setupCarouselControls() {
+            document.getElementById('prev-drink').onclick = () => {
+                if (currentDrinkIndex > 0) {
+                    currentDrinkIndex--;
+                    scrollCarousel();
+                }
+            };
+            document.getElementById('next-drink').onclick = () => {
+                const card = document.querySelector('.drink-card');
+                if (!card) return;
+                const cardWidth = card.offsetWidth + 12;
+                const visible = Math.floor(document.querySelector('.drinks-carousel').offsetWidth / cardWidth);
+                if (currentDrinkIndex < allDrinks.length - visible) {
+                    currentDrinkIndex++;
+                    scrollCarousel();
+                }
+            };
+            window.addEventListener('resize', () => {
+                currentDrinkIndex = 0;
+                scrollCarousel();
+            });
+        }
+        function scrollCarousel() {
+            const container = document.getElementById('drinks-container');
+            if (!container || container.children.length === 0) return;
+            const card = container.children[0];
+            const cardWidth = card.offsetWidth + 12;
+            container.style.transform = `translateX(-${currentDrinkIndex * cardWidth}px)`;
+            document.getElementById('prev-drink').disabled = currentDrinkIndex === 0;
+            const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
+            document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
+        }
+        async function checkout() {
+    if (!isLoggedIn) {
+        showModal('login-modal');
+        alert('¡Debes iniciar sesión para realizar el pedido!');
+        return;
+    }
+    if (cart.length === 0) {
+        alert('El carrito está vacío');
+        return;
+    }
+    const delivery = document.getElementById('delivery-type').value;
+    const metodoPago = document.getElementById('metodo-pago').value;
+    const observaciones = document.getElementById('observaciones').value.trim();
+    if (!metodoPago) {
+        alert('Selecciona un método de pago');
+        return;
+    }
+    let direccion = '';
+    if (delivery === 'envio') {
+        direccion = document.getElementById('direccion').value.trim();
+        if (!direccion) {
+            alert('Ingresa la dirección de entrega');
+            return;
+        }
+    } else {
+        direccion = 'Retiro en local';
+    }
+    const prices = calculatePrices();
+    // ── Caso especial: Transferencia / Mercado Pago ────────────────────────
+    if (metodoPago === "transferencia") {
+        await handleMercadoPagoPayment(direccion, delivery, prices, observaciones);
+        return;
+    }
+    // ── Flujo normal para Efectivo ─────────────────────────────────────────
+    await createOrderNormal(direccion, metodoPago, delivery, prices, observaciones);
+}
+        async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
+    const checkoutContainer = document.getElementById('mercadopago-checkout');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Generando pago seguro...';
+    try {
+        // Generamos external_reference único y traceable
+        const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
+        console.log("Iniciando Mercado Pago con externalRef:", externalRef);
+        const preference = {
+            items: [{
+                title: `Pedido Weep #${Date.now()}`,
+                quantity: 1,
+                currency_id: "ARS",
+                unit_price: prices.total
+            }],
+            payer: {
+                email: localStorage.getItem('userEmail') || "cliente@weep.com.ar"
+            },
+            external_reference: externalRef,
+            back_urls: {
+                success: window.location.href + '?status=approved',
+                failure: window.location.href + '?status=failure',
+                pending: window.location.href + '?status=pending'
+            },
+            auto_return: "approved"
+        };
+        const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${MP_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify(preference)
+        });
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(`Error ${res.status}: ${error}`);
+        }
+        const data = await res.json();
+        if (!data.init_point) {
+            throw new Error("No se recibió init_point");
+        }
+        // Guardamos datos para confirmación posterior
+        pendingOrderData = {
+            userId,
+            fecha: new Date().toLocaleString('es-AR'),
+            direccion,
+            metodoPago: "Mercado Pago",
+            observaciones,
+            envioGratis: prices.shipping === 0,
+            tipoEntrega: delivery,
+            cart,
+            total: prices.total,
+            preferenceId: data.id,
+            externalReference: externalRef,
+            paymentId: null
+        };
+        // Mostrar checkout
+        checkoutContainer.innerHTML = `<iframe src="${data.init_point}" width="100%" height="700" frameborder="0"></iframe>`;
+        checkoutContainer.style.display = 'block';
+        checkoutBtn.style.display = 'none';
+        alert("Completa el pago en la ventana de Mercado Pago.\nEl pedido se confirmará automáticamente.");
+        // Iniciar polling con external_reference (clave para detección)
+        startPaymentPolling(data.id, externalRef);
+    } catch (err) {
+        console.error("Error en handleMercadoPagoPayment:", err);
+        alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Realizar Pedido';
+    }
+}
+// También se puede usar polling si no redirige bien
+function startPaymentPolling(preferenceId, externalReference) { // ← agregamos externalReference como segundo parámetro
+    console.log("Iniciando polling con external_reference:", externalReference);
+    const interval = setInterval(async () => {
+        try {
+            // Buscamos por external_reference (esto SÍ funciona)
+            const url = `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(externalReference)}`;
+            console.log("Consultando pagos por external_reference:", url);
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error(`Error ${res.status} en search por external_reference:`, errorText);
+                return;
+            }
+            const data = await res.json();
+            console.log("Respuesta de /payments/search:", JSON.stringify(data, null, 2));
+            if (data.results?.length > 0) {
+                const approved = data.results.find(p => p.status === "approved");
+                if (approved) {
+                    console.log("¡Pago aprobado encontrado! ID:", approved.id);
+                    clearInterval(interval);
+                    pendingOrderData.paymentId = approved.id;
+                    await finalizeOrderAfterPayment();
+                    alert("¡Pago confirmado automáticamente! Tu pedido ha sido registrado.");
+                } else {
+                    console.log("Pagos encontrados pero ninguno aprobado aún...");
+                }
+            } else {
+                console.log("Aún no hay pagos para este external_reference");
+            }
+        } catch (e) {
+            console.error("Error en polling:", e);
+        }
+    }, 5000);
+}
+async function finalizeOrderAfterPayment() {
+    if (!pendingOrderData) return;
+    // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
+    // Método de pago se envía como "Transferencia / Mercado Pago" (o cámbialo a "Efectivo" si quieres)
+    await createOrderNormal(
+        pendingOrderData.direccion,
+        "Transferencia / Mercado Pago", // ← mismo que en checkout normal
+        pendingOrderData.tipoEntrega,
+        { total: pendingOrderData.total, shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO },
+        pendingOrderData.observaciones,
+        false // ← false = no usamos createPaidOrder, usamos createOrder normal
+    );
+    pendingOrderData = null;
+    document.getElementById('mercadopago-checkout').style.display = 'none';
+    document.getElementById('checkout-btn').style.display = 'block';
+}
+async function checkPaymentReturn() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get("status");
+    const paymentId = urlParams.get("payment_id");
+    const externalReference = urlParams.get("external_reference"); // ← también puede venir
+    if (!status || !paymentId || !pendingOrderData) return;
+    try {
+        const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+        });
+        if (!res.ok) throw new Error("No se pudo verificar el pago");
+        const payment = await res.json();
+        if (payment.status === "approved") {
+            pendingOrderData.paymentId = payment.id;
+            pendingOrderData.preferenceId = payment.preference_id || pendingOrderData.preferenceId;
+            // ¡Aquí se confirma el pedido!
+            await createConfirmedOrder(pendingOrderData);
+            // Limpieza importante
+            pendingOrderData = null;
+        }
+        else if (payment.status === "pending") {
+            alert("El pago está pendiente de aprobación. Te avisaremos cuando se confirme.");
+        }
+        else {
+            alert(`El pago no fue aprobado. Estado: ${payment.status}\nPuedes intentarlo nuevamente.`);
+        }
+    } catch (e) {
+        console.error("Error verificando pago:", e);
+        alert("No pudimos verificar el estado del pago. Por favor contacta soporte.");
+    }
+    // Siempre limpiamos la URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+// ==================== EDITAR PERFIL ====================
+function openEditProfileModal() {
+    profileDropdown.classList.remove('active');
+    // Precargamos los datos actuales
+    document.getElementById('edit-name').value = localStorage.getItem('userName') || '';
+    document.getElementById('edit-email').value = localStorage.getItem('userEmail') || '';
+    document.getElementById('edit-new-password').value = ''; // siempre vacío al abrir
+    showModal('edit-profile-modal');
+}
+function openChangeAddressModal() {
+    profileDropdown.classList.remove('active');
+    const addressInput = document.getElementById('edit-address');
+    addressInput.value = userAddress || '';
+    showModal('change-address-modal');
+}
+function saveProfileChanges() {
+    const name = document.getElementById('edit-name').value.trim();
+    const email = document.getElementById('edit-email').value.trim().toLowerCase();
+    const newPassword = document.getElementById('edit-new-password').value.trim();
+    // Validaciones básicas
+    if (!name) {
+        alert('El nombre es obligatorio');
+        return;
+    }
+    if (!email) {
+        alert('El email es obligatorio');
+        return;
+    }
+    if (newPassword && newPassword.length < 6) {
+        alert('La nueva contraseña debe tener al menos 6 caracteres (o dejarla en blanco)');
+        return;
+    }
+    // Construimos la URL con los parámetros
+    let url = `${scriptUrl}?action=updateProfile`
+        + `&userId=${encodeURIComponent(userId)}`
+        + `&name=${encodeURIComponent(name)}`
+        + `&email=${encodeURIComponent(email)}`;
+    // Solo agregamos la nueva contraseña si se ingresó algo
+    if (newPassword) {
+        url += `&newPassword=${encodeURIComponent(newPassword)}`;
+    }
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Actualizamos el almacenamiento local
+                localStorage.setItem('userName', name);
+                localStorage.setItem('userEmail', email);
+    
+                alert(data.message || 'Perfil actualizado correctamente');
+                closeModal('edit-profile-modal');
+    
+                // Refrescamos el estado visual si es necesario
+                checkLoginStatus();
+            } else {
+                alert(data.message || 'No se pudo actualizar el perfil');
+            }
+        })
+        .catch(err => {
+            console.error('Error al actualizar perfil:', err);
+            alert('Error de conexión al intentar actualizar el perfil');
+        });
+}
+function saveAddressChange() {
+    const newAddress = document.getElementById('edit-address').value.trim();
+    if (!newAddress) {
+        alert('La dirección no puede estar vacía');
+        return;
+    }
+    const url = `${scriptUrl}?action=updateAddress`
+        + `&userId=${encodeURIComponent(userId)}`
+        + `&address=${encodeURIComponent(newAddress)}`;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                userAddress = newAddress;
+                localStorage.setItem('userAddress', newAddress);
+    
+                // Actualizamos el campo de dirección del checkout si está visible
+                const checkoutDir = document.getElementById('direccion');
+                if (checkoutDir) checkoutDir.value = newAddress;
+    
+                alert('Dirección actualizada correctamente');
+                closeModal('change-address-modal');
+            } else {
+                alert(data.message || 'Error al actualizar dirección');
+            }
+        })
+        .catch(() => {
+            alert('Error de conexión al actualizar dirección');
+        });
+}
+        // ------------------------------------------------------------------
+// 1. createOrderNormal – crea pedido + notifica locales
+// ------------------------------------------------------------------
+async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
+    try {
+        const action = 'createOrder';
+        const cartString = encodeURIComponent(JSON.stringify(cart));
+        const url = `${scriptUrl}?action=${action}` +
+            `&userId=${encodeURIComponent(userId)}` +
+            `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
+            `&direccion=${encodeURIComponent(direccion)}` +
+            `&metodoPago=${encodeURIComponent(metodoPago)}` +
+            `&observaciones=${encodeURIComponent(observaciones || '')}` +
+            `&cart=${cartString}` +
+            `&total=${encodeURIComponent(prices.total)}` +
+            `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
+            `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
+
+        console.log("[PEDIDO] Enviando creación →", url);
+
+        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || "Error desconocido al crear pedido");
+        }
+
+        const idPedido = result.idPedido;
+        console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
+
+        alert(`¡Pedido #${idPedido} registrado exitosamente!`);
+
+        // ── Notificar a los locales ───────────────────────────────
+        const notificacionesOk = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+
+        if (!notificacionesOk) {
+            console.warn("[NOTIFICACIÓN] Algún local no recibió el aviso");
+            alert("Pedido creado, pero hubo un problema al notificar a uno o más locales.\n" +
+                  "El local debería verlo en el sistema de todas formas.");
+        }
+
+        // Limpieza final
+        cart = [];
+        updateCartCount();
+        updateCartDisplay();
+        closeCart();
+        document.getElementById('checkout-form').reset();
+
+    } catch (err) {
+        console.error("[PEDIDO] Error grave:", err);
+        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
+    }
+}
+
+// ------------------------------------------------------------------
+// 2. notifyLocalsAboutNewOrder – versión robusta
+// ------------------------------------------------------------------
+async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
+    console.log("[NOTIFICACIÓN] Iniciando envío de avisos a locales...");
+
+    let todasOk = true;
+
+    // 1. Agrupar carrito por local
+    const groupedByLocal = {};
+    cart.forEach(item => {
+        const localId = item.idLocal || item.local_id;
+        if (!localId) return;
+
+        if (!groupedByLocal[localId]) {
+            groupedByLocal[localId] = {
+                items: [],
+                nombreLocal: item.nombreLocal || 'Local',
+                emailLocal: null,           // ← aquí es donde falla hoy
+                subtotal: 0
+            };
+        }
+
+        groupedByLocal[localId].items.push(item);
+        groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
+    });
+
+    if (Object.keys(groupedByLocal).length === 0) {
+        console.warn("[NOTIFICACIÓN] No se encontraron locales en el carrito");
+        return true; // no hay nada que notificar
+    }
+
+    // 2. Intentamos obtener emails (dos estrategias)
+    for (const localId in groupedByLocal) {
+        const group = groupedByLocal[localId];
+
+        // Estrategia A: si ya está en los datos del menú (ideal)
+        group.emailLocal = group.items[0]?.emailLocal || null;
+
+        // Estrategia B: si no está → hacemos una llamada rápida para obtenerlo
+        if (!group.emailLocal) {
+            try {
+                const res = await fetch(`${scriptUrl}?action=getPerfilLocal&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success && data.email) {
+                    group.emailLocal = data.email;
+                    console.log(`[NOTIFICACIÓN] Email obtenido por llamada: ${group.emailLocal}`);
+                }
+            } catch (e) {
+                console.warn(`No se pudo obtener email del local ${localId}`, e);
+            }
+        }
+
+        if (!group.emailLocal) {
+            console.error(`[NOTIFICACIÓN] IMPOSIBLE: sin email para local ${localId} (${group.nombreLocal})`);
+            todasOk = false;
+            continue;
+        }
+
+        // 3. Construir texto de items
+        const itemsText = group.items.map(i =>
+            `${i.nombreProducto} × ${i.cantidad}   $${(i.precioUnitario * i.cantidad).toFixed(0)}` +
+            (i.variantes ? ` (${i.variantes})` : '')
+        ).join('\n');
+
+        const costoEnvio = (tipoEntrega === 'envio' && prices?.shipping > 0) ? 2500 : 0;
+        const totalLocal = group.subtotal + costoEnvio;
+
+        // 4. HTML profesional (estilo ejemplo 1)
+        const logoHtml = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
+                     alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+        `;
+
+        const htmlBody = `
+            ${logoHtml}
+            <h2 style="color:#d32f2f; text-align:center; margin:0 0 12px;">
+                ¡NUEVO PEDIDO RECIBIDO!
+            </h2>
+            <p style="text-align:center; color:#555; margin-bottom:28px; font-size:1.05em;">
+                #${idPedido} – ${group.nombreLocal}
+            </p>
+
+            <p><strong>Cliente:</strong> ${localStorage.getItem('userName') || 'Cliente'} (${localStorage.getItem('userEmail') || '—'})</p>
+            <p><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
+
+            ${tipoEntrega === 'envio' ? `
+                <p><strong>Dirección de envío:</strong> ${direccion || 'No especificada'}</p>
+            ` : ''}
+
+            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+
+            <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
+            <div style="background:#f9f9f9; padding:16px 20px; border-radius:8px; margin:16px 0;">
+                <pre style="margin:0; white-space:pre-wrap; font-size:1em; line-height:1.5; font-family:Arial,Helvetica,sans-serif;">
+${itemsText}
+                </pre>
+            </div>
+
+            <p style="margin:16px 0 8px;"><strong>Subtotal productos:</strong> $${group.subtotal.toFixed(0)}</p>
+            <p style="margin:8px 0;"><strong>Costo envío:</strong> ${costoEnvio === 0 ? 'GRATIS' : '$' + costoEnvio}</p>
+            <p style="font-size:1.18em; font-weight:bold; color:#d32f2f; margin:24px 0; text-align:right;">
+                Total a cobrar: $${totalLocal.toFixed(0)}
+            </p>
+
+            <hr style="border:0; border-top:1px solid #eee; margin:32px 0 24px;">
+
+            <p style="text-align:center; color:#666; font-size:0.95em; line-height:1.5;">
+                Por favor prepara el pedido lo antes posible.<br>
+                Cualquier duda, responde directamente a este correo.
+            </p>
+        `;
+
+        // 5. Enviar email (con mejor manejo de errores)
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: group.emailLocal,
+            subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
+            htmlBody: htmlBody
+        });
+
+        try {
+            const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
+                method: 'GET',
+                cache: 'no-cache',
+                // Quitamos no-cors para poder leer la respuesta (si el backend lo permite)
+            });
+
+            console.log(`[NOTIFICACIÓN OK] Enviado a ${group.emailLocal} (#${idPedido})`);
+        } catch (err) {
+            console.error(`[NOTIFICACIÓN FALLIDA] ${group.emailLocal}:`, err);
+            todasOk = false;
+        }
+    }
+
+    console.log("[NOTIFICACIÓN] Finalizado → todasOk =", todasOk);
+    return todasOk;
+}
+        
+        // Esta función debería llamarse SOLO cuando el pago está aprobado
+async function createConfirmedOrder(orderData) {
+    const payload = {
+        action: 'createPaidOrder', // ← acción nueva que deberías crear en tu Google Apps Script
+        userId: orderData.userId,
+        fecha: orderData.fecha,
+        direccion: orderData.direccion,
+        metodoPago: "Mercado Pago - Aprobado",
+        paymentId: orderData.paymentId,
+        preferenceId: orderData.preferenceId,
+        total: orderData.total,
+        envioGratis: orderData.envioGratis,
+        tipoEntrega: orderData.tipoEntrega,
+        observaciones: orderData.observaciones,
+        items: orderData.cart.map(item => ({
+            idProducto: item.idProducto,
+            cantidad: item.cantidad,
+            precioUnitario: item.precioUnitario,
+            nombre: item.nombreProducto
+        }))
+    };
+    try {
+        await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(payload)
+        });
+        alert("¡Pago confirmado! Tu pedido ha sido registrado correctamente.");
+        // Limpieza final
+        cart = [];
+        updateCartCount();
+        updateCartDisplay();
+        document.getElementById('cart-section').style.display = 'none';
+        document.getElementById('mercadopago-checkout').style.display = 'none';
+        document.getElementById('checkout-btn').style.display = 'block';
+        document.getElementById('checkout-form').reset();
+    } catch (err) {
+        console.error("Error registrando pedido pagado:", err);
+        alert("El pago fue aprobado pero hubo un problema al registrar el pedido. Contacta soporte con el ID del pago.");
+    }
+}
+        // Carrusel de categorías (solo en móviles)
+function setupCategoriesCarousel() {
+    const container = document.getElementById('categories-container');
+    const prevBtn = document.getElementById('prev-category');
+    const nextBtn = document.getElementById('next-category');
+    if (!container || !prevBtn || !nextBtn) return;
+    function scrollLeft() {
+        container.scrollBy({ left: -container.clientWidth * 0.7, behavior: 'smooth' });
+    }
+    function scrollRight() {
+        container.scrollBy({ left: container.clientWidth * 0.7, behavior: 'smooth' });
+    }
+    prevBtn.addEventListener('click', scrollLeft);
+    nextBtn.addEventListener('click', scrollRight);
+    // Opcional: deshabilitar botones si no hay más para ver
+    function updateButtons() {
+        const atStart = container.scrollLeft <= 0;
+        const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
+        prevBtn.disabled = atStart;
+        prevBtn.style.opacity = atStart ? '0.4' : '1';
+        prevBtn.style.cursor = atStart ? 'default' : 'pointer';
+        nextBtn.disabled = atEnd;
+        nextBtn.style.opacity = atEnd ? '0.4' : '1';
+        nextBtn.style.cursor = atEnd ? 'default' : 'pointer';
+    }
+    container.addEventListener('scroll', updateButtons);
+    window.addEventListener('resize', updateButtons);
+    // Estado inicial
+    setTimeout(updateButtons, 300);
+}
+// Llamar después de cargar la página
+window.addEventListener('load', () => {
+    checkLoginStatus();
+    loadFilters();
+    setupSearch();
+    setupCart();
+    loadAllDrinks();
+    setupCategoriesCarousel(); // ← agregar esta línea
+});
+        // Service worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('Service Worker registrado con éxito:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('Fallo al registrar el Service Worker:', error);
+        });
+    });
+  }
+        function setupGenericCarousel(wrapperId, containerId, prevId, nextId) {
+    const wrapper = document.getElementById(wrapperId);
+    const container = document.getElementById(containerId);
+    const prev = document.getElementById(prevId);
+    const next = document.getElementById(nextId);
+   
+    if (!container || !prev || !next) return;
+    function scrollLeft() { container.scrollBy({ left: -container.clientWidth * 0.75, behavior: 'smooth' }); }
+    function scrollRight() { container.scrollBy({ left: container.clientWidth * 0.75, behavior: 'smooth' }); }
+    prev.onclick = scrollLeft;
+    next.onclick = scrollRight;
+    function updateButtons() {
+        const atStart = container.scrollLeft <= 1;
+        const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
+       
+        prev.disabled = atStart;
+        prev.style.opacity = atStart ? '0.35' : '1';
+        next.disabled = atEnd;
+        next.style.opacity = atEnd ? '0.35' : '1';
+    }
+    container.addEventListener('scroll', updateButtons);
+    window.addEventListener('resize', updateButtons);
+   
+    // Estado inicial
+    setTimeout(updateButtons, 400);
+}
+// Llamar para ambos carruseles
+window.addEventListener('load', () => {
+    // ... tus otras inicializaciones ...
+   
+    setupGenericCarousel('suggestions-carousel-wrapper', 'suggestion-items', 'prev-suggestion', 'next-suggestion');
+   
+    // Si más adelante creas otro carrusel, solo llamas de nuevo la función
+});
+    </script>
 </body>
 </html>
