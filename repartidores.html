@@ -140,6 +140,19 @@
     }
     .success { background: #27ae60; }
     .error { background: #d32f2f; }
+
+    /* Ocultar por defecto todo lo que debe estar oculto al cargar */
+#auth-section,
+#panel-principal,
+#register-form,
+#viaje-actual {
+  display: none;
+}
+
+/* Clase que vamos a usar para mostrar */
+.visible {
+  display: block !important;
+}
   </style>
 </head>
 <body>
@@ -252,20 +265,17 @@
 
     let repartidorId = localStorage.getItem('repartidorId');
 
-    // Inicialización segura: ocultar dashboard desde el principio
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('panel-principal').classList.add('hidden');
-      document.getElementById('auth-section').classList.remove('hidden');
+  // Por defecto mostramos SOLO la sección de autenticación + login
+  document.getElementById('auth-section').classList.add('visible');
+  document.getElementById('login-form').classList.add('visible');
 
-      // Mostrar login por defecto
-      document.getElementById('login-form').classList.remove('hidden');
-      document.getElementById('register-form').classList.add('hidden');
+  // Los demás quedan ocultos gracias al CSS
 
-      // Si hay token → cargar panel
-      if (repartidorId) {
-        mostrarPanelPrincipal();
-      }
-    });
+  if (repartidorId) {
+    mostrarPanelPrincipal();
+  }
+});
 
     // Mostrar/ocultar formularios
     document.getElementById('show-register').addEventListener('click', () => {
@@ -353,13 +363,23 @@
       document.head.appendChild(script);
     });
 
-    // Mostrar panel principal
     function mostrarPanelPrincipal() {
-      document.getElementById('auth-section').classList.add('hidden');
-      document.getElementById('panel-principal').classList.remove('hidden');
-      cargarDatosRepartidor();
-    }
+  document.getElementById('auth-section').classList.remove('visible');
+  document.getElementById('panel-principal').classList.add('visible');
+  cargarDatosRepartidor();
+}
 
+// Ejemplo toggle register/login
+document.getElementById('show-register').addEventListener('click', () => {
+  document.getElementById('register-form').classList.add('visible');
+  document.getElementById('login-form').classList.remove('visible');
+});
+
+document.getElementById('show-login').addEventListener('click', () => {
+  document.getElementById('login-form').classList.add('visible');
+  document.getElementById('register-form').classList.remove('visible');
+});
+    
     // Cargar datos del repartidor (JSONP)
     function cargarDatosRepartidor() {
       if (!repartidorId) return logout();
