@@ -2747,16 +2747,13 @@ function saveAddressChange() {
 }
         
 // ------------------------------------------------------------------
-// Notificar a los locales - Versión actualizada con dirección real del local
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-// Notificar a los locales - Versión ajustada según tu último pedido
+// Notificar a los locales - Versión ajustada a tu formato exacto
 // ------------------------------------------------------------------
 async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
     console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
     let todasOk = true;
 
-    // 1. Agrupar por local
+    // 1. Agrupar por local (puede haber varios locales en un mismo pedido)
     const groupedByLocal = {};
     cart.forEach(item => {
         const localId = item.idLocal || item.local_id;
@@ -2778,10 +2775,7 @@ async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, obser
         return true;
     }
 
-    // Nombre del cliente (desde localStorage)
-    const nombreCliente = localStorage.getItem('userName') || 'Cliente';
-
-    // 2. Por cada local
+    // 2. Procesar cada local
     for (const localId in groupedByLocal) {
         const group = groupedByLocal[localId];
 
@@ -2804,9 +2798,21 @@ async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, obser
             continue;
         }
 
-        // Productos en formato simple
+        // Obtener nombre real del cliente desde hoja Usuarios (columna B)
+        let nombreCliente = localStorage.getItem('userName') || 'Cliente';
+        try {
+            const resUser = await fetch(`${scriptUrl}?action=getUserName&userId=${encodeURIComponent(userId)}`);
+            const dataUser = await resUser.json();
+            if (dataUser.success && dataUser.nombre) {
+                nombreCliente = dataUser.nombre;
+            }
+        } catch (e) {
+            console.warn("No se obtuvo nombre del usuario desde backend");
+        }
+
+        // Productos en formato de código
         const itemsText = group.items.map(i =>
-            `${i.nombreProducto} × ${i.cantidad} $${(i.precioUnitario * i.cantidad).toFixed(0)}`
+            `${i.nombreProducto} × ${i.cantidad} $${Number(i.precioUnitario * i.cantidad).toLocaleString('es-AR')}`
         ).join('\n');
 
         const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
@@ -2817,26 +2823,22 @@ async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, obser
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
             
-            <h2 style="color:#d32f2f; text-align:center; margin:0 0 8px;">
-                ¡NUEVO PEDIDO RECIBIDO!
-            </h2>
-            <p style="text-align:center; font-size:1.4em; font-weight:bold; margin:0 0 24px;">
+            <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
+            <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
                 #${idPedido} – ${group.nombreLocal}
             </p>
             
-            <p><strong>Cliente:</strong> ${nombreCliente}</p>
-            <p><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
-            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+            <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
+            <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
+            ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
             
             <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
-            <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:16px 0; font-family: monospace; white-space: pre-wrap;">
+            <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
 ${itemsText}
             </pre>
             
-            <p style="margin:16px 0 8px;"><strong>Subtotal productos:</strong> $$    {group.subtotal.toFixed(0)}</p>
-            
-            <p style="font-size:1.18em; font-weight:bold; color:#d32f2f; text-align:right; margin:24px 0;">
-                Total a cobrar al local:     $${group.subtotal.toFixed(0)}
+            <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
+                <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
             </p>
             
             <hr style="margin:32px 0;">
@@ -2854,10 +2856,7 @@ ${itemsText}
         });
 
         try {
-            const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
-                method: 'GET',
-                cache: 'no-cache'
-            });
+            await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
             console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
         } catch (err) {
             console.error(`[LOCAL FALLÓ] ${group.emailLocal}:`, err);
@@ -2865,7 +2864,6 @@ ${itemsText}
         }
     }
 
-    console.log("[NOTIFICACIÓN LOCALES] Finalizado →", todasOk ? "OK" : "Con errores");
     return todasOk;
 }
         
