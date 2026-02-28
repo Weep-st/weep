@@ -1264,6 +1264,11 @@ main {
 <div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
    
                 <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
+                <!-- Agregar esto justo antes del <button id="checkout-btn"> -->
+<div id="checkout-loading" class="text-center my-3 d-none">
+    <span class="spinner-border spinner-border-sm text-danger me-2" role="status"></span>
+    <strong class="text-danger">Realizando Pedido...</strong>
+</div>
                 <button type="button" id="checkout-btn">Realizar Pedido</button>
             </form>
         </div>
@@ -2458,6 +2463,7 @@ function removeFromCart(index) {
             const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
             document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
         }
+        
         async function checkout() {
     if (!isLoggedIn) {
         showModal('login-modal');
@@ -2468,13 +2474,16 @@ function removeFromCart(index) {
         alert('El carrito está vacío');
         return;
     }
+
     const delivery = document.getElementById('delivery-type').value;
     const metodoPago = document.getElementById('metodo-pago').value;
     const observaciones = document.getElementById('observaciones').value.trim();
+
     if (!metodoPago) {
         alert('Selecciona un método de pago');
         return;
     }
+
     let direccion = '';
     if (delivery === 'envio') {
         direccion = document.getElementById('direccion').value.trim();
@@ -2485,14 +2494,32 @@ function removeFromCart(index) {
     } else {
         direccion = 'Retiro en local';
     }
+
     const prices = calculatePrices();
-    // ── Caso especial: Transferencia / Mercado Pago ────────────────────────
-    if (metodoPago === "transferencia") {
-        await handleMercadoPagoPayment(direccion, delivery, prices, observaciones);
-        return;
+
+    // ── BLOQUEO DE UI + MOSTRAR LOADING ────────────────────────────────
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const loadingDiv  = document.getElementById('checkout-loading');
+
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Procesando...';
+    loadingDiv.classList.remove('d-none');
+
+    try {
+        if (metodoPago === "transferencia") {
+            await handleMercadoPagoPayment(direccion, delivery, prices, observaciones);
+        } else {
+            await createOrderNormal(direccion, metodoPago, delivery, prices, observaciones);
+        }
+    } catch (err) {
+        console.error("Error en checkout:", err);
+        alert("Hubo un problema al procesar el pedido.\nPor favor intenta de nuevo.");
+    } finally {
+        // ── SIEMPRE restauramos el estado ────────────────────────────────
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Realizar Pedido';
+        loadingDiv.classList.add('d-none');
     }
-    // ── Flujo normal para Efectivo ─────────────────────────────────────────
-    await createOrderNormal(direccion, metodoPago, delivery, prices, observaciones);
 }
         async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutContainer = document.getElementById('mercadopago-checkout');
