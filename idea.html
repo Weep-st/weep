@@ -2748,6 +2748,9 @@ function saveAddressChange() {
         // ------------------------------------------------------------------
 // 1. createOrderNormal – crea pedido + notifica locales
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// createOrderNormal – crea pedido + notifica locales + (si envío) asigna repartidor y envía email desde frontend
+// ------------------------------------------------------------------
 async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
     try {
         const action = 'createOrder';
@@ -2762,150 +2765,113 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
             `&total=${encodeURIComponent(prices.total)}` +
             `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
             `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
-        console.log("[PEDIDO] Enviando creación →", url);
+
         const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
+
         if (!result.success) {
-            throw new Error(result.error || "Error desconocido al crear pedido");
+            throw new Error(result.error || "Error al crear pedido");
         }
+
         const idPedido = result.idPedido;
-        console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
-        alert(`¡Pedido #${idPedido} registrado exitosamente!`);
-        // ── Notificar a los locales ───────────────────────────────
-        const notificacionesOk = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
-        if (!notificacionesOk) {
-            console.warn("[NOTIFICACIÓN] Algún local no recibió el aviso");
-            alert("Pedido creado, pero hubo un problema al notificar a uno o más locales.\n" +
-                  "El local debería verlo en el sistema de todas formas.");
+        console.log(`[PEDIDO] Creado → #${idPedido}`);
+
+        // Notificar locales (ya existe)
+        await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+
+        // ── Si es envío: asignar repartidor y enviar email desde frontend ───────
+        let repartidorInfo = null;
+        if (tipoEntrega === 'envio') {
+            repartidorInfo = await assignRepartidor(idPedido, metodoPago);
+            
+            if (repartidorInfo && repartidorInfo.success && repartidorInfo.email) {
+                await sendEmailToRepartidor(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo);
+            } else {
+                console.warn("No se pudo asignar repartidor o no tiene email");
+            }
         }
-        // Limpieza final
+
+        alert(`¡Pedido #${idPedido} registrado exitosamente!` +
+              (repartidorInfo ? `\nAsignado al repartidor ID: ${repartidorInfo.repartidorId || '?'}` : ''));
+
+        // Limpieza
         cart = [];
         updateCartCount();
         updateCartDisplay();
         closeCart();
         document.getElementById('checkout-form').reset();
+
     } catch (err) {
-        console.error("[PEDIDO] Error grave:", err);
-        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
+        console.error("[PEDIDO] Error:", err);
+        alert("Error al registrar el pedido. Intenta nuevamente.");
     }
 }
-// ------------------------------------------------------------------
-// 2. notifyLocalsAboutNewOrder – versión robusta
-// ------------------------------------------------------------------
-async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
-    console.log("[NOTIFICACIÓN] Iniciando envío de avisos a locales...");
-    let todasOk = true;
-    // 1. Agrupar carrito por local
-    const groupedByLocal = {};
-    cart.forEach(item => {
-        const localId = item.idLocal || item.local_id;
-        if (!localId) return;
-        if (!groupedByLocal[localId]) {
-            groupedByLocal[localId] = {
-                items: [],
-                nombreLocal: item.nombreLocal || 'Local',
-                emailLocal: null, // ← aquí es donde falla hoy
-                subtotal: 0
-            };
-        }
-        groupedByLocal[localId].items.push(item);
-        groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Asignar repartidor (solo pide al backend que asigne y devuelva info)
+// ─────────────────────────────────────────────────────────────────────────────
+async function assignRepartidor(idPedido, metodoPago) {
+    try {
+        const url = `${scriptUrl}?action=assignRepartidor&idPedido=${idPedido}&metodoPago=${encodeURIComponent(metodoPago)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.success ? data : null;
+    } catch (err) {
+        console.error("Error al asignar repartidor:", err);
+        return null;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Armar HTML y enviar email al repartidor (igual formato que locales)
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendEmailToRepartidor(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
+    const logoUrl = "https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
+
+    let montoCobrar = metodoPago.toLowerCase() === "efectivo" 
+        ? `$${Number(prices.total).toLocaleString('es-AR')}` 
+        : "NADA (pagado con " + metodoPago + ")";
+
+    const htmlBody = `
+        <div style="text-align:center; margin:24px 0 32px;">
+            <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
+        </div>
+        <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+
+        <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
+        <p style="text-align:center; color:#555; margin-bottom:28px; font-size:1.05em;">
+            Pedido #<strong>${idPedido}</strong>
+        </p>
+
+        <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
+        <p><strong>Dirección de retiro:</strong> [Datos del local – pendiente]</p>
+        <p><strong>Total a pagar al local:</strong> —</p>
+
+        <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
+        <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
+        <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+        <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
+
+        <hr style="border:0; border-top:1px solid #eee; margin:32px 0 24px;">
+        <p style="text-align:center; color:#666; font-size:0.95em; line-height:1.5;">
+            Por favor dirígete a la dirección lo antes posible.<br>
+            Cualquier duda, responde directamente a este correo.
+        </p>
+    `;
+
+    const emailParams = new URLSearchParams({
+        action: 'enviarNotificacionEmail',
+        toEmail: repartidorInfo.email,
+        subject: `🚚 PEDIDO ASIGNADO #${idPedido} – Weep`,
+        htmlBody: htmlBody
     });
-    if (Object.keys(groupedByLocal).length === 0) {
-        console.warn("[NOTIFICACIÓN] No se encontraron locales en el carrito");
-        return true; // no hay nada que notificar
+
+    try {
+        await fetch(`${scriptUrl}?${emailParams.toString()}`);
+        console.log(`[EMAIL REPARTIDOR] Enviado a ${repartidorInfo.email}`);
+    } catch (err) {
+        console.error("[EMAIL REPARTIDOR] Falló:", err);
     }
-    // 2. Intentamos obtener emails (dos estrategias)
-    for (const localId in groupedByLocal) {
-        const group = groupedByLocal[localId];
-        // Estrategia A: si ya está en los datos del menú (ideal)
-        group.emailLocal = group.items[0]?.emailLocal || null;
-        // Estrategia B: si no está → hacemos una llamada rápida para obtenerlo
-        if (!group.emailLocal) {
-            try {
-                const res = await fetch(`${scriptUrl}?action=getPerfilLocal&localId=${encodeURIComponent(localId)}`);
-                const data = await res.json();
-                if (data.success && data.email) {
-                    group.emailLocal = data.email;
-                    console.log(`[NOTIFICACIÓN] Email obtenido por llamada: ${group.emailLocal}`);
-                }
-            } catch (e) {
-                console.warn(`No se pudo obtener email del local ${localId}`, e);
-            }
-        }
-        if (!group.emailLocal) {
-            console.error(`[NOTIFICACIÓN] IMPOSIBLE: sin email para local ${localId} (${group.nombreLocal})`);
-            todasOk = false;
-            continue;
-        }
-        // 3. Construir texto de items
-        const itemsText = group.items.map(i =>
-            `${i.nombreProducto} × ${i.cantidad} $${(i.precioUnitario * i.cantidad).toFixed(0)}` +
-            (i.variantes ? ` (${i.variantes})` : '')
-        ).join('\n');
-        const costoEnvio = (tipoEntrega === 'envio' && prices?.shipping > 0) ? 2500 : 0;
-        const totalLocal = group.subtotal + costoEnvio;
-        // 4. HTML profesional (estilo ejemplo 1)
-        const logoHtml = `
-            <div style="text-align:center; margin:24px 0 32px;">
-                <img src="https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
-                     alt="Weep" width="120" style="border-radius:12px;">
-            </div>
-            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-        `;
-        const htmlBody = `
-            ${logoHtml}
-            <h2 style="color:#d32f2f; text-align:center; margin:0 0 12px;">
-                ¡NUEVO PEDIDO RECIBIDO!
-            </h2>
-            <p style="text-align:center; color:#555; margin-bottom:28px; font-size:1.05em;">
-                #${idPedido} – ${group.nombreLocal}
-            </p>
-            <p><strong>Cliente:</strong> ${localStorage.getItem('userName') || 'Cliente'} (${localStorage.getItem('userEmail') || '—'})</p>
-            <p><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
-            ${tipoEntrega === 'envio' ? `
-                <p><strong>Dirección de envío:</strong> ${direccion || 'No especificada'}</p>
-            ` : ''}
-            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
-            <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
-            <div style="background:#f9f9f9; padding:16px 20px; border-radius:8px; margin:16px 0;">
-                <pre style="margin:0; white-space:pre-wrap; font-size:1em; line-height:1.5; font-family:Arial,Helvetica,sans-serif;">
-${itemsText}
-                </pre>
-            </div>
-            <p style="margin:16px 0 8px;"><strong>Subtotal productos:</strong> $${group.subtotal.toFixed(0)}</p>
-            <p style="margin:8px 0;"><strong>Costo envío:</strong> ${costoEnvio === 0 ? 'GRATIS' : '$' + costoEnvio}</p>
-            <p style="font-size:1.18em; font-weight:bold; color:#d32f2f; margin:24px 0; text-align:right;">
-                Total a cobrar: $${totalLocal.toFixed(0)}
-            </p>
-            <hr style="border:0; border-top:1px solid #eee; margin:32px 0 24px;">
-            <p style="text-align:center; color:#666; font-size:0.95em; line-height:1.5;">
-                Por favor prepara el pedido lo antes posible.<br>
-                Cualquier duda, responde directamente a este correo.
-            </p>
-        `;
-        // 5. Enviar email (con mejor manejo de errores)
-        const emailParams = new URLSearchParams({
-            action: 'enviarNotificacionEmail',
-            toEmail: group.emailLocal,
-            subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
-            htmlBody: htmlBody
-        });
-        try {
-            const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
-                method: 'GET',
-                cache: 'no-cache',
-                // Quitamos no-cors para poder leer la respuesta (si el backend lo permite)
-            });
-            console.log(`[NOTIFICACIÓN OK] Enviado a ${group.emailLocal} (#${idPedido})`);
-        } catch (err) {
-            console.error(`[NOTIFICACIÓN FALLIDA] ${group.emailLocal}:`, err);
-            todasOk = false;
-        }
-    }
-    console.log("[NOTIFICACIÓN] Finalizado → todasOk =", todasOk);
-    return todasOk;
 }
        
         // Esta función debería llamarse SOLO cuando el pago está aprobado
