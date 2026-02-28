@@ -2747,83 +2747,120 @@ function saveAddressChange() {
 }
         
 // ------------------------------------------------------------------
-// Notificar al repartidor DESDE EL FRONTEND
-// Ahora consulta la dirección del local (columna G) y calcula subtotal real
+// Notificar a los locales - Versión actualizada con dirección real del local
 // ------------------------------------------------------------------
-async function notifyRepartidorFromFrontend(idPedido, direccionEntrega, observaciones, prices, metodoPago, repartidorInfo) {
-    try {
-        // 1. Obtener dirección del local (asumimos que todos los items son del mismo local)
-        let direccionRetiro = "—";
-        let subtotalLocal = 0;
+async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
+    console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
+    let todasOk = true;
 
-        if (cart.length > 0) {
-            const localId = cart[0].idLocal || cart[0].local_id;
-            if (localId) {
-                // Consulta al backend
-                const resLocal = await fetch(`${scriptUrl}?action=getLocalInfoForDelivery&localId=${encodeURIComponent(localId)}`);
-                const dataLocal = await resLocal.json();
-                if (dataLocal.success) {
-                    direccionRetiro = dataLocal.direccion;
-                }
-
-                // Calcular subtotal real (solo productos, sin envío)
-                subtotalLocal = cart.reduce((sum, item) => sum + (item.precioUnitario * item.cantidad), 0);
-            }
+    const groupedByLocal = {};
+    cart.forEach(item => {
+        const localId = item.idLocal || item.local_id;
+        if (!localId) return;
+        if (!groupedByLocal[localId]) {
+            groupedByLocal[localId] = {
+                items: [],
+                nombreLocal: item.nombreLocal || 'Local',
+                emailLocal: null,
+                subtotal: 0,
+                direccionLocal: '—'  // ← nuevo campo
+            };
         }
+        groupedByLocal[localId].items.push(item);
+        groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
+    });
+
+    if (Object.keys(groupedByLocal).length === 0) {
+        console.warn("[NOTIFICACIÓN] No hay locales en el carrito");
+        return true;
+    }
+
+    // Obtener dirección de cada local (columna G = índice 6, asumiendo A=0)
+    for (const localId in groupedByLocal) {
+        const group = groupedByLocal[localId];
+
+        // 1. Obtener email (como antes)
+        if (!group.emailLocal) {
+            try {
+                const res = await fetch(`${scriptUrl}?action=getPerfilLocal&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success) {
+                    group.emailLocal = data.email;
+                }
+            } catch (e) {}
+        }
+
+        // 2. Obtener dirección del local (nueva consulta)
+        try {
+            const resDir = await fetch(`${scriptUrl}?action=getLocalAddress&localId=${encodeURIComponent(localId)}`);
+            const dataDir = await resDir.json();
+            if (dataDir.success && dataDir.direccion) {
+                group.direccionLocal = dataDir.direccion;
+            }
+        } catch (e) {
+            console.warn(`No se obtuvo dirección del local ${localId}`);
+        }
+
+        if (!group.emailLocal) {
+            console.error(`Sin email para local ${localId}`);
+            todasOk = false;
+            continue;
+        }
+
+        const itemsText = group.items.map(i =>
+            `${i.nombreProducto} × ${i.cantidad} $${(i.precioUnitario * i.cantidad).toFixed(0)}`
+        ).join('\n');
+
+        const subtotalLocal = group.subtotal;  // ← sin envío
 
         const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-
-        let montoCobrar = "NADA (pagado con " + metodoPago + ")";
-        if (metodoPago.toLowerCase() === "efectivo") {
-            montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
-        }
 
         const htmlBody = `
             <div style="text-align:center; margin:24px 0 32px;">
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-            
-            <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
-            <p style="text-align:center; font-size:1.2em; margin:8px 0;">
-                Pedido #<strong>${idPedido}</strong>
+            <h2 style="color:#d32f2f; text-align:center;">¡NUEVO PEDIDO RECIBIDO!</h2>
+            <p style="text-align:center; color:#555; margin-bottom:28px; font-size:1.05em;">
+                #${idPedido} – ${group.nombreLocal}
             </p>
-
-            <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
-            <p><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
-            <p><strong>Total a pagar al local:</strong> $${subtotalLocal.toLocaleString('es-AR')}</p>
-
-            <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
-            <p><strong>Dirección de entrega:</strong> ${direccionEntrega || 'No especificada'}</p>
+            <p><strong>Cliente:</strong> ${localStorage.getItem('userName') || 'Cliente'} (${localStorage.getItem('userEmail') || '—'})</p>
+            <p><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
+            ${tipoEntrega === 'envio' ? `<p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>` : ''}
             <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
-            <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
-
-            <hr style="margin:32px 0;">
-            <p style="text-align:center; color:#555; font-size:0.95em;">
-                Por favor dirígete al local para retirar el pedido y luego a la dirección de entrega.<br>
-                ¡Gracias por ser parte del equipo Weep!
+            <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
+            <div style="background:#f9f9f9; padding:16px 20px; border-radius:8px; margin:16px 0;">
+                <pre style="margin:0; white-space:pre-wrap; font-size:1em; line-height:1.5;">${itemsText}</pre>
+            </div>
+            <p style="margin:16px 0 8px;"><strong>Subtotal productos:</strong> $${subtotalLocal.toFixed(0)}</p>
+            ${tipoEntrega === 'envio' ? `<p><strong>Costo envío (lo cobra Weep):</strong> $${COSTO_ENVIO.toFixed(0)}</p>` : ''}
+            <p style="font-size:1.18em; font-weight:bold; color:#d32f2f; margin:24px 0; text-align:right;">
+                Total a cobrar al local: $${subtotalLocal.toFixed(0)}
+            </p>
+            <hr style="border:0; border-top:1px solid #eee; margin:32px 0 24px;">
+            <p style="text-align:center; color:#666; font-size:0.95em; line-height:1.5;">
+                Por favor prepara el pedido lo antes posible.<br>
+                Cualquier duda, responde directamente a este correo.
             </p>
         `;
 
         const emailParams = new URLSearchParams({
             action: 'enviarNotificacionEmail',
-            toEmail: repartidorInfo.email,
-            subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
+            toEmail: group.emailLocal,
+            subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
             htmlBody: htmlBody
         });
 
-        const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
-            method: 'GET',
-            cache: 'no-cache'
-        });
-
-        const data = await res.json();
-        return data.success === true;
-
-    } catch (err) {
-        console.error("Error al notificar repartidor:", err);
-        return false;
+        try {
+            await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
+            console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
+        } catch (err) {
+            console.error(`[LOCAL FALLÓ] ${group.emailLocal}:`, err);
+            todasOk = false;
+        }
     }
+
+    return todasOk;
 }
         
 // ------------------------------------------------------------------
@@ -2920,16 +2957,26 @@ async function assignRepartidor(idPedido, metodoPago) {
     }
 }
 
-// ------------------------------------------------------------------
-// Notificar al repartidor DESDE EL FRONTEND (usando la misma acción enviarNotificacionEmail)
-// ------------------------------------------------------------------
 async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
     try {
-        const logoUrl = "https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
+        const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
 
         let montoCobrar = "NADA (pagado con " + metodoPago + ")";
         if (metodoPago.toLowerCase() === "efectivo") {
             montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
+        }
+
+        // Obtener dirección del local (asumimos que todos los items son del mismo local en este caso)
+        let direccionRetiro = "—";
+        if (cart.length > 0) {
+            const localId = cart[0].idLocal || cart[0].local_id;
+            try {
+                const res = await fetch(`${scriptUrl}?action=getLocalAddress&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success && data.direccion) {
+                    direccionRetiro = data.direccion;
+                }
+            } catch (e) {}
         }
 
         const htmlBody = `
@@ -2944,8 +2991,8 @@ async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, 
             </p>
 
             <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
-            <p><strong>Dirección de retiro:</strong> [Datos del local - pendiente de implementación]</p>
-            <p><strong>Total a pagar al local:</strong> —</p>
+            <p><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
+            <p><strong>Total a pagar al local:</strong> $${cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR')}</p>
 
             <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
             <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
@@ -2975,7 +3022,7 @@ async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, 
         return data.success === true;
 
     } catch (err) {
-        console.error("Error al notificar repartidor desde frontend:", err);
+        console.error("Error al notificar repartidor:", err);
         return false;
     }
 }
