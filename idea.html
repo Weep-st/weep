@@ -2749,7 +2749,7 @@ function saveAddressChange() {
 // 1. createOrderNormal – crea pedido + notifica locales
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
-// createOrderNormal – crea pedido + notifica locales + (si envío) asigna repartidor y envía email desde frontend
+// createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
 // ------------------------------------------------------------------
 async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
     try {
@@ -2766,34 +2766,54 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
             `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
             `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
 
+        console.log("[PEDIDO] Enviando creación →", url);
         const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
 
         if (!result.success) {
-            throw new Error(result.error || "Error al crear pedido");
+            throw new Error(result.error || "Error desconocido al crear pedido");
         }
 
         const idPedido = result.idPedido;
-        console.log(`[PEDIDO] Creado → #${idPedido}`);
+        console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
 
         // Notificar locales (ya existe)
-        await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+        const localesNotificados = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
 
-        // ── Si es envío: asignar repartidor y enviar email desde frontend ───────
+        // ── NUEVO ── Si es envío: pedir al backend que asigne repartidor y obtener su info
         let repartidorInfo = null;
         if (tipoEntrega === 'envio') {
-            repartidorInfo = await assignRepartidor(idPedido, metodoPago);
-            
-            if (repartidorInfo && repartidorInfo.success && repartidorInfo.email) {
-                await sendEmailToRepartidor(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo);
+            const respAssign = await fetch(`${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`);
+            const dataAssign = await respAssign.json();
+
+            if (dataAssign.success && dataAssign.repartidor) {
+                repartidorInfo = dataAssign.repartidor;
+                console.log(`Repartidor asignado (frontend): ${repartidorInfo.nombre} - ${repartidorInfo.email}`);
             } else {
-                console.warn("No se pudo asignar repartidor o no tiene email");
+                console.warn("No se pudo asignar repartidor:", dataAssign);
             }
         }
 
-        alert(`¡Pedido #${idPedido} registrado exitosamente!` +
-              (repartidorInfo ? `\nAsignado al repartidor ID: ${repartidorInfo.repartidorId || '?'}` : ''));
+        // ── Notificar al repartidor DESDE FRONTEND (igual que a locales) ────────
+        let repartidorNotificado = false;
+        if (repartidorInfo && repartidorInfo.email) {
+            repartidorNotificado = await notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo);
+        }
+
+        // Mensaje final
+        let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
+        if (tipoEntrega === 'envio') {
+            if (repartidorInfo) {
+                mensajeFinal += `\nAsignado a repartidor: ${repartidorInfo.nombre || 'ID ' + repartidorInfo.id}`;
+                if (!repartidorNotificado) {
+                    mensajeFinal += `\n(No se pudo enviar email al repartidor en este momento)`;
+                }
+            } else {
+                mensajeFinal += `\nNo se pudo asignar repartidor en este momento`;
+            }
+        }
+        alert(mensajeFinal);
 
         // Limpieza
         cart = [];
@@ -2803,8 +2823,8 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
         document.getElementById('checkout-form').reset();
 
     } catch (err) {
-        console.error("[PEDIDO] Error:", err);
-        alert("Error al registrar el pedido. Intenta nuevamente.");
+        console.error("[PEDIDO] Error grave:", err);
+        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
     }
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2822,55 +2842,63 @@ async function assignRepartidor(idPedido, metodoPago) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Armar HTML y enviar email al repartidor (igual formato que locales)
-// ─────────────────────────────────────────────────────────────────────────────
-async function sendEmailToRepartidor(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
-    const logoUrl = "https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-
-    let montoCobrar = metodoPago.toLowerCase() === "efectivo" 
-        ? `$${Number(prices.total).toLocaleString('es-AR')}` 
-        : "NADA (pagado con " + metodoPago + ")";
-
-    const htmlBody = `
-        <div style="text-align:center; margin:24px 0 32px;">
-            <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
-        </div>
-        <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-
-        <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
-        <p style="text-align:center; color:#555; margin-bottom:28px; font-size:1.05em;">
-            Pedido #<strong>${idPedido}</strong>
-        </p>
-
-        <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
-        <p><strong>Dirección de retiro:</strong> [Datos del local – pendiente]</p>
-        <p><strong>Total a pagar al local:</strong> —</p>
-
-        <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
-        <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
-        <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
-        <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
-
-        <hr style="border:0; border-top:1px solid #eee; margin:32px 0 24px;">
-        <p style="text-align:center; color:#666; font-size:0.95em; line-height:1.5;">
-            Por favor dirígete a la dirección lo antes posible.<br>
-            Cualquier duda, responde directamente a este correo.
-        </p>
-    `;
-
-    const emailParams = new URLSearchParams({
-        action: 'enviarNotificacionEmail',
-        toEmail: repartidorInfo.email,
-        subject: `🚚 PEDIDO ASIGNADO #${idPedido} – Weep`,
-        htmlBody: htmlBody
-    });
-
+// ------------------------------------------------------------------
+// Notificar al repartidor DESDE EL FRONTEND (usando la misma acción enviarNotificacionEmail)
+// ------------------------------------------------------------------
+async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
     try {
-        await fetch(`${scriptUrl}?${emailParams.toString()}`);
-        console.log(`[EMAIL REPARTIDOR] Enviado a ${repartidorInfo.email}`);
+        const logoUrl = "https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
+
+        let montoCobrar = "NADA (pagado con " + metodoPago + ")";
+        if (metodoPago.toLowerCase() === "efectivo") {
+            montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
+        }
+
+        const htmlBody = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+            
+            <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
+            <p style="text-align:center; font-size:1.2em; margin:8px 0;">
+                Pedido #<strong>${idPedido}</strong>
+            </p>
+
+            <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
+            <p><strong>Dirección de retiro:</strong> [Datos del local - pendiente de implementación]</p>
+            <p><strong>Total a pagar al local:</strong> —</p>
+
+            <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
+            <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
+            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+            <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
+
+            <hr style="margin:32px 0;">
+            <p style="text-align:center; color:#555; font-size:0.95em;">
+                Por favor dirígete a la dirección lo antes posible.<br>
+                ¡Gracias por ser parte del equipo Weep!
+            </p>
+        `;
+
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: repartidorInfo.email,
+            subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
+            htmlBody: htmlBody
+        });
+
+        const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
+            method: 'GET',
+            cache: 'no-cache'
+        });
+
+        const data = await res.json();
+        return data.success === true;
+
     } catch (err) {
-        console.error("[EMAIL REPARTIDOR] Falló:", err);
+        console.error("Error al notificar repartidor desde frontend:", err);
+        return false;
     }
 }
        
