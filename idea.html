@@ -2745,9 +2745,119 @@ function saveAddressChange() {
             alert('Error de conexión al actualizar dirección');
         });
 }
-        // ------------------------------------------------------------------
-// 1. createOrderNormal – crea pedido + notifica locales
+        
 // ------------------------------------------------------------------
+// Notificar a los locales (versión robusta - la que ya tenías)
+// ------------------------------------------------------------------
+async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
+    console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
+    let todasOk = true;
+
+    // 1. Agrupar por local
+    const groupedByLocal = {};
+    cart.forEach(item => {
+        const localId = item.idLocal || item.local_id;
+        if (!localId) return;
+        if (!groupedByLocal[localId]) {
+            groupedByLocal[localId] = {
+                items: [],
+                nombreLocal: item.nombreLocal || 'Local',
+                emailLocal: null,
+                subtotal: 0
+            };
+        }
+        groupedByLocal[localId].items.push(item);
+        groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
+    });
+
+    if (Object.keys(groupedByLocal).length === 0) {
+        console.warn("[NOTIFICACIÓN] No hay locales en el carrito");
+        return true;
+    }
+
+    // 2. Por cada local
+    for (const localId in groupedByLocal) {
+        const group = groupedByLocal[localId];
+
+        // Intentar obtener email (puedes mejorar esta parte si ya lo tienes en otro lado)
+        if (!group.emailLocal) {
+            try {
+                const res = await fetch(`${scriptUrl}?action=getPerfilLocal&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success && data.email) {
+                    group.emailLocal = data.email;
+                }
+            } catch (e) {
+                console.warn(`No se obtuvo email del local ${localId}`);
+            }
+        }
+
+        if (!group.emailLocal) {
+            console.error(`Sin email para local ${localId} (${group.nombreLocal})`);
+            todasOk = false;
+            continue;
+        }
+
+        // Construir texto de items
+        const itemsText = group.items.map(i =>
+            `${i.nombreProducto} × ${i.cantidad} $${(i.precioUnitario * i.cantidad).toFixed(0)}`
+        ).join('\n');
+
+        const costoEnvio = (tipoEntrega === 'envio' && prices?.shipping > 0) ? 2500 : 0;
+        const totalLocal = group.subtotal + costoEnvio;
+
+        const logoHtml = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="https://i.postimg.cc/6q2TgqKF/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
+                     alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+        `;
+
+        const htmlBody = `
+            ${logoHtml}
+            <h2 style="color:#d32f2f; text-align:center;">¡NUEVO PEDIDO RECIBIDO!</h2>
+            <p style="text-align:center; color:#555; margin-bottom:28px; font-size:1.05em;">
+                #${idPedido} – ${group.nombreLocal}
+            </p>
+            <p><strong>Cliente:</strong> ${localStorage.getItem('userName') || 'Cliente'} (${localStorage.getItem('userEmail') || '—'})</p>
+            <p><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
+            ${tipoEntrega === 'envio' ? `<p><strong>Dirección:</strong> ${direccion || 'No especificada'}</p>` : ''}
+            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+            <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos</h3>
+            <div style="background:#f9f9f9; padding:16px 20px; border-radius:8px;">
+                <pre style="margin:0; white-space:pre-wrap; font-size:1em;">${itemsText}</pre>
+            </div>
+            <p><strong>Subtotal productos:</strong> $${group.subtotal.toFixed(0)}</p>
+            <p><strong>Costo envío:</strong> ${costoEnvio === 0 ? 'GRATIS' : '$' + costoEnvio}</p>
+            <p style="font-size:1.18em; font-weight:bold; color:#d32f2f; text-align:right;">
+                Total a cobrar: $${totalLocal.toFixed(0)}
+            </p>
+            <hr style="margin:32px 0;">
+            <p style="text-align:center; color:#666; font-size:0.95em;">
+                Por favor prepara el pedido lo antes posible.
+            </p>
+        `;
+
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: group.emailLocal,
+            subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
+            htmlBody: htmlBody
+        });
+
+        try {
+            const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
+            console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
+        } catch (err) {
+            console.error(`[LOCAL FALLÓ] ${group.emailLocal}:`, err);
+            todasOk = false;
+        }
+    }
+
+    return todasOk;
+}
+        
 // ------------------------------------------------------------------
 // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
 // ------------------------------------------------------------------
