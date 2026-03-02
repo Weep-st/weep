@@ -2190,15 +2190,26 @@
   }
   // ====================== MODIFICAR openCart ======================
   async function openCart() {
-      // ←←← VERIFICACIÓN OBLIGATORIA ANTES DE ABRIR EL CARRITO
-      await checkActiveRepartidores();
-      updateDeliveryOptions();
-      // Abrimos el carrito normalmente
-      document.getElementById('cart-section').classList.add('active');
-      document.getElementById('cart-backdrop').classList.add('active');
-      document.body.style.overflow = 'hidden';
-      updateCartDisplay();
-  }
+    await checkActiveRepartidores();
+    updateDeliveryOptions();
+
+    // Forzamos estado inicial del botón cada vez que se abre el carrito
+    const btn = document.getElementById('checkout-btn');
+    const spinner = document.getElementById('checkout-spinner');
+    const text = document.getElementById('checkout-text');
+
+    if (btn && spinner && text) {
+        btn.disabled = false;                     // habilitamos por si quedó deshabilitado
+        spinner.classList.add('d-none');          // ← forzamos oculto
+        text.textContent = 'Realizar Pedido';     // texto original
+    }
+
+    document.getElementById('cart-section').classList.add('active');
+    document.getElementById('cart-backdrop').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    updateCartDisplay();
+}
+        
   function closeCart() {
       document.getElementById('cart-section').classList.remove('active');
       document.getElementById('cart-backdrop').classList.remove('active');
