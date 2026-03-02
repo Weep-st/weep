@@ -1276,9 +1276,9 @@
     
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
-    <span id="checkout-spinner" class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+    <span id="checkout-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
     <span id="checkout-text">Realizar Pedido</span>
-</button></span>
+</button>
               </form>
           </div>
       </main>
@@ -2506,20 +2506,19 @@
 
     const prices = calculatePrices();
 
-    // ── Referencias a elementos del botón ────────────────────────────────
+    // ── Elementos del botón ────────────────────────────────────────
     const btn       = document.getElementById('checkout-btn');
     const spinner   = document.getElementById('checkout-spinner');
     const textSpan  = document.getElementById('checkout-text');
 
-    // Estado "cargando"
-    btn.disabled          = true;
+    // Estado "procesando" – igual que en repartidores.html
+    btn.disabled = true;
     spinner.classList.remove('d-none');
-    textSpan.textContent  = 'Realizando Pedido...';
+    textSpan.textContent = 'Realizando Pedido...';   // ← se mantiene el texto
 
     try {
-        // Pequeño retraso mínimo para que el usuario vea el spinner
-        // (opcional pero mejora mucho la percepción en conexiones rápidas)
-        await new Promise(r => setTimeout(r, 400));
+        // Pequeño retraso mínimo para percepción visual (opcional pero recomendado)
+        await new Promise(r => setTimeout(r, 600));
 
         if (metodoPago === "transferencia") {
             await handleMercadoPagoPayment(direccion, delivery, prices, observaciones);
@@ -2527,13 +2526,13 @@
             await createOrderNormal(direccion, metodoPago, delivery, prices, observaciones);
         }
     } catch (err) {
-        console.error("Error durante el checkout:", err);
-        alert("Hubo un problema al procesar el pedido.\nIntenta nuevamente o contacta soporte.");
+        console.error("Error en checkout:", err);
+        alert("Hubo un problema al procesar el pedido.\nIntenta nuevamente.");
     } finally {
-        // Siempre restauramos el botón (éxito o error)
-        btn.disabled          = false;
+        // Restaurar siempre
+        btn.disabled = false;
         spinner.classList.add('d-none');
-        textSpan.textContent  = 'Realizar Pedido';
+        textSpan.textContent = 'Realizar Pedido';
     }
 }
           
