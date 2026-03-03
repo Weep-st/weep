@@ -13,244 +13,282 @@
     <meta name="theme-color" content="#c62828">
 
     <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-            min-height: 100vh;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-        }
+        * { 
+    box-sizing: border-box; 
+}
 
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: #fff;
-            padding: 10px 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-            border-radius: 0 0 16px 16px;
-            display: flex;
-            justify-content: center; /* centrado en mobile */
-            align-items: center;
-        }
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    min-height: 100vh;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+}
 
-        .logo {
-            height: 70px;           /* más pequeño en general */
-        }
-        .logo img {
-            height: 100%;
-            object-fit: contain;
-        }
+/* ────────────────────────────────────────────── */
+/* Header - FIXED y con fondo sólido para evitar sobreposición */
+/* ────────────────────────────────────────────── */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;                    /* muy alto para que quede encima de todo */
+    background: #ffffff;              /* fondo sólido blanco → no se ve el gradiente debajo */
+    padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    justify-content: center;          /* centrado en mobile */
+    align-items: center;
+    backdrop-filter: blur(8px);       /* opcional: efecto vidrio esmerilado sutil */
+    -webkit-backdrop-filter: blur(8px);
+}
 
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px 16px 40px;
-            width: 100%;
-        }
+/* Espacio para que el contenido no quede tapado por el header fijo */
+body {
+    padding-top: 100px;               /* valor base - ajustado para mobile */
+}
 
-        .coming-soon-title {
-            color: #c62828;
-            font-size: clamp(2.6rem, 10vw, 5rem);
-            font-weight: 700;
-            margin: 0 0 16px;
-            line-height: 1.05;
-            text-shadow: 0 2px 8px rgba(198,40,40,0.12);
-        }
+/* Ajustes progresivos según tamaño de pantalla */
+@media (max-width: 480px) {
+    body { 
+        padding-top: 90px;            /* más ajustado en celulares pequeños */
+    }
+    header {
+        padding: 10px 12px;
+        border-radius: 0;             /* sin bordes redondeados en móviles muy pequeños */
+    }
+}
 
-        .subtitle {
-            font-size: clamp(1.15rem, 4.5vw, 1.45rem);
-            color: #444;
-            margin: 0 0 32px;
-            max-width: 90%;
-            line-height: 1.4;
-        }
+@media (min-width: 481px) and (max-width: 767px) {
+    body { padding-top: 105px; }
+}
 
-        .email-form {
-            background: white;
-            padding: 32px 24px;
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.13);
-            width: 100%;
-            max-width: 540px;
-            margin: 20px 0 48px;
-        }
+@media (min-width: 768px) {
+    body { padding-top: 120px; }      /* más espacio en tablets y desktop */
+    header {
+        padding: 12px 30px;
+        border-radius: 0 0 20px 20px;
+    }
+}
 
-        .email-form h3 {
-            color: #c62828;
-            margin: 0 0 16px;
-            font-size: 1.45rem;
-        }
+/* Logo */
+.logo {
+    height: 70px;                     /* tamaño cómodo en mobile */
+}
+.logo img {
+    height: 100%;
+    object-fit: contain;
+}
 
-        .email-form p {
-            margin: 0 0 24px;
-            color: #555;
-            font-size: 0.98rem;
-            line-height: 1.45;
-        }
+/* ────────────────────────────────────────────── */
+/* Resto del estilo (ya optimizado para mobile)   */
+/* ────────────────────────────────────────────── */
 
-        .email-form input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #eee;
-            border-radius: 12px;
-            font-size: 1.05rem;
-            margin-bottom: 16px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px 16px 40px;
+    width: 100%;
+}
 
-        .email-form input:focus {
-            border-color: #d32f2f;
-        }
+.coming-soon-title {
+    color: #c62828;
+    font-size: clamp(2.6rem, 10vw, 5rem);
+    font-weight: 700;
+    margin: 0 0 16px;
+    line-height: 1.05;
+    text-shadow: 0 2px 8px rgba(198,40,40,0.12);
+}
 
-        .email-form button {
-            width: 100%;
-            padding: 15px;
-            background: #d32f2f;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-height: 52px; /* mejor toque en móvil */
-        }
+.subtitle {
+    font-size: clamp(1.15rem, 4.5vw, 1.45rem);
+    color: #444;
+    margin: 0 0 32px;
+    max-width: 90%;
+    line-height: 1.4;
+}
 
-        .email-form button:hover:not(:disabled) {
-            background: #b71c1c;
-            transform: translateY(-2px);
-        }
+.email-form {
+    background: white;
+    padding: 32px 24px;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.13);
+    width: 100%;
+    max-width: 540px;
+    margin: 20px 0 48px;
+}
 
-        .email-form button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+.email-form h3 {
+    color: #c62828;
+    margin: 0 0 16px;
+    font-size: 1.45rem;
+}
 
-        .message {
-            margin-top: 16px;
-            font-weight: 500;
-            min-height: 1.4em;
-            font-size: 0.98rem;
-        }
+.email-form p {
+    margin: 0 0 24px;
+    color: #555;
+    font-size: 0.98rem;
+    line-height: 1.45;
+}
 
-        .success { color: #2e7d32; }
-        .error   { color: #d32f2f; }
+.email-form input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+}
 
-        .features {
-            display: flex;
-            flex-direction: column;     /* siempre columna en mobile-first */
-            align-items: center;
-            gap: 24px;
-            margin: 40px 0 60px;
-            width: 100%;
-            max-width: 480px;
-        }
+.email-form input:focus {
+    border-color: #d32f2f;
+}
 
-        .feature-card {
-            background: rgba(255,255,255,0.94);
-            border-radius: 16px;
-            padding: 24px 20px;
-            width: 100%;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.09);
-            transition: transform 0.22s;
-        }
+.email-form button {
+    width: 100%;
+    padding: 15px;
+    background: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 52px; /* mejor para toque en móvil */
+}
 
-        .feature-card:hover {
-            transform: translateY(-6px);
-        }
+.email-form button:hover:not(:disabled) {
+    background: #b71c1c;
+    transform: translateY(-2px);
+}
 
-        .feature-card h4 {
-            color: #c62828;
-            margin: 0 0 10px;
-            font-size: 1.28rem;
-        }
+.email-form button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
 
-        .feature-card p {
-            margin: 0;
-            color: #555;
-            font-size: 0.96rem;
-            line-height: 1.45;
-        }
+.message {
+    margin-top: 16px;
+    font-weight: 500;
+    min-height: 1.4em;
+    font-size: 0.98rem;
+}
 
-        footer {
-            background: #c62828;
-            color: white;
-            text-align: center;
-            padding: 28px 16px;
-            margin-top: auto;
-            font-size: 0.9rem;
-        }
+.success { color: #2e7d32; }
+.error   { color: #d32f2f; }
 
-        footer p {
-            margin: 6px 0;
-        }
+.features {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin: 40px 0 60px;
+    width: 100%;
+    max-width: 480px;
+}
 
-        footer a {
-            color: white;
-            text-decoration: none;
-        }
+.feature-card {
+    background: rgba(255,255,255,0.94);
+    border-radius: 16px;
+    padding: 24px 20px;
+    width: 100%;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+    transition: transform 0.22s;
+}
 
-        footer a:hover {
-            text-decoration: underline;
-        }
+.feature-card:hover {
+    transform: translateY(-6px);
+}
 
-        /* ────────────────────────────────────────────── */
-        /* Mejoras progresivas para pantallas más grandes  */
-        /* ────────────────────────────────────────────── */
+.feature-card h4 {
+    color: #c62828;
+    margin: 0 0 10px;
+    font-size: 1.28rem;
+}
 
-        @media (min-width: 480px) {
-            header { padding: 12px 20px; }
-            .logo { height: 80px; }
-            .email-form { padding: 36px 32px; }
-        }
+.feature-card p {
+    margin: 0;
+    color: #555;
+    font-size: 0.96rem;
+    line-height: 1.45;
+}
 
-        @media (min-width: 768px) {
-            header {
-                padding: 12px 30px;
-                border-radius: 0 0 20px 20px;
-            }
-            .logo { height: 90px; }
-            body { padding-top: 130px; }
+footer {
+    background: #c62828;
+    color: white;
+    text-align: center;
+    padding: 28px 16px;
+    margin-top: auto;
+    font-size: 0.9rem;
+}
 
-            .coming-soon-title { font-size: clamp(4rem, 9vw, 5.5rem); }
-            .subtitle { font-size: 1.6rem; max-width: 720px; }
+footer p {
+    margin: 6px 0;
+}
 
-            .email-form {
-                padding: 48px 40px;
-                max-width: 620px;
-            }
+footer a {
+    color: white;
+    text-decoration: none;
+}
 
-            .features {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 28px;
-                max-width: 1100px;
-            }
+footer a:hover {
+    text-decoration: underline;
+}
 
-            .feature-card {
-                flex: 1;
-                min-width: 300px;
-                max-width: 360px;
-            }
-        }
+/* Mejoras para pantallas más grandes */
+@media (min-width: 481px) {
+    header { padding: 12px 20px; }
+    .logo { height: 80px; }
+    .email-form { padding: 36px 32px; }
+}
 
-        @media (min-width: 1024px) {
-            main { padding: 40px 20px; }
-            .features { gap: 32px; }
-        }
+@media (min-width: 768px) {
+    header {
+        padding: 12px 30px;
+        border-radius: 0 0 20px 20px;
+    }
+    .logo { height: 90px; }
+    body { padding-top: 130px; }
+
+    .coming-soon-title { font-size: clamp(4rem, 9vw, 5.5rem); }
+    .subtitle { font-size: 1.6rem; max-width: 720px; }
+
+    .email-form {
+        padding: 48px 40px;
+        max-width: 620px;
+    }
+
+    .features {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 28px;
+        max-width: 1100px;
+    }
+
+    .feature-card {
+        flex: 1;
+        min-width: 300px;
+        max-width: 360px;
+    }
+}
+
+@media (min-width: 1024px) {
+    main { padding: 40px 20px; }
+    .features { gap: 32px; }
+}
     </style>
 </head>
 <body>
