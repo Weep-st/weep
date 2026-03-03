@@ -1296,7 +1296,7 @@
     
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
-    <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+    <span class="checkout-spinner d-none me-2" role="status" aria-hidden="true"></span>
     Realizar Pedido
 </button>
               </form>
@@ -1327,9 +1327,9 @@
         <input type="email" id="login-email" placeholder="Correo electrónico" required>
         <input type="password" id="login-password" placeholder="Contraseña" required>
         <button onclick="loginUser()">
-            <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
-            Entrar
-        </button>
+    <span class="checkout-spinner d-none me-2" role="status" aria-hidden="true"></span>
+    Entrar
+</button>
         <p>¿No tienes cuenta? <a onclick="switchToRegister()">Regístrate</a></p>
     </div>
 </div>
@@ -1344,9 +1344,9 @@
         <input type="password" id="register-password" placeholder="Contraseña" required>
         <input type="text" id="register-address" placeholder="Dirección (opcional)">
         <button onclick="registerUser()">
-            <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
-            Registrarse
-        </button>
+    <span class="checkout-spinner d-none me-2" role="status" aria-hidden="true"></span>
+    Registrarse
+</button>
         <p>¿Ya tienes cuenta? <a onclick="switchToLogin()">Inicia sesión</a></p>
     </div>
 </div>
