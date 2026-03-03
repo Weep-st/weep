@@ -1293,9 +1293,9 @@
     
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
-    <span id="checkout-spinner" class="checkout-spinner d-none" role="status" aria-hidden="true"></span>
+    <span id="checkout-spinner" class="checkout-spinner d-none me-2" role="status" aria-hidden="true"></span>
     <span id="checkout-text">Realizar Pedido</span>
-</button></span>
+</button>
               </form>
           </div>
       </main>
@@ -2192,29 +2192,26 @@
   async function openCart() {
     await checkActiveRepartidores();
     updateDeliveryOptions();
-
-    // Forzamos estado inicial del botón cada vez que se abre el carrito
-    const btn = document.getElementById('checkout-btn');
-    const spinner = document.getElementById('checkout-spinner');
-    const text = document.getElementById('checkout-text');
-
-    if (btn && spinner && text) {
-        btn.disabled = false;                     // habilitamos por si quedó deshabilitado
-        spinner.classList.add('d-none');          // ← forzamos oculto
-        text.textContent = 'Realizar Pedido';     // texto original
-    }
+    
+    // Forzamos estado correcto del botón
+    resetCheckoutButton();
 
     document.getElementById('cart-section').classList.add('active');
     document.getElementById('cart-backdrop').classList.add('active');
     document.body.style.overflow = 'hidden';
+    
     updateCartDisplay();
 }
-        
-  function closeCart() {
-      document.getElementById('cart-section').classList.remove('active');
-      document.getElementById('cart-backdrop').classList.remove('active');
-      document.body.style.overflow = '';
-  }
+
+function closeCart() {
+    document.getElementById('cart-section').classList.remove('active');
+    document.getElementById('cart-backdrop').classList.remove('active');
+    document.body.style.overflow = '';
+    
+    // También restauramos al cerrar
+    resetCheckoutButton();
+}
+  
   // Mantener TODAS las funciones originales del carrito
   function addToCart(menu) {
       if (!isLoggedIn) {
@@ -2331,7 +2328,8 @@
       function updateCartCount() {
           const total = cart.reduce((sum, i) => sum + i.cantidad, 0);
           document.getElementById('cart-count').textContent = total;
-      }
+}
+        
           function hasDrink() {
               return cart.some(i => i.categoria && i.categoria.trim() === CATEGORIA_BEBIDAS);
           }
@@ -2422,7 +2420,9 @@
           dirInput.placeholder = "Dirección de entrega (requerida)";
           dirInput.required = true;
       }
+            resetCheckoutButton();
   }
+        
           // Modificar cantidad de un ítem en el carrito
   function changeQuantity(index, delta) {
       if (!cart[index]) return;
@@ -2512,42 +2512,38 @@
         return;
     }
 
-    const delivery = document.getElementById('delivery-type').value;
-    const metodoPago = document.getElementById('metodo-pago').value;
-    const observaciones = document.getElementById('observaciones').value.trim();
+    const delivery = document.getElementById('delivery-type')?.value;
+    const metodoPago = document.getElementById('metodo-pago')?.value;
+    const observaciones = document.getElementById('observaciones')?.value?.trim() || '';
 
     if (!metodoPago) {
         alert('Selecciona un método de pago');
         return;
     }
 
-    let direccion = '';
-    if (delivery === 'envio') {
-        direccion = document.getElementById('direccion').value.trim();
-        if (!direccion) {
-            alert('Ingresa la dirección de entrega');
-            return;
-        }
-    } else {
-        direccion = 'Retiro en local';
+    let direccion = delivery === 'envio' 
+        ? document.getElementById('direccion')?.value?.trim() || '' 
+        : 'Retiro en local';
+
+    if (delivery === 'envio' && !direccion) {
+        alert('Ingresa la dirección de entrega');
+        return;
     }
 
     const prices = calculatePrices();
 
-    // ── Referencias a elementos del botón ────────────────────────────────
-    const btn       = document.getElementById('checkout-btn');
-    const spinner   = document.getElementById('checkout-spinner');
-    const textSpan  = document.getElementById('checkout-text');
+    const btn    = document.getElementById('checkout-btn');
+    const spinner = document.getElementById('checkout-spinner');
+    const text   = document.getElementById('checkout-text');
 
-    // Estado "cargando"
-    btn.disabled          = true;
+    if (!btn || !spinner || !text) return;
+
+    btn.disabled = true;
     spinner.classList.remove('d-none');
-    textSpan.textContent  = 'Realizando Pedido...';
+    text.textContent = 'Realizando Pedido...';
 
     try {
-        // Pequeño retraso mínimo para que el usuario vea el spinner
-        // (opcional pero mejora mucho la percepción en conexiones rápidas)
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 300));
 
         if (metodoPago === "transferencia") {
             await handleMercadoPagoPayment(direccion, delivery, prices, observaciones);
@@ -2555,14 +2551,23 @@
             await createOrderNormal(direccion, metodoPago, delivery, prices, observaciones);
         }
     } catch (err) {
-        console.error("Error durante el checkout:", err);
-        alert("Hubo un problema al procesar el pedido.\nIntenta nuevamente o contacta soporte.");
+        console.error("Error en checkout:", err);
+        alert("Hubo un problema al procesar el pedido.\nIntenta nuevamente.");
     } finally {
-        // Siempre restauramos el botón (éxito o error)
-        btn.disabled          = false;
-        spinner.classList.add('d-none');
-        textSpan.textContent  = 'Realizar Pedido';
+        resetCheckoutButton();   // ← usamos la función dedicada
     }
+}
+
+        function resetCheckoutButton() {
+    const btn = document.getElementById('checkout-btn');
+    const spinner = document.getElementById('checkout-spinner');
+    const text = document.getElementById('checkout-text');
+
+    if (!btn || !spinner || !text) return;
+
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+    text.textContent = 'Realizar Pedido';
 }
           
           async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
