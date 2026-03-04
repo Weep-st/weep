@@ -564,20 +564,60 @@
   // === SUBIR IMAGEN ===
   async function subirImagen(file) {
     if (!file) return '';
-    const MAX_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_SIZE) { alert('Imagen muy grande (máx 10MB)'); return ''; }
+
+    // Validación de tipo y tamaño
+    if (!file.type.startsWith('image/')) {
+        alert('Solo se permiten archivos de imagen (jpg, png, webp, etc.)');
+        return '';
+    }
+
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+    if (file.size > MAX_SIZE) {
+        alert('La imagen es demasiado grande.\nMáximo permitido: 10 MB');
+        return '';
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
     try {
-      const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
-      const data = await res.json();
-      return data.secure_url || '';
-    } catch (e) {
-      alert('Error al subir imagen');
-      return '';
+        const response = await fetch(CLOUDINARY_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => 'Sin detalles');
+            throw new Error(`Cloudinary respondió con error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.secure_url) {
+            throw new Error('No se recibió URL segura de la imagen subida');
+        }
+
+        return data.secure_url;
+
+    } catch (err) {
+        console.error('Error al subir imagen a Cloudinary:', err);
+        
+        let mensajeUsuario = 'No se pudo subir la imagen.';
+        
+        if (err.message.includes('413') || err.message.includes('size')) {
+            mensajeUsuario = 'Imagen demasiado grande para el servidor (límite ~10MB).';
+        } else if (err.message.includes('preset') || err.message.includes('upload_preset')) {
+            mensajeUsuario = 'Error de configuración en Cloudinary (preset inválido). Contacta soporte.';
+        } else if (err.message.includes('network') || err.message.includes('Failed to fetch')) {
+            mensajeUsuario = 'Problema de conexión. Verifica tu internet e intenta de nuevo.';
+        }
+
+        alert(mensajeUsuario + '\nLa imagen NO se guardará.');
+        return '';
     }
-  }
+}
+  
 async function agregarPlato() {
   const data = {
     action: document.getElementById('edit-item-id').value ? "updateMenuItem" : "addMenuItem",
