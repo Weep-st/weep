@@ -1456,11 +1456,15 @@ window.addEventListener('load', () => {
         
       async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
-    checkoutBtn.disabled = true;
-    checkoutBtn.textContent = 'Redirigiendo al pago seguro...';
+    if (checkoutBtn) {
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = 'Redirigiendo al pago seguro...';
+    }
 
     try {
         const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
+        console.log("Generando preferencia MP con externalRef:", externalRef);
+
         const preference = {
             items: [{
                 title: `Pedido Weep #${Date.now()}`,
@@ -1489,12 +1493,17 @@ window.addEventListener('load', () => {
             body: JSON.stringify(preference)
         });
 
-        if (!res.ok) throw new Error(`Error ${res.status}`);
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Error HTTP ${res.status}: ${errorText}`);
+        }
 
         const data = await res.json();
-        if (!data.init_point) throw new Error("No se recibió init_point");
+        if (!data.init_point) {
+            throw new Error("No se recibió init_point de Mercado Pago");
+        }
 
-        // Guardamos TODO lo necesario para crear el pedido después
+        // Guardamos TODOS los datos necesarios para crear el pedido DESPUÉS del pago
         pendingOrderData = {
             userId,
             fecha: new Date().toLocaleString('es-AR'),
@@ -1503,20 +1512,32 @@ window.addEventListener('load', () => {
             observaciones,
             envioGratis: prices.shipping === 0,
             tipoEntrega: delivery,
-            cart: [...cart],  // copia profunda si es necesario
+            cart: JSON.parse(JSON.stringify(cart)), // copia profunda del carrito
             total: prices.total,
             preferenceId: data.id,
             externalReference: externalRef
         };
 
+        // ── DIAGNÓSTICO ────────────────────────────────────────────────
+        console.log("=== PENDING ORDER DATA GUARDADA ANTES DE REDIRIGIR ===");
+        console.log(pendingOrderData);
+        alert("Datos guardados temporalmente. Ref: " + pendingOrderData.externalReference);
+        // ────────────────────────────────────────────────────────────────
+
+        // Opcional: guardar también en localStorage por si se pierde al redirigir
+        localStorage.setItem('pendingWeepOrder', JSON.stringify(pendingOrderData));
+
         alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás y registraremos tu pedido.");
         window.location.href = data.init_point;
 
     } catch (err) {
-        console.error("Error en Mercado Pago:", err);
+        console.error("Error grave en handleMercadoPagoPayment:", err);
         alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
-        checkoutBtn.disabled = false;
-        checkoutBtn.textContent = 'Realizar Pedido';
+
+        if (checkoutBtn) {
+            checkoutBtn.disabled = false;
+            checkoutBtn.textContent = 'Realizar Pedido';
+        }
     }
 }
         
@@ -2763,29 +2784,32 @@ async function registerUser() {
       }, 5000);
   }
   async function finalizeOrderAfterPayment() {
+    console.log("=== INICIO finalizeOrderAfterPayment ===");
+    console.log("Datos que se van a usar:", pendingOrderData);
+
     if (!pendingOrderData) {
-        alert("No hay datos de pedido pendientes. Intenta nuevamente.");
+        console.error("pendingOrderData está vacío o undefined");
+        alert("No hay datos pendientes para crear el pedido.");
         return;
     }
 
-    const btn = document.getElementById('checkout-btn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Finalizando pedido...';
-    }
-
     try {
-        // Creamos el pedido REAL ahora que el pago está aprobado
+        console.log("Llamando a createOrderNormal con:", {
+            direccion: pendingOrderData.direccion,
+            metodo: pendingOrderData.metodoPago,
+            tipoEntrega: pendingOrderData.tipoEntrega,
+            total: pendingOrderData.total
+        });
+
         await createOrderNormal(
             pendingOrderData.direccion,
-            pendingOrderData.metodoPago,           // "Transferencia / Mercado Pago"
+            pendingOrderData.metodoPago,
             pendingOrderData.tipoEntrega,
-            {
-                total: pendingOrderData.total,
-                shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO
-            },
+            { total: pendingOrderData.total, shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO },
             pendingOrderData.observaciones
         );
+
+        console.log("createOrderNormal terminó OK → pedido debería estar en sheet");
 
         // Limpieza
         cart = [];
@@ -2794,21 +2818,17 @@ async function registerUser() {
         closeCart();
         document.getElementById('checkout-form')?.reset();
 
-        alert("¡Pago confirmado! Tu pedido ha sido registrado correctamente y ya asignamos repartidor (si corresponde).");
+        alert("¡Pago confirmado! Pedido registrado correctamente.");
 
     } catch (err) {
-        console.error("Error al finalizar pedido tras pago:", err);
-        alert("El pago fue aprobado pero hubo un problema al registrar el pedido. Contacta soporte con este mensaje: " + err.message);
+        console.error("ERROR en finalizeOrderAfterPayment:", err);
+        alert("El pago fue aprobado pero falló al guardar el pedido en la hoja.\nError: " + err.message);
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Realizar Pedido';
-        }
         pendingOrderData = null;
-        // Limpiar URL
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
+        
   async function checkPaymentReturn() {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get("status");
