@@ -2703,13 +2703,25 @@ async function registerUser() {
     const status = urlParams.get('status');
     const paymentId = urlParams.get('payment_id');
     if (!status || !paymentId) return;
-    // Cargar datos de localStorage
+
     const savedData = localStorage.getItem('pendingOrderData');
     if (!savedData) {
         alert('Error: no se encontraron datos del pedido. Intenta nuevamente.');
         return;
     }
+
     pendingOrderData = JSON.parse(savedData);
+
+    // ←←← RESTAURAR EL CARRITO ←←←
+    if (pendingOrderData.cart && Array.isArray(pendingOrderData.cart)) {
+        cart = pendingOrderData.cart;
+        updateCartCount();           // actualiza el badge del carrito
+        updateCartDisplay();         // refresca visualmente el sidebar (si está abierto)
+        console.log("Carrito restaurado desde pendingOrderData:", cart);
+    } else {
+        console.warn("No se encontró carrito en pendingOrderData");
+    }
+
     try {
         // Verificar el pago
         const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -2717,6 +2729,7 @@ async function registerUser() {
         });
         if (!res.ok) throw new Error("No se pudo verificar el pago");
         const payment = await res.json();
+
         if (payment.status === "approved") {
             pendingOrderData.paymentId = paymentId;
             await finalizeOrderAfterPayment();
@@ -2731,7 +2744,6 @@ async function registerUser() {
         console.error("Error verificando pago:", e);
         alert("No pudimos verificar el estado del pago. Por favor contacta soporte.");
     } finally {
-        // Limpiar URL
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
