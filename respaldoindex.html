@@ -1475,12 +1475,11 @@ window.addEventListener('load', () => {
             },
             external_reference: externalRef,
             back_urls: {
-                // ── CAMBIO IMPORTANTE: usa URLs absolutas y limpias ──
-                success: window.location.origin + "/?status=approved&ref=" + externalRef,
-                failure: window.location.origin + "/?status=failure",
-                pending:  window.location.origin + "/?status=pending"
+                success:  "https://weep.com.ar/respaldoindex.html?status=approved&ref=" + externalRef,
+                failure:  "https://weep.com.ar/respaldoindex.html?status=failure",
+                pending:  "https://weep.com.ar/respaldoindex.html?status=pending"
             },
-            auto_return: "approved"   // ahora sí debería funcionar sin error 400
+            auto_return: "approved"
         };
 
         const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -1502,7 +1501,7 @@ window.addEventListener('load', () => {
             throw new Error("No se recibió init_point");
         }
 
-        // Guardamos datos para cuando vuelva
+        // Guardamos datos para cuando vuelva (por si querés mostrar algo en respaldoindex.html)
         pendingOrderData = {
             userId,
             fecha: new Date().toLocaleString('es-AR'),
@@ -1518,8 +1517,8 @@ window.addEventListener('load', () => {
             paymentId: null
         };
 
-        // ── CAMBIO CLAVE: redirección directa en lugar de iframe ──
-        alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás automáticamente.");
+        // Redirección directa (ya lo tenías)
+        alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás a la página principal.");
         window.location.href = data.init_point;
 
     } catch (err) {
@@ -1528,7 +1527,7 @@ window.addEventListener('load', () => {
         checkoutBtn.disabled = false;
         checkoutBtn.textContent = 'Realizar Pedido';
     }
-}  
+}
         
         // ==================== ESTADO DE SESIÓN ====================
   function checkLoginStatus() {
