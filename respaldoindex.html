@@ -3028,64 +3028,76 @@ async function registerUser() {
       }
   }
   async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
-      try {
-          const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-          let montoCobrar = "NADA (pagado con " + metodoPago + ")";
-          if (metodoPago.toLowerCase() === "efectivo") {
-              montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
-          }
-          // Obtener dirección del local (asumimos que todos los items son del mismo local en este caso)
-          let direccionRetiro = "—";
-          if (cart.length > 0) {
-              const localId = cart[0].idLocal || cart[0].local_id;
-              try {
-                  const res = await fetch(`${scriptUrl}?action=getLocalAddress&localId=${encodeURIComponent(localId)}`);
-                  const data = await res.json();
-                  if (data.success && data.direccion) {
-                      direccionRetiro = data.direccion;
-                  }
-              } catch (e) {}
-          }
-          const htmlBody = `
-              <div style="text-align:center; margin:24px 0 32px;">
-                  <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
-              </div>
-              <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-           
-              <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
-              <p style="text-align:center; font-size:1.2em; margin:8px 0;">
-                  Pedido #<strong>${idPedido}</strong>
-              </p>
-              <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
-              <p><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
-              <p><strong>Total a pagar al local:</strong> $${cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR')}</p>
-              <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
-              <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
-              <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
-              <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
-              <hr style="margin:32px 0;">
-              <p style="text-align:center; color:#555; font-size:0.95em;">
-                  Por favor dirígete a la dirección lo antes posible.<br>
-                  ¡Gracias por ser parte del equipo Weep!
-              </p>
-          `;
-          const emailParams = new URLSearchParams({
-              action: 'enviarNotificacionEmail',
-              toEmail: repartidorInfo.email,
-              subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
-              htmlBody: htmlBody
-          });
-          const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
-              method: 'GET',
-              cache: 'no-cache'
-          });
-          const data = await res.json();
-          return data.success === true;
-      } catch (err) {
-          console.error("Error al notificar repartidor:", err);
-          return false;
-      }
-  }
+    try {
+        const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
+
+        // Monto a cobrar al cliente (entrega)
+        let montoCobrar = "NADA (pagado con " + metodoPago + ")";
+        if (metodoPago.toLowerCase() === "efectivo") {
+            montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
+        }
+
+        // Monto a pagar al local (retiro) → solo si es efectivo
+        let montoPagarLocal = "NADA (ya pagado con " + metodoPago + ")";
+        if (metodoPago.toLowerCase() === "efectivo") {
+            montoPagarLocal = "$" + cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR');
+        }
+
+        // Dirección del local
+        let direccionRetiro = "—";
+        if (cart.length > 0) {
+            const localId = cart[0].idLocal || cart[0].local_id;
+            try {
+                const res = await fetch(`${scriptUrl}?action=getLocalAddress&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success && data.direccion) {
+                    direccionRetiro = data.direccion;
+                }
+            } catch (e) {}
+        }
+
+        const htmlBody = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+        
+            <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
+            <p style="text-align:center; font-size:1.2em; margin:8px 0;">
+                Pedido #<strong>${idPedido}</strong>
+            </p>
+            <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
+            <p><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
+            <p><strong>Total a pagar al local:</strong> ${montoPagarLocal}</p>
+            <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
+            <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
+            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+            <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
+            <hr style="margin:32px 0;">
+            <p style="text-align:center; color:#555; font-size:0.95em;">
+                Por favor dirígete a la dirección lo antes posible.<br>
+                ¡Gracias por ser parte del equipo Weep!
+            </p>
+        `;
+
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: repartidorInfo.email,
+            subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
+            htmlBody: htmlBody
+        });
+
+        const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
+            method: 'GET',
+            cache: 'no-cache'
+        });
+        const data = await res.json();
+        return data.success === true;
+    } catch (err) {
+        console.error("Error al notificar repartidor:", err);
+        return false;
+    }
+}
       
           // Esta función debería llamarse SOLO cuando el pago está aprobado
   async function createConfirmedOrder(orderData) {
