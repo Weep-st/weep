@@ -2617,10 +2617,12 @@ async function registerUser() {
     const checkoutBtn = document.getElementById('checkout-btn');
     checkoutBtn.disabled = true;
     checkoutBtn.textContent = 'Redirigiendo a pago seguro...';
+
     try {
         // Generamos external_reference único
         const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
         console.log("Iniciando Mercado Pago con externalRef:", externalRef);
+
         const preference = {
             items: [{
                 title: `Pedido Weep #${Date.now()}`,
@@ -2637,8 +2639,11 @@ async function registerUser() {
                 failure: window.location.href,
                 pending: window.location.href
             },
-            auto_return: "approved"
+            auto_return: "approved",
+            // ← Línea agregada: esto aparecerá en el extracto de la tarjeta del cliente
+            statement_descriptor: "Weep"
         };
+
         const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
             headers: {
@@ -2647,14 +2652,17 @@ async function registerUser() {
             },
             body: JSON.stringify(preference)
         });
+
         if (!res.ok) {
             const error = await res.text();
             throw new Error(`Error ${res.status}: ${error}`);
         }
+
         const data = await res.json();
         if (!data.init_point) {
             throw new Error("No se recibió init_point");
         }
+
         // Guardar datos en localStorage antes de redirigir
         const pendingData = {
             userId,
@@ -2670,9 +2678,12 @@ async function registerUser() {
             externalReference: externalRef,
             paymentId: null
         };
+
         localStorage.setItem('pendingOrderData', JSON.stringify(pendingData));
+
         // Redirigir a MP
         window.location.href = data.init_point;
+
     } catch (err) {
         console.error("Error en handleMercadoPagoPayment:", err);
         alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
