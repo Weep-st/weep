@@ -2614,22 +2614,13 @@ async function registerUser() {
 }
         
           async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
-    const checkoutContainer = document.getElementById('mercadopago-checkout');
-    
+    const checkoutBtn = document.getElementById('checkout-btn');
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Redirigiendo a pago seguro...';
     try {
-        // 1. Crear el pedido ANTES de mostrar Mercado Pago (igual que efectivo)
-        const pricesForOrder = { total: prices.total, shipping: prices.shipping };
-        await createOrderNormal(
-            direccion,
-            "Transferencia / Mercado Pago",   // ← se guardará así en Sheets
-            delivery,
-            pricesForOrder,
-            observaciones
-        );
-        // ↑ Aquí ya se creó el pedido, se notificó al local y (si envío) se asignó y notificó repartidor
-
-        // 2. Ahora sí generamos la preferencia de Mercado Pago
+        // Generamos external_reference único
         const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
+        console.log("Iniciando Mercado Pago con externalRef:", externalRef);
         const preference = {
             items: [{
                 title: `Pedido Weep #${Date.now()}`,
@@ -2637,16 +2628,17 @@ async function registerUser() {
                 currency_id: "ARS",
                 unit_price: prices.total
             }],
-            payer: { email: localStorage.getItem('userEmail') || "cliente@weep.com.ar" },
+            payer: {
+                email: localStorage.getItem('userEmail') || "cliente@weep.com.ar"
+            },
             external_reference: externalRef,
             back_urls: {
-                success: window.location.href + '?status=approved',
-                failure: window.location.href + '?status=failure',
-                pending: window.location.href + '?status=pending'
+                success: window.location.href,
+                failure: window.location.href,
+                pending: window.location.href
             },
             auto_return: "approved"
         };
-
         const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
             headers: {
@@ -2655,65 +2647,41 @@ async function registerUser() {
             },
             body: JSON.stringify(preference)
         });
-
-        if (!res.ok) throw new Error("Error creando preferencia MP");
-
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(`Error ${res.status}: ${error}`);
+        }
         const data = await res.json();
-        if (!data.init_point) throw new Error("No init_point");
-
-        // Mostrar iframe
-        checkoutContainer.innerHTML = `<iframe src="${data.init_point}" width="100%" height="700" frameborder="0"></iframe>`;
-        checkoutContainer.style.display = 'block';
-        document.getElementById('checkout-btn').style.display = 'none';
-
-        alert("¡Pedido creado! Completa el pago en la ventana de Mercado Pago.\nLas notificaciones ya fueron enviadas.");
-
-        // Iniciar polling para confirmar (opcional, más para registro)
-        startPaymentPolling(data.id, externalRef);
-
+        if (!data.init_point) {
+            throw new Error("No se recibió init_point");
+        }
+        // Guardar datos en localStorage antes de redirigir
+        const pendingData = {
+            userId,
+            fecha: new Date().toLocaleString('es-AR'),
+            direccion,
+            metodoPago: "Transferencia / Mercado Pago",
+            observaciones,
+            envioGratis: prices.shipping === 0,
+            tipoEntrega: delivery,
+            cart,
+            total: prices.total,
+            preferenceId: data.id,
+            externalReference: externalRef,
+            paymentId: null
+        };
+        localStorage.setItem('pendingOrderData', JSON.stringify(pendingData));
+        // Redirigir a MP
+        window.location.href = data.init_point;
     } catch (err) {
-        console.error("Error en Mercado Pago:", err);
-        alert("Error al generar el link de pago.\nEl pedido ya fue creado → revisa tu historial o contacta soporte.");
+        console.error("Error en handleMercadoPagoPayment:", err);
+        alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Realizar Pedido';
     }
 }
         
-  // También se puede usar polling si no redirige bien
-  function startPaymentPolling(preferenceId, externalReference) { // ← agregamos externalReference como segundo parámetro
-      console.log("Iniciando polling con external_reference:", externalReference);
-      const interval = setInterval(async () => {
-          try {
-              // Buscamos por external_reference (esto SÍ funciona)
-              const url = `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(externalReference)}`;
-              console.log("Consultando pagos por external_reference:", url);
-              const res = await fetch(url, {
-                  headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-              });
-              if (!res.ok) {
-                  const errorText = await res.text();
-                  console.error(`Error ${res.status} en search por external_reference:`, errorText);
-                  return;
-              }
-              const data = await res.json();
-              console.log("Respuesta de /payments/search:", JSON.stringify(data, null, 2));
-              if (data.results?.length > 0) {
-                  const approved = data.results.find(p => p.status === "approved");
-                  if (approved) {
-                      console.log("¡Pago aprobado encontrado! ID:", approved.id);
-                      clearInterval(interval);
-                      pendingOrderData.paymentId = approved.id;
-                      await finalizeOrderAfterPayment();
-                      alert("¡Pago confirmado automáticamente! Tu pedido ha sido registrado.");
-                  } else {
-                      console.log("Pagos encontrados pero ninguno aprobado aún...");
-                  }
-              } else {
-                  console.log("Aún no hay pagos para este external_reference");
-              }
-          } catch (e) {
-              console.error("Error en polling:", e);
-          }
-      }, 5000);
-  }
+  
   async function finalizeOrderAfterPayment() {
       if (!pendingOrderData) return;
       // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
@@ -2731,38 +2699,42 @@ async function registerUser() {
       document.getElementById('checkout-btn').style.display = 'block';
   }
   async function checkPaymentReturn() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get("status");
-      const paymentId = urlParams.get("payment_id");
-      const externalReference = urlParams.get("external_reference"); // ← también puede venir
-      if (!status || !paymentId || !pendingOrderData) return;
-      try {
-          const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-              headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-          });
-          if (!res.ok) throw new Error("No se pudo verificar el pago");
-          const payment = await res.json();
-          if (payment.status === "approved") {
-              pendingOrderData.paymentId = payment.id;
-              pendingOrderData.preferenceId = payment.preference_id || pendingOrderData.preferenceId;
-              // ¡Aquí se confirma el pedido!
-              await createConfirmedOrder(pendingOrderData);
-              // Limpieza importante
-              pendingOrderData = null;
-          }
-          else if (payment.status === "pending") {
-              alert("El pago está pendiente de aprobación. Te avisaremos cuando se confirme.");
-          }
-          else {
-              alert(`El pago no fue aprobado. Estado: ${payment.status}\nPuedes intentarlo nuevamente.`);
-          }
-      } catch (e) {
-          console.error("Error verificando pago:", e);
-          alert("No pudimos verificar el estado del pago. Por favor contacta soporte.");
-      }
-      // Siempre limpiamos la URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-  }
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const paymentId = urlParams.get('payment_id');
+    if (!status || !paymentId) return;
+    // Cargar datos de localStorage
+    const savedData = localStorage.getItem('pendingOrderData');
+    if (!savedData) {
+        alert('Error: no se encontraron datos del pedido. Intenta nuevamente.');
+        return;
+    }
+    pendingOrderData = JSON.parse(savedData);
+    try {
+        // Verificar el pago
+        const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+        });
+        if (!res.ok) throw new Error("No se pudo verificar el pago");
+        const payment = await res.json();
+        if (payment.status === "approved") {
+            pendingOrderData.paymentId = paymentId;
+            await finalizeOrderAfterPayment();
+            alert("¡Pago confirmado! Tu pedido ha sido registrado.");
+            localStorage.removeItem('pendingOrderData');
+        } else if (payment.status === "pending") {
+            alert("El pago está pendiente de aprobación. Te avisaremos cuando se confirme.");
+        } else {
+            alert(`El pago no fue aprobado. Estado: ${payment.status}\nPuedes intentarlo nuevamente.`);
+        }
+    } catch (e) {
+        console.error("Error verificando pago:", e);
+        alert("No pudimos verificar el estado del pago. Por favor contacta soporte.");
+    } finally {
+        // Limpiar URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
   // ==================== EDITAR PERFIL ====================
   function openEditProfileModal() {
       profileDropdown.classList.remove('active');
@@ -3230,6 +3202,8 @@ async function registerUser() {
  
       // Si más adelante creas otro carrusel, solo llamas de nuevo la función
   });
+
+        window.addEventListener('load', checkPaymentReturn);
       </script>
   </body>
   </html>
