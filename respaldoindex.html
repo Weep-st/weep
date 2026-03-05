@@ -4,12 +4,11 @@
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Weep - Plataforma de Pedidos y Delivery</title>
-
     <!-- Bootstrap CSS (necesario para spinner-border) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-   
+  
       <style>
       * { box-sizing: border-box; }
       body {
@@ -539,7 +538,7 @@
       opacity: 0.65;
       cursor: not-allowed;
   }
-       
+      
       .suggestion:hover, .suggestion:active {
           transform: scale(1.1);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
@@ -859,7 +858,7 @@
           font-size: 1rem;
           gap: 8px;
       }
-  
+ 
       .loading .spinner {
           width: 26px;
           height: 26px;
@@ -1162,7 +1161,7 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-       
+      
   </style>
       <!-- PWA - Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -1236,20 +1235,20 @@
   </div>
           <div class="suggestions">
       <h2 id="suggestions-title">Sugerencias de Locales</h2>
-  
+ 
       <div class="carousel-wrapper" id="suggestions-carousel-wrapper">
           <button class="carousel-btn left" id="prev-suggestion">←</button>
-      
+     
           <div class="carousel-container" id="suggestion-items">
               <!-- solo tarjetas aquí -->
           </div>
-      
+     
           <button class="carousel-btn right" id="next-suggestion">→</button>
       </div>
       <!-- Contenedor exclusivo para el botón "Ver todo" -->
       <div id="ver-todo-categoria-container" style="text-align: center; margin: 30px 0 50px;"></div>
   </div>
-      
+     
           <div id="menu-display" style="display:none;"></div>
   <!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
   <div id="cart-backdrop" class="cart-backdrop"></div>
@@ -1293,7 +1292,7 @@
   </select>
   <!-- Contenedor donde se mostrará el checkout de MP -->
   <div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
-   
+  
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
     <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
@@ -1302,12 +1301,12 @@
               </form>
           </div>
       </main>
-   
+  
       <!-- Footer -->
   <footer class="text-center">
       <div class="container">
           <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-       
+      
           <p class="small mb-4">
               <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
           </p>
@@ -1318,7 +1317,7 @@
           </p>
       </div>
   </footer>
-   
+  
       <!-- Login Modal -->
 <div id="login-modal" class="modal">
     <div class="modal-content">
@@ -1382,7 +1381,7 @@
               </div>
               <div class="modal-body text-start small">
                   <p><strong>Última actualización: febrero 2026</strong></p>
-               
+              
                   <p>Al usar Weep aceptás:</p>
                   <ul>
                       <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
@@ -1391,7 +1390,7 @@
                       <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
                       <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
                   </ul>
-               
+              
                   <p class="mt-3">Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com">bajoneando.st@gmail.com</a></p>
               </div>
               <div class="modal-footer">
@@ -1422,14 +1421,11 @@
   const profileContainer = document.getElementById('profile-container');
   const profileButton = document.getElementById('profile-button');
   const profileDropdown = document.getElementById('profile-dropdown');
-
-
       // ── Detectar regreso de Mercado Pago ────────────────────────────────────────
 window.addEventListener('load', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get('status');
     const ref = urlParams.get('ref');
-
     if (status) {
         if (status === 'approved') {
             alert("¡Pago aprobado! Estamos registrando tu pedido...");
@@ -1440,31 +1436,25 @@ window.addEventListener('load', () => {
             } else {
                 alert("Pago confirmado, pero hubo un problema al recuperar los datos. Contacta soporte.");
             }
-        } 
+        }
         else if (status === 'failure') {
             alert("El pago no se pudo procesar. Puedes intentarlo nuevamente.");
-        } 
+        }
         else if (status === 'pending') {
             alert("El pago está en proceso. Te avisaremos cuando se confirme.");
         }
-
         // Limpiar la URL para que no quede con parámetros raros
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 });
-
-        
+       
       async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
-    if (checkoutBtn) {
-        checkoutBtn.disabled = true;
-        checkoutBtn.textContent = 'Redirigiendo al pago seguro...';
-    }
-
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Redirigiendo al pago seguro...';
     try {
         const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
-        console.log("Generando preferencia MP con externalRef:", externalRef);
-
+        console.log("Iniciando Mercado Pago con externalRef:", externalRef);
         const preference = {
             items: [{
                 title: `Pedido Weep #${Date.now()}`,
@@ -1483,7 +1473,6 @@ window.addEventListener('load', () => {
             },
             auto_return: "approved"
         };
-
         const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
             headers: {
@@ -1492,55 +1481,40 @@ window.addEventListener('load', () => {
             },
             body: JSON.stringify(preference)
         });
-
         if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Error HTTP ${res.status}: ${errorText}`);
+            const error = await res.text();
+            throw new Error(`Error ${res.status}: ${error}`);
         }
-
         const data = await res.json();
         if (!data.init_point) {
-            throw new Error("No se recibió init_point de Mercado Pago");
+            throw new Error("No se recibió init_point");
         }
-
-        // Guardamos TODOS los datos necesarios para crear el pedido DESPUÉS del pago
+        // Guardamos datos para cuando vuelva (por si querés mostrar algo en respaldoindex.html)
         pendingOrderData = {
             userId,
             fecha: new Date().toLocaleString('es-AR'),
             direccion,
-            metodoPago: "Transferencia / Mercado Pago",
+            metodoPago: "Mercado Pago",
             observaciones,
             envioGratis: prices.shipping === 0,
             tipoEntrega: delivery,
-            cart: JSON.parse(JSON.stringify(cart)), // copia profunda del carrito
+            cart,
             total: prices.total,
             preferenceId: data.id,
-            externalReference: externalRef
+            externalReference: externalRef,
+            paymentId: null
         };
-
-        // ── DIAGNÓSTICO ────────────────────────────────────────────────
-        console.log("=== PENDING ORDER DATA GUARDADA ANTES DE REDIRIGIR ===");
-        console.log(pendingOrderData);
-        alert("Datos guardados temporalmente. Ref: " + pendingOrderData.externalReference);
-        // ────────────────────────────────────────────────────────────────
-
-        // Opcional: guardar también en localStorage por si se pierde al redirigir
-        localStorage.setItem('pendingWeepOrder', JSON.stringify(pendingOrderData));
-
-        alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás y registraremos tu pedido.");
+        // Redirección directa (ya lo tenías)
+        alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás a la página principal.");
         window.location.href = data.init_point;
-
     } catch (err) {
-        console.error("Error grave en handleMercadoPagoPayment:", err);
+        console.error("Error en handleMercadoPagoPayment:", err);
         alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
-
-        if (checkoutBtn) {
-            checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Realizar Pedido';
-        }
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Realizar Pedido';
     }
 }
-        
+       
         // ==================== ESTADO DE SESIÓN ====================
   function checkLoginStatus() {
       userId = localStorage.getItem('userId');
@@ -1700,37 +1674,29 @@ window.addEventListener('load', () => {
           })
           .catch(() => showError(container, 'Error al cargar tus favoritos'));
   }
-
           async function showMyFavoritesSection() {
     if (!isLoggedIn) {
         alert("Debes iniciar sesión para ver tus favoritos");
         showModal('login-modal');
         return;
     }
-
     const container = document.getElementById('menu-display');
     const suggestionsTitle = document.getElementById('suggestions-title');
     const suggestionsWrapper = document.getElementById('suggestions-carousel-wrapper');
     const verTodoContainer = document.getElementById('ver-todo-categoria-container');
-
     // Ocultar carrusel de sugerencias / locales
     suggestionsWrapper.style.display = 'none';
     verTodoContainer.innerHTML = '';
-
     // Cambiar título
     suggestionsTitle.textContent = "Mis Favoritos";
-
     showLoading(container);
     container.style.display = 'block';
-
     try {
         // Opción A: Usar endpoint específico (recomendado - más eficiente)
         // Si ya tienes o puedes crear action=getFavoriteMenus en tu Google Apps Script
         const response = await fetch(`${scriptUrl}?action=getFavoriteMenus&userId=${userId}`);
         const data = await response.json();
-
         let favoriteMenus = [];
-
         if (data.success && Array.isArray(data.menus)) {
             favoriteMenus = data.menus;
         } else {
@@ -1740,7 +1706,6 @@ window.addEventListener('load', () => {
             const allMenus = allData.menus || [];
             favoriteMenus = allMenus.filter(m => userFavorites.includes(m.id));
         }
-
         if (favoriteMenus.length === 0) {
             container.innerHTML = `
                 <div style="padding: 60px 20px; text-align: center; color: #666;">
@@ -1750,25 +1715,23 @@ window.addEventListener('load', () => {
             `;
             return;
         }
-
         // Mostramos los platos (reutilizamos tu función existente)
         displayMenus(favoriteMenus, "Mis Favoritos");
-
     } catch (err) {
         console.error("Error al cargar favoritos:", err);
         showError(container, "No pudimos cargar tus favoritos en este momento");
     }
 }
-          
+         
   function displayMenus(menus, title, categoriaDestacada = null) {
       const container = document.getElementById('menu-display');
-  
+ 
       // Limpiamos y preparamos la estructura básica
       container.innerHTML = `
           <h2>${title}</h2>
           <div class="menu-items"></div>
       `;
-  
+ 
       const itemsDiv = container.querySelector('.menu-items');
       currentDisplayedMenus = {}; // Limpiamos caché de menús mostrados
       // Caso: no hay menús
@@ -1778,17 +1741,17 @@ window.addEventListener('load', () => {
           // Mostramos cada plato
           menus.forEach((menu) => {
               currentDisplayedMenus[menu.id] = menu;
-     
+    
               const div = document.createElement('div');
               div.className = 'menu-item';
-     
+    
               // Resaltar si coincide con la categoría destacada
               const esDeCategoria = categoriaDestacada &&
                   menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
               if (esDeCategoria) {
                   div.classList.add('destacado-categoria');
               }
-     
+    
               // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
               let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
               if (!menu.imagen_url && menu.categoria) {
@@ -1801,7 +1764,7 @@ window.addEventListener('load', () => {
                       imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
                   }
               }
-     
+    
               div.innerHTML = `
                   <img src="${imgSrc}"
                        alt="${menu.nombre}"
@@ -1828,7 +1791,7 @@ window.addEventListener('load', () => {
                       </div>
                   </div>
               `;
-     
+    
               itemsDiv.appendChild(div);
           });
       }
@@ -1838,7 +1801,7 @@ window.addEventListener('load', () => {
       let showFullMenuButton = false;
       let currentLocalId = null;
       let localName = 'este local';
-  
+ 
       if (categoriaDestacada && menus.length > 0) {
           currentLocalId = menus[0].local_id;
           localName = menus[0].nombre_local || 'este local';
@@ -1869,7 +1832,7 @@ window.addEventListener('load', () => {
                   </button>
               </div>
           `;
-      
+     
           // Asignamos el evento al botón recién creado
           const fullMenuBtn = container.querySelector('.ver-todo-menu button');
           fullMenuBtn.onclick = () => {
@@ -1889,14 +1852,14 @@ window.addEventListener('load', () => {
           const headerHeight = header ? header.offsetHeight : 140; // fallback
           const extraOffset = 30; // espacio adicional para que no quede pegado al header
           const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
-      
+     
           window.scrollTo({
               top: elementTop - headerHeight - extraOffset,
               behavior: 'smooth'
           });
       }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
   }
-   
+  
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
       if (!menu) {
@@ -2032,7 +1995,7 @@ async function registerUser() {
           setupCart();
           loadAllDrinks();
       });
-         
+        
           function loadAllDrinks() {
               fetch(`${scriptUrl}?action=getAllMenus`)
                   .then(r => r.ok ? r.json() : Promise.reject())
@@ -2097,7 +2060,7 @@ async function registerUser() {
           })
           .catch(() => showError(container, 'Error al cargar locales'));
   }
-      
+     
           function setupSearch() {
               const input = document.getElementById('search-input');
               let timeout;
@@ -2124,15 +2087,13 @@ async function registerUser() {
   document.querySelector('.categories').addEventListener('click', e => {
     const catElement = e.target.closest('.category');
     if (!catElement) return;
-
     const tipo = catElement.dataset.type;
-    
+   
     if (tipo === "favoritos") {
         // Ruta especial: mostrar favoritos
         showMyFavoritesSection();
         return;
     }
-
     // Comportamiento normal para el resto de categorías
     ultimaCategoriaSeleccionada = tipo;
     fetchLocalesByCategoria(tipo);
@@ -2322,7 +2283,7 @@ async function registerUser() {
           envioOption.style.backgroundColor = '';
       }
   }
-     
+    
   function setupCart() {
       // ────────────────────────────────────────────────────────────────
       // Elementos del DOM relacionados con el carrito
@@ -2688,7 +2649,7 @@ async function registerUser() {
               const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
               document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
           }
-         
+        
           async function checkout() {
     if (!isLoggedIn) {
         showModal('login-modal');
@@ -2745,7 +2706,7 @@ async function registerUser() {
         btn.lastChild.textContent = 'Realizar Pedido';
     }
 }
-         
+        
   // También se puede usar polling si no redirige bien
   function startPaymentPolling(preferenceId, externalReference) { // ← agregamos externalReference como segundo parámetro
       console.log("Iniciando polling con external_reference:", externalReference);
@@ -2784,51 +2745,21 @@ async function registerUser() {
       }, 5000);
   }
   async function finalizeOrderAfterPayment() {
-    console.log("=== INICIO finalizeOrderAfterPayment ===");
-    console.log("Datos que se van a usar:", pendingOrderData);
-
-    if (!pendingOrderData) {
-        console.error("pendingOrderData está vacío o undefined");
-        alert("No hay datos pendientes para crear el pedido.");
-        return;
-    }
-
-    try {
-        console.log("Llamando a createOrderNormal con:", {
-            direccion: pendingOrderData.direccion,
-            metodo: pendingOrderData.metodoPago,
-            tipoEntrega: pendingOrderData.tipoEntrega,
-            total: pendingOrderData.total
-        });
-
-        await createOrderNormal(
-            pendingOrderData.direccion,
-            pendingOrderData.metodoPago,
-            pendingOrderData.tipoEntrega,
-            { total: pendingOrderData.total, shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO },
-            pendingOrderData.observaciones
-        );
-
-        console.log("createOrderNormal terminó OK → pedido debería estar en sheet");
-
-        // Limpieza
-        cart = [];
-        updateCartCount();
-        updateCartDisplay();
-        closeCart();
-        document.getElementById('checkout-form')?.reset();
-
-        alert("¡Pago confirmado! Pedido registrado correctamente.");
-
-    } catch (err) {
-        console.error("ERROR en finalizeOrderAfterPayment:", err);
-        alert("El pago fue aprobado pero falló al guardar el pedido en la hoja.\nError: " + err.message);
-    } finally {
-        pendingOrderData = null;
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-}
-        
+      if (!pendingOrderData) return;
+      // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
+      // Método de pago se envía como "Transferencia / Mercado Pago" (o cámbialo a "Efectivo" si quieres)
+      await createOrderNormal(
+          pendingOrderData.direccion,
+          "Transferencia / Mercado Pago", // ← mismo que en checkout normal
+          pendingOrderData.tipoEntrega,
+          { total: pendingOrderData.total, shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO },
+          pendingOrderData.observaciones,
+          false // ← false = no usamos createPaidOrder, usamos createOrder normal
+      );
+      pendingOrderData = null;
+      document.getElementById('mercadopago-checkout').style.display = 'none';
+      document.getElementById('checkout-btn').style.display = 'block';
+  }
   async function checkPaymentReturn() {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get("status");
@@ -2910,10 +2841,10 @@ async function registerUser() {
                   // Actualizamos el almacenamiento local
                   localStorage.setItem('userName', name);
                   localStorage.setItem('userEmail', email);
-   
+  
                   alert(data.message || 'Perfil actualizado correctamente');
                   closeModal('edit-profile-modal');
-   
+  
                   // Refrescamos el estado visual si es necesario
                   checkLoginStatus();
               } else {
@@ -2940,11 +2871,11 @@ async function registerUser() {
               if (data.success) {
                   userAddress = newAddress;
                   localStorage.setItem('userAddress', newAddress);
-   
+  
                   // Actualizamos el campo de dirección del checkout si está visible
                   const checkoutDir = document.getElementById('direccion');
                   if (checkoutDir) checkoutDir.value = newAddress;
-   
+  
                   alert('Dirección actualizada correctamente');
                   closeModal('change-address-modal');
               } else {
@@ -2955,7 +2886,7 @@ async function registerUser() {
               alert('Error de conexión al actualizar dirección');
           });
   }
-        
+       
   // ------------------------------------------------------------------
   // Notificar a los locales - Versión ajustada a tu formato exacto
   // ------------------------------------------------------------------
@@ -3023,25 +2954,25 @@ async function registerUser() {
                   <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
               </div>
               <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-            
+           
               <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
               <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
                   #${idPedido} – ${group.nombreLocal}
               </p>
-            
+           
               <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
               <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
               ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
-            
+           
               <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
               <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
   ${itemsText}
               </pre>
-            
+           
               <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
                   <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
               </p>
-            
+           
               <hr style="margin:32px 0;">
               <p style="text-align:center; color:#666; font-size:0.95em;">
                   Por favor prepara el pedido lo antes posible.<br>
@@ -3064,70 +2995,99 @@ async function registerUser() {
       }
       return todasOk;
   }
-        
+       
   // ------------------------------------------------------------------
   // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
   // ------------------------------------------------------------------
   async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
-      try {
-          const action = 'createOrder';
-          const cartString = encodeURIComponent(JSON.stringify(cart));
-          const url = `${scriptUrl}?action=${action}` +
-              `&userId=${encodeURIComponent(userId)}` +
-              `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
-              `&direccion=${encodeURIComponent(direccion)}` +
-              `&metodoPago=${encodeURIComponent(metodoPago)}` +
-              `&observaciones=${encodeURIComponent(observaciones || '')}` +
-              `&cart=${cartString}` +
-              `&total=${encodeURIComponent(prices.total)}` +
-              `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
-              `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
-          console.log("[PEDIDO] Enviando creación →", url);
-          const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const result = await response.json();
-          if (!result.success) {
-              throw new Error(result.error || "Error desconocido al crear pedido");
-          }
-          const idPedido = result.idPedido;
-          console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
-          // Notificar locales (ya existe)
-          const localesNotificados = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
-          // ── NUEVO ── Si es envío: pedir al backend que asigne repartidor y obtener su info
-          let repartidorInfo = null;
-          if (tipoEntrega === 'envio') {
-              const respAssign = await fetch(`${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`);
-              const dataAssign = await respAssign.json();
-              if (dataAssign.success && dataAssign.repartidor) {
-                  repartidorInfo = dataAssign.repartidor;
-                  console.log(`Repartidor asignado (frontend): ${repartidorInfo.nombre} - ${repartidorInfo.email}`);
-              } else {
-                  console.warn("No se pudo asignar repartidor:", dataAssign);
-              }
-          }
-          // ── Notificar al repartidor DESDE FRONTEND (igual que a locales) ────────
-          let repartidorNotificado = false;
-          if (repartidorInfo && repartidorInfo.email) {
-              repartidorNotificado = await notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo);
-          }
-          // Mensaje final (versión simplificada, sin mencionar al repartidor)
-  let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
-  // Opcional: mantener solo el aviso de posible fallo en email (si quieres)
-  if (tipoEntrega === 'envio' && !repartidorNotificado && repartidorInfo) {
-      mensajeFinal += `\n(No se pudo enviar email al repartidor en este momento)`;
-  }
-  alert(mensajeFinal);
-          // Limpieza
-          cart = [];
-          updateCartCount();
-          updateCartDisplay();
-          closeCart();
-          document.getElementById('checkout-form').reset();
-      } catch (err) {
-          console.error("[PEDIDO] Error grave:", err);
-          alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
-      }
-  }
+    try {
+        // ── 1. Crear el pedido en la base ─────────────────────────────────
+        const cartString = encodeURIComponent(JSON.stringify(cart));
+        const url = `${scriptUrl}?action=createOrder` +
+            `&userId=${encodeURIComponent(userId)}` +
+            `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
+            `&direccion=${encodeURIComponent(direccion)}` +
+            `&metodoPago=${encodeURIComponent(metodoPago)}` +
+            `&observaciones=${encodeURIComponent(observaciones || '')}` +
+            `&cart=${cartString}` +
+            `&total=${encodeURIComponent(prices.total)}` +
+            `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
+            `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
+
+        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || "Error al crear pedido");
+        }
+
+        const idPedido = result.idPedido;
+        console.log(`[PEDIDO CREADO] #${idPedido}`);
+
+        // ── 2. Notificar a los locales (independiente del pago) ───────────
+        const localesNotificados = await notifyLocalsAboutNewOrder(
+            idPedido, direccion, tipoEntrega, observaciones, prices
+        );
+
+        // ── 3. Si es envío → ASIGNAR REPARTIDOR (¡siempre!) ───────────────
+        let repartidorInfo = null;
+        let repartidorAsignado = false;
+        let repartidorNotificado = false;
+
+        if (tipoEntrega === 'envio') {
+            // Intentamos asignar repartidor
+            const respAssign = await fetch(
+                `${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`
+            );
+            const dataAssign = await respAssign.json();
+
+            if (dataAssign.success && dataAssign.repartidor) {
+                repartidorInfo = dataAssign.repartidor;
+                repartidorAsignado = true;
+                console.log(`Repartidor asignado: ${repartidorInfo.nombre} (${repartidorInfo.email})`);
+
+                // Notificar al repartidor
+                repartidorNotificado = await notifyRepartidorFromFrontend(
+                    idPedido,
+                    direccion,
+                    observaciones,
+                    prices,
+                    metodoPago,
+                    repartidorInfo
+                );
+            } else {
+                console.warn("No se pudo asignar repartidor:", dataAssign.message || dataAssign);
+            }
+        }
+
+        // ── 4. Mensaje final al usuario ───────────────────────────────────
+        let mensaje = `¡Pedido #${idPedido} registrado exitosamente!`;
+
+        if (tipoEntrega === 'envio') {
+            if (!repartidorAsignado) {
+                mensaje += `\n\n(Estamos buscando repartidor, te avisaremos pronto)`;
+            } else if (!repartidorNotificado) {
+                mensaje += `\n\n(Repartidor asignado, pero no pudimos enviarle notificación en este momento)`;
+            } else {
+                mensaje += `\n\nRepartidor ya asignado y notificado ✓`;
+            }
+        }
+
+        alert(mensaje);
+
+        // ── 5. Limpieza ───────────────────────────────────────────────────
+        cart = [];
+        updateCartCount();
+        updateCartDisplay();
+        closeCart();
+        document.getElementById('checkout-form').reset();
+
+    } catch (err) {
+        console.error("[createOrderNormal] Error:", err);
+        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente.");
+    }
+}
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. Asignar repartidor (solo pide al backend que asigne y devuelva info)
   // ─────────────────────────────────────────────────────────────────────────────
@@ -3166,7 +3126,7 @@ async function registerUser() {
                   <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
               </div>
               <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-            
+           
               <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
               <p style="text-align:center; font-size:1.2em; margin:8px 0;">
                   Pedido #<strong>${idPedido}</strong>
@@ -3201,7 +3161,7 @@ async function registerUser() {
           return false;
       }
   }
-       
+      
           // Esta función debería llamarse SOLO cuando el pago está aprobado
   async function createConfirmedOrder(orderData) {
       const payload = {
@@ -3300,7 +3260,7 @@ async function registerUser() {
       const container = document.getElementById(containerId);
       const prev = document.getElementById(prevId);
       const next = document.getElementById(nextId);
-  
+ 
       if (!container || !prev || !next) return;
       function scrollLeft() { container.scrollBy({ left: -container.clientWidth * 0.75, behavior: 'smooth' }); }
       function scrollRight() { container.scrollBy({ left: container.clientWidth * 0.75, behavior: 'smooth' }); }
@@ -3309,7 +3269,7 @@ async function registerUser() {
       function updateButtons() {
           const atStart = container.scrollLeft <= 1;
           const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
-      
+     
           prev.disabled = atStart;
           prev.style.opacity = atStart ? '0.35' : '1';
           next.disabled = atEnd;
@@ -3317,16 +3277,16 @@ async function registerUser() {
       }
       container.addEventListener('scroll', updateButtons);
       window.addEventListener('resize', updateButtons);
-  
+ 
       // Estado inicial
       setTimeout(updateButtons, 400);
   }
   // Llamar para ambos carruseles
   window.addEventListener('load', () => {
       // ... tus otras inicializaciones ...
-  
+ 
       setupGenericCarousel('suggestions-carousel-wrapper', 'suggestion-items', 'prev-suggestion', 'next-suggestion');
-  
+ 
       // Si más adelante creas otro carrusel, solo llamas de nuevo la función
   });
       </script>
