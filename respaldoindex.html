@@ -1457,12 +1457,10 @@ window.addEventListener('load', () => {
       async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
     checkoutBtn.disabled = true;
-    checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando pago...';
+    checkoutBtn.textContent = 'Redirigiendo al pago seguro...';
 
     try {
         const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
-        console.log("Iniciando Mercado Pago con externalRef:", externalRef);
-
         const preference = {
             items: [{
                 title: `Pedido Weep #${Date.now()}`,
@@ -1491,58 +1489,34 @@ window.addEventListener('load', () => {
             body: JSON.stringify(preference)
         });
 
-        if (!res.ok) {
-            const error = await res.text();
-            throw new Error(`Error ${res.status}: ${error}`);
-        }
+        if (!res.ok) throw new Error(`Error ${res.status}`);
 
         const data = await res.json();
-        if (!data.init_point) {
-            throw new Error("No se recibió init_point de Mercado Pago");
-        }
+        if (!data.init_point) throw new Error("No se recibió init_point");
 
-        // Guardamos los datos del pedido pendiente (para usarlos después si es necesario)
+        // Guardamos TODO lo necesario para crear el pedido después
         pendingOrderData = {
             userId,
             fecha: new Date().toLocaleString('es-AR'),
             direccion,
-            metodoPago: "Transferencia / Mercado Pago (pendiente)",
+            metodoPago: "Transferencia / Mercado Pago",
             observaciones,
             envioGratis: prices.shipping === 0,
             tipoEntrega: delivery,
-            cart: [...cart],           // copia del carrito
+            cart: [...cart],  // copia profunda si es necesario
             total: prices.total,
             preferenceId: data.id,
-            externalReference: externalRef,
-            paymentId: null
+            externalReference: externalRef
         };
 
-        // ╔════════════════════════════════════════════════════════════╗
-        // ║  IMPORTANTE: Creamos el pedido AHORA (Opción A)            ║
-        // ║  → Esto asegura que se asigne repartidor y se llene col J  ║
-        // ╚════════════════════════════════════════════════════════════╝
-        console.log("Creando pedido en backend ANTES de redirigir a MP...");
-        await createOrderNormal(
-            direccion,
-            "Transferencia / Mercado Pago (pendiente)",  // estado inicial visible
-            delivery,
-            prices,
-            observaciones
-        );
-
-        // Mostramos mensaje claro al usuario
-        alert("¡Pedido registrado!\nTe estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez aprobado, tu pedido se confirmará automáticamente.");
-
-        // Redirigimos al checkout de Mercado Pago
+        alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás y registraremos tu pedido.");
         window.location.href = data.init_point;
 
     } catch (err) {
-        console.error("Error en handleMercadoPagoPayment:", err);
+        console.error("Error en Mercado Pago:", err);
         alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
-
-        // Restauramos botón
         checkoutBtn.disabled = false;
-        checkoutBtn.innerHTML = 'Realizar Pedido';
+        checkoutBtn.textContent = 'Realizar Pedido';
     }
 }
         
@@ -2789,21 +2763,52 @@ async function registerUser() {
       }, 5000);
   }
   async function finalizeOrderAfterPayment() {
-      if (!pendingOrderData) return;
-      // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
-      // Método de pago se envía como "Transferencia / Mercado Pago" (o cámbialo a "Efectivo" si quieres)
-      await createOrderNormal(
-          pendingOrderData.direccion,
-          "Transferencia / Mercado Pago", // ← mismo que en checkout normal
-          pendingOrderData.tipoEntrega,
-          { total: pendingOrderData.total, shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO },
-          pendingOrderData.observaciones,
-          false // ← false = no usamos createPaidOrder, usamos createOrder normal
-      );
-      pendingOrderData = null;
-      document.getElementById('mercadopago-checkout').style.display = 'none';
-      document.getElementById('checkout-btn').style.display = 'block';
-  }
+    if (!pendingOrderData) {
+        alert("No hay datos de pedido pendientes. Intenta nuevamente.");
+        return;
+    }
+
+    const btn = document.getElementById('checkout-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Finalizando pedido...';
+    }
+
+    try {
+        // Creamos el pedido REAL ahora que el pago está aprobado
+        await createOrderNormal(
+            pendingOrderData.direccion,
+            pendingOrderData.metodoPago,           // "Transferencia / Mercado Pago"
+            pendingOrderData.tipoEntrega,
+            {
+                total: pendingOrderData.total,
+                shipping: pendingOrderData.envioGratis ? 0 : COSTO_ENVIO
+            },
+            pendingOrderData.observaciones
+        );
+
+        // Limpieza
+        cart = [];
+        updateCartCount();
+        updateCartDisplay();
+        closeCart();
+        document.getElementById('checkout-form')?.reset();
+
+        alert("¡Pago confirmado! Tu pedido ha sido registrado correctamente y ya asignamos repartidor (si corresponde).");
+
+    } catch (err) {
+        console.error("Error al finalizar pedido tras pago:", err);
+        alert("El pago fue aprobado pero hubo un problema al registrar el pedido. Contacta soporte con este mensaje: " + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Realizar Pedido';
+        }
+        pendingOrderData = null;
+        // Limpiar URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
   async function checkPaymentReturn() {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get("status");
