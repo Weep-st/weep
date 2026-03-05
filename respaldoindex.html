@@ -3000,94 +3000,65 @@ async function registerUser() {
   // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
   // ------------------------------------------------------------------
   async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
-    try {
-        // ── 1. Crear el pedido en la base ─────────────────────────────────
-        const cartString = encodeURIComponent(JSON.stringify(cart));
-        const url = `${scriptUrl}?action=createOrder` +
-            `&userId=${encodeURIComponent(userId)}` +
-            `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
-            `&direccion=${encodeURIComponent(direccion)}` +
-            `&metodoPago=${encodeURIComponent(metodoPago)}` +
-            `&observaciones=${encodeURIComponent(observaciones || '')}` +
-            `&cart=${cartString}` +
-            `&total=${encodeURIComponent(prices.total)}` +
-            `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
-            `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
-
-        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const result = await response.json();
-
-        if (!result.success) {
-            throw new Error(result.error || "Error al crear pedido");
-        }
-
-        const idPedido = result.idPedido;
-        console.log(`[PEDIDO CREADO] #${idPedido}`);
-
-        // ── 2. Notificar a los locales (independiente del pago) ───────────
-        const localesNotificados = await notifyLocalsAboutNewOrder(
-            idPedido, direccion, tipoEntrega, observaciones, prices
-        );
-
-        // ── 3. Si es envío → ASIGNAR REPARTIDOR (¡siempre!) ───────────────
-        let repartidorInfo = null;
-        let repartidorAsignado = false;
-        let repartidorNotificado = false;
-
-        if (tipoEntrega === 'envio') {
-            // Intentamos asignar repartidor
-            const respAssign = await fetch(
-                `${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`
-            );
-            const dataAssign = await respAssign.json();
-
-            if (dataAssign.success && dataAssign.repartidor) {
-                repartidorInfo = dataAssign.repartidor;
-                repartidorAsignado = true;
-                console.log(`Repartidor asignado: ${repartidorInfo.nombre} (${repartidorInfo.email})`);
-
-                // Notificar al repartidor
-                repartidorNotificado = await notifyRepartidorFromFrontend(
-                    idPedido,
-                    direccion,
-                    observaciones,
-                    prices,
-                    metodoPago,
-                    repartidorInfo
-                );
-            } else {
-                console.warn("No se pudo asignar repartidor:", dataAssign.message || dataAssign);
-            }
-        }
-
-        // ── 4. Mensaje final al usuario ───────────────────────────────────
-        let mensaje = `¡Pedido #${idPedido} registrado exitosamente!`;
-
-        if (tipoEntrega === 'envio') {
-            if (!repartidorAsignado) {
-                mensaje += `\n\n(Estamos buscando repartidor, te avisaremos pronto)`;
-            } else if (!repartidorNotificado) {
-                mensaje += `\n\n(Repartidor asignado, pero no pudimos enviarle notificación en este momento)`;
-            } else {
-                mensaje += `\n\nRepartidor ya asignado y notificado ✓`;
-            }
-        }
-
-        alert(mensaje);
-
-        // ── 5. Limpieza ───────────────────────────────────────────────────
-        cart = [];
-        updateCartCount();
-        updateCartDisplay();
-        closeCart();
-        document.getElementById('checkout-form').reset();
-
-    } catch (err) {
-        console.error("[createOrderNormal] Error:", err);
-        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente.");
-    }
-}
+      try {
+          const action = 'createOrder';
+          const cartString = encodeURIComponent(JSON.stringify(cart));
+          const url = `${scriptUrl}?action=${action}` +
+              `&userId=${encodeURIComponent(userId)}` +
+              `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
+              `&direccion=${encodeURIComponent(direccion)}` +
+              `&metodoPago=${encodeURIComponent(metodoPago)}` +
+              `&observaciones=${encodeURIComponent(observaciones || '')}` +
+              `&cart=${cartString}` +
+              `&total=${encodeURIComponent(prices.total)}` +
+              `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
+              `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
+          console.log("[PEDIDO] Enviando creación →", url);
+          const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const result = await response.json();
+          if (!result.success) {
+              throw new Error(result.error || "Error desconocido al crear pedido");
+          }
+          const idPedido = result.idPedido;
+          console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
+          // Notificar locales (ya existe)
+          const localesNotificados = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+          // ── NUEVO ── Si es envío: pedir al backend que asigne repartidor y obtener su info
+          let repartidorInfo = null;
+          if (tipoEntrega === 'envio') {
+              const respAssign = await fetch(`${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`);
+              const dataAssign = await respAssign.json();
+              if (dataAssign.success && dataAssign.repartidor) {
+                  repartidorInfo = dataAssign.repartidor;
+                  console.log(`Repartidor asignado (frontend): ${repartidorInfo.nombre} - ${repartidorInfo.email}`);
+              } else {
+                  console.warn("No se pudo asignar repartidor:", dataAssign);
+              }
+          }
+          // ── Notificar al repartidor DESDE FRONTEND (igual que a locales) ────────
+          let repartidorNotificado = false;
+          if (repartidorInfo && repartidorInfo.email) {
+              repartidorNotificado = await notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo);
+          }
+          // Mensaje final (versión simplificada, sin mencionar al repartidor)
+  let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
+  // Opcional: mantener solo el aviso de posible fallo en email (si quieres)
+  if (tipoEntrega === 'envio' && !repartidorNotificado && repartidorInfo) {
+      mensajeFinal += `\n(No se pudo enviar email al repartidor en este momento)`;
+  }
+  alert(mensajeFinal);
+          // Limpieza
+          cart = [];
+          updateCartCount();
+          updateCartDisplay();
+          closeCart();
+          document.getElementById('checkout-form').reset();
+      } catch (err) {
+          console.error("[PEDIDO] Error grave:", err);
+          alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
+      }
+  }
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. Asignar repartidor (solo pide al backend que asigne y devuelva info)
   // ─────────────────────────────────────────────────────────────────────────────
