@@ -1457,7 +1457,7 @@ window.addEventListener('load', () => {
       async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
     checkoutBtn.disabled = true;
-    checkoutBtn.textContent = 'Redirigiendo al pago seguro...';
+    checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando pago...';
 
     try {
         const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
@@ -1475,9 +1475,9 @@ window.addEventListener('load', () => {
             },
             external_reference: externalRef,
             back_urls: {
-                success:  "https://weep.com.ar/respaldoindex.html?status=approved&ref=" + externalRef,
-                failure:  "https://weep.com.ar/respaldoindex.html?status=failure",
-                pending:  "https://weep.com.ar/respaldoindex.html?status=pending"
+                success: "https://weep.com.ar/respaldoindex.html?status=approved&ref=" + externalRef,
+                failure: "https://weep.com.ar/respaldoindex.html?status=failure",
+                pending: "https://weep.com.ar/respaldoindex.html?status=pending"
             },
             auto_return: "approved"
         };
@@ -1498,34 +1498,51 @@ window.addEventListener('load', () => {
 
         const data = await res.json();
         if (!data.init_point) {
-            throw new Error("No se recibió init_point");
+            throw new Error("No se recibió init_point de Mercado Pago");
         }
 
-        // Guardamos datos para cuando vuelva (por si querés mostrar algo en respaldoindex.html)
+        // Guardamos los datos del pedido pendiente (para usarlos después si es necesario)
         pendingOrderData = {
             userId,
             fecha: new Date().toLocaleString('es-AR'),
             direccion,
-            metodoPago: "Mercado Pago",
+            metodoPago: "Transferencia / Mercado Pago (pendiente)",
             observaciones,
             envioGratis: prices.shipping === 0,
             tipoEntrega: delivery,
-            cart,
+            cart: [...cart],           // copia del carrito
             total: prices.total,
             preferenceId: data.id,
             externalReference: externalRef,
             paymentId: null
         };
 
-        // Redirección directa (ya lo tenías)
-        alert("Te estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez finalizado, volverás a la página principal.");
+        // ╔════════════════════════════════════════════════════════════╗
+        // ║  IMPORTANTE: Creamos el pedido AHORA (Opción A)            ║
+        // ║  → Esto asegura que se asigne repartidor y se llene col J  ║
+        // ╚════════════════════════════════════════════════════════════╝
+        console.log("Creando pedido en backend ANTES de redirigir a MP...");
+        await createOrderNormal(
+            direccion,
+            "Transferencia / Mercado Pago (pendiente)",  // estado inicial visible
+            delivery,
+            prices,
+            observaciones
+        );
+
+        // Mostramos mensaje claro al usuario
+        alert("¡Pedido registrado!\nTe estamos redirigiendo al pago seguro de Mercado Pago.\nUna vez aprobado, tu pedido se confirmará automáticamente.");
+
+        // Redirigimos al checkout de Mercado Pago
         window.location.href = data.init_point;
 
     } catch (err) {
         console.error("Error en handleMercadoPagoPayment:", err);
         alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
+
+        // Restauramos botón
         checkoutBtn.disabled = false;
-        checkoutBtn.textContent = 'Realizar Pedido';
+        checkoutBtn.innerHTML = 'Realizar Pedido';
     }
 }
         
