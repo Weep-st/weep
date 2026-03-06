@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
- 
+  
       <style>
       * { box-sizing: border-box; }
       body {
@@ -538,7 +538,7 @@
       opacity: 0.65;
       cursor: not-allowed;
   }
-     
+      
       .suggestion:hover, .suggestion:active {
           transform: scale(1.1);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
@@ -858,6 +858,7 @@
           font-size: 1rem;
           gap: 8px;
       }
+ 
       .loading .spinner {
           width: 26px;
           height: 26px;
@@ -1160,7 +1161,7 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-     
+      
   </style>
       <!-- PWA - Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -1234,19 +1235,20 @@
   </div>
           <div class="suggestions">
       <h2 id="suggestions-title">Sugerencias de Locales</h2>
+ 
       <div class="carousel-wrapper" id="suggestions-carousel-wrapper">
           <button class="carousel-btn left" id="prev-suggestion">←</button>
-    
+     
           <div class="carousel-container" id="suggestion-items">
               <!-- solo tarjetas aquí -->
           </div>
-    
+     
           <button class="carousel-btn right" id="next-suggestion">→</button>
       </div>
       <!-- Contenedor exclusivo para el botón "Ver todo" -->
       <div id="ver-todo-categoria-container" style="text-align: center; margin: 30px 0 50px;"></div>
   </div>
-    
+     
           <div id="menu-display" style="display:none;"></div>
   <!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
   <div id="cart-backdrop" class="cart-backdrop"></div>
@@ -1290,7 +1292,7 @@
   </select>
   <!-- Contenedor donde se mostrará el checkout de MP -->
   <div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
- 
+  
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
     <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
@@ -1299,12 +1301,12 @@
               </form>
           </div>
       </main>
- 
+  
       <!-- Footer -->
   <footer class="text-center">
       <div class="container">
           <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-     
+      
           <p class="small mb-4">
               <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
           </p>
@@ -1315,7 +1317,7 @@
           </p>
       </div>
   </footer>
- 
+  
       <!-- Login Modal -->
 <div id="login-modal" class="modal">
     <div class="modal-content">
@@ -1379,7 +1381,7 @@
               </div>
               <div class="modal-body text-start small">
                   <p><strong>Última actualización: febrero 2026</strong></p>
-             
+              
                   <p>Al usar Weep aceptás:</p>
                   <ul>
                       <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
@@ -1388,7 +1390,7 @@
                       <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
                       <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
                   </ul>
-             
+              
                   <p class="mt-3">Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com">bajoneando.st@gmail.com</a></p>
               </div>
               <div class="modal-footer">
@@ -1404,7 +1406,7 @@
   let allDrinks = [];
   let currentDrinkIndex = 0;
   const CATEGORIA_BEBIDAS = "Bebidas";
-  const COSTO_ENVIO = 2500;
+  const COSTO_ENVIO = 3000;
   let isLoggedIn = false;
   let userId = null;
   let userAddress = '';
@@ -1626,14 +1628,16 @@
         showError(container, "No pudimos cargar tus favoritos en este momento");
     }
 }
-        
+         
   function displayMenus(menus, title, categoriaDestacada = null) {
       const container = document.getElementById('menu-display');
+ 
       // Limpiamos y preparamos la estructura básica
       container.innerHTML = `
           <h2>${title}</h2>
           <div class="menu-items"></div>
       `;
+ 
       const itemsDiv = container.querySelector('.menu-items');
       currentDisplayedMenus = {}; // Limpiamos caché de menús mostrados
       // Caso: no hay menús
@@ -1643,17 +1647,17 @@
           // Mostramos cada plato
           menus.forEach((menu) => {
               currentDisplayedMenus[menu.id] = menu;
-   
+    
               const div = document.createElement('div');
               div.className = 'menu-item';
-   
+    
               // Resaltar si coincide con la categoría destacada
               const esDeCategoria = categoriaDestacada &&
                   menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
               if (esDeCategoria) {
                   div.classList.add('destacado-categoria');
               }
-   
+    
               // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
               let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
               if (!menu.imagen_url && menu.categoria) {
@@ -1666,7 +1670,7 @@
                       imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
                   }
               }
-   
+    
               div.innerHTML = `
                   <img src="${imgSrc}"
                        alt="${menu.nombre}"
@@ -1693,7 +1697,7 @@
                       </div>
                   </div>
               `;
-   
+    
               itemsDiv.appendChild(div);
           });
       }
@@ -1703,6 +1707,7 @@
       let showFullMenuButton = false;
       let currentLocalId = null;
       let localName = 'este local';
+ 
       if (categoriaDestacada && menus.length > 0) {
           currentLocalId = menus[0].local_id;
           localName = menus[0].nombre_local || 'este local';
@@ -1733,7 +1738,7 @@
                   </button>
               </div>
           `;
-    
+     
           // Asignamos el evento al botón recién creado
           const fullMenuBtn = container.querySelector('.ver-todo-menu button');
           fullMenuBtn.onclick = () => {
@@ -1753,14 +1758,14 @@
           const headerHeight = header ? header.offsetHeight : 140; // fallback
           const extraOffset = 30; // espacio adicional para que no quede pegado al header
           const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
-    
+     
           window.scrollTo({
               top: elementTop - headerHeight - extraOffset,
               behavior: 'smooth'
           });
       }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
   }
- 
+  
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
       if (!menu) {
@@ -1896,7 +1901,7 @@ async function registerUser() {
           setupCart();
           loadAllDrinks();
       });
-       
+        
           function loadAllDrinks() {
               fetch(`${scriptUrl}?action=getAllMenus`)
                   .then(r => r.ok ? r.json() : Promise.reject())
@@ -1961,7 +1966,7 @@ async function registerUser() {
           })
           .catch(() => showError(container, 'Error al cargar locales'));
   }
-    
+     
           function setupSearch() {
               const input = document.getElementById('search-input');
               let timeout;
@@ -1989,7 +1994,7 @@ async function registerUser() {
     const catElement = e.target.closest('.category');
     if (!catElement) return;
     const tipo = catElement.dataset.type;
-  
+   
     if (tipo === "favoritos") {
         // Ruta especial: mostrar favoritos
         showMyFavoritesSection();
@@ -2184,7 +2189,7 @@ async function registerUser() {
           envioOption.style.backgroundColor = '';
       }
   }
-   
+    
   function setupCart() {
       // ────────────────────────────────────────────────────────────────
       // Elementos del DOM relacionados con el carrito
@@ -2395,7 +2400,7 @@ async function registerUser() {
       // Comisión 4% SOLO si es Transferencia / Mercado Pago
       let comision = 0;
       if (metodoPago === "transferencia") {
-          comision = subtotal * 0.04; // 4%
+          comision = subtotal * 0.0824; // 4%
       }
       const total = subtotal + shipping + comision;
       return {
@@ -2550,7 +2555,7 @@ async function registerUser() {
               const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
               document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
           }
-       
+        
           async function checkout() {
     if (!isLoggedIn) {
         showModal('login-modal');
@@ -2607,116 +2612,76 @@ async function registerUser() {
         btn.lastChild.textContent = 'Realizar Pedido';
     }
 }
-       
+        
           async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
-      const checkoutContainer = document.getElementById('mercadopago-checkout');
-      const checkoutBtn = document.getElementById('checkout-btn');
-      checkoutBtn.disabled = true;
-      checkoutBtn.textContent = 'Generando pago seguro...';
-      try {
-          // Generamos external_reference único y traceable
-          const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
-          console.log("Iniciando Mercado Pago con externalRef:", externalRef);
-          const preference = {
-              items: [{
-                  title: `Pedido Weep #${Date.now()}`,
-                  quantity: 1,
-                  currency_id: "ARS",
-                  unit_price: prices.total
-              }],
-              payer: {
-                  email: localStorage.getItem('userEmail') || "cliente@weep.com.ar"
-              },
-              external_reference: externalRef,
-              back_urls: {
-                  success: window.location.href + '?status=approved',
-                  failure: window.location.href + '?status=failure',
-                  pending: window.location.href + '?status=pending'
-              },
-              auto_return: "approved"
-          };
-          const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${MP_ACCESS_TOKEN}`
-              },
-              body: JSON.stringify(preference)
-          });
-          if (!res.ok) {
-              const error = await res.text();
-              throw new Error(`Error ${res.status}: ${error}`);
-          }
-          const data = await res.json();
-          if (!data.init_point) {
-              throw new Error("No se recibió init_point");
-          }
-          // Guardamos datos para confirmación posterior
-          pendingOrderData = {
-              userId,
-              fecha: new Date().toLocaleString('es-AR'),
-              direccion,
-              metodoPago: "Mercado Pago",
-              observaciones,
-              envioGratis: prices.shipping === 0,
-              tipoEntrega: delivery,
-              cart,
-              total: prices.total,
-              preferenceId: data.id,
-              externalReference: externalRef,
-              paymentId: null
-          };
-          // Mostrar checkout
-          checkoutContainer.innerHTML = `<iframe src="${data.init_point}" width="100%" height="700" frameborder="0"></iframe>`;
-          checkoutContainer.style.display = 'block';
-          checkoutBtn.style.display = 'none';
-          alert("Completa el pago en la ventana de Mercado Pago.\nEl pedido se confirmará automáticamente.");
-          // Iniciar polling con external_reference (clave para detección)
-          startPaymentPolling(data.id, externalRef);
-      } catch (err) {
-          console.error("Error en handleMercadoPagoPayment:", err);
-          alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
-          checkoutBtn.disabled = false;
-          checkoutBtn.textContent = 'Realizar Pedido';
-      }
-  }
-  // También se puede usar polling si no redirige bien
-  function startPaymentPolling(preferenceId, externalReference) { // ← agregamos externalReference como segundo parámetro
-      console.log("Iniciando polling con external_reference:", externalReference);
-      const interval = setInterval(async () => {
-          try {
-              // Buscamos por external_reference (esto SÍ funciona)
-              const url = `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(externalReference)}`;
-              console.log("Consultando pagos por external_reference:", url);
-              const res = await fetch(url, {
-                  headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-              });
-              if (!res.ok) {
-                  const errorText = await res.text();
-                  console.error(`Error ${res.status} en search por external_reference:`, errorText);
-                  return;
-              }
-              const data = await res.json();
-              console.log("Respuesta de /payments/search:", JSON.stringify(data, null, 2));
-              if (data.results?.length > 0) {
-                  const approved = data.results.find(p => p.status === "approved");
-                  if (approved) {
-                      console.log("¡Pago aprobado encontrado! ID:", approved.id);
-                      clearInterval(interval);
-                      pendingOrderData.paymentId = approved.id;
-                      await finalizeOrderAfterPayment();
-                      alert("¡Pago confirmado automáticamente! Tu pedido ha sido registrado.");
-                  } else {
-                      console.log("Pagos encontrados pero ninguno aprobado aún...");
-                  }
-              } else {
-                  console.log("Aún no hay pagos para este external_reference");
-              }
-          } catch (e) {
-              console.error("Error en polling:", e);
-          }
-      }, 5000);
-  }
+    const checkoutBtn = document.getElementById('checkout-btn');
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Redirigiendo a pago seguro...';
+    try {
+        // Generamos external_reference único
+        const externalRef = `WEEP-ORD-${userId}-${Date.now()}`;
+        console.log("Iniciando Mercado Pago con externalRef:", externalRef);
+        const preference = {
+            items: [{
+                title: `Pedido Weep #${Date.now()}`,
+                quantity: 1,
+                currency_id: "ARS",
+                unit_price: prices.total
+            }],
+            payer: {
+                email: localStorage.getItem('userEmail') || "cliente@weep.com.ar"
+            },
+            external_reference: externalRef,
+            back_urls: {
+                success: window.location.href,
+                failure: window.location.href,
+                pending: window.location.href
+            },
+            auto_return: "approved"
+        };
+        const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${MP_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify(preference)
+        });
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(`Error ${res.status}: ${error}`);
+        }
+        const data = await res.json();
+        if (!data.init_point) {
+            throw new Error("No se recibió init_point");
+        }
+        // Guardar datos en localStorage antes de redirigir
+        const pendingData = {
+            userId,
+            fecha: new Date().toLocaleString('es-AR'),
+            direccion,
+            metodoPago: "Transferencia / Mercado Pago",
+            observaciones,
+            envioGratis: prices.shipping === 0,
+            tipoEntrega: delivery,
+            cart,
+            total: prices.total,
+            preferenceId: data.id,
+            externalReference: externalRef,
+            paymentId: null
+        };
+        localStorage.setItem('pendingOrderData', JSON.stringify(pendingData));
+        // Redirigir a MP
+        window.location.href = data.init_point;
+    } catch (err) {
+        console.error("Error en handleMercadoPagoPayment:", err);
+        alert("Error al generar el pago: " + (err.message || "Intenta nuevamente"));
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Realizar Pedido';
+    }
+}
+        
+  
   async function finalizeOrderAfterPayment() {
       if (!pendingOrderData) return;
       // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
@@ -2734,38 +2699,54 @@ async function registerUser() {
       document.getElementById('checkout-btn').style.display = 'block';
   }
   async function checkPaymentReturn() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get("status");
-      const paymentId = urlParams.get("payment_id");
-      const externalReference = urlParams.get("external_reference"); // ← también puede venir
-      if (!status || !paymentId || !pendingOrderData) return;
-      try {
-          const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-              headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
-          });
-          if (!res.ok) throw new Error("No se pudo verificar el pago");
-          const payment = await res.json();
-          if (payment.status === "approved") {
-              pendingOrderData.paymentId = payment.id;
-              pendingOrderData.preferenceId = payment.preference_id || pendingOrderData.preferenceId;
-              // ¡Aquí se confirma el pedido!
-              await createConfirmedOrder(pendingOrderData);
-              // Limpieza importante
-              pendingOrderData = null;
-          }
-          else if (payment.status === "pending") {
-              alert("El pago está pendiente de aprobación. Te avisaremos cuando se confirme.");
-          }
-          else {
-              alert(`El pago no fue aprobado. Estado: ${payment.status}\nPuedes intentarlo nuevamente.`);
-          }
-      } catch (e) {
-          console.error("Error verificando pago:", e);
-          alert("No pudimos verificar el estado del pago. Por favor contacta soporte.");
-      }
-      // Siempre limpiamos la URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-  }
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const paymentId = urlParams.get('payment_id');
+    if (!status || !paymentId) return;
+
+    const savedData = localStorage.getItem('pendingOrderData');
+    if (!savedData) {
+        alert('Error: no se encontraron datos del pedido. Intenta nuevamente.');
+        return;
+    }
+
+    pendingOrderData = JSON.parse(savedData);
+
+    // ←←← RESTAURAR EL CARRITO ←←←
+    if (pendingOrderData.cart && Array.isArray(pendingOrderData.cart)) {
+        cart = pendingOrderData.cart;
+        updateCartCount();           // actualiza el badge del carrito
+        updateCartDisplay();         // refresca visualmente el sidebar (si está abierto)
+        console.log("Carrito restaurado desde pendingOrderData:", cart);
+    } else {
+        console.warn("No se encontró carrito en pendingOrderData");
+    }
+
+    try {
+        // Verificar el pago
+        const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
+        });
+        if (!res.ok) throw new Error("No se pudo verificar el pago");
+        const payment = await res.json();
+
+        if (payment.status === "approved") {
+            pendingOrderData.paymentId = paymentId;
+            await finalizeOrderAfterPayment();
+            alert("¡Pago confirmado! Tu pedido ha sido registrado.");
+            localStorage.removeItem('pendingOrderData');
+        } else if (payment.status === "pending") {
+            alert("El pago está pendiente de aprobación. Te avisaremos cuando se confirme.");
+        } else {
+            alert(`El pago no fue aprobado. Estado: ${payment.status}\nPuedes intentarlo nuevamente.`);
+        }
+    } catch (e) {
+        console.error("Error verificando pago:", e);
+        alert("No pudimos verificar el estado del pago. Por favor contacta soporte.");
+    } finally {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
   // ==================== EDITAR PERFIL ====================
   function openEditProfileModal() {
       profileDropdown.classList.remove('active');
@@ -2814,10 +2795,10 @@ async function registerUser() {
                   // Actualizamos el almacenamiento local
                   localStorage.setItem('userName', name);
                   localStorage.setItem('userEmail', email);
- 
+  
                   alert(data.message || 'Perfil actualizado correctamente');
                   closeModal('edit-profile-modal');
- 
+  
                   // Refrescamos el estado visual si es necesario
                   checkLoginStatus();
               } else {
@@ -2844,11 +2825,11 @@ async function registerUser() {
               if (data.success) {
                   userAddress = newAddress;
                   localStorage.setItem('userAddress', newAddress);
- 
+  
                   // Actualizamos el campo de dirección del checkout si está visible
                   const checkoutDir = document.getElementById('direccion');
                   if (checkoutDir) checkoutDir.value = newAddress;
- 
+  
                   alert('Dirección actualizada correctamente');
                   closeModal('change-address-modal');
               } else {
@@ -2859,116 +2840,134 @@ async function registerUser() {
               alert('Error de conexión al actualizar dirección');
           });
   }
-      
+       
   // ------------------------------------------------------------------
   // Notificar a los locales - Versión ajustada a tu formato exacto
   // ------------------------------------------------------------------
   async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
-      console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
-      let todasOk = true;
-      // 1. Agrupar por local (puede haber varios locales en un mismo pedido)
-      const groupedByLocal = {};
-      cart.forEach(item => {
-          const localId = item.idLocal || item.local_id;
-          if (!localId) return;
-          if (!groupedByLocal[localId]) {
-              groupedByLocal[localId] = {
-                  items: [],
-                  nombreLocal: item.nombreLocal || 'Local',
-                  emailLocal: null,
-                  subtotal: 0
-              };
-          }
-          groupedByLocal[localId].items.push(item);
-          groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
-      });
-      if (Object.keys(groupedByLocal).length === 0) {
-          console.warn("[NOTIFICACIÓN] No hay locales en el carrito");
-          return true;
-      }
-      // 2. Procesar cada local
-      for (const localId in groupedByLocal) {
-          const group = groupedByLocal[localId];
-          // Obtener email del local
-          if (!group.emailLocal) {
-              try {
-                  const res = await fetch(`${scriptUrl}?action=getPerfilLocal&localId=${encodeURIComponent(localId)}`);
-                  const data = await res.json();
-                  if (data.success && data.email) {
-                      group.emailLocal = data.email;
-                  }
-              } catch (e) {
-                  console.warn(`No se obtuvo email del local ${localId}`);
-              }
-          }
-          if (!group.emailLocal) {
-              console.error(`Sin email para local ${localId} (${group.nombreLocal})`);
-              todasOk = false;
-              continue;
-          }
-          // Obtener nombre real del cliente desde hoja Usuarios (columna B)
-          let nombreCliente = localStorage.getItem('userName') || 'Cliente';
-          try {
-              const resUser = await fetch(`${scriptUrl}?action=getUserName&userId=${encodeURIComponent(userId)}`);
-              const dataUser = await resUser.json();
-              if (dataUser.success && dataUser.nombre) {
-                  nombreCliente = dataUser.nombre;
-              }
-          } catch (e) {
-              console.warn("No se obtuvo nombre del usuario desde backend");
-          }
-          // Productos en formato de código
-          const itemsText = group.items.map(i =>
-              `${i.nombreProducto} × ${i.cantidad} $${Number(i.precioUnitario * i.cantidad).toLocaleString('es-AR')}`
-          ).join('\n');
-          const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-          const htmlBody = `
-              <div style="text-align:center; margin:24px 0 32px;">
-                  <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
-              </div>
-              <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-          
-              <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
-              <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
-                  #${idPedido} – ${group.nombreLocal}
-              </p>
-          
-              <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
-              <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
-              ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
-          
-              <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
-              <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
-  ${itemsText}
-              </pre>
-          
-              <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
-                  <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
-              </p>
-          
-              <hr style="margin:32px 0;">
-              <p style="text-align:center; color:#666; font-size:0.95em;">
-                  Por favor prepara el pedido lo antes posible.<br>
-                  Cualquier duda, responde directamente a este correo.
-              </p>
-          `;
-          const emailParams = new URLSearchParams({
-              action: 'enviarNotificacionEmail',
-              toEmail: group.emailLocal,
-              subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
-              htmlBody: htmlBody
-          });
-          try {
-              await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
-              console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
-          } catch (err) {
-              console.error(`[LOCAL FALLÓ] ${group.emailLocal}:`, err);
-              todasOk = false;
-          }
-      }
-      return todasOk;
-  }
-      
+    console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
+    let todasOk = true;
+
+    // 1. Agrupar por local
+    const groupedByLocal = {};
+    cart.forEach(item => {
+        const localId = item.idLocal || item.local_id;
+        if (!localId) return;
+        if (!groupedByLocal[localId]) {
+            groupedByLocal[localId] = {
+                items: [],
+                nombreLocal: item.nombreLocal || 'Local',
+                emailLocal: null,
+                subtotal: 0
+            };
+        }
+        groupedByLocal[localId].items.push(item);
+        groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
+    });
+
+    if (Object.keys(groupedByLocal).length === 0) {
+        console.warn("[NOTIFICACIÓN] No hay locales en el carrito");
+        return true;
+    }
+
+    // 2. Procesar cada local
+    for (const localId in groupedByLocal) {
+        const group = groupedByLocal[localId];
+
+        // Obtener email del local
+        if (!group.emailLocal) {
+            try {
+                const res = await fetch(`${scriptUrl}?action=getPerfilLocal&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success && data.email) {
+                    group.emailLocal = data.email;
+                }
+            } catch (e) {
+                console.warn(`No se obtuvo email del local ${localId}`);
+            }
+        }
+
+        if (!group.emailLocal) {
+            console.error(`Sin email para local ${localId} (${group.nombreLocal})`);
+            todasOk = false;
+            continue;
+        }
+
+        // Nombre del cliente
+        let nombreCliente = localStorage.getItem('userName') || 'Cliente';
+        try {
+            const resUser = await fetch(`${scriptUrl}?action=getUserName&userId=${encodeURIComponent(userId)}`);
+            const dataUser = await resUser.json();
+            if (dataUser.success && dataUser.nombre) {
+                nombreCliente = dataUser.nombre;
+            }
+        } catch (e) {
+            console.warn("No se obtuvo nombre del usuario desde backend");
+        }
+
+        // Productos
+        const itemsText = group.items.map(i =>
+            `${i.nombreProducto} × ${i.cantidad} $${Number(i.precioUnitario * i.cantidad).toLocaleString('es-AR')}`
+        ).join('\n');
+
+        // Texto del método de pago con aclaración para transferencia
+        let metodoPagoTexto = metodoPago;
+        if (metodoPago.toLowerCase().includes("transferencia") || metodoPago.toLowerCase().includes("mercado pago")) {
+            metodoPagoTexto += " (gestionar retiro en panel de locales)";
+        }
+
+        const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
+        const htmlBody = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+        
+            <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
+            <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
+                #${idPedido} – ${group.nombreLocal}
+            </p>
+        
+            <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
+            <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
+            <p style="margin:8px 0;"><strong>Método de pago:</strong> ${metodoPagoTexto}</p>
+            ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
+        
+            <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
+            <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
+${itemsText}
+            </pre>
+        
+            <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
+                <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
+            </p>
+        
+            <hr style="margin:32px 0;">
+            <p style="text-align:center; color:#666; font-size:0.95em;">
+                Por favor prepara el pedido lo antes posible.<br>
+                Cualquier duda, responde directamente a este correo.
+            </p>
+        `;
+
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: group.emailLocal,
+            subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
+            htmlBody: htmlBody
+        });
+
+        try {
+            await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
+            console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
+        } catch (err) {
+            console.error(`[LOCAL FALLÓ] ${group.emailLocal}:`, err);
+            todasOk = false;
+        }
+    }
+
+    return todasOk;
+}
+       
   // ------------------------------------------------------------------
   // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
   // ------------------------------------------------------------------
@@ -3047,65 +3046,77 @@ async function registerUser() {
       }
   }
   async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
-      try {
-          const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-          let montoCobrar = "NADA (pagado con " + metodoPago + ")";
-          if (metodoPago.toLowerCase() === "efectivo") {
-              montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
-          }
-          // Obtener dirección del local (asumimos que todos los items son del mismo local en este caso)
-          let direccionRetiro = "—";
-          if (cart.length > 0) {
-              const localId = cart[0].idLocal || cart[0].local_id;
-              try {
-                  const res = await fetch(`${scriptUrl}?action=getLocalAddress&localId=${encodeURIComponent(localId)}`);
-                  const data = await res.json();
-                  if (data.success && data.direccion) {
-                      direccionRetiro = data.direccion;
-                  }
-              } catch (e) {}
-          }
-          const htmlBody = `
-              <div style="text-align:center; margin:24px 0 32px;">
-                  <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
-              </div>
-              <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-          
-              <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
-              <p style="text-align:center; font-size:1.2em; margin:8px 0;">
-                  Pedido #<strong>${idPedido}</strong>
-              </p>
-              <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
-              <p><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
-              <p><strong>Total a pagar al local:</strong> $${cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR')}</p>
-              <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
-              <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
-              <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
-              <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
-              <hr style="margin:32px 0;">
-              <p style="text-align:center; color:#555; font-size:0.95em;">
-                  Por favor dirígete a la dirección lo antes posible.<br>
-                  ¡Gracias por ser parte del equipo Weep!
-              </p>
-          `;
-          const emailParams = new URLSearchParams({
-              action: 'enviarNotificacionEmail',
-              toEmail: repartidorInfo.email,
-              subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
-              htmlBody: htmlBody
-          });
-          const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
-              method: 'GET',
-              cache: 'no-cache'
-          });
-          const data = await res.json();
-          return data.success === true;
-      } catch (err) {
-          console.error("Error al notificar repartidor:", err);
-          return false;
-      }
-  }
-     
+    try {
+        const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
+
+        // Monto a cobrar al cliente (entrega)
+        let montoCobrar = "NADA (pagado con " + metodoPago + ")";
+        if (metodoPago.toLowerCase() === "efectivo") {
+            montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
+        }
+
+        // Monto a pagar al local (retiro) → solo si es efectivo
+        let montoPagarLocal = "NADA (ya pagado con " + metodoPago + ")";
+        if (metodoPago.toLowerCase() === "efectivo") {
+            montoPagarLocal = "$" + cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR');
+        }
+
+        // Dirección del local
+        let direccionRetiro = "—";
+        if (cart.length > 0) {
+            const localId = cart[0].idLocal || cart[0].local_id;
+            try {
+                const res = await fetch(`${scriptUrl}?action=getLocalAddress&localId=${encodeURIComponent(localId)}`);
+                const data = await res.json();
+                if (data.success && data.direccion) {
+                    direccionRetiro = data.direccion;
+                }
+            } catch (e) {}
+        }
+
+        const htmlBody = `
+            <div style="text-align:center; margin:24px 0 32px;">
+                <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
+        
+            <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
+            <p style="text-align:center; font-size:1.2em; margin:8px 0;">
+                Pedido #<strong>${idPedido}</strong>
+            </p>
+            <h3 style="color:#d32f2f; margin:24px 0 8px;">RETIRO</h3>
+            <p><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
+            <p><strong>Total a pagar al local:</strong> ${montoPagarLocal}</p>
+            <h3 style="color:#d32f2f; margin:24px 0 8px;">ENTREGA</h3>
+            <p><strong>Dirección de entrega:</strong> ${direccion || 'No especificada'}</p>
+            <p><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+            <p><strong>Total a cobrar:</strong> ${montoCobrar}</p>
+            <hr style="margin:32px 0;">
+            <p style="text-align:center; color:#555; font-size:0.95em;">
+                Por favor dirígete a la dirección lo antes posible.<br>
+                ¡Gracias por ser parte del equipo Weep!
+            </p>
+        `;
+
+        const emailParams = new URLSearchParams({
+            action: 'enviarNotificacionEmail',
+            toEmail: repartidorInfo.email,
+            subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
+            htmlBody: htmlBody
+        });
+
+        const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
+            method: 'GET',
+            cache: 'no-cache'
+        });
+        const data = await res.json();
+        return data.success === true;
+    } catch (err) {
+        console.error("Error al notificar repartidor:", err);
+        return false;
+    }
+}
+      
           // Esta función debería llamarse SOLO cuando el pago está aprobado
   async function createConfirmedOrder(orderData) {
       const payload = {
@@ -3204,6 +3215,7 @@ async function registerUser() {
       const container = document.getElementById(containerId);
       const prev = document.getElementById(prevId);
       const next = document.getElementById(nextId);
+ 
       if (!container || !prev || !next) return;
       function scrollLeft() { container.scrollBy({ left: -container.clientWidth * 0.75, behavior: 'smooth' }); }
       function scrollRight() { container.scrollBy({ left: container.clientWidth * 0.75, behavior: 'smooth' }); }
@@ -3212,7 +3224,7 @@ async function registerUser() {
       function updateButtons() {
           const atStart = container.scrollLeft <= 1;
           const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
-    
+     
           prev.disabled = atStart;
           prev.style.opacity = atStart ? '0.35' : '1';
           next.disabled = atEnd;
@@ -3220,15 +3232,20 @@ async function registerUser() {
       }
       container.addEventListener('scroll', updateButtons);
       window.addEventListener('resize', updateButtons);
+ 
       // Estado inicial
       setTimeout(updateButtons, 400);
   }
   // Llamar para ambos carruseles
   window.addEventListener('load', () => {
       // ... tus otras inicializaciones ...
+ 
       setupGenericCarousel('suggestions-carousel-wrapper', 'suggestion-items', 'prev-suggestion', 'next-suggestion');
+ 
       // Si más adelante creas otro carrusel, solo llamas de nuevo la función
   });
+
+        window.addEventListener('load', checkPaymentReturn);
       </script>
   </body>
   </html>
