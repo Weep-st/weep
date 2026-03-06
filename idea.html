@@ -1216,7 +1216,7 @@
               <span>Burguers</span>
           </div>
           <div class="category" data-type="Pizzas" style="background-image: url('https://i.postimg.cc/4nC5DWt0/pizza-Mh3H4eany-BKEs-Stv1Ycl-PWTf9OUq-Ii.jpg');">
-              <span>Pizza</span>
+              <span>Pizzas</span>
           </div>
           <div class="category" data-type="Empanadas" style="background-image: url('https://i.postimg.cc/CLytD2fp/empanadas-de-carne.jpg');">
               <span>Empanadas</span>
@@ -1337,14 +1337,35 @@
     <div class="modal-content">
         <span class="close" onclick="closeModal('register-modal')">×</span>
         <h2>Registro</h2>
+        
+        <label for="register-name">Nombre completo</label>
         <input type="text" id="register-name" placeholder="Nombre completo" required>
+
+        <label for="register-email">Correo electrónico</label>
         <input type="email" id="register-email" placeholder="Correo electrónico" required>
-        <input type="password" id="register-password" placeholder="Contraseña" required>
-        <input type="text" id="register-address" placeholder="Dirección (opcional)">
+
+        <label for="register-password">Contraseña</label>
+        <input type="password" id="register-password" placeholder="Contraseña (mínimo 6 caracteres)" required>
+
+        <!-- NUEVO: Teléfono con selector de país -->
+        <label for="register-phone">Teléfono (WhatsApp preferido)</label>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <select id="phone-country" style="width: 110px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
+                <option value="+54" selected>🇦🇷 Argentina (+54)</option>
+                <option value="+55">🇧🇷 Brasil (+55)</option>
+            </select>
+            <input type="tel" id="register-phone" placeholder="Ej: 11 1234 5678" required
+                   style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
+        </div>
+
+        <label for="register-address">Dirección (opcional)</label>
+        <input type="text" id="register-address" placeholder="Dirección de entrega (opcional)">
+
         <button onclick="registerUser()">
             <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
             Registrarse
         </button>
+
         <p>¿Ya tienes cuenta? <a onclick="switchToLogin()">Inicia sesión</a></p>
     </div>
 </div>
@@ -1826,48 +1847,76 @@ function loginUser() {
 }
 // Registro con spinner
 async function registerUser() {
-    const nombre = document.getElementById('register-name')?.value?.trim() || '';
-    const email = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
-    const password = document.getElementById('register-password')?.value?.trim() || '';
-    const direccion = document.getElementById('register-address')?.value?.trim() || '';
-    if (!nombre) { alert('El nombre es obligatorio'); return; }
-    if (!email) { alert('El email es obligatorio'); return; }
+    const nombre    = document.getElementById('register-name')?.value?.trim()    || '';
+    const email     = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
+    const password  = document.getElementById('register-password')?.value?.trim() || '';
+    const direccion = document.getElementById('register-address')?.value?.trim()  || '';
+    
+    // ── NUEVO ── Teléfono
+    const countryCode = document.getElementById('phone-country')?.value || '+54';
+    let   phoneNumber = document.getElementById('register-phone')?.value?.trim() || '';
+
+    // Validaciones
+    if (!nombre)    { alert('El nombre es obligatorio'); return; }
+    if (!email)     { alert('El email es obligatorio'); return; }
     if (!password || password.length < 6) {
         alert('La contraseña debe tener al menos 6 caracteres');
         return;
     }
+    if (!phoneNumber) {
+        alert('El número de teléfono es obligatorio');
+        return;
+    }
+
+    // Limpiamos el número (quitamos espacios, guiones, paréntesis, etc.)
+    phoneNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+
+    // Número completo con código de país
+    const telefonoCompleto = countryCode + phoneNumber;
+
     const btn = document.querySelector('#register-modal button');
     const spinner = btn.querySelector('.spinner-border');
     spinner.classList.remove('d-none');
     btn.disabled = true;
     btn.lastChild.textContent = 'Registrando...';
+
     try {
         const url = `${scriptUrl}?action=register` +
             `&nombre=${encodeURIComponent(nombre)}` +
             `&email=${encodeURIComponent(email)}` +
             `&password=${encodeURIComponent(password)}` +
-            `&direccion=${encodeURIComponent(direccion)}`;
+            `&direccion=${encodeURIComponent(direccion)}` +
+            `&telefono=${encodeURIComponent(telefonoCompleto)}`;   // ← NUEVO parámetro
+
         const response = await fetch(url, {
             method: 'GET',
             cache: 'no-cache',
             redirect: 'follow'
         });
+
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
+
         const result = await response.json();
+
         spinner.classList.add('d-none');
         btn.disabled = false;
         btn.lastChild.textContent = 'Registrarse';
+
         if (result.success) {
             alert('¡Registro exitoso! Bienvenid@ ' + nombre);
             localStorage.setItem('userId', result.userId);
             localStorage.setItem('userName', nombre);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userAddress', direccion);
+            // Opcional: guardar también teléfono en localStorage
+            localStorage.setItem('userPhone', telefonoCompleto);
+
             closeModal('register-modal');
             checkLoginStatus();
-            document.querySelector('#register-modal').querySelectorAll('input').forEach(input => input.value = '');
+            // Limpiar formulario
+            document.querySelector('#register-modal').querySelectorAll('input').forEach(i => i.value = '');
         } else {
             alert(result.message || 'Error al registrar usuario');
         }
