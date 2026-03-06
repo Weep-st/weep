@@ -1851,14 +1851,20 @@ async function registerUser() {
     const email     = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
     const password  = document.getElementById('register-password')?.value?.trim() || '';
     const direccion = document.getElementById('register-address')?.value?.trim()  || '';
-    
-    // ── NUEVO ── Teléfono
+
+    // ── Teléfono ────────────────────────────────────────
     const countryCode = document.getElementById('phone-country')?.value || '+54';
     let   phoneNumber = document.getElementById('register-phone')?.value?.trim() || '';
 
     // Validaciones
-    if (!nombre)    { alert('El nombre es obligatorio'); return; }
-    if (!email)     { alert('El email es obligatorio'); return; }
+    if (!nombre) {
+        alert('El nombre es obligatorio');
+        return;
+    }
+    if (!email) {
+        alert('El email es obligatorio');
+        return;
+    }
     if (!password || password.length < 6) {
         alert('La contraseña debe tener al menos 6 caracteres');
         return;
@@ -1868,14 +1874,20 @@ async function registerUser() {
         return;
     }
 
-    // Limpiamos el número (quitamos espacios, guiones, paréntesis, etc.)
-    phoneNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    // Limpieza del número de teléfono
+    phoneNumber = phoneNumber.replace(/[\s\-\(\)\.]/g, '');
 
-    // Número completo con código de país
+    // Validación básica de longitud
+    if (phoneNumber.length < 8 || phoneNumber.length > 15) {
+        alert('El número de teléfono parece inválido (entre 8 y 15 dígitos)');
+        return;
+    }
+
     const telefonoCompleto = countryCode + phoneNumber;
 
     const btn = document.querySelector('#register-modal button');
     const spinner = btn.querySelector('.spinner-border');
+
     spinner.classList.remove('d-none');
     btn.disabled = true;
     btn.lastChild.textContent = 'Registrando...';
@@ -1886,7 +1898,7 @@ async function registerUser() {
             `&email=${encodeURIComponent(email)}` +
             `&password=${encodeURIComponent(password)}` +
             `&direccion=${encodeURIComponent(direccion)}` +
-            `&telefono=${encodeURIComponent(telefonoCompleto)}`;   // ← NUEVO parámetro
+            `&telefono=${encodeURIComponent(telefonoCompleto)}`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -1906,17 +1918,18 @@ async function registerUser() {
 
         if (result.success) {
             alert('¡Registro exitoso! Bienvenid@ ' + nombre);
+
             localStorage.setItem('userId', result.userId);
             localStorage.setItem('userName', nombre);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userAddress', direccion);
-            // Opcional: guardar también teléfono en localStorage
-            localStorage.setItem('userPhone', telefonoCompleto);
+            localStorage.setItem('userPhone', telefonoCompleto);   // ← guardamos también el teléfono
 
             closeModal('register-modal');
             checkLoginStatus();
+
             // Limpiar formulario
-            document.querySelector('#register-modal').querySelectorAll('input').forEach(i => i.value = '');
+            document.querySelectorAll('#register-modal input').forEach(input => input.value = '');
         } else {
             alert(result.message || 'Error al registrar usuario');
         }
@@ -1925,7 +1938,7 @@ async function registerUser() {
         btn.disabled = false;
         btn.lastChild.textContent = 'Registrarse';
         console.error('Error en registerUser:', error);
-        alert('Error de conexión: ' + (error.message || 'Intenta nuevamente'));
+        alert('Error de conexión. Intenta nuevamente.');
     }
 }
       // ==================== CERRAR SESIÓN ====================
