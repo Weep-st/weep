@@ -1599,263 +1599,182 @@
         showModal('login-modal');
         return;
     }
-            
-    // Variables globales de control (deben estar fuera de las funciones)
-let currentPage = 1;
-let hasMoreMenus = true;
-let isLoadingMore = false;
-let currentFetchParams = null;     // {tipoCategoria, localId, filtroCategoriaInicial}
-let sentinelObserver = null;
-
-// ────────────────────────────────────────────────────────────────
-// fetchMenus – carga inicial o páginas siguientes
-// ────────────────────────────────────────────────────────────────
-function fetchMenus(tipoCategoria = null, localId = null, filtroCategoriaInicial = null, append = false) {
     const container = document.getElementById('menu-display');
-    if (!container) return;
-
-    // Si es la primera carga (no append), limpiamos todo y reseteamos estado
-    if (!append) {
-        showLoading(container);
-        currentPage = 1;
-        hasMoreMenus = true;
-        isLoadingMore = false;
-        currentFetchParams = { tipoCategoria, localId, filtroCategoriaInicial };
-
-        // Limpiamos el contenedor de tarjetas anteriores
-        const existingItems = container.querySelector('.menu-items');
-        if (existingItems) existingItems.remove();
-
-        // Limpiamos caché de menús mostrados
-        currentDisplayedMenus = {};
-    }
-
-    if (!hasMoreMenus || isLoadingMore) return;
-
-    isLoadingMore = true;
-
-    let url = `${scriptUrl}?action=getMenus&page=${currentPage}&limit=12`;
-    if (tipoCategoria) url += `&type=${encodeURIComponent(tipoCategoria)}`;
-    if (localId)      url += `&local=${encodeURIComponent(localId)}`;
-
-    fetch(url)
-        .then(r => {
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            return r.json();
-        })
-        .then(data => {
-            let menus = data.menus || [];
-
-            // Filtro adicional en frontend (por si el backend no filtra perfecto)
-            if (filtroCategoriaInicial && !tipoCategoria) {
-                const catLower = filtroCategoriaInicial.toLowerCase().trim();
-                menus = menus.filter(menu =>
-                    menu.categoria?.toLowerCase().trim().includes(catLower)
-                );
-            }
-
-            const titulo = determinarTitulo(tipoCategoria, localId, filtroCategoriaInicial, menus);
-
-            // Si es primera carga → creamos estructura base
-            if (!append) {
-                container.innerHTML = `
-                    <h2>${titulo}</h2>
-                    <div class="menu-items"></div>
-                `;
-            }
-
-            const itemsDiv = container.querySelector('.menu-items');
-
-            // Renderizamos las tarjetas nuevas
-            renderMenuCards(menus, itemsDiv);
-
-            // Actualizamos paginación
-            currentPage++;
-            hasMoreMenus = !!data.hasMore;
-
-            // Primera vez que hay más páginas → activamos el observador
-            if (!append && hasMoreMenus) {
-                setupInfiniteScrollObserver();
-            }
-
-            // Quitamos loader si ya no hay más
-            if (!hasMoreMenus) {
-                const sentinel = document.getElementById('infinite-sentinel');
-                if (sentinel && sentinelObserver) {
-                    sentinelObserver.unobserve(sentinel);
-                    sentinel.remove();
-                }
-            }
-
-            container.style.display = 'block';
-            setTimeout(updateFavoriteButtons, 100);
-
-            isLoadingMore = false;
-        })
-        .catch(err => {
-            console.error('Error en fetchMenus:', err);
-            if (!append) {
-                showError(container, 'No pudimos cargar el menú. Intenta nuevamente.');
-            }
-            isLoadingMore = false;
-        });
-}
-
-// ────────────────────────────────────────────────────────────────
-// Determina el título según el contexto
-// ────────────────────────────────────────────────────────────────
-function determinarTitulo(tipoCategoria, localId, filtroCategoriaInicial, menus) {
-    if (tipoCategoria && !localId) {
-        return `Todos los ${tipoCategoria}`;
-    }
-    if (filtroCategoriaInicial && localId && menus.length > 0) {
-        return `${filtroCategoriaInicial} - ${menus[0]?.nombre_local || 'Local'}`;
-    }
-    if (tipoCategoria) {
-        return tipoCategoria;
-    }
-    return 'Menú del local';
-}
-
-// ────────────────────────────────────────────────────────────────
-// displayMenus – punto de entrada principal (se llama desde onclicks)
-// ────────────────────────────────────────────────────────────────
-function displayMenus(menus, title, categoriaDestacada = null) {
-    // Esta función ahora solo sirve como "puerta de entrada"
-    // La lógica pesada de renderizado y paginación está en fetchMenus
-
-    const container = document.getElementById('menu-display');
-
-    // Limpiamos cualquier observador anterior
-    if (sentinelObserver) {
-        sentinelObserver.disconnect();
-        sentinelObserver = null;
-    }
-
-    // Ocultamos sugerencias / locales cuando mostramos menú
+    const suggestionsTitle = document.getElementById('suggestions-title');
     const suggestionsWrapper = document.getElementById('suggestions-carousel-wrapper');
-    if (suggestionsWrapper) suggestionsWrapper.style.display = 'none';
-
-    // Quitamos botón "Ver todo categoría" si existía
-    const verTodoCat = document.getElementById('ver-todo-categoria-container');
-    if (verTodoCat) verTodoCat.innerHTML = '';
-
-    // Llamamos a fetchMenus con los parámetros adecuados
-    // Nota: aquí asumimos que ya tienes la info para decidir si filtrar por categoría o por local
-    // Ajusta según desde dónde llames esta función
-
-    // Ejemplo: si vienes de un local específico
-    // fetchMenus(null, localId);  
-
-    // Ejemplo: si vienes de "todos los X"
-    // fetchMenus(tipoCategoria);
-
-    // Ejemplo: si vienes de categoría + local
-    // fetchMenus(null, localId, categoriaDestacada);
-
-    // Por ahora lo dejamos como placeholder – reemplaza según tu flujo
-    console.warn("displayMenus llamado – ajusta los parámetros para fetchMenus");
-    fetchMenus(null, null, null, false); // ← cámbialo según contexto
-}
-
-            // ────────────────────────────────────────────────────────────────
-// Renderiza solo las tarjetas (usado tanto en carga inicial como append)
-// ────────────────────────────────────────────────────────────────
-function renderMenuCards(menus, container) {
-    if (menus.length === 0) {
-        container.innerHTML += '<p style="text-align:center; color:#999; padding:40px 20px;">No hay más platos para mostrar</p>';
-        return;
-    }
-
-    menus.forEach(menu => {
-        currentDisplayedMenus[menu.id] = menu;
-
-        const div = document.createElement('div');
-        div.className = 'menu-item';
-
-        // Resaltar si es de la categoría destacada
-        if (currentFetchParams?.filtroCategoriaInicial &&
-            menu.categoria?.toLowerCase().includes(currentFetchParams.filtroCategoriaInicial.toLowerCase())) {
-            div.classList.add('destacado-categoria');
+    const verTodoContainer = document.getElementById('ver-todo-categoria-container');
+    // Ocultar carrusel de sugerencias / locales
+    suggestionsWrapper.style.display = 'none';
+    verTodoContainer.innerHTML = '';
+    // Cambiar título
+    suggestionsTitle.textContent = "Mis Favoritos";
+    showLoading(container);
+    container.style.display = 'block';
+    try {
+        // Opción A: Usar endpoint específico (recomendado - más eficiente)
+        // Si ya tienes o puedes crear action=getFavoriteMenus en tu Google Apps Script
+        const response = await fetch(`${scriptUrl}?action=getFavoriteMenus&userId=${userId}`);
+        const data = await response.json();
+        let favoriteMenus = [];
+        if (data.success && Array.isArray(data.menus)) {
+            favoriteMenus = data.menus;
+        } else {
+            // Opción B: fallback - obtener todos y filtrar (como ya hacías)
+            const allResponse = await fetch(`${scriptUrl}?action=getAllMenus`);
+            const allData = await allResponse.json();
+            const allMenus = allData.menus || [];
+            favoriteMenus = allMenus.filter(m => userFavorites.includes(m.id));
         }
-
-        // Imagen por defecto según categoría
-        let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
-        if (!menu.imagen_url && menu.categoria) {
-            const cat = menu.categoria.toLowerCase();
-            if (cat.includes('pizza')) imgSrc = 'https://i.postimg.cc/BnSY4khb/pizza.jpg';
-            else if (cat.includes('empanada')) imgSrc = 'https://i.postimg.cc/Qdf6tmPQ/emp.jpg';
-            else if (cat.includes('hamburguesa')) imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
-        }
-
-        div.innerHTML = `
-            <img src="${imgSrc}"
-                 alt="${menu.nombre}"
-                 onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
-            <div class="card-body-horizontal">
-                <div class="local-info">
-                    <img class="local-logo"
-                         src="${menu.logo_url || 'https://placehold.co/36x36?text=Local'}"
-                         alt="${menu.nombre_local}"
-                         onerror="this.src='https://placehold.co/36x36?text=?'}">
-                    <span class="local-name">${menu.nombre_local || 'Local sin nombre'}</span>
+        if (favoriteMenus.length === 0) {
+            container.innerHTML = `
+                <div style="padding: 60px 20px; text-align: center; color: #666;">
+                    <h3 style="color: #d32f2f; margin-bottom: 16px;">Aún no tienes favoritos</h3>
+                    <p>Guarda tus platos preferidos tocando el corazón ♥</p>
                 </div>
-                <h3>${menu.nombre}</h3>
-                <p>${menu.descripcion || 'Sin descripción'}</p>
-                <div class="precio">$${Number(menu.precio).toLocaleString('es-AR')}</div>
-                <div class="actions">
-                    <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar al carrito</button>
-                    <button class="fav-btn ${userFavorites.includes(menu.id) ? 'active' : ''}"
-                            data-menu-id="${menu.id}"
-                            onclick="toggleFavorite('${menu.id}')">
-                        <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
-                        <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
-                    </button>
-                </div>
-            </div>
-        `;
-
-        container.appendChild(div);
-    });
-}
-
-// ────────────────────────────────────────────────────────────────
-// Configura el IntersectionObserver para carga infinita
-// ────────────────────────────────────────────────────────────────
-function setupInfiniteScrollObserver() {
-    const container = document.getElementById('menu-display');
-    if (!container) return;
-
-    // Creamos o reutilizamos el sentinel
-    let sentinel = document.getElementById('infinite-sentinel');
-    if (!sentinel) {
-        sentinel = document.createElement('div');
-        sentinel.id = 'infinite-sentinel';
-        sentinel.style.cssText = 'height: 80px; margin: 30px auto; text-align: center;';
-        sentinel.innerHTML = `
-            <div class="loading" style="min-height:60px;">
-                <div class="spinner"></div> Cargando más platos...
-            </div>
-        `;
-        container.appendChild(sentinel);
-    }
-
-    // Desconectamos observador anterior
-    if (sentinelObserver) sentinelObserver.disconnect();
-
-    sentinelObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMoreMenus && !isLoadingMore) {
-            const { tipoCategoria, localId, filtroCategoriaInicial } = currentFetchParams;
-            fetchMenus(tipoCategoria, localId, filtroCategoriaInicial, true); // append = true
+            `;
+            return;
         }
-    }, {
-        rootMargin: '300px 0px',   // carga 300px antes de llegar al final
-        threshold: 0.1
-    });
-
-    sentinelObserver.observe(sentinel);
+        // Mostramos los platos (reutilizamos tu función existente)
+        displayMenus(favoriteMenus, "Mis Favoritos");
+    } catch (err) {
+        console.error("Error al cargar favoritos:", err);
+        showError(container, "No pudimos cargar tus favoritos en este momento");
+    }
 }
-            
+        
+  function displayMenus(menus, title, categoriaDestacada = null) {
+      const container = document.getElementById('menu-display');
+      // Limpiamos y preparamos la estructura básica
+      container.innerHTML = `
+          <h2>${title}</h2>
+          <div class="menu-items"></div>
+      `;
+      const itemsDiv = container.querySelector('.menu-items');
+      currentDisplayedMenus = {}; // Limpiamos caché de menús mostrados
+      // Caso: no hay menús
+      if (menus.length === 0) {
+          itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px; font-size:1.1rem;">No se encontraron menús en este momento.</p>';
+      } else {
+          // Mostramos cada plato
+          menus.forEach((menu) => {
+              currentDisplayedMenus[menu.id] = menu;
+   
+              const div = document.createElement('div');
+              div.className = 'menu-item';
+   
+              // Resaltar si coincide con la categoría destacada
+              const esDeCategoria = categoriaDestacada &&
+                  menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
+              if (esDeCategoria) {
+                  div.classList.add('destacado-categoria');
+              }
+   
+              // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
+              let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
+              if (!menu.imagen_url && menu.categoria) {
+                  const catLower = menu.categoria.toLowerCase();
+                  if (catLower.includes('pizza')) {
+                      imgSrc = 'https://i.postimg.cc/BnSY4khb/pizza.jpg';
+                  } else if (catLower.includes('empanada')) {
+                      imgSrc = 'https://i.postimg.cc/Qdf6tmPQ/emp.jpg';
+                  } else if (catLower.includes('hamburguesa')) {
+                      imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
+                  }
+              }
+   
+              div.innerHTML = `
+                  <img src="${imgSrc}"
+                       alt="${menu.nombre}"
+                       onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
+                  <div class="card-body-horizontal">
+                      <div class="local-info">
+                          <img class="local-logo"
+                               src="${menu.logo_url || 'https://placehold.co/36x36?text=Local'}"
+                               alt="${menu.nombre_local || 'Local'}"
+                               onerror="this.src='https://placehold.co/36x36?text=?'}">
+                          <span class="local-name">${menu.nombre_local || 'Local sin nombre'}</span>
+                      </div>
+                      <h3>${menu.nombre}</h3>
+                      <p>${menu.descripcion || 'Sin descripción'}</p>
+                      <div class="precio">$${Number(menu.precio).toLocaleString('es-AR')}</div>
+                      <div class="actions">
+                          <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar al carrito</button>
+                          <button class="fav-btn ${userFavorites.includes(menu.id) ? 'active' : ''}"
+                                  data-menu-id="${menu.id}"
+                                  onclick="toggleFavorite('${menu.id}')">
+                              <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
+                              <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
+                          </button>
+                      </div>
+                  </div>
+              `;
+   
+              itemsDiv.appendChild(div);
+          });
+      }
+      // ────────────────────────────────────────────────────────────────
+      // Botón "Ver todo el menú" → solo aparece si estamos viendo un local filtrado por categoría
+      // ────────────────────────────────────────────────────────────────
+      let showFullMenuButton = false;
+      let currentLocalId = null;
+      let localName = 'este local';
+      if (categoriaDestacada && menus.length > 0) {
+          currentLocalId = menus[0].local_id;
+          localName = menus[0].nombre_local || 'este local';
+          // Verificamos que TODOS los menús sean del mismo local
+          if (currentLocalId && menus.every(menu => menu.local_id === currentLocalId)) {
+              showFullMenuButton = true;
+          }
+      }
+      if (showFullMenuButton) {
+          container.innerHTML += `
+              <div class="ver-todo-menu" style="text-align:center; margin: 30px 0 50px;">
+                  <button style="
+                      background: #d32f2f;
+                      color: white;
+                      border: none;
+                      border-radius: 12px;
+                      padding: 14px 28px;
+                      font-size: 1.1rem;
+                      font-weight: 600;
+                      cursor: pointer;
+                      box-shadow: 0 4px 12px rgba(211,47,47,0.3);
+                      transition: all 0.2s;
+                  "
+                  onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 6px 18px rgba(211,47,47,0.4)'"
+                  onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(211,47,47,0.3)'"
+                  >
+                      Ver todo el menú de ${localName}
+                  </button>
+              </div>
+          `;
+    
+          // Asignamos el evento al botón recién creado
+          const fullMenuBtn = container.querySelector('.ver-todo-menu button');
+          fullMenuBtn.onclick = () => {
+              console.log(`Clic en "Ver todo el menú de ${localName}" → cargando menú completo`);
+              fetchMenus(null, currentLocalId, null); // Sin filtro de categoría
+          };
+      }
+      // Mostramos el contenedor de menús
+      container.style.display = 'block';
+      // Actualizamos visual de favoritos
+      setTimeout(updateFavoriteButtons, 100);
+      // ────────────────────────────────────────────────────────────────
+      // SCROLL AUTOMÁTICO HACIA LA SECCIÓN DE PLATOS (nueva funcionalidad)
+      // ────────────────────────────────────────────────────────────────
+      setTimeout(() => {
+          const header = document.querySelector('header');
+          const headerHeight = header ? header.offsetHeight : 140; // fallback
+          const extraOffset = 30; // espacio adicional para que no quede pegado al header
+          const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
+    
+          window.scrollTo({
+              top: elementTop - headerHeight - extraOffset,
+              behavior: 'smooth'
+          });
+      }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
+  }
  
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
@@ -2212,7 +2131,49 @@ async function registerUser() {
           });
       }, 300);
   }
-          
+          function fetchMenus(tipoCategoria, localId, filtroCategoriaInicial = null) {
+      const container = document.getElementById('menu-display');
+      // Ocultamos el botón estático "Ver todo [categoría]" cuando entramos a ver menús
+      // (ya que ahora se usa solo debajo de los locales, no dentro del menú)
+      const verTodoCategoriaBtn = document.getElementById('ver-todo-categoria-btn');
+      if (verTodoCategoriaBtn) {
+          verTodoCategoriaBtn.style.display = 'none';
+      }
+      showLoading(container);
+      let url = `${scriptUrl}?action=getMenus`;
+      if (tipoCategoria) url += `&type=${encodeURIComponent(tipoCategoria)}`;
+      if (localId) url += `&local=${encodeURIComponent(localId)}`;
+      fetch(url)
+          .then(r => r.ok ? r.json() : Promise.reject())
+          .then(data => {
+              let menus = data || [];
+              // Filtrado adicional en frontend (por si el backend no filtra perfectamente)
+              if (filtroCategoriaInicial && !tipoCategoria) {
+                  const catLower = filtroCategoriaInicial.toLowerCase().trim();
+                  menus = menus.filter(menu =>
+                      menu.categoria &&
+                      menu.categoria.toLowerCase().trim().includes(catLower)
+                  );
+              }
+              // Determinamos el título según el contexto
+              let titulo = 'Menú del local';
+              if (tipoCategoria && !localId) {
+                  titulo = `Todos los ${tipoCategoria}`;
+              }
+              else if (filtroCategoriaInicial && localId) {
+                  titulo = `${filtroCategoriaInicial} - ${menus[0]?.nombre_local || 'Local'}`;
+              }
+              else if (tipoCategoria) {
+                  titulo = tipoCategoria;
+              }
+              // Mostramos los menús
+              displayMenus(menus, titulo, tipoCategoria || filtroCategoriaInicial);
+          })
+          .catch(err => {
+              console.error('Error al cargar menús:', err);
+              showError(container, 'No pudimos cargar el menú en este momento');
+          });
+  }
           function showLoading(container) {
       container.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
       // Solo aplicamos display: block al contenedor de menús
