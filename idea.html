@@ -1652,137 +1652,181 @@
          
   function displayMenus(menus, title, categoriaDestacada = null) {
     const container = document.getElementById('menu-display');
+    
+    // Limpiamos y ponemos título + contenedor
     container.innerHTML = `
         <h2>${title}</h2>
         <div class="menu-items"></div>
     `;
     
     const itemsDiv = container.querySelector('.menu-items');
-    currentDisplayedMenus = {};
+    currentDisplayedMenus = {}; // Limpiamos caché
 
+    // Si no hay menús → mensaje
     if (menus.length === 0) {
-        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px;">No se encontraron menús.</p>';
+        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px; font-size:1.1rem;">No se encontraron menús en este momento.</p>';
+        container.style.display = 'block';
         return;
     }
 
-    // ── Skeleton inicial (mientras carga la primera tanda) ──
-    showSkeletonMenus(itemsDiv, 8); // muestra 8 esqueletos rápido
+    // ────────────────────────────────────────────────────────────────
+    // 1. Mostramos esqueletos inmediatamente (sensación de rapidez)
+    // ────────────────────────────────────────────────────────────────
+    const SKELETON_COUNT = 8;
+    const fragmentSkeleton = document.createDocumentFragment();
+    
+    for (let i = 0; i < SKELETON_COUNT; i++) {
+        const skel = document.createElement('div');
+        skel.className = 'menu-item skeleton';
+        skel.innerHTML = `
+            <div class="skeleton-img"></div>
+            <div class="card-body-horizontal">
+                <div class="skeleton-text" style="width: 50%; height: 18px; margin: 8px 0;"></div>
+                <div class="skeleton-text" style="width: 80%; height: 14px;"></div>
+                <div class="skeleton-text" style="width: 60%; height: 14px; margin-top: 8px;"></div>
+                <div class="skeleton-price" style="width: 90px; height: 24px; margin-top: 12px;"></div>
+            </div>
+        `;
+        fragmentSkeleton.appendChild(skel);
+    }
+    itemsDiv.appendChild(fragmentSkeleton);
 
-    // Variables de control
-    const BATCH_SIZE = 10;          // cuántos items por tanda (ajusta: 8–15)
-    let index = 0;
+    // Aseguramos que se vea el contenedor
+    container.style.display = 'block';
 
-    function renderNextBatch() {
-        const end = Math.min(index + BATCH_SIZE, menus.length);
-        
-        // Creamos fragment para minimizar reflows
+    // ────────────────────────────────────────────────────────────────
+    // 2. Parámetros de paginación suave
+    // ────────────────────────────────────────────────────────────────
+    const BATCH_SIZE = 10;          // Items por tanda (8-15 recomendado)
+    let currentIndex = 0;
+
+    // ────────────────────────────────────────────────────────────────
+    // 3. Función que renderiza una tanda
+    // ────────────────────────────────────────────────────────────────
+    function renderBatch() {
+        const end = Math.min(currentIndex + BATCH_SIZE, menus.length);
         const fragment = document.createDocumentFragment();
 
-        for (; index < end; index++) {
-            const menu = menus[index];
+        for (; currentIndex < end; currentIndex++) {
+            const menu = menus[currentIndex];
             currentDisplayedMenus[menu.id] = menu;
 
-            // Aquí va TU código de creación de tarjeta (el mismo que tenías)
+            // Imagen por defecto según categoría si no hay URL
             let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
-            // ... lógica de imagen por defecto ...
+            if (!menu.imagen_url && menu.categoria) {
+                const catLower = menu.categoria.toLowerCase();
+                if (catLower.includes('pizza')) imgSrc = 'https://i.postimg.cc/BnSY4khb/pizza.jpg';
+                else if (catLower.includes('empanada')) imgSrc = 'https://i.postimg.cc/Qdf6tmPQ/emp.jpg';
+                else if (catLower.includes('hamburguesa')) imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
+            }
 
             const div = document.createElement('div');
             div.className = 'menu-item';
-            // resaltar si coincide con categoría, etc.
+
+            // Resaltar si es de la categoría destacada
+            if (categoriaDestacada && menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase())) {
+                div.classList.add('destacado-categoria');
+            }
+
             div.innerHTML = `
-                <img loading="lazy" src="${imgSrc}" alt="${menu.nombre}" ...>
+                <img loading="lazy" src="${imgSrc}"
+                     alt="${menu.nombre}"
+                     onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
                 <div class="card-body-horizontal">
-                    <!-- resto del HTML de la tarjeta -->
-                    <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar</button>
-                    <button class="fav-btn ..." ...> ... </button>
+                    <div class="local-info">
+                        <img class="local-logo"
+                             src="${menu.logo_url || 'https://placehold.co/36x36?text=Local'}"
+                             alt="${menu.nombre_local || 'Local'}"
+                             onerror="this.src='https://placehold.co/36x36?text=?'}">
+                        <span class="local-name">${menu.nombre_local || 'Local sin nombre'}</span>
+                    </div>
+                    <h3>${menu.nombre}</h3>
+                    <p>${menu.descripcion || 'Sin descripción'}</p>
+                    <div class="precio">$${Number(menu.precio).toLocaleString('es-AR')}</div>
+                    <div class="actions">
+                        <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar al carrito</button>
+                        <button class="fav-btn ${userFavorites.includes(menu.id) ? 'active' : ''}"
+                                data-menu-id="${menu.id}"
+                                onclick="toggleFavorite('${menu.id}')">
+                            <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
+                            <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
+                        </button>
+                    </div>
                 </div>
             `;
+
             fragment.appendChild(div);
         }
 
-        // Insertamos la tanda de una vez
+        // Insertamos la tanda completa de una vez
         itemsDiv.appendChild(fragment);
 
-        // Actualizamos favoritos (solo los nuevos)
+        // Actualizamos visual de favoritos (solo los nuevos renderizados)
         updateFavoriteButtons();
 
-        // ¿Quedan más?
-        if (index < menus.length) {
-            // Pequeña pausa para que el navegador "respire" y pinte
-            setTimeout(() => requestAnimationFrame(renderNextBatch), 30); // 0~50ms
+        // ── Continuamos con la siguiente tanda si quedan ──
+        if (currentIndex < menus.length) {
+            // Pausa corta para que el navegador pinte y no se sienta "congelado"
+            setTimeout(() => requestAnimationFrame(renderBatch), 40); // 40ms ≈ 2-3 frames
         } else {
-            // Opcional: agregar botón "Ver todo el menú" al final como antes
-            // ...
+            // ── Al finalizar: botón "Ver todo el menú" si corresponde ──
+            let showFullMenuButton = false;
+            let currentLocalId = null;
+            let localName = 'este local';
+
+            if (categoriaDestacada && menus.length > 0) {
+                currentLocalId = menus[0].local_id;
+                localName = menus[0].nombre_local || 'este local';
+                if (currentLocalId && menus.every(m => m.local_id === currentLocalId)) {
+                    showFullMenuButton = true;
+                }
+            }
+
+            if (showFullMenuButton) {
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'ver-todo-menu';
+                btnContainer.style.textAlign = 'center';
+                btnContainer.style.margin = '30px 0 50px';
+                btnContainer.innerHTML = `
+                    <button style="
+                        background: #d32f2f;
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        padding: 14px 28px;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        box-shadow: 0 4px 12px rgba(211,47,47,0.3);
+                    ">
+                        Ver todo el menú de ${localName}
+                    </button>
+                `;
+                btnContainer.querySelector('button').onclick = () => {
+                    fetchMenus(null, currentLocalId, null);
+                };
+                container.appendChild(btnContainer);
+            }
+
+            // Scroll suave hacia la sección (ya lo tenías)
+            setTimeout(() => {
+                const headerHeight = document.querySelector('header')?.offsetHeight || 140;
+                const extraOffset = 30;
+                const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
+                window.scrollTo({
+                    top: elementTop - headerHeight - extraOffset,
+                    behavior: 'smooth'
+                });
+            }, 300);
         }
     }
 
-      // ────────────────────────────────────────────────────────────────
-      // Botón "Ver todo el menú" → solo aparece si estamos viendo un local filtrado por categoría
-      // ────────────────────────────────────────────────────────────────
-      let showFullMenuButton = false;
-      let currentLocalId = null;
-      let localName = 'este local';
- 
-      if (categoriaDestacada && menus.length > 0) {
-          currentLocalId = menus[0].local_id;
-          localName = menus[0].nombre_local || 'este local';
-          // Verificamos que TODOS los menús sean del mismo local
-          if (currentLocalId && menus.every(menu => menu.local_id === currentLocalId)) {
-              showFullMenuButton = true;
-          }
-      }
-      if (showFullMenuButton) {
-          container.innerHTML += `
-              <div class="ver-todo-menu" style="text-align:center; margin: 30px 0 50px;">
-                  <button style="
-                      background: #d32f2f;
-                      color: white;
-                      border: none;
-                      border-radius: 12px;
-                      padding: 14px 28px;
-                      font-size: 1.1rem;
-                      font-weight: 600;
-                      cursor: pointer;
-                      box-shadow: 0 4px 12px rgba(211,47,47,0.3);
-                      transition: all 0.2s;
-                  "
-                  onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 6px 18px rgba(211,47,47,0.4)'"
-                  onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(211,47,47,0.3)'"
-                  >
-                      Ver todo el menú de ${localName}
-                  </button>
-              </div>
-          `;
-     
-          // Asignamos el evento al botón recién creado
-          const fullMenuBtn = container.querySelector('.ver-todo-menu button');
-          fullMenuBtn.onclick = () => {
-              console.log(`Clic en "Ver todo el menú de ${localName}" → cargando menú completo`);
-              fetchMenus(null, currentLocalId, null); // Sin filtro de categoría
-          };
-      }
-      // Mostramos el contenedor de menús
-      container.style.display = 'block';
-      // Actualizamos visual de favoritos
-      setTimeout(updateFavoriteButtons, 100);
-      // ────────────────────────────────────────────────────────────────
-      // SCROLL AUTOMÁTICO HACIA LA SECCIÓN DE PLATOS (nueva funcionalidad)
-      // ────────────────────────────────────────────────────────────────
-      setTimeout(() => {
-          const header = document.querySelector('header');
-          const headerHeight = header ? header.offsetHeight : 140; // fallback
-          const extraOffset = 30; // espacio adicional para que no quede pegado al header
-          const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
-     
-          window.scrollTo({
-              top: elementTop - headerHeight - extraOffset,
-              behavior: 'smooth'
-          });
-      }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
-  }
-
-        // Empezamos
-    setTimeout(() => requestAnimationFrame(renderNextBatch), 100);
+    // ── Iniciamos el renderizado después de mostrar los esqueletos ──
+    setTimeout(() => {
+        // Limpiamos esqueletos antes de empezar (opcional, puedes dejarlos y sobreescribir)
+        // itemsDiv.innerHTML = '';
+        requestAnimationFrame(renderBatch);
+    }, 150); // Pequeña demora para que el usuario vea los esqueletos primero
 }
   
           function addToCartById(menuId) {
