@@ -1651,77 +1651,71 @@
 }
          
   function displayMenus(menus, title, categoriaDestacada = null) {
-      const container = document.getElementById('menu-display');
- 
-      // Limpiamos y preparamos la estructura básica
-      container.innerHTML = `
-          <h2>${title}</h2>
-          <div class="menu-items"></div>
-      `;
- 
-      const itemsDiv = container.querySelector('.menu-items');
-      currentDisplayedMenus = {}; // Limpiamos caché de menús mostrados
-      // Caso: no hay menús
-      if (menus.length === 0) {
-          itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px; font-size:1.1rem;">No se encontraron menús en este momento.</p>';
-      } else {
-          // Mostramos cada plato
-          menus.forEach((menu) => {
-              currentDisplayedMenus[menu.id] = menu;
+    const container = document.getElementById('menu-display');
+    container.innerHTML = `
+        <h2>${title}</h2>
+        <div class="menu-items"></div>
+    `;
     
-              const div = document.createElement('div');
-              div.className = 'menu-item';
-    
-              // Resaltar si coincide con la categoría destacada
-              const esDeCategoria = categoriaDestacada &&
-                  menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
-              if (esDeCategoria) {
-                  div.classList.add('destacado-categoria');
-              }
-    
-              // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
-              let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
-              if (!menu.imagen_url && menu.categoria) {
-                  const catLower = menu.categoria.toLowerCase();
-                  if (catLower.includes('pizza')) {
-                      imgSrc = 'https://i.postimg.cc/BnSY4khb/pizza.jpg';
-                  } else if (catLower.includes('empanada')) {
-                      imgSrc = 'https://i.postimg.cc/Qdf6tmPQ/emp.jpg';
-                  } else if (catLower.includes('hamburguesa')) {
-                      imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
-                  }
-              }
-    
-              div.innerHTML = `
-                  <img src="${imgSrc}"
-                       alt="${menu.nombre}"
-                       onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
-                  <div class="card-body-horizontal">
-                      <div class="local-info">
-                          <img class="local-logo"
-                               src="${menu.logo_url || 'https://placehold.co/36x36?text=Local'}"
-                               alt="${menu.nombre_local || 'Local'}"
-                               onerror="this.src='https://placehold.co/36x36?text=?'}">
-                          <span class="local-name">${menu.nombre_local || 'Local sin nombre'}</span>
-                      </div>
-                      <h3>${menu.nombre}</h3>
-                      <p>${menu.descripcion || 'Sin descripción'}</p>
-                      <div class="precio">$${Number(menu.precio).toLocaleString('es-AR')}</div>
-                      <div class="actions">
-                          <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar al carrito</button>
-                          <button class="fav-btn ${userFavorites.includes(menu.id) ? 'active' : ''}"
-                                  data-menu-id="${menu.id}"
-                                  onclick="toggleFavorite('${menu.id}')">
-                              <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
-                              <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
-                          </button>
-                      </div>
-                  </div>
-              `;
-    
-              itemsDiv.appendChild(div);
-          });
-      }
+    const itemsDiv = container.querySelector('.menu-items');
+    currentDisplayedMenus = {};
+
+    if (menus.length === 0) {
+        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px;">No se encontraron menús.</p>';
+        return;
+    }
+
+    // ── Skeleton inicial (mientras carga la primera tanda) ──
+    showSkeletonMenus(itemsDiv, 8); // muestra 8 esqueletos rápido
+
+    // Variables de control
+    const BATCH_SIZE = 10;          // cuántos items por tanda (ajusta: 8–15)
+    let index = 0;
+
+    function renderNextBatch() {
+        const end = Math.min(index + BATCH_SIZE, menus.length);
+        
+        // Creamos fragment para minimizar reflows
+        const fragment = document.createDocumentFragment();
+
+        for (; index < end; index++) {
+            const menu = menus[index];
+            currentDisplayedMenus[menu.id] = menu;
+
+            // Aquí va TU código de creación de tarjeta (el mismo que tenías)
+            let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
+            // ... lógica de imagen por defecto ...
+
+            const div = document.createElement('div');
+            div.className = 'menu-item';
+            // resaltar si coincide con categoría, etc.
+            div.innerHTML = `
+                <img loading="lazy" src="${imgSrc}" alt="${menu.nombre}" ...>
+                <div class="card-body-horizontal">
+                    <!-- resto del HTML de la tarjeta -->
+                    <button class="add-to-cart" onclick="addToCartById('${menu.id}')">Agregar</button>
+                    <button class="fav-btn ..." ...> ... </button>
+                </div>
+            `;
+            fragment.appendChild(div);
+        }
+
+        // Insertamos la tanda de una vez
+        itemsDiv.appendChild(fragment);
+
+        // Actualizamos favoritos (solo los nuevos)
+        updateFavoriteButtons();
+
+        // ¿Quedan más?
+        if (index < menus.length) {
+            // Pequeña pausa para que el navegador "respire" y pinte
+            setTimeout(() => requestAnimationFrame(renderNextBatch), 30); // 0~50ms
+        } else {
+            // Opcional: agregar botón "Ver todo el menú" al final como antes
+            // ...
+        }
+    }
+
       // ────────────────────────────────────────────────────────────────
       // Botón "Ver todo el menú" → solo aparece si estamos viendo un local filtrado por categoría
       // ────────────────────────────────────────────────────────────────
@@ -1786,6 +1780,10 @@
           });
       }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
   }
+
+        // Empezamos
+    setTimeout(() => requestAnimationFrame(renderNextBatch), 100);
+}
   
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
