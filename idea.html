@@ -1819,15 +1819,6 @@ function renderMenuCards(menus, container) {
     });
 }
 
-            // 1. Desde sugerencia de local normal
-div.onclick = () => fetchMenus(null, local.local_id);
-
-// 2. Desde botón "Ver todo Hamburguesas / Pizzas / etc."
-btn.onclick = () => fetchMenus(categoria, null, null);
-
-// 3. Desde local que se abrió después de filtrar por categoría
-div.onclick = () => fetchMenus(null, local.local_id, ultimaCategoriaSeleccionada);
-
 // ────────────────────────────────────────────────────────────────
 // Configura el IntersectionObserver para carga infinita
 // ────────────────────────────────────────────────────────────────
