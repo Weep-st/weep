@@ -1600,158 +1600,159 @@
         return;
     }
             
-    // Variables globales (agregar al inicio de tu <script>)
-let allMenus = [];              // ← todos los menús que vinieron del backend
-let currentIndex = 0;           // desde qué plato empezar a mostrar en esta tanda
-const BATCH_SIZE = 10;          // cuántos platos mostrar por tanda (8–12 es ideal)
-let isLoading = false;          // evita que se disparen varias cargas a la vez
+    // Variables de control de paginación (por cada carga de menús)
+let currentPage = 1;
+let hasMoreMenus = true;
+let isLoadingMore = false;
+let currentFetchParams = null; // guardaremos {tipoCategoria, localId, filtroCategoriaInicial}
 
-function displayMenus(menus, title, categoriaDestacada = null) {
+// Observador para el "sentinel" (elemento que detecta cuando estamos cerca del final)
+let sentinelObserver = null;
+
+function fetchMenus(tipoCategoria, localId, filtroCategoriaInicial = null, append = false) {
     const container = document.getElementById('menu-display');
-    
-    // Guardamos TODOS los menús recibidos (viene del fetch)
-    allMenus = [...menus];
-    currentIndex = 0;
-    isLoading = false;
-
-    // Estructura base (solo una vez)
-    container.innerHTML = `
-        <h2>${title}</h2>
-        <div class="menu-items"></div>
-        <div id="load-more-trigger" style="height: 100px; margin: 20px 0;"></div>
-    `;
-
     const itemsDiv = container.querySelector('.menu-items');
-    const trigger = document.getElementById('load-more-trigger');
 
-    // ────────────────────────────────────────────────────────────────
-    // Función que agrega la siguiente tanda de platos
-    // ────────────────────────────────────────────────────────────────
-    function loadNextBatch() {
-        if (isLoading) return;
-        if (currentIndex >= allMenus.length) {
-            trigger.innerHTML = '<p style="color:#999; padding:30px;">No hay más platos</p>';
-            return;
-        }
+    if (!append) {
+        // Primera carga → limpiamos y reseteamos estado
+        showLoading(container);
+        currentPage = 1;
+        hasMoreMenus = true;
+        isLoadingMore = false;
+        currentFetchParams = { tipoCategoria, localId, filtroCategoriaInicial };
+        if (itemsDiv) itemsDiv.innerHTML = '';
+    }
 
-        isLoading = true;
-        
-        // Mostrar mini spinner mientras "cargamos" (sensación)
-        trigger.innerHTML = `
-            <div class="loading" style="padding: 40px 0;">
-                <div class="spinner"></div> Cargando más platos...
-            </div>
-        `;
+    if (!hasMoreMenus || isLoadingMore) return;
 
-        // Pequeño retraso artificial para que se vea el spinner (opcional, 300–600ms)
-        setTimeout(() => {
-            const batch = allMenus.slice(currentIndex, currentIndex + BATCH_SIZE);
-            
-            batch.forEach(menu => {
-                // ── TU CÓDIGO ACTUAL DE CREAR CADA TARJETA ───────────────
-                // (exactamente el mismo que tenías antes)
-                const div = document.createElement('div');
-                div.className = 'menu-item';
+    isLoadingMore = true;
 
-                // Resaltar si es de la categoría destacada
-                if (categoriaDestacada && 
-                    menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase())) {
-                    div.classList.add('destacado-categoria');
-                }
+    let url = `${scriptUrl}?action=getMenus&page=${currentPage}&limit=12`;
+    if (tipoCategoria) url += `&type=${encodeURIComponent(tipoCategoria)}`;
+    if (localId)      url += `&local=${encodeURIComponent(localId)}`;
 
-                let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
-                if (!menu.imagen_url && menu.categoria) {
-                    const catLower = menu.categoria.toLowerCase();
-                    if (catLower.includes('pizza')) imgSrc = 'https://i.postimg.cc/BnSY4khb/pizza.jpg';
-                    else if (catLower.includes('empanada')) imgSrc = 'https://i.postimg.cc/Qdf6tmPQ/emp.jpg';
-                    else if (catLower.includes('hamburguesa')) imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
-                }
+    fetch(url)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+            let menus = data.menus || [];
 
-                div.innerHTML = `
-                    <img src="${imgSrc}" alt="${menu.nombre}"
-                         onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
-                    <div class="card-body-horizontal">
-                        <div class="local-info">
-                            <img class="local-logo" src="${menu.logo_url || 'https://placehold.co/36x36?text=Local'}"
-                                 alt="${menu.nombre_local || 'Local'}"
-                                 onerror="this.src='https://placehold.co/36x36?text=?'}">
-                            <span class="local-name">${menu.nombre_local || 'Local sin nombre'}</span>
-                        </div>
-                        <h3>${menu.nombre}</h3>
-                        <p>${menu.descripcion || 'Sin descripción'}</p>
-                        <div class="precio">$${Number(menu.precio).toLocaleString('es-AR')}</div>
-                        <div class="actions">
-                            <button class="add-to-cart" onclick="addToCartById('${menu.id}')">
-                                Agregar al carrito
-                            </button>
-                            <button class="fav-btn ${userFavorites.includes(menu.id) ? 'active' : ''}"
-                                    data-menu-id="${menu.id}"
-                                    onclick="toggleFavorite('${menu.id}')">
-                                <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
-                                <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-                itemsDiv.appendChild(div);
-            });
-
-            currentIndex += BATCH_SIZE;
-            isLoading = false;
-
-            // Limpiar spinner y ver si hay más
-            if (currentIndex >= allMenus.length) {
-                trigger.innerHTML = '<p style="color:#999; padding:30px;">Has visto todos los platos</p>';
-            } else {
-                trigger.innerHTML = ''; // listo para la próxima carga
+            // Filtro adicional en frontend si hace falta
+            if (filtroCategoriaInicial && !tipoCategoria) {
+                const catLower = filtroCategoriaInicial.toLowerCase().trim();
+                menus = menus.filter(m => 
+                    m.categoria?.toLowerCase().trim().includes(catLower)
+                );
             }
 
-            updateFavoriteButtons();
+            const titulo = determinarTitulo(tipoCategoria, localId, filtroCategoriaInicial, menus);
 
-        }, 600); // ← este retraso simula "carga" y evita que parpadee demasiado rápido
-    }
+            if (!append) {
+                container.innerHTML = `<h2>${titulo}</h2><div class="menu-items"></div>`;
+            }
 
-    // ────────────────────────────────────────────────────────────────
-    // Detección de scroll → carga más cuando el trigger está visible
-    // ────────────────────────────────────────────────────────────────
-    function checkScroll() {
-        if (container.style.display !== 'block') return; // solo cuando estamos en menú
-        if (isLoading) return;
+            const newItemsDiv = container.querySelector('.menu-items');
+            renderMenuCards(menus, newItemsDiv);
 
-        const rect = trigger.getBoundingClientRect();
-        // Si el trigger está a menos de 400px del viewport → cargar
-        if (rect.top <= window.innerHeight + 400) {
-            loadNextBatch();
-        }
-    }
+            currentPage++;
+            hasMoreMenus = data.hasMore === true;
 
-    // ────────────────────────────────────────────────────────────────
-    // Inicio: cargar la primera tanda inmediatamente
-    // ────────────────────────────────────────────────────────────────
-    if (allMenus.length === 0) {
-        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:80px 20px;">No hay menús disponibles en este momento.</p>';
-        trigger.innerHTML = '';
-    } else {
-        loadNextBatch(); // primera carga rápida
+            // Primera vez → creamos el observador
+            if (!append && hasMoreMenus) {
+                setupInfiniteScrollObserver();
+            }
 
-        // Listener de scroll (passive = mejor rendimiento)
-        window.addEventListener('scroll', checkScroll, { passive: true });
-    }
+            isLoadingMore = false;
 
-    // Limpieza cuando salimos de la vista (opcional pero recomendado)
-    const cleanup = () => window.removeEventListener('scroll', checkScroll);
-    // Puedes llamarlo cuando ocultes #menu-display si querés
+            // Quitamos loader si ya no hay más
+            if (!hasMoreMenus && sentinelObserver) {
+                const sentinel = document.getElementById('infinite-sentinel');
+                if (sentinel) {
+                    sentinelObserver.unobserve(sentinel);
+                    sentinel.remove();
+                }
+            }
 
-    // Scroll automático hacia arriba (como ya tenías)
-    setTimeout(() => {
-        const headerHeight = document.querySelector('header')?.offsetHeight || 140;
-        window.scrollTo({
-            top: container.offsetTop - headerHeight - 30,
-            behavior: 'smooth'
+            container.style.display = 'block';
+            setTimeout(updateFavoriteButtons, 100);
+        })
+        .catch(err => {
+            console.error(err);
+            if (!append) showError(container, 'Error al cargar el menú');
+            isLoadingMore = false;
         });
-    }, 300);
 }
+
+function determinarTitulo(tipoCategoria, localId, filtroCategoriaInicial, menus) {
+    if (tipoCategoria && !localId) return `Todos los ${tipoCategoria}`;
+    if (filtroCategoriaInicial && localId) {
+        return `${filtroCategoriaInicial} - ${menus[0]?.nombre_local || 'Local'}`;
+    }
+    if (tipoCategoria) return tipoCategoria;
+    return 'Menú del local';
+}
+
+function renderMenuCards(menus, container) {
+    if (menus.length === 0) {
+        container.innerHTML += '<p style="text-align:center; color:#999; padding:40px;">No hay más platos para mostrar</p>';
+        return;
+    }
+
+    menus.forEach(menu => {
+        currentDisplayedMenus[menu.id] = menu;
+
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+
+        // ... (el mismo HTML de tarjeta que ya tenías) ...
+        // Copia aquí toda la lógica de creación de tarjeta que ya usas en displayMenus
+        // Incluyendo la imagen por defecto según categoría, botón favorito, etc.
+
+        container.appendChild(div);
+    });
+}
+
+function setupInfiniteScrollObserver() {
+    const container = document.getElementById('menu-display');
+    if (!container) return;
+
+    // Creamos un elemento "sentinel" al final de las tarjetas
+    let sentinel = document.getElementById('infinite-sentinel');
+    if (!sentinel) {
+        sentinel = document.createElement('div');
+        sentinel.id = 'infinite-sentinel';
+        sentinel.style.cssText = 'height: 40px; margin: 20px auto; text-align: center;';
+        sentinel.innerHTML = '<div class="loading" style="min-height:60px;"><div class="spinner"></div> Cargando más platos...</div>';
+        container.appendChild(sentinel);
+    }
+
+    // Desconectamos observador anterior si existía
+    if (sentinelObserver) sentinelObserver.disconnect();
+
+    sentinelObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMoreMenus && !isLoadingMore) {
+            const { tipoCategoria, localId, filtroCategoriaInicial } = currentFetchParams;
+            fetchMenus(tipoCategoria, localId, filtroCategoriaInicial, true); // ← append = true
+        }
+    }, {
+        rootMargin: '200px 0px', // carga antes de llegar al final
+        threshold: 0.1
+    });
+
+    sentinelObserver.observe(sentinel);
+}
+
+// Modificamos los lugares donde llamas fetchMenus para que usen la nueva versión
+
+// Ejemplo: al seleccionar local
+div.onclick = () => {
+    fetchMenus(null, local.local_id);           // ← primera página
+};
+
+// Ejemplo: al seleccionar categoría completa
+btnContainer.querySelector('button').onclick = () => {
+    ultimaCategoriaSeleccionada = categoria;
+    fetchMenus(categoria, null, null);          // ← primera página
+};
  
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
