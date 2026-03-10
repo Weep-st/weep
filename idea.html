@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+ 
       <style>
       * { box-sizing: border-box; }
       body {
@@ -538,7 +538,7 @@
       opacity: 0.65;
       cursor: not-allowed;
   }
-      
+     
       .suggestion:hover, .suggestion:active {
           transform: scale(1.1);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
@@ -858,7 +858,6 @@
           font-size: 1rem;
           gap: 8px;
       }
- 
       .loading .spinner {
           width: 26px;
           height: 26px;
@@ -1161,7 +1160,7 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-      
+     
   </style>
       <!-- PWA - Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -1235,20 +1234,19 @@
   </div>
           <div class="suggestions">
       <h2 id="suggestions-title">Sugerencias de Locales</h2>
- 
       <div class="carousel-wrapper" id="suggestions-carousel-wrapper">
           <button class="carousel-btn left" id="prev-suggestion">←</button>
-     
+    
           <div class="carousel-container" id="suggestion-items">
               <!-- solo tarjetas aquí -->
           </div>
-     
+    
           <button class="carousel-btn right" id="next-suggestion">→</button>
       </div>
       <!-- Contenedor exclusivo para el botón "Ver todo" -->
       <div id="ver-todo-categoria-container" style="text-align: center; margin: 30px 0 50px;"></div>
   </div>
-     
+    
           <div id="menu-display" style="display:none;"></div>
   <!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
   <div id="cart-backdrop" class="cart-backdrop"></div>
@@ -1292,7 +1290,7 @@
   </select>
   <!-- Contenedor donde se mostrará el checkout de MP -->
   <div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
-  
+ 
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
     <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
@@ -1301,12 +1299,12 @@
               </form>
           </div>
       </main>
-  
+ 
       <!-- Footer -->
   <footer class="text-center">
       <div class="container">
           <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-      
+     
           <p class="small mb-4">
               <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
           </p>
@@ -1317,7 +1315,7 @@
           </p>
       </div>
   </footer>
-  
+ 
       <!-- Login Modal -->
 <div id="login-modal" class="modal">
     <div class="modal-content">
@@ -1337,16 +1335,13 @@
     <div class="modal-content">
         <span class="close" onclick="closeModal('register-modal')">×</span>
         <h2>Registro</h2>
-        
+       
         <label for="register-name">Nombre completo</label>
         <input type="text" id="register-name" placeholder="Nombre completo" required>
-
         <label for="register-email">Correo electrónico</label>
         <input type="email" id="register-email" placeholder="Correo electrónico" required>
-
         <label for="register-password">Contraseña</label>
         <input type="password" id="register-password" placeholder="Contraseña (mínimo 6 caracteres)" required>
-
         <!-- NUEVO: Teléfono con selector de país -->
         <label for="register-phone">Teléfono (WhatsApp preferido)</label>
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -1357,15 +1352,12 @@
             <input type="tel" id="register-phone" placeholder="Ej: 11 1234 5678" required
                    style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
         </div>
-
         <label for="register-address">Dirección (opcional)</label>
         <input type="text" id="register-address" placeholder="Dirección de entrega (opcional)">
-
         <button onclick="registerUser()">
             <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
             Registrarse
         </button>
-
         <p>¿Ya tienes cuenta? <a onclick="switchToLogin()">Inicia sesión</a></p>
     </div>
 </div>
@@ -1402,7 +1394,7 @@
               </div>
               <div class="modal-body text-start small">
                   <p><strong>Última actualización: febrero 2026</strong></p>
-              
+             
                   <p>Al usar Weep aceptás:</p>
                   <ul>
                       <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
@@ -1411,7 +1403,7 @@
                       <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
                       <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
                   </ul>
-              
+             
                   <p class="mt-3">Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com">bajoneando.st@gmail.com</a></p>
               </div>
               <div class="modal-footer">
@@ -1607,6 +1599,7 @@
         showModal('login-modal');
         return;
     }
+            
     const container = document.getElementById('menu-display');
     const suggestionsTitle = document.getElementById('suggestions-title');
     const suggestionsWrapper = document.getElementById('suggestions-carousel-wrapper');
@@ -1649,69 +1642,57 @@
         showError(container, "No pudimos cargar tus favoritos en este momento");
     }
 }
-         
-  function displayMenus(menus, title, categoriaDestacada = null) {
+        
+  // Variables globales para manejar la paginación / infinite scroll
+let menusToShow = [];           // todos los menús recibidos de la consulta
+let currentPage = 0;
+const ITEMS_PER_PAGE = 10;      // puedes ajustar este valor (8–12 suele sentirse bien)
+let isLoadingMore = false;      // bandera para evitar múltiples cargas simultáneas
+
+function displayMenus(menus, title, categoriaDestacada = null) {
     const container = document.getElementById('menu-display');
     
-    // Limpiamos y ponemos título + contenedor
+    // Resetear estado de paginación cada vez que mostramos una nueva lista
+    menusToShow = [...menus];   // copia para no modificar el original
+    currentPage = 0;
+    isLoadingMore = false;
+
+    // Estructura base
     container.innerHTML = `
         <h2>${title}</h2>
         <div class="menu-items"></div>
+        <div id="load-more-container" style="text-align:center; margin: 40px 0; min-height: 100px;"></div>
     `;
-    
+
     const itemsDiv = container.querySelector('.menu-items');
-    currentDisplayedMenus = {}; // Limpiamos caché
-
-    // Si no hay menús → mensaje
-    if (menus.length === 0) {
-        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:50px 20px; font-size:1.1rem;">No se encontraron menús en este momento.</p>';
-        container.style.display = 'block';
-        return;
-    }
+    const loadMoreContainer = document.getElementById('load-more-container');
 
     // ────────────────────────────────────────────────────────────────
-    // 1. Mostramos esqueletos inmediatamente (sensación de rapidez)
+    // Función que renderiza la siguiente página de items
     // ────────────────────────────────────────────────────────────────
-    const SKELETON_COUNT = 8;
-    const fragmentSkeleton = document.createDocumentFragment();
-    
-    for (let i = 0; i < SKELETON_COUNT; i++) {
-        const skel = document.createElement('div');
-        skel.className = 'menu-item skeleton';
-        skel.innerHTML = `
-            <div class="skeleton-img"></div>
-            <div class="card-body-horizontal">
-                <div class="skeleton-text" style="width: 50%; height: 18px; margin: 8px 0;"></div>
-                <div class="skeleton-text" style="width: 80%; height: 14px;"></div>
-                <div class="skeleton-text" style="width: 60%; height: 14px; margin-top: 8px;"></div>
-                <div class="skeleton-price" style="width: 90px; height: 24px; margin-top: 12px;"></div>
-            </div>
-        `;
-        fragmentSkeleton.appendChild(skel);
-    }
-    itemsDiv.appendChild(fragmentSkeleton);
+    function renderNextPage() {
+        if (isLoadingMore) return;
+        isLoadingMore = true;
 
-    // Aseguramos que se vea el contenedor
-    container.style.display = 'block';
+        const start = currentPage * ITEMS_PER_PAGE;
+        const end = start + ITEMS_PER_PAGE;
+        const pageItems = menusToShow.slice(start, end);
 
-    // ────────────────────────────────────────────────────────────────
-    // 2. Parámetros de paginación suave
-    // ────────────────────────────────────────────────────────────────
-    const BATCH_SIZE = 10;          // Items por tanda (8-15 recomendado)
-    let currentIndex = 0;
-
-    // ────────────────────────────────────────────────────────────────
-    // 3. Función que renderiza una tanda
-    // ────────────────────────────────────────────────────────────────
-    function renderBatch() {
-        const end = Math.min(currentIndex + BATCH_SIZE, menus.length);
-        const fragment = document.createDocumentFragment();
-
-        for (; currentIndex < end; currentIndex++) {
-            const menu = menus[currentIndex];
+        // Creamos y agregamos las tarjetas
+        pageItems.forEach((menu) => {
             currentDisplayedMenus[menu.id] = menu;
 
-            // Imagen por defecto según categoría si no hay URL
+            const div = document.createElement('div');
+            div.className = 'menu-item';
+
+            // Resaltar si coincide con la categoría destacada
+            const esDeCategoria = categoriaDestacada &&
+                menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
+            if (esDeCategoria) {
+                div.classList.add('destacado-categoria');
+            }
+
+            // Imagen por defecto según categoría si no hay url
             let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
             if (!menu.imagen_url && menu.categoria) {
                 const catLower = menu.categoria.toLowerCase();
@@ -1720,16 +1701,8 @@
                 else if (catLower.includes('hamburguesa')) imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
             }
 
-            const div = document.createElement('div');
-            div.className = 'menu-item';
-
-            // Resaltar si es de la categoría destacada
-            if (categoriaDestacada && menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase())) {
-                div.classList.add('destacado-categoria');
-            }
-
             div.innerHTML = `
-                <img loading="lazy" src="${imgSrc}"
+                <img src="${imgSrc}"
                      alt="${menu.nombre}"
                      onerror="this.src='https://placehold.co/120x120?text=Sin+Imagen'">
                 <div class="card-body-horizontal">
@@ -1755,80 +1728,96 @@
                 </div>
             `;
 
-            fragment.appendChild(div);
-        }
+            itemsDiv.appendChild(div);
+        });
 
-        // Insertamos la tanda completa de una vez
-        itemsDiv.appendChild(fragment);
+        currentPage++;
+        isLoadingMore = false;
 
-        // Actualizamos visual de favoritos (solo los nuevos renderizados)
-        updateFavoriteButtons();
+        // Verificamos si ya mostramos todo
+        updateLoadMoreUI();
+    }
 
-        // ── Continuamos con la siguiente tanda si quedan ──
-        if (currentIndex < menus.length) {
-            // Pausa corta para que el navegador pinte y no se sienta "congelado"
-            setTimeout(() => requestAnimationFrame(renderBatch), 40); // 40ms ≈ 2-3 frames
+    // ────────────────────────────────────────────────────────────────
+    // Actualiza el contenido del contenedor inferior (spinner o nada)
+    // ────────────────────────────────────────────────────────────────
+    function updateLoadMoreUI() {
+        const remaining = menusToShow.length - (currentPage * ITEMS_PER_PAGE);
+
+        if (remaining <= 0) {
+            loadMoreContainer.innerHTML = '';
+            // Opcional: mensaje final sutil
+            // loadMoreContainer.innerHTML = '<p style="color:#999; padding:20px;">Has visto todos los platos</p>';
         } else {
-            // ── Al finalizar: botón "Ver todo el menú" si corresponde ──
-            let showFullMenuButton = false;
-            let currentLocalId = null;
-            let localName = 'este local';
-
-            if (categoriaDestacada && menus.length > 0) {
-                currentLocalId = menus[0].local_id;
-                localName = menus[0].nombre_local || 'este local';
-                if (currentLocalId && menus.every(m => m.local_id === currentLocalId)) {
-                    showFullMenuButton = true;
-                }
-            }
-
-            if (showFullMenuButton) {
-                const btnContainer = document.createElement('div');
-                btnContainer.className = 'ver-todo-menu';
-                btnContainer.style.textAlign = 'center';
-                btnContainer.style.margin = '30px 0 50px';
-                btnContainer.innerHTML = `
-                    <button style="
-                        background: #d32f2f;
-                        color: white;
-                        border: none;
-                        border-radius: 12px;
-                        padding: 14px 28px;
-                        font-size: 1.1rem;
-                        font-weight: 600;
-                        cursor: pointer;
-                        box-shadow: 0 4px 12px rgba(211,47,47,0.3);
-                    ">
-                        Ver todo el menú de ${localName}
-                    </button>
-                `;
-                btnContainer.querySelector('button').onclick = () => {
-                    fetchMenus(null, currentLocalId, null);
-                };
-                container.appendChild(btnContainer);
-            }
-
-            // Scroll suave hacia la sección (ya lo tenías)
-            setTimeout(() => {
-                const headerHeight = document.querySelector('header')?.offsetHeight || 140;
-                const extraOffset = 30;
-                const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
-                window.scrollTo({
-                    top: elementTop - headerHeight - extraOffset,
-                    behavior: 'smooth'
-                });
-            }, 300);
+            loadMoreContainer.innerHTML = `
+                <div class="loading" style="padding: 30px 0;">
+                    <div class="spinner"></div> Cargando más...
+                </div>
+            `;
         }
     }
 
-    // ── Iniciamos el renderizado después de mostrar los esqueletos ──
+    // ────────────────────────────────────────────────────────────────
+    // Listener de scroll → carga más cuando el "load more" está visible
+    // ────────────────────────────────────────────────────────────────
+    function handleScroll() {
+        if (container.style.display !== 'block') return; // solo activo cuando mostramos menú
+        if (isLoadingMore) return;
+
+        const rect = loadMoreContainer.getBoundingClientRect();
+        const isNearBottom = rect.top <= window.innerHeight + 300; // anticipación de 300px
+
+        if (isNearBottom && (currentPage * ITEMS_PER_PAGE < menusToShow.length)) {
+            renderNextPage();
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Inicio
+    // ────────────────────────────────────────────────────────────────
+    if (menusToShow.length === 0) {
+        itemsDiv.innerHTML = '<p style="text-align:center; color:#999; padding:60px 20px; font-size:1.1rem;">No se encontraron menús en este momento.</p>';
+        loadMoreContainer.innerHTML = '';
+    } else {
+        // Primera tanda inmediata
+        renderNextPage();
+
+        // Agregamos el listener de scroll (solo una vez por carga)
+        // Nota: si llamas displayMenus muchas veces, considera remover el listener anterior
+        window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    // Limpieza: remover listener cuando salgamos de esta vista
+    // (puedes mejorarlo según cómo navegás en tu app)
+    const cleanup = () => {
+        window.removeEventListener('scroll', handleScroll);
+    };
+
+    // Ejemplo: remover cuando ocultemos el contenedor
+    const originalDisplaySetter = container.style.display;
+    const observer = new MutationObserver(() => {
+        if (container.style.display !== 'block') {
+            cleanup();
+            observer.disconnect();
+        }
+    });
+    observer.observe(container, { attributes: true, attributeFilter: ['style'] });
+
+    // Scroll automático hacia la sección (como ya tenías)
     setTimeout(() => {
-        // Limpiamos esqueletos antes de empezar (opcional, puedes dejarlos y sobreescribir)
-        // itemsDiv.innerHTML = '';
-        requestAnimationFrame(renderBatch);
-    }, 150); // Pequeña demora para que el usuario vea los esqueletos primero
+        const headerHeight = document.querySelector('header')?.offsetHeight || 140;
+        const extraOffset = 30;
+        const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+            top: elementTop - headerHeight - extraOffset,
+            behavior: 'smooth'
+        });
+    }, 300);
+
+    // Actualizar favoritos después de renderizar
+    setTimeout(updateFavoriteButtons, 150);
 }
-  
+ 
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
       if (!menu) {
@@ -1889,15 +1878,13 @@ function loginUser() {
 }
 // Registro con spinner
 async function registerUser() {
-    const nombre    = document.getElementById('register-name')?.value?.trim()    || '';
-    const email     = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
-    const password  = document.getElementById('register-password')?.value?.trim() || '';
-    const direccion = document.getElementById('register-address')?.value?.trim()  || '';
-
+    const nombre = document.getElementById('register-name')?.value?.trim() || '';
+    const email = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
+    const password = document.getElementById('register-password')?.value?.trim() || '';
+    const direccion = document.getElementById('register-address')?.value?.trim() || '';
     // ── Teléfono ────────────────────────────────────────
     const countryCode = document.getElementById('phone-country')?.value || '+54';
-    let   phoneNumber = document.getElementById('register-phone')?.value?.trim() || '';
-
+    let phoneNumber = document.getElementById('register-phone')?.value?.trim() || '';
     // Validaciones
     if (!nombre) {
         alert('El nombre es obligatorio');
@@ -1915,25 +1902,19 @@ async function registerUser() {
         alert('El número de teléfono es obligatorio');
         return;
     }
-
     // Limpieza del número de teléfono
     phoneNumber = phoneNumber.replace(/[\s\-\(\)\.]/g, '');
-
     // Validación básica de longitud
     if (phoneNumber.length < 8 || phoneNumber.length > 15) {
         alert('El número de teléfono parece inválido (entre 8 y 15 dígitos)');
         return;
     }
-
     const telefonoCompleto = countryCode + phoneNumber;
-
     const btn = document.querySelector('#register-modal button');
     const spinner = btn.querySelector('.spinner-border');
-
     spinner.classList.remove('d-none');
     btn.disabled = true;
     btn.lastChild.textContent = 'Registrando...';
-
     try {
         const url = `${scriptUrl}?action=register` +
             `&nombre=${encodeURIComponent(nombre)}` +
@@ -1941,35 +1922,27 @@ async function registerUser() {
             `&password=${encodeURIComponent(password)}` +
             `&direccion=${encodeURIComponent(direccion)}` +
             `&telefono=${encodeURIComponent(telefonoCompleto)}`;
-
         const response = await fetch(url, {
             method: 'GET',
             cache: 'no-cache',
             redirect: 'follow'
         });
-
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
-
         const result = await response.json();
-
         spinner.classList.add('d-none');
         btn.disabled = false;
         btn.lastChild.textContent = 'Registrarse';
-
         if (result.success) {
             alert('¡Registro exitoso! Bienvenid@ ' + nombre);
-
             localStorage.setItem('userId', result.userId);
             localStorage.setItem('userName', nombre);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userAddress', direccion);
-            localStorage.setItem('userPhone', telefonoCompleto);   // ← guardamos también el teléfono
-
+            localStorage.setItem('userPhone', telefonoCompleto); // ← guardamos también el teléfono
             closeModal('register-modal');
             checkLoginStatus();
-
             // Limpiar formulario
             document.querySelectorAll('#register-modal input').forEach(input => input.value = '');
         } else {
@@ -2005,7 +1978,7 @@ async function registerUser() {
           setupCart();
           loadAllDrinks();
       });
-        
+       
           function loadAllDrinks() {
               fetch(`${scriptUrl}?action=getAllMenus`)
                   .then(r => r.ok ? r.json() : Promise.reject())
@@ -2070,7 +2043,7 @@ async function registerUser() {
           })
           .catch(() => showError(container, 'Error al cargar locales'));
   }
-     
+    
           function setupSearch() {
               const input = document.getElementById('search-input');
               let timeout;
@@ -2098,7 +2071,7 @@ async function registerUser() {
     const catElement = e.target.closest('.category');
     if (!catElement) return;
     const tipo = catElement.dataset.type;
-   
+  
     if (tipo === "favoritos") {
         // Ruta especial: mostrar favoritos
         showMyFavoritesSection();
@@ -2293,7 +2266,7 @@ async function registerUser() {
           envioOption.style.backgroundColor = '';
       }
   }
-    
+   
   function setupCart() {
       // ────────────────────────────────────────────────────────────────
       // Elementos del DOM relacionados con el carrito
@@ -2659,7 +2632,7 @@ async function registerUser() {
               const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
               document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
           }
-        
+       
           async function checkout() {
     if (!isLoggedIn) {
         showModal('login-modal');
@@ -2716,7 +2689,7 @@ async function registerUser() {
         btn.lastChild.textContent = 'Realizar Pedido';
     }
 }
-        
+       
           async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
     checkoutBtn.disabled = true;
@@ -2784,8 +2757,8 @@ async function registerUser() {
         checkoutBtn.textContent = 'Realizar Pedido';
     }
 }
-        
-  
+       
+ 
   async function finalizeOrderAfterPayment() {
       if (!pendingOrderData) return;
       // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
@@ -2807,25 +2780,21 @@ async function registerUser() {
     const status = urlParams.get('status');
     const paymentId = urlParams.get('payment_id');
     if (!status || !paymentId) return;
-
     const savedData = localStorage.getItem('pendingOrderData');
     if (!savedData) {
         alert('Error: no se encontraron datos del pedido. Intenta nuevamente.');
         return;
     }
-
     pendingOrderData = JSON.parse(savedData);
-
     // ←←← RESTAURAR EL CARRITO ←←←
     if (pendingOrderData.cart && Array.isArray(pendingOrderData.cart)) {
         cart = pendingOrderData.cart;
-        updateCartCount();           // actualiza el badge del carrito
-        updateCartDisplay();         // refresca visualmente el sidebar (si está abierto)
+        updateCartCount(); // actualiza el badge del carrito
+        updateCartDisplay(); // refresca visualmente el sidebar (si está abierto)
         console.log("Carrito restaurado desde pendingOrderData:", cart);
     } else {
         console.warn("No se encontró carrito en pendingOrderData");
     }
-
     try {
         // Verificar el pago
         const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -2833,7 +2802,6 @@ async function registerUser() {
         });
         if (!res.ok) throw new Error("No se pudo verificar el pago");
         const payment = await res.json();
-
         if (payment.status === "approved") {
             pendingOrderData.paymentId = paymentId;
             await finalizeOrderAfterPayment();
@@ -2899,10 +2867,10 @@ async function registerUser() {
                   // Actualizamos el almacenamiento local
                   localStorage.setItem('userName', name);
                   localStorage.setItem('userEmail', email);
-  
+ 
                   alert(data.message || 'Perfil actualizado correctamente');
                   closeModal('edit-profile-modal');
-  
+ 
                   // Refrescamos el estado visual si es necesario
                   checkLoginStatus();
               } else {
@@ -2929,11 +2897,11 @@ async function registerUser() {
               if (data.success) {
                   userAddress = newAddress;
                   localStorage.setItem('userAddress', newAddress);
-  
+ 
                   // Actualizamos el campo de dirección del checkout si está visible
                   const checkoutDir = document.getElementById('direccion');
                   if (checkoutDir) checkoutDir.value = newAddress;
-  
+ 
                   alert('Dirección actualizada correctamente');
                   closeModal('change-address-modal');
               } else {
@@ -2944,14 +2912,13 @@ async function registerUser() {
               alert('Error de conexión al actualizar dirección');
           });
   }
-       
+      
   // ------------------------------------------------------------------
   // Notificar a los locales - Versión ajustada a tu formato exacto
   // ------------------------------------------------------------------
   async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
     console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
     let todasOk = true;
-
     // 1. Agrupar por local
     const groupedByLocal = {};
     cart.forEach(item => {
@@ -2968,16 +2935,13 @@ async function registerUser() {
         groupedByLocal[localId].items.push(item);
         groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
     });
-
     if (Object.keys(groupedByLocal).length === 0) {
         console.warn("[NOTIFICACIÓN] No hay locales en el carrito");
         return true;
     }
-
     // 2. Procesar cada local
     for (const localId in groupedByLocal) {
         const group = groupedByLocal[localId];
-
         // Obtener email del local
         if (!group.emailLocal) {
             try {
@@ -2990,13 +2954,11 @@ async function registerUser() {
                 console.warn(`No se obtuvo email del local ${localId}`);
             }
         }
-
         if (!group.emailLocal) {
             console.error(`Sin email para local ${localId} (${group.nombreLocal})`);
             todasOk = false;
             continue;
         }
-
         // Nombre del cliente
         let nombreCliente = localStorage.getItem('userName') || 'Cliente';
         try {
@@ -3008,58 +2970,53 @@ async function registerUser() {
         } catch (e) {
             console.warn("No se obtuvo nombre del usuario desde backend");
         }
-
         // Productos
         const itemsText = group.items.map(i =>
             `${i.nombreProducto} × ${i.cantidad} $${Number(i.precioUnitario * i.cantidad).toLocaleString('es-AR')}`
         ).join('\n');
-
         // Texto del método de pago con aclaración para transferencia
         let metodoPagoTexto = metodoPago;
         if (metodoPago.toLowerCase().includes("transferencia") || metodoPago.toLowerCase().includes("mercado pago")) {
             metodoPagoTexto += " (gestionar retiro en panel de locales)";
         }
-
         const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
         const htmlBody = `
             <div style="text-align:center; margin:24px 0 32px;">
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-        
+       
             <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
             <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
                 #${idPedido} – ${group.nombreLocal}
             </p>
-        
+       
             <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
             <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
             <p style="margin:8px 0;"><strong>Método de pago:</strong> ${metodoPagoTexto}</p>
             ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
-        
+       
             <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
             <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
 ${itemsText}
             </pre>
-        
+       
             <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
                 <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
             </p>
-        
+       
             <hr style="margin:32px 0;">
             <p style="text-align:center; color:#666; font-size:0.95em;">
                 Por favor prepara el pedido lo antes posible.<br>
                 Cualquier duda, responde directamente a este correo.
             </p>
         `;
-
         const emailParams = new URLSearchParams({
             action: 'enviarNotificacionEmail',
             toEmail: group.emailLocal,
             subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
             htmlBody: htmlBody
         });
-
         try {
             await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
             console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
@@ -3068,10 +3025,9 @@ ${itemsText}
             todasOk = false;
         }
     }
-
     return todasOk;
 }
-       
+      
   // ------------------------------------------------------------------
   // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
   // ------------------------------------------------------------------
@@ -3152,19 +3108,16 @@ ${itemsText}
   async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
     try {
         const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-
         // Monto a cobrar al cliente (entrega)
         let montoCobrar = "NADA (pagado con " + metodoPago + ")";
         if (metodoPago.toLowerCase() === "efectivo") {
             montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
         }
-
         // Monto a pagar al local (retiro) → solo si es efectivo
         let montoPagarLocal = "NADA (ya pagado con " + metodoPago + ")";
         if (metodoPago.toLowerCase() === "efectivo") {
             montoPagarLocal = "$" + cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR');
         }
-
         // Dirección del local
         let direccionRetiro = "—";
         if (cart.length > 0) {
@@ -3177,13 +3130,12 @@ ${itemsText}
                 }
             } catch (e) {}
         }
-
         const htmlBody = `
             <div style="text-align:center; margin:24px 0 32px;">
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-        
+       
             <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
             <p style="text-align:center; font-size:1.2em; margin:8px 0;">
                 Pedido #<strong>${idPedido}</strong>
@@ -3201,14 +3153,12 @@ ${itemsText}
                 ¡Gracias por ser parte del equipo Weep!
             </p>
         `;
-
         const emailParams = new URLSearchParams({
             action: 'enviarNotificacionEmail',
             toEmail: repartidorInfo.email,
             subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
             htmlBody: htmlBody
         });
-
         const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
             method: 'GET',
             cache: 'no-cache'
@@ -3220,7 +3170,7 @@ ${itemsText}
         return false;
     }
 }
-      
+     
           // Esta función debería llamarse SOLO cuando el pago está aprobado
   async function createConfirmedOrder(orderData) {
       const payload = {
@@ -3319,7 +3269,6 @@ ${itemsText}
       const container = document.getElementById(containerId);
       const prev = document.getElementById(prevId);
       const next = document.getElementById(nextId);
- 
       if (!container || !prev || !next) return;
       function scrollLeft() { container.scrollBy({ left: -container.clientWidth * 0.75, behavior: 'smooth' }); }
       function scrollRight() { container.scrollBy({ left: container.clientWidth * 0.75, behavior: 'smooth' }); }
@@ -3328,7 +3277,7 @@ ${itemsText}
       function updateButtons() {
           const atStart = container.scrollLeft <= 1;
           const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
-     
+    
           prev.disabled = atStart;
           prev.style.opacity = atStart ? '0.35' : '1';
           next.disabled = atEnd;
@@ -3336,19 +3285,15 @@ ${itemsText}
       }
       container.addEventListener('scroll', updateButtons);
       window.addEventListener('resize', updateButtons);
- 
       // Estado inicial
       setTimeout(updateButtons, 400);
   }
   // Llamar para ambos carruseles
   window.addEventListener('load', () => {
       // ... tus otras inicializaciones ...
- 
       setupGenericCarousel('suggestions-carousel-wrapper', 'suggestion-items', 'prev-suggestion', 'next-suggestion');
- 
       // Si más adelante creas otro carrusel, solo llamas de nuevo la función
   });
-
         window.addEventListener('load', checkPaymentReturn);
       </script>
   </body>
