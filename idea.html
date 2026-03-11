@@ -3013,7 +3013,8 @@ ${itemsText}
           const idPedido = result.idPedido;
           console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
           // Notificar locales (ya existe)
-          const localesNotificados = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+          // Después: agregamos metodoPago como último parámetro
+const localesNotificados = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices, metodoPago);
           // ── NUEVO ── Si es envío: pedir al backend que asigne repartidor y obtener su info
           let repartidorInfo = null;
           if (tipoEntrega === 'envio') {
