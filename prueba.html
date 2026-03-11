@@ -194,7 +194,7 @@
 <body>
   <header class="header">
     <div class="container text-center">
-      <img src="https://i.postimg.cc/7PpF3zRP/Chat-GPT-Image-Jan-3-2026-01-27-57-AM-(1).png" alt="Logo Weep" class="logo-plataforma mb-3">
+      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Logo Weep" class="logo-plataforma mb-3">
       <h1 class="display-5 fw-bold text-rojo">Panel de Gestión</h1>
     </div>
   </header>
@@ -289,8 +289,7 @@
             <option value="">Seleccionar categoría</option>
             <option value="Hamburguesas">Hamburguesas</option>
             <option value="Pizza">Pizzas</option>
-            <option value="Helados">Helados</option>
-            <option value="Postres">Postres</option>
+            <option value="Empanadas">Empanadas</option>
             <option value="Merienda">Panadería</option>
           </select>
         </div>
@@ -890,24 +889,37 @@ document.addEventListener('DOMContentLoaded', () => {
 });
   
   // === PERFIL ===
-  async function cargarFotoPerfilHeader() {
-    try {
-      const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
-      const data = await res.json();
-      if (data.success && data.foto_url) {
-        document.getElementById('perfil-foto-container').innerHTML = `<img src="${data.foto_url}" class="logo-perfil-sm" alt="Perfil">`;
-      }
-    } catch (e) {}
-  }
-  document.getElementById('editar-perfil-btn').addEventListener('click', async () => {
-    ocultarTodo();
-    document.getElementById('perfil-form').classList.remove('d-none');
+
+async function cargarFotoPerfilHeader() {
+  try {
     const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
     const data = await res.json();
     if (data.success) {
-      document.getElementById('perfil-nombre').value = data.nombre || '';
-      document.getElementById('perfil-direccion').value = data.direccion || '';
-      document.getElementById('perfil-email').value = data.email || '';
+      if (data.foto_url) {
+        document.getElementById('perfil-foto-container').innerHTML = 
+          `<img src="${data.foto_url}" class="logo-perfil-sm" alt="Perfil">`;
+      }
+      // Guardamos la dirección globalmente (ya lo tenías)
+      direccionLocal = data.direccion || 'Dirección no configurada';
+    }
+  } catch (e) {
+    console.error("Error cargando foto/header perfil:", e);
+  }
+}
+
+document.getElementById('editar-perfil-btn').addEventListener('click', async () => {
+  ocultarTodo();
+  document.getElementById('perfil-form').classList.remove('d-none');
+
+  try {
+    const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      document.getElementById('perfil-nombre').value     = data.nombre     || '';
+      document.getElementById('perfil-direccion').value  = data.direccion  || '';
+      document.getElementById('perfil-email').value      = data.email      || '';
+
       if (data.foto_url) {
         document.getElementById('perfil-foto-preview').src = data.foto_url;
         document.getElementById('perfil-foto-preview').style.display = 'block';
@@ -916,41 +928,105 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('perfil-foto-preview').style.display = 'none';
         document.getElementById('perfil-foto-placeholder').style.display = 'flex';
       }
-      // Actualizamos dirección global
-      direccionLocal = data.direccion || 'Dirección no configurada';
+    } else {
+      alert("No se pudo cargar los datos actuales del perfil");
     }
-  });
-  document.getElementById('cancelar-perfil').addEventListener('click', () => {
-    document.getElementById('perfil-form').classList.add('d-none');
-    cargarMenuCompleto();
-  });
-  document.getElementById('guardar-perfil').addEventListener('click', async () => {
-    const btn = document.getElementById('guardar-perfil');
-    btn.disabled = true;
+  } catch (err) {
+    console.error("Error al cargar datos para editar perfil:", err);
+    alert("Error de conexión al cargar perfil");
+  }
+});
+
+document.getElementById('cancelar-perfil').addEventListener('click', () => {
+  document.getElementById('perfil-form').classList.add('d-none');
+  // Volver a la vista que tenías antes (por ej. menú o pedidos)
+  document.getElementById('menu-listado').classList.remove('d-none');
+  cargarMenuCompleto(); // o cargarMisPedidos() si preferís volver a pedidos
+});
+
+document.getElementById('guardar-perfil').addEventListener('click', async () => {
+  const btn = document.getElementById('guardar-perfil');
+  const spinner = btn.querySelector('.spinner-border');
+  const statusDiv = document.getElementById('perfil-status');
+
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+  statusDiv.innerHTML = '<small class="text-muted">Guardando...</small>';
+
+  try {
     let fotoUrl = '';
     const file = document.getElementById('perfil-foto').files[0];
-    if (file) fotoUrl = await subirImagen(file);
-    const payload = {
+    if (file) {
+      fotoUrl = await subirImagen(file);
+      if (!fotoUrl) throw new Error("No se pudo subir la foto");
+    }
+
+    const params = new URLSearchParams({
       action: 'updatePerfilLocal',
       localId: localToken,
-      nombre: document.getElementById('perfil-nombre').value.trim(),
+      nombre:    document.getElementById('perfil-nombre').value.trim(),
       direccion: document.getElementById('perfil-direccion').value.trim(),
-      email: document.getElementById('perfil-email').value.trim()
-    };
-    if (document.getElementById('perfil-password').value) payload.password = document.getElementById('perfil-password').value;
-    if (fotoUrl) payload.foto_url = fotoUrl;
-    await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
-      mode: 'no-cors'
+      email:     document.getElementById('perfil-email').value.trim()
     });
-    alert('Perfil actualizado');
-    direccionLocal = payload.direccion;
-    cargarFotoPerfilHeader();
+
+    const nuevaPass = document.getElementById('perfil-password').value.trim();
+    if (nuevaPass) {
+      if (nuevaPass.length < 6) {
+        throw new Error("La nueva contraseña debe tener al menos 6 caracteres");
+      }
+      params.append('password', nuevaPass);
+    }
+
+    if (fotoUrl) {
+      params.append('foto_url', fotoUrl);
+    }
+
+    // Validaciones básicas antes de enviar
+    if (!params.get('nombre') || !params.get('direccion') || !params.get('email')) {
+      throw new Error("Nombre, dirección y email son obligatorios");
+    }
+
+    const url = `${API_URL}?${params.toString()}`;
+    console.log("Enviando actualización de perfil vía GET:", url.substring(0, 200) + "...");
+
+    // Usamos GET con no-cors (como en agregarPlato)
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-cache'
+    });
+
+    // Como es no-cors, no podemos leer la respuesta → asumimos éxito si no hay error de red
+    alert("Perfil actualizado correctamente (verifica en la hoja 'Locales')");
+
+    // Actualizar visualmente sin recargar todo
+    if (fotoUrl) {
+      document.getElementById('perfil-foto-preview').src = fotoUrl;
+      document.getElementById('perfil-foto-preview').style.display = 'block';
+      document.getElementById('perfil-foto-placeholder').style.display = 'none';
+      // También actualizar el header
+      document.getElementById('perfil-foto-container').innerHTML = 
+        `<img src="${fotoUrl}" class="logo-perfil-sm" alt="Perfil">`;
+    }
+
+    direccionLocal = params.get('direccion');
     document.getElementById('perfil-form').classList.add('d-none');
+    document.getElementById('perfil-password').value = ''; // limpiar contraseña
+
+    // Volver a la vista anterior (ej: menú)
+    document.getElementById('menu-listado').classList.remove('d-none');
+    cargarMenuCompleto();
+
+  } catch (err) {
+    console.error("Error al guardar perfil:", err);
+    statusDiv.innerHTML = `<small class="text-danger">${err.message || 'Error al guardar perfil'}</small>`;
+    alert("No se pudo actualizar el perfil.\n" + (err.message || "Revisa la consola."));
+  } finally {
+    spinner.classList.add('d-none');
     btn.disabled = false;
-  });
+  }
+});
+  
   // === PEDIDOS ===
   async function cargarMisPedidos() {
     const contProceso = document.getElementById('pedidos-proceso-listado');
