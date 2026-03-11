@@ -1135,9 +1135,9 @@ document.getElementById('guardar-perfil').addEventListener('click', async () => 
       direccion: document.getElementById('perfil-direccion').value.trim(),
       email:     document.getElementById('perfil-email').value.trim()
       // ── CAMPOS NUEVOS ──
-      horario_apertura: document.getElementById('hora-apertura').value.trim(),
-      horario_cierre: document.getElementById('hora-cierre').value.trim(),
-      modo_automatico: document.getElementById('modo-automatico').checked ? 'Sí' : 'No'
+      apertura: document.getElementById('hora-apertura').value.trim(),
+      cierre: document.getElementById('hora-cierre').value.trim(),
+      modo: document.getElementById('modo-automatico').checked ? 'Sí' : 'No'
     });
 
     const nuevaPass = document.getElementById('perfil-password').value.trim();
