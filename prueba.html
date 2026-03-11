@@ -358,6 +358,33 @@
       </div>
       <div id="perfil-status" class="mt-3"></div>
     </div>
+
+    <!-- === HORARIOS AUTOMÁTICOS === -->
+<div class="mt-4 pt-3 border-top">
+  <h5 class="text-rojo mb-3">Horarios de atención</h5>
+  <div class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label small">Apertura</label>
+      <input type="time" id="hora-apertura" class="form-control form-control-lg">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label small">Cierre</label>
+      <input type="time" id="hora-cierre" class="form-control form-control-lg">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label small d-block">Modo automático</label>
+      <label class="status-toggle-sm">
+        <input type="checkbox" id="modo-automatico">
+        <span class="status-slider-sm"></span>
+      </label>
+    </div>
+  </div>
+  <button id="guardar-horarios" class="btn btn-rojo btn-lg mt-3">
+    Guardar horarios
+  </button>
+  <small id="horarios-status" class="d-block mt-2 text-muted"></small>
+</div>
+    
     <!-- LISTADO MENÚ -->
     <div id="menu-listado">
       <div class="text-center py-5 loading">
@@ -438,6 +465,9 @@
   cargarEstadoLocal();
   cargarFotoPerfilHeader();
   cargarDireccionLocal();
+  cargarConfigLocal();           // carga foto + horarios (H,I,J)
+iniciarVerificacionHorarios(); // inicia el timer de chequeo
+verificarEstadoAutomatico();   // chequeo inmediato al entrar al panel
 
   // Mostrar directamente Mis Pedidos
   ocultarTodo();
@@ -453,6 +483,143 @@
       console.error("Error al cargar pedidos al entrar:", err);
     });
 }
+
+  // ==================== AUTOMATIZACIÓN DE HORARIOS ====================
+
+function iniciarVerificacionHorarios() {
+  if (window.intervaloHorarios) clearInterval(window.intervaloHorarios);
+
+  window.intervaloHorarios = setInterval(() => {
+    if (document.getElementById('modo-automatico').checked) {
+      verificarEstadoAutomatico();
+    }
+  }, 60000); // cada 60 segundos
+}
+
+function estaDentroDeHorario() {
+  const apertura = document.getElementById('hora-apertura').value;
+  const cierre   = document.getElementById('hora-cierre').value;
+  
+  if (!apertura || !cierre) return false;
+
+  const now = new Date();
+  const current = now.getHours() * 60 + now.getMinutes();
+  
+  const openMin  = parseTimeToMinutes(apertura);
+  const closeMin = parseTimeToMinutes(cierre);
+
+  if (openMin < closeMin) {
+    // Horario diurno normal
+    return current >= openMin && current <= closeMin;
+  } else {
+    // Horario nocturno (cruza la medianoche)
+    return current >= openMin || current <= closeMin;
+  }
+}
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+async function verificarEstadoAutomatico() {
+  if (!document.getElementById('modo-automatico').checked) return;
+
+  const shouldBeOpen = estaDentroDeHorario();
+  
+  const toggle = document.getElementById('estado-local-toggle');
+  if (toggle.checked === shouldBeOpen) return; // ya está correcto, no tocamos
+
+  // Cambiar visualmente (feedback inmediato)
+  toggle.checked = shouldBeOpen;
+  document.getElementById('estado-texto').textContent = shouldBeOpen ? "Abierto" : "Cerrado";
+
+  const nuevoEstado = shouldBeOpen ? "Activo" : "Inactivo";
+
+  // Enviar al backend (columnas de estado ya las tenés)
+  const url = `${API_URL}?action=updateLocalEstado&localId=${encodeURIComponent(localToken)}&estado=${encodeURIComponent(nuevoEstado)}`;
+  
+  try {
+    await fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-cache' });
+    console.log(`[AUTO] Estado cambiado a ${nuevoEstado} según horario`);
+  } catch (err) {
+    console.error("[AUTO] Falló actualización automática", err);
+    // Opcional: revertir visual si falla (pero por ahora lo dejamos, mejor reintentar próximo ciclo)
+  }
+}
+
+// ==================== CARGAR HORARIOS DESDE HOJA (columnas H,I,J) ====================
+async function cargarConfigLocal() {
+  try {
+    const res = await fetch(`${API_URL}?action=getPerfilLocal&localId=${localToken}`);
+    const data = await res.json();
+
+    if (data.success) {
+      // Foto (mantenemos lo que ya tenías)
+      if (data.foto_url) {
+        document.getElementById('perfil-foto-container').innerHTML =
+          `<img src="${data.foto_url}" class="logo-perfil-sm" alt="Perfil">`;
+      }
+      direccionLocal = data.direccion || 'Dirección no configurada';
+
+      // === HORARIOS desde columnas específicas ===
+      // Ajusta los nombres de propiedades según lo que devuelva tu getPerfilLocal
+      document.getElementById('hora-apertura').value = data.horario_apertura || '09:00';
+      document.getElementById('hora-cierre').value   = data.horario_cierre   || '23:00';
+      document.getElementById('modo-automatico').checked = 
+        (data.modo_automatico === 'Sí' || data.modo_automatico === true || data.modo_automatico === 'SI');
+    }
+  } catch (e) {
+    console.error("Error cargando config local:", e);
+  }
+}
+
+// ==================== GUARDAR HORARIOS (columnas H,I,J) ====================
+document.getElementById('guardar-horarios')?.addEventListener('click', async () => {
+  const apertura = document.getElementById('hora-apertura').value;
+  const cierre   = document.getElementById('hora-cierre').value;
+  const automatico = document.getElementById('modo-automatico').checked ? 'Sí' : 'No';
+
+  if (!apertura || !cierre) {
+    alert("Completa hora de apertura y cierre");
+    return;
+  }
+
+  const params = new URLSearchParams({
+    action: 'updatePerfilLocal',
+    localId: localToken,
+    horario_apertura: apertura,     // → columna H
+    horario_cierre:   cierre,       // → columna I
+    modo_automatico:  automatico    // → columna J
+  });
+
+  const url = `${API_URL}?${params.toString()}`;
+  try {
+    await fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-cache' });
+    
+    const statusEl = document.getElementById('horarios-status');
+    statusEl.innerHTML = '<span class="text-success">✓ Horarios guardados correctamente</span>';
+    
+    setTimeout(() => { statusEl.innerHTML = ''; }, 4000);
+
+    // Verificar inmediatamente si modo auto está ON
+    if (document.getElementById('modo-automatico').checked) {
+      verificarEstadoAutomatico();
+    }
+  } catch (err) {
+    alert("Error al guardar los horarios. Revisa la consola.");
+    console.error(err);
+  }
+});
+
+// Activar chequeo inmediato al encender el switch
+document.getElementById('modo-automatico')?.addEventListener('change', () => {
+  if (document.getElementById('modo-automatico').checked) {
+    verificarEstadoAutomatico();
+  }
+});
+  
 
   function actualizarBadgePedidosPendientes() {
   const badge = document.getElementById('badge-pendientes');
