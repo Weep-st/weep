@@ -1120,57 +1120,108 @@
           cursor: pointer;
       }
       /* Perfil */
-      .profile-container { position: relative; display: inline-block; }
-      .profile-button {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border-radius: 30px;
-          background-color: #f5f5f5;
-          cursor: pointer;
-          transition: background-color 0.2s;
-          white-space: nowrap;
-      }
-      .profile-button:hover { background-color: #e0e0e0; }
-      .profile-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #d32f2f;
-      }
-      .profile-dropdown {
-          display: none;
-          position: absolute;
-          right: 0;
-          top: 100%;
-          background: white;
-          box-shadow: 0 8px 25px rgba(0,0,0,0.18);
-          border-radius: 12px;
-          min-width: 180px;
-          z-index: 1000;
-          overflow: hidden;
-          margin-top: 8px;
-      }
-      .profile-dropdown.active { display: block; }
-      .dropdown-item {
-          display: block;
-          padding: 12px 18px;
-          color: #333;
-          text-decoration: none;
-          font-size: 0.95rem;
-          transition: background 0.2s;
-      }
-      .dropdown-item:hover { background-color: #ffebee; }
-      .dropdown-item.logout {
-          color: #d32f2f;
-          border-top: 1px solid #eee;
-      }
-      @media (max-width: 480px) {
-          .profile-icon { width: 28px; height: 28px; }
-          .profile-button { padding: 6px 10px; font-size: 0.9rem; }
-      }
+      /* Perfil - Adaptado al header oscuro #9b1913 */
+.profile-container {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.15);     /* fondo semi-transparente blanco */
+    backdrop-filter: blur(4px);                 /* efecto vidrio esmerilado (opcional pero queda muy bien) */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    color: white;
+}
+
+.profile-button:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.profile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ffffff;                 /* borde blanco para destacar */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.profile-button span {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Menú desplegable */
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+    border-radius: 12px;
+    min-width: 200px;
+    z-index: 1000;
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid rgba(155, 25, 19, 0.15); /* borde sutil en tono del header */
+}
+
+.profile-dropdown.active {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 12px 18px;
+    color: #333;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background: #ffebee;                      /* rojo muy claro */
+    color: #9b1913;                           /* color del header */
+}
+
+.dropdown-item.logout {
+    color: #d32f2f;
+    border-top: 1px solid #eee;
+    margin-top: 4px;
+    padding-top: 12px;
+}
+
+.dropdown-item.logout:hover {
+    background: #ffebee;
+    color: #b71c1c;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .profile-icon {
+        width: 28px;
+        height: 28px;
+    }
+    .profile-button {
+        padding: 7px 12px;
+        gap: 8px;
+    }
+    .profile-button span {
+        font-size: 0.9rem;
+    }
+}
       .modal-content label {
           display: block;
           margin: 12px 0 6px;
