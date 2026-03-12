@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+ 
       <style>
       * { box-sizing: border-box; }
       body {
@@ -19,29 +20,31 @@
           display: flex;
           flex-direction: column;
       }
-      /* Header */
+     
+/* Header */
       header {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1000;
-          background-color: #fff;
-          padding: 12px 15px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-          border-radius: 0 0 20px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 10px;
-      }
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #9b1913; /* ← CAMBIO AQUÍ */
+            color: white; /* mejor contraste */
+            padding: 12px 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            border-radius: 0 0 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
       body {
-          padding-top: 140px;
+          padding-top: 130px;
       }
       @media (max-width: 768px) {
           body {
-              padding-top: 110px;
+              padding-top: 130px;
           }
           header {
               padding: 10px 12px;
@@ -56,19 +59,62 @@
           object-fit: contain;
       }
       .search-bar {
-          flex: 1;
-          min-width: 200px;
-          max-width: 500px;
-          margin: 0 10px;
-      }
-      .search-bar input {
-          width: 100%;
-          padding: 12px 15px;
-          border: 1px solid #ccc;
-          border-radius: 30px;
-          font-size: 15px;
-          outline: none;
-      }
+    flex: 1;
+    min-width: 200px;
+    max-width: 500px;
+    margin: 0 10px;
+    position: relative; /* Necesario para posicionar la lupa */
+}
+.search-bar input {
+    width: 100%;
+    padding: 12px 15px 12px 45px; /* ← más espacio a la izquierda para la lupa */
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 30px;
+    font-size: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #111;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: all 0.2s ease;
+}
+.search-bar input::placeholder {
+    color: #555;
+    opacity: 0.9;
+}
+.search-bar input:focus {
+    outline: none;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(155, 25, 19, 0.4);
+    background: white;
+}
+/* Ícono de lupa usando la imagen que indicaste */
+.search-bar::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px; /* tamaño recomendado — puedes ajustar */
+    height: 30px;
+    background-image: url('https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.75; /* un poco más suave para que no destaque demasiado */
+}
+/* Ajuste en móviles pequeños */
+@media (max-width: 576px) {
+    .search-bar input {
+        padding-left: 42px;
+        font-size: 14px;
+    }
+    .search-bar::before {
+        left: 12px;
+        width: 30px;
+        height: 30px;
+    }
+}
       .header-right {
           display: flex;
           align-items: center;
@@ -77,8 +123,8 @@
       .cart-icon {
           position: relative;
           cursor: pointer;
-          width: 48px;
-          height: 48px;
+          width: 45px;
+          height: 45px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -92,8 +138,8 @@
           position: absolute;
           top: -6px;
           right: -8px;
-          background: #d32f2f;
-          color: white;
+          background: #ffffff;
+          color: #9b1913;
           border-radius: 50%;
           min-width: 22px;
           height: 22px;
@@ -115,7 +161,7 @@
           text-align: center;
           color: #c62828;
           font-size: 1.5rem;
-          margin: 30px 0 20px;
+          margin: 30px 0 8px;
       }
           /* Contenedor principal más inteligente */
   main {
@@ -470,7 +516,7 @@
       flex-wrap: nowrap !important;
       justify-content: flex-start !important;
       align-items: flex-start !important; /* importante para que no se centren verticalmente */
-      gap: 20px;
+      gap: 10px;
       padding: 20px 0;
       margin: 0;
       width: 100%;
@@ -483,61 +529,84 @@
       display: none;
   }
           /* Contenedor base */
-  .suggestion {
-      position: relative; /* Necesario para posicionar el ::after */
-      width: 120px;
-      height: 120px;
-      border-radius: 20px;
-      overflow: visible; /* Cambiado a visible para que el punto no se corte */
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-      cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      background: white; /* fondo para que el punto contraste bien */
-  }
-  /* Punto verde FIJO y siempre visible en locales abiertos */
-  .suggestion.abierto::after {
-      content: '';
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 14px;
-      height: 14px;
-      background: #00ff00; /* verde brillante */
-      border: 2.5px solid #ffffff;
-      border-radius: 50%;
-      box-shadow:
-          0 0 8px rgba(0, 255, 0, 0.8),
-          0 0 12px rgba(0, 255, 0, 0.5);
-      z-index: 20; /* muy alto para que no quede tapado */
-      pointer-events: none; /* no interfiere con clics */
-      display: block !important; /* fuerza visibilidad */
-  }
-  /* Efecto pulsing opcional (latido sutil) */
-  .suggestion.abierto.pulse::after {
-      animation: pulse 2.8s infinite ease-in-out;
-  }
-  @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.18); opacity: 0.9; }
-  }
-  /* Hover: solo agranda la tarjeta, NO afecta al punto */
-  .suggestion:hover {
-      transform: scale(1.1);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.25);
-  }
-  /* El punto NO cambia ni desaparece en hover */
-  .suggestion.abierto:hover::after,
-  .suggestion.abierto:active::after {
-      transform: none !important;
-      opacity: 1 !important;
-      animation: none !important; /* opcional: quitar pulse al hover si molesta */
-  }
-  /* Locales cerrados: sin punto, más opacos */
-  .suggestion.cerrado {
-      opacity: 0.65;
-      cursor: not-allowed;
-  }
-    
+  /* Sugerencias de locales → ahora CIRCULARES */
+.suggestion {
+    position: relative;
+    width: 110px; /* tamaño base recomendado */
+    height: 110px;
+    border-radius: 50%; /* ¡CÍRCULO PERFECTO! */
+    overflow: hidden; /* recorta la imagen en círculo */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    cursor: pointer;
+    transition: all 0.28s ease;
+    background: white; /* fondo blanco para mejor contraste */
+    flex-shrink: 0;
+}
+/* Punto verde (abierto) */
+.suggestion.abierto::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    background: #00ff00;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0,255,0,0.9),
+                0 0 16px rgba(0,255,0,0.6);
+    z-index: 20;
+    pointer-events: none;
+}
+/* Pulse sutil solo en abiertos */
+.suggestion.abierto.pulse::after {
+    animation: pulse 2.6s infinite ease-in-out;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.22); opacity: 0.92; }
+}
+/* Hover: agrandar + sombra más fuerte */
+.suggestion:hover {
+    transform: scale(1.14);
+    box-shadow: 0 14px 38px rgba(0,0,0,0.26);
+}
+/* Imagen dentro del círculo */
+.suggestion img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* rellena el círculo sin deformar */
+    transition: transform 0.35s ease;
+}
+.suggestion:hover img {
+    transform: scale(1.12);
+}
+/* Locales cerrados: más opaco + cursor no permitido */
+.suggestion.cerrado {
+    opacity: 0.68;
+    cursor: not-allowed;
+}
+/* Ajustes responsive */
+@media (max-width: 768px) {
+    .suggestion {
+        width: 90px;
+        height: 90px;
+    }
+    .suggestion.abierto::after {
+        width: 14px;
+        height: 14px;
+        top: 5px;
+        right: 5px;
+        border-width: 2.5px;
+    }
+}
+@media (max-width: 480px) {
+    .suggestion {
+        width: 80px;
+        height: 80px;
+    }
+}
+     
       .suggestion:hover, .suggestion:active {
           transform: scale(1.1);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
@@ -610,70 +679,166 @@
       }
           /* ============================================= */
   /* === CARRUSEL SIEMPRE CENTRADO ============== */
-  /* ============================================= */
-  .carousel-wrapper {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      padding: 0 10px; /* margen lateral para que no choque con bordes */
-  }
-  /* Contenedor que permite el scroll */
-  .carousel-container {
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 20px;
-      overflow-x: auto;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding: 20px 40px; /* ← padding lateral grande para centrar visualmente */
-      margin: 0 -40px; /* compensa el padding para que ocupe todo el ancho */
-      width: calc(100% + 80px); /* compensa los -40px de cada lado */
-      box-sizing: border-box;
-      justify-content: center; /* ¡clave! centra el grupo de tarjetas */
-  }
-  .carousel-container::-webkit-scrollbar {
-      display: none;
-  }
-  /* Cuando hay pocas tarjetas → forzamos centrado total */
-  .carousel-wrapper.few-items .carousel-container {
-      justify-content: center;
-      padding: 20px;
-      margin: 0;
-      width: 100%;
-  }
-  /* Las tarjetas no crecen ni se achican */
-  .carousel-container .suggestion,
-  .carousel-container .suggestion-categoria {
-      flex: 0 0 auto;
-  }
-  /* Botones de navegación (flechas) */
-  .carousel-btn {
-      display: none;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 42px;
-      height: 42px;
-      background: rgba(211, 47, 47, 0.75);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 22px;
-      cursor: pointer;
-      z-index: 10;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-  }
-  .carousel-btn:hover {
-      background: rgba(211, 47, 47, 0.9);
-  }
-  .carousel-btn.left { left: 5px; }
-  .carousel-btn.right { right: 5px; }
-  @media (max-width: 920px) {
-      .carousel-btn {
-          display: flex;
-      }
-  }
+  /* === CARRUSEL DE SUGERENCIAS / LOCALES === */
+
+.carousel-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: 0 8px;               /* base conservadora */
+}
+
+.carousel-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;                    /* base desktop/tablet → bajamos de 18px */
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 20px 28px;
+    margin: 0 -28px;
+    width: calc(100% + 56px);
+    box-sizing: border-box;
+    justify-content: flex-start;
+}
+
+.carousel-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Pocas tarjetas → centrado */
+.carousel-wrapper.few-items .carousel-container {
+    justify-content: center;
+    padding: 20px 12px;
+    margin: 0;
+    width: 100%;
+}
+
+/* Tarjetas */
+.carousel-container .suggestion,
+.carousel-container .suggestion-categoria {
+    flex: 0 0 auto;
+}
+
+/* Flechas (sin cambios importantes aquí) */
+.carousel-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    background: rgba(211, 47, 47, 0.80);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+}
+
+.carousel-btn:hover {
+    background: rgba(211, 47, 47, 0.95);
+    transform: translateY(-50%) scale(1.08);
+}
+
+.carousel-btn.left  { left: 8px; }
+.carousel-btn.right { right: 8px; }
+
+/* ────────────────────────────────────────────────
+   MÓVIL - MENOS separación entre círculos
+───────────────────────────────────────────────── */
+
+@media (max-width: 992px) {
+    .carousel-wrapper { padding: 0 5px; }
+    .carousel-container {
+        padding: 16px 16px;
+        margin: 0 -22px;
+        width: calc(100% + 44px);
+        gap: 12px;               /* ↓ más juntos */
+    }
+}
+
+@media (max-width: 768px) {
+    .carousel-wrapper { padding: 0 3px; }
+    .carousel-container {
+        padding: 14px 10px;
+        margin: 0 -16px;
+        width: calc(100% + 32px);
+        gap: 9px;                /* ↓ notablemente menos separación */
+    }
+    
+    .suggestion {
+        width: 86px;             /* un poco más grandes que antes para compensar */
+        height: 86px;
+    }
+    
+    .carousel-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 520px) {
+    .carousel-wrapper { padding: 0 2px; }
+    .carousel-container {
+        padding: 12px 5px;      /* márgenes muy pequeños */
+        margin: 0 -10px;
+        width: calc(100% + 20px);
+        gap: 7px;                /* ← separación mínima pero aún visible */
+    }
+    
+    .suggestion {
+        width: 78px;
+        height: 78px;
+    }
+    
+    .suggestion.abierto::after {
+        width: 12px;
+        height: 12px;
+        top: 4px;
+        right: 4px;
+        border-width: 2px;
+    }
+    
+    .carousel-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 18px;
+    }
+    
+    .carousel-btn.left  { left: 4px; }
+    .carousel-btn.right { right: 4px; }
+}
+
+@media (max-width: 400px) {
+    .carousel-container {
+        padding: 12px 8px;
+        margin: 0 -8px;
+        width: calc(100% + 16px);
+        gap: 6px;                /* ultra compacto en pantallas chicas */
+    }
+    
+    .suggestion {
+        width: 72px;
+        height: 72px;
+    }
+}
+
+/* Flechas visibles en móvil */
+@media (max-width: 920px) {
+    .carousel-btn {
+        display: flex;
+    }
+}
+        
       /* Carrito */
       .cart-backdrop {
           position: fixed;
@@ -954,7 +1119,7 @@
       }
       /* Footer */
       footer {
-          background-color: #c62828;
+          background-color: #9b1913;
           padding: 30px 20px;
           text-align: center;
           margin-top: auto;
@@ -1069,57 +1234,97 @@
           cursor: pointer;
       }
       /* Perfil */
-      .profile-container { position: relative; display: inline-block; }
-      .profile-button {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border-radius: 30px;
-          background-color: #f5f5f5;
-          cursor: pointer;
-          transition: background-color 0.2s;
-          white-space: nowrap;
-      }
-      .profile-button:hover { background-color: #e0e0e0; }
-      .profile-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #d32f2f;
-      }
-      .profile-dropdown {
-          display: none;
-          position: absolute;
-          right: 0;
-          top: 100%;
-          background: white;
-          box-shadow: 0 8px 25px rgba(0,0,0,0.18);
-          border-radius: 12px;
-          min-width: 180px;
-          z-index: 1000;
-          overflow: hidden;
-          margin-top: 8px;
-      }
-      .profile-dropdown.active { display: block; }
-      .dropdown-item {
-          display: block;
-          padding: 12px 18px;
-          color: #333;
-          text-decoration: none;
-          font-size: 0.95rem;
-          transition: background 0.2s;
-      }
-      .dropdown-item:hover { background-color: #ffebee; }
-      .dropdown-item.logout {
-          color: #d32f2f;
-          border-top: 1px solid #eee;
-      }
-      @media (max-width: 480px) {
-          .profile-icon { width: 28px; height: 28px; }
-          .profile-button { padding: 6px 10px; font-size: 0.9rem; }
-      }
+      /* Perfil - Adaptado al header oscuro #9b1913 */
+.profile-container {
+    position: relative;
+    display: inline-block;
+}
+.profile-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.15); /* fondo semi-transparente blanco */
+    backdrop-filter: blur(4px); /* efecto vidrio esmerilado (opcional pero queda muy bien) */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    color: white;
+}
+.profile-button:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.profile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ffffff; /* borde blanco para destacar */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.profile-button span {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+/* Menú desplegable */
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+    border-radius: 12px;
+    min-width: 200px;
+    z-index: 1000;
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid rgba(155, 25, 19, 0.15); /* borde sutil en tono del header */
+}
+.profile-dropdown.active {
+    display: block;
+}
+.dropdown-item {
+    display: block;
+    padding: 12px 18px;
+    color: #333;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+.dropdown-item:hover {
+    background: #ffebee; /* rojo muy claro */
+    color: #9b1913; /* color del header */
+}
+.dropdown-item.logout {
+    color: #d32f2f;
+    border-top: 1px solid #eee;
+    margin-top: 4px;
+    padding-top: 12px;
+}
+.dropdown-item.logout:hover {
+    background: #ffebee;
+    color: #b71c1c;
+}
+/* Responsive */
+@media (max-width: 480px) {
+    .profile-icon {
+        width: 28px;
+        height: 28px;
+    }
+    .profile-button {
+        padding: 7px 12px;
+        gap: 8px;
+    }
+    .profile-button span {
+        font-size: 0.9rem;
+    }
+}
       .modal-content label {
           display: block;
           margin: 12px 0 6px;
@@ -1159,7 +1364,7 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-    
+     
   </style>
       <!-- PWA - Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -1178,7 +1383,7 @@
   <body>
       <header>
           <div class="logo">
-              <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep Logo">
+              <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep Logo">
           </div>
           <div class="search-bar">
               <input type="text" id="search-input" placeholder="Buscar menús o locales...">
@@ -1187,7 +1392,7 @@
       <div class="profile-container" id="profile-container">
           <div class="profile-button" id="profile-button">
               <img
-                  src="https://thumbs.dreamstime.com/b/simple-clean-vector-icon-user-profile-avatar-features-white-silhouette-person-s-head-shoulders-subtle-hair-396756147.jpg"
+                  src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png"
                   alt="Perfil"
                   class="profile-icon">
               <span>Mi Perfil</span>
@@ -1201,7 +1406,7 @@
       </div>
       <!-- Reemplaza el <div class="cart-icon"> actual por: -->
   <div class="cart-icon" id="cart-icon">
-    <img src="https://i.postimg.cc/vBY0wJNq/18611-(1).jpg" alt="Carrito de compras">
+    <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito de compras">
     <div class="cart-count" id="cart-count">0</div>
   </div>
       </header>
@@ -1210,22 +1415,22 @@
           <div class="categories-carousel-wrapper">
       <button class="carousel-btn left categories-btn" id="prev-category" aria-label="Categoría anterior">←</button>
       <div class="categories" id="categories-container">
-          <div class="category" data-type="Hamburguesas" style="background-image: url('https://i.postimg.cc/wxrb5Vt2/hamburguesa-sencilla.jpg');">
+          <div class="category" data-type="Hamburguesas" style="background-image: url('https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg');">
               <span>Burguers</span>
           </div>
-          <div class="category" data-type="Pizzas" style="background-image: url('https://i.postimg.cc/4nC5DWt0/pizza-Mh3H4eany-BKEs-Stv1Ycl-PWTf9OUq-Ii.jpg');">
+          <div class="category" data-type="Pizzas" style="background-image: url('https://i.postimg.cc/cJkcvmFw/descarga-(1)-(10).jpg');">
               <span>Pizzas</span>
           </div>
-          <div class="category" data-type="Empanadas" style="background-image: url('https://i.postimg.cc/CLytD2fp/empanadas-de-carne.jpg');">
+          <div class="category" data-type="Empanadas" style="background-image: url('https://i.postimg.cc/KYjPhTmk/descarga-(1)-(11).jpg');">
               <span>Empanadas</span>
           </div>
-          <div class="category" data-type="Panadería" style="background-image: url('https://i.postimg.cc/MKKWpH66/hq720.jpg');">
+          <div class="category" data-type="Panadería" style="background-image: url('https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg');">
               <span>Panadería</span>
           </div>
-          <div class="category" data-type="Bebidas" style="background-image: url('https://i.postimg.cc/1zNz6zBH/290.webp');">
+          <div class="category" data-type="Bebidas" style="background-image: url('https://i.postimg.cc/KvhCcGkT/descarga-(1)-(14).jpg');">
               <span>Bebidas</span>
           </div>
-          <div class="category" data-type="favoritos" style="background-image: url('https://i.postimg.cc/tgr0Rf2x/buscamos-repartidores-(5).png'); background-color: #ffebee;">
+          <div class="category" data-type="favoritos" style="background-image: url('https://i.postimg.cc/7PtbjRfJ/buscamos-repartidores-(8).png'); background-color: #ffebee;">
     <span>Mis favoritos</span>
 </div>
       </div>
@@ -1235,17 +1440,17 @@
       <h2 id="suggestions-title">Sugerencias de Locales</h2>
       <div class="carousel-wrapper" id="suggestions-carousel-wrapper">
           <button class="carousel-btn left" id="prev-suggestion">←</button>
-   
+    
           <div class="carousel-container" id="suggestion-items">
               <!-- solo tarjetas aquí -->
           </div>
-   
+    
           <button class="carousel-btn right" id="next-suggestion">→</button>
       </div>
       <!-- Contenedor exclusivo para el botón "Ver todo" -->
       <div id="ver-todo-categoria-container" style="text-align: center; margin: 30px 0 50px;"></div>
   </div>
-   
+    
           <div id="menu-display" style="display:none;"></div>
   <!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
   <div id="cart-backdrop" class="cart-backdrop"></div>
@@ -1289,6 +1494,7 @@
   </select>
   <!-- Contenedor donde se mostrará el checkout de MP -->
   <div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
+ 
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
     <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
@@ -1297,11 +1503,12 @@
               </form>
           </div>
       </main>
+ 
       <!-- Footer -->
   <footer class="text-center">
       <div class="container">
           <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-    
+     
           <p class="small mb-4">
               <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
           </p>
@@ -1312,6 +1519,7 @@
           </p>
       </div>
   </footer>
+ 
       <!-- Login Modal -->
 <div id="login-modal" class="modal">
     <div class="modal-content">
@@ -1331,25 +1539,10 @@
     <div class="modal-content">
         <span class="close" onclick="closeModal('register-modal')">×</span>
         <h2>Registro</h2>
-      
-        <label for="register-name">Nombre completo</label>
         <input type="text" id="register-name" placeholder="Nombre completo" required>
-        <label for="register-email">Correo electrónico</label>
         <input type="email" id="register-email" placeholder="Correo electrónico" required>
-        <label for="register-password">Contraseña</label>
-        <input type="password" id="register-password" placeholder="Contraseña (mínimo 6 caracteres)" required>
-        <!-- NUEVO: Teléfono con selector de país -->
-        <label for="register-phone">Teléfono (WhatsApp preferido)</label>
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <select id="phone-country" style="width: 110px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
-                <option value="+54" selected>🇦🇷 Argentina (+54)</option>
-                <option value="+55">🇧🇷 Brasil (+55)</option>
-            </select>
-            <input type="tel" id="register-phone" placeholder="Ej: 11 1234 5678" required
-                   style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;">
-        </div>
-        <label for="register-address">Dirección (opcional)</label>
-        <input type="text" id="register-address" placeholder="Dirección de entrega (opcional)">
+        <input type="password" id="register-password" placeholder="Contraseña" required>
+        <input type="text" id="register-address" placeholder="Dirección (opcional)">
         <button onclick="registerUser()">
             <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
             Registrarse
@@ -1390,7 +1583,7 @@
               </div>
               <div class="modal-body text-start small">
                   <p><strong>Última actualización: febrero 2026</strong></p>
-            
+             
                   <p>Al usar Weep aceptás:</p>
                   <ul>
                       <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
@@ -1399,7 +1592,7 @@
                       <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
                       <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
                   </ul>
-            
+             
                   <p class="mt-3">Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com">bajoneando.st@gmail.com</a></p>
               </div>
               <div class="modal-footer">
@@ -1415,7 +1608,7 @@
   let allDrinks = [];
   let currentDrinkIndex = 0;
   const CATEGORIA_BEBIDAS = "Bebidas";
-  const COSTO_ENVIO = 3000;
+  const COSTO_ENVIO = 2500;
   let isLoggedIn = false;
   let userId = null;
   let userAddress = '';
@@ -1437,7 +1630,7 @@
       if (userId) {
           isLoggedIn = true;
           profileButton.innerHTML = `
-              <img src="https://i.postimg.cc/xCzWfmjX/user-profile-sign-on-white-background-vector.jpg"
+              <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png"
                    alt="Perfil" class="profile-icon">
               <span>Mi Perfil</span>
           `;
@@ -1637,7 +1830,7 @@
         showError(container, "No pudimos cargar tus favoritos en este momento");
     }
 }
-       
+        
   function displayMenus(menus, title, categoriaDestacada = null) {
       const container = document.getElementById('menu-display');
       // Limpiamos y preparamos la estructura básica
@@ -1654,17 +1847,17 @@
           // Mostramos cada plato
           menus.forEach((menu) => {
               currentDisplayedMenus[menu.id] = menu;
-  
+   
               const div = document.createElement('div');
               div.className = 'menu-item';
-  
+   
               // Resaltar si coincide con la categoría destacada
               const esDeCategoria = categoriaDestacada &&
                   menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
               if (esDeCategoria) {
                   div.classList.add('destacado-categoria');
               }
-  
+   
               // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
               let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
               if (!menu.imagen_url && menu.categoria) {
@@ -1677,7 +1870,7 @@
                       imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
                   }
               }
-  
+   
               div.innerHTML = `
                   <img src="${imgSrc}"
                        alt="${menu.nombre}"
@@ -1699,12 +1892,12 @@
                                   data-menu-id="${menu.id}"
                                   onclick="toggleFavorite('${menu.id}')">
                               <img class="fav-empty" src="https://i.postimg.cc/hPB62YDv/18611-(4).jpg" alt="No favorito">
-                              <img class="fav-filled" src="https://i.postimg.cc/xjHByQS4/18611-(3).jpg" alt="Favorito">
+                              <img class="fav-filled" src="https://i.postimg.cc/7YW4H8k9/Descargar-negro-estrella-png-negro-disparar-estrella-png-transparente-negro-bokeh-estrellas-gratis.jpg">
                           </button>
                       </div>
                   </div>
               `;
-  
+   
               itemsDiv.appendChild(div);
           });
       }
@@ -1744,7 +1937,7 @@
                   </button>
               </div>
           `;
-   
+    
           // Asignamos el evento al botón recién creado
           const fullMenuBtn = container.querySelector('.ver-todo-menu button');
           fullMenuBtn.onclick = () => {
@@ -1764,13 +1957,14 @@
           const headerHeight = header ? header.offsetHeight : 140; // fallback
           const extraOffset = 30; // espacio adicional para que no quede pegado al header
           const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
-   
+    
           window.scrollTo({
               top: elementTop - headerHeight - extraOffset,
               behavior: 'smooth'
           });
       }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
   }
+ 
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
       if (!menu) {
@@ -1835,34 +2029,12 @@ async function registerUser() {
     const email = document.getElementById('register-email')?.value?.trim().toLowerCase() || '';
     const password = document.getElementById('register-password')?.value?.trim() || '';
     const direccion = document.getElementById('register-address')?.value?.trim() || '';
-    // ── Teléfono ────────────────────────────────────────
-    const countryCode = document.getElementById('phone-country')?.value || '+54';
-    let phoneNumber = document.getElementById('register-phone')?.value?.trim() || '';
-    // Validaciones
-    if (!nombre) {
-        alert('El nombre es obligatorio');
-        return;
-    }
-    if (!email) {
-        alert('El email es obligatorio');
-        return;
-    }
+    if (!nombre) { alert('El nombre es obligatorio'); return; }
+    if (!email) { alert('El email es obligatorio'); return; }
     if (!password || password.length < 6) {
         alert('La contraseña debe tener al menos 6 caracteres');
         return;
     }
-    if (!phoneNumber) {
-        alert('El número de teléfono es obligatorio');
-        return;
-    }
-    // Limpieza del número de teléfono
-    phoneNumber = phoneNumber.replace(/[\s\-\(\)\.]/g, '');
-    // Validación básica de longitud
-    if (phoneNumber.length < 8 || phoneNumber.length > 15) {
-        alert('El número de teléfono parece inválido (entre 8 y 15 dígitos)');
-        return;
-    }
-    const telefonoCompleto = countryCode + phoneNumber;
     const btn = document.querySelector('#register-modal button');
     const spinner = btn.querySelector('.spinner-border');
     spinner.classList.remove('d-none');
@@ -1873,8 +2045,7 @@ async function registerUser() {
             `&nombre=${encodeURIComponent(nombre)}` +
             `&email=${encodeURIComponent(email)}` +
             `&password=${encodeURIComponent(password)}` +
-            `&direccion=${encodeURIComponent(direccion)}` +
-            `&telefono=${encodeURIComponent(telefonoCompleto)}`;
+            `&direccion=${encodeURIComponent(direccion)}`;
         const response = await fetch(url, {
             method: 'GET',
             cache: 'no-cache',
@@ -1893,11 +2064,9 @@ async function registerUser() {
             localStorage.setItem('userName', nombre);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userAddress', direccion);
-            localStorage.setItem('userPhone', telefonoCompleto); // ← guardamos también el teléfono
             closeModal('register-modal');
             checkLoginStatus();
-            // Limpiar formulario
-            document.querySelectorAll('#register-modal input').forEach(input => input.value = '');
+            document.querySelector('#register-modal').querySelectorAll('input').forEach(input => input.value = '');
         } else {
             alert(result.message || 'Error al registrar usuario');
         }
@@ -1906,7 +2075,7 @@ async function registerUser() {
         btn.disabled = false;
         btn.lastChild.textContent = 'Registrarse';
         console.error('Error en registerUser:', error);
-        alert('Error de conexión. Intenta nuevamente.');
+        alert('Error de conexión: ' + (error.message || 'Intenta nuevamente'));
     }
 }
       // ==================== CERRAR SESIÓN ====================
@@ -1931,7 +2100,7 @@ async function registerUser() {
           setupCart();
           loadAllDrinks();
       });
-      
+       
           function loadAllDrinks() {
               fetch(`${scriptUrl}?action=getAllMenus`)
                   .then(r => r.ok ? r.json() : Promise.reject())
@@ -1996,7 +2165,7 @@ async function registerUser() {
           })
           .catch(() => showError(container, 'Error al cargar locales'));
   }
-   
+    
           function setupSearch() {
               const input = document.getElementById('search-input');
               let timeout;
@@ -2024,7 +2193,7 @@ async function registerUser() {
     const catElement = e.target.closest('.category');
     if (!catElement) return;
     const tipo = catElement.dataset.type;
- 
+  
     if (tipo === "favoritos") {
         // Ruta especial: mostrar favoritos
         showMyFavoritesSection();
@@ -2219,7 +2388,7 @@ async function registerUser() {
           envioOption.style.backgroundColor = '';
       }
   }
-  
+   
   function setupCart() {
       // ────────────────────────────────────────────────────────────────
       // Elementos del DOM relacionados con el carrito
@@ -2430,7 +2599,7 @@ async function registerUser() {
       // Comisión 4% SOLO si es Transferencia / Mercado Pago
       let comision = 0;
       if (metodoPago === "transferencia") {
-          comision = subtotal * 0.0824; // 4%
+          comision = subtotal * 0.04; // 4%
       }
       const total = subtotal + shipping + comision;
       return {
@@ -2585,7 +2754,7 @@ async function registerUser() {
               const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
               document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
           }
-      
+       
           async function checkout() {
     if (!isLoggedIn) {
         showModal('login-modal');
@@ -2642,7 +2811,7 @@ async function registerUser() {
         btn.lastChild.textContent = 'Realizar Pedido';
     }
 }
-      
+       
           async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
     checkoutBtn.disabled = true;
@@ -2710,7 +2879,8 @@ async function registerUser() {
         checkoutBtn.textContent = 'Realizar Pedido';
     }
 }
-      
+       
+ 
   async function finalizeOrderAfterPayment() {
       if (!pendingOrderData) return;
       // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
@@ -2819,8 +2989,10 @@ async function registerUser() {
                   // Actualizamos el almacenamiento local
                   localStorage.setItem('userName', name);
                   localStorage.setItem('userEmail', email);
+ 
                   alert(data.message || 'Perfil actualizado correctamente');
                   closeModal('edit-profile-modal');
+ 
                   // Refrescamos el estado visual si es necesario
                   checkLoginStatus();
               } else {
@@ -2847,9 +3019,11 @@ async function registerUser() {
               if (data.success) {
                   userAddress = newAddress;
                   localStorage.setItem('userAddress', newAddress);
+ 
                   // Actualizamos el campo de dirección del checkout si está visible
                   const checkoutDir = document.getElementById('direccion');
                   if (checkoutDir) checkoutDir.value = newAddress;
+ 
                   alert('Dirección actualizada correctamente');
                   closeModal('change-address-modal');
               } else {
@@ -2860,11 +3034,11 @@ async function registerUser() {
               alert('Error de conexión al actualizar dirección');
           });
   }
-     
+      
   // ------------------------------------------------------------------
   // Notificar a los locales - Versión ajustada a tu formato exacto
   // ------------------------------------------------------------------
-  async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices, metodoPago) {
+  async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
     console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
     let todasOk = true;
     // 1. Agrupar por local
@@ -2933,26 +3107,26 @@ async function registerUser() {
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-      
+       
             <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
             <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
                 #${idPedido} – ${group.nombreLocal}
             </p>
-      
+       
             <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
             <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
             <p style="margin:8px 0;"><strong>Método de pago:</strong> ${metodoPagoTexto}</p>
             ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
-      
+       
             <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
             <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
 ${itemsText}
             </pre>
-      
+       
             <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
                 <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
             </p>
-      
+       
             <hr style="margin:32px 0;">
             <p style="text-align:center; color:#666; font-size:0.95em;">
                 Por favor prepara el pedido lo antes posible.<br>
@@ -2975,144 +3149,70 @@ ${itemsText}
     }
     return todasOk;
 }
-     
+      
   // ------------------------------------------------------------------
   // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
   // ------------------------------------------------------------------
   async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, observaciones, isPaid = false) {
-    try {
-        const action = 'createOrder';
-        const cartString = encodeURIComponent(JSON.stringify(cart));
-        
-        const url = `${scriptUrl}?action=${action}` +
-            `&userId=${encodeURIComponent(userId)}` +
-            `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
-            `&direccion=${encodeURIComponent(direccion)}` +
-            `&metodoPago=${encodeURIComponent(metodoPago)}` +
-            `&observaciones=${encodeURIComponent(observaciones || '')}` +
-            `&cart=${cartString}` +
-            `&total=${encodeURIComponent(prices.total)}` +
-            `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
-            `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
-
-        console.log("[PEDIDO] Enviando creación →", url);
-
-        const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || "Error desconocido al crear pedido");
-        }
-
-        const idPedido = result.idPedido;
-        console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
-
-        // ────────────────────────────────────────────────────────────────
-        // 1. Notificar a los locales (pasamos metodoPago)
-        // ────────────────────────────────────────────────────────────────
-        let localesNotificados = false;
-        try {
-            localesNotificados = await notifyLocalsAboutNewOrder(
-                idPedido,
-                direccion,
-                tipoEntrega,
-                observaciones,
-                prices,
-                metodoPago  // ← clave: ahora se pasa correctamente
-            );
-            if (localesNotificados) {
-                console.log("[NOTIFICACIÓN LOCALES] Éxito en todos los locales");
-            }
-        } catch (err) {
-            console.error("[NOTIFICACIÓN LOCALES] Falló completamente:", err);
-            // No rompemos el flujo, seguimos con repartidor
-        }
-
-        // ────────────────────────────────────────────────────────────────
-        // 2. Asignar repartidor SOLO si es envío
-        // ────────────────────────────────────────────────────────────────
-        let repartidorInfo = null;
-        let repartidorAsignado = false;
-
-        if (tipoEntrega === 'envio') {
-            try {
-                const respAssign = await fetch(`${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`);
-                if (!respAssign.ok) {
-                    throw new Error(`Error al asignar repartidor: HTTP ${respAssign.status}`);
-                }
-                const dataAssign = await respAssign.json();
-                
-                console.log("[ASIGNACIÓN REPARTIDOR] Respuesta completa:", dataAssign);
-
-                if (dataAssign.success && dataAssign.repartidor) {
-                    repartidorInfo = dataAssign.repartidor;
-                    repartidorAsignado = true;
-                    console.log(`Repartidor asignado: ${repartidorInfo.nombre} (${repartidorInfo.email})`);
-                } else {
-                    console.warn("No se pudo asignar repartidor:", dataAssign.message || dataAssign);
-                }
-            } catch (err) {
-                console.error("[ASIGNACIÓN REPARTIDOR] Error:", err);
-            }
-        }
-
-        // ────────────────────────────────────────────────────────────────
-        // 3. Notificar al repartidor (si fue asignado)
-        // ────────────────────────────────────────────────────────────────
-        let repartidorNotificado = false;
-        if (repartidorInfo && repartidorInfo.email) {
-            try {
-                repartidorNotificado = await notifyRepartidorFromFrontend(
-                    idPedido,
-                    direccion,
-                    observaciones,
-                    prices,
-                    metodoPago,
-                    repartidorInfo
-                );
-                if (repartidorNotificado) {
-                    console.log("[NOTIFICACIÓN REPARTIDOR] Éxito");
-                }
-            } catch (err) {
-                console.error("[NOTIFICACIÓN REPARTIDOR] Falló:", err);
-            }
-        }
-
-        // ────────────────────────────────────────────────────────────────
-        // 4. Mensaje final al usuario (con detalles de qué falló)
-        // ────────────────────────────────────────────────────────────────
-        let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
-
-        if (!localesNotificados) {
-            mensajeFinal += "\n⚠️ No se pudo enviar email al local (revisa el panel)";
-        }
-        if (tipoEntrega === 'envio') {
-            if (!repartidorAsignado) {
-                mensajeFinal += "\n⚠️ No se pudo asignar repartidor en este momento";
-            } else if (!repartidorNotificado) {
-                mensajeFinal += "\n⚠️ Repartidor asignado, pero no se pudo enviar email";
-            }
-        }
-
-        alert(mensajeFinal);
-
-        // ────────────────────────────────────────────────────────────────
-        // 5. Limpieza final
-        // ────────────────────────────────────────────────────────────────
-        cart = [];
-        updateCartCount();
-        updateCartDisplay();
-        closeCart();
-        document.getElementById('checkout-form').reset();
-
-    } catch (err) {
-        console.error("[PEDIDO] Error grave en createOrderNormal:", err);
-        alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
-    }
-}
+      try {
+          const action = 'createOrder';
+          const cartString = encodeURIComponent(JSON.stringify(cart));
+          const url = `${scriptUrl}?action=${action}` +
+              `&userId=${encodeURIComponent(userId)}` +
+              `&fecha=${encodeURIComponent(new Date().toLocaleString('es-AR'))}` +
+              `&direccion=${encodeURIComponent(direccion)}` +
+              `&metodoPago=${encodeURIComponent(metodoPago)}` +
+              `&observaciones=${encodeURIComponent(observaciones || '')}` +
+              `&cart=${cartString}` +
+              `&total=${encodeURIComponent(prices.total)}` +
+              `&envioGratis=${encodeURIComponent(prices.shipping === 0 ? 'true' : 'false')}` +
+              `&tipoEntrega=${encodeURIComponent(tipoEntrega)}`;
+          console.log("[PEDIDO] Enviando creación →", url);
+          const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const result = await response.json();
+          if (!result.success) {
+              throw new Error(result.error || "Error desconocido al crear pedido");
+          }
+          const idPedido = result.idPedido;
+          console.log(`[PEDIDO] Creado con éxito → #${idPedido}`);
+          // Notificar locales (ya existe)
+          const localesNotificados = await notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices);
+          // ── NUEVO ── Si es envío: pedir al backend que asigne repartidor y obtener su info
+          let repartidorInfo = null;
+          if (tipoEntrega === 'envio') {
+              const respAssign = await fetch(`${scriptUrl}?action=assignRepartidorOnly&idPedido=${idPedido}`);
+              const dataAssign = await respAssign.json();
+              if (dataAssign.success && dataAssign.repartidor) {
+                  repartidorInfo = dataAssign.repartidor;
+                  console.log(`Repartidor asignado (frontend): ${repartidorInfo.nombre} - ${repartidorInfo.email}`);
+              } else {
+                  console.warn("No se pudo asignar repartidor:", dataAssign);
+              }
+          }
+          // ── Notificar al repartidor DESDE FRONTEND (igual que a locales) ────────
+          let repartidorNotificado = false;
+          if (repartidorInfo && repartidorInfo.email) {
+              repartidorNotificado = await notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo);
+          }
+          // Mensaje final (versión simplificada, sin mencionar al repartidor)
+  let mensajeFinal = `¡Pedido #${idPedido} registrado exitosamente!`;
+  // Opcional: mantener solo el aviso de posible fallo en email (si quieres)
+  if (tipoEntrega === 'envio' && !repartidorNotificado && repartidorInfo) {
+      mensajeFinal += `\n(No se pudo enviar email al repartidor en este momento)`;
+  }
+  alert(mensajeFinal);
+          // Limpieza
+          cart = [];
+          updateCartCount();
+          updateCartDisplay();
+          closeCart();
+          document.getElementById('checkout-form').reset();
+      } catch (err) {
+          console.error("[PEDIDO] Error grave:", err);
+          alert("Hubo un problema al registrar el pedido.\nPor favor intenta nuevamente o contacta soporte.");
+      }
+  }
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. Asignar repartidor (solo pide al backend que asigne y devuelva info)
   // ─────────────────────────────────────────────────────────────────────────────
@@ -3157,7 +3257,7 @@ ${itemsText}
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-      
+       
             <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
             <p style="text-align:center; font-size:1.2em; margin:8px 0;">
                 Pedido #<strong>${idPedido}</strong>
@@ -3192,7 +3292,7 @@ ${itemsText}
         return false;
     }
 }
-    
+     
           // Esta función debería llamarse SOLO cuando el pago está aprobado
   async function createConfirmedOrder(orderData) {
       const payload = {
@@ -3299,7 +3399,7 @@ ${itemsText}
       function updateButtons() {
           const atStart = container.scrollLeft <= 1;
           const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
-   
+    
           prev.disabled = atStart;
           prev.style.opacity = atStart ? '0.35' : '1';
           next.disabled = atEnd;
