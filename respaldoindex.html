@@ -20,7 +20,7 @@
           display: flex;
           flex-direction: column;
       }
-      
+ 
 /* Header */
       header {
             position: fixed;
@@ -40,50 +40,24 @@
             gap: 10px;
         }
       body {
-          padding-top: 200px;
+          padding-top: 140px;
       }
       @media (max-width: 768px) {
           body {
-              padding-top: 170px;
+              padding-top: 110px;
           }
           header {
               padding: 10px 12px;
               border-radius: 0;
           }
       }
-      /* Logo base (para pantallas grandes / tablets) */
-.logo {
-    height: 100px;           /* tamaño moderado en desktop y tablets */
-}
-
-.logo img {
-    height: 100%;
-    object-fit: contain;
-}
-
-@media (max-width: 768px) {
-    .logo {
-        height: 160px;           /* muy grande en móviles */
-    }
-    
-    body {
-        padding-top: 220px;      /* hay que compensar bastante más espacio arriba */
-    }
-    
-    header {
-        padding: 15px 18px;      /* más padding para que respire */
-        align-items: flex-start; /* alinea mejor el logo arriba si es muy alto */
-    }
-}
-
-@media (max-width: 480px) {
-    .logo {
-        height: 140px;           /* reducimos un poco en pantallas muy chicas */
-    }
-    body {
-        padding-top: 200px;
-    }
-}
+      .logo {
+          height: 90px;
+      }
+      .logo img {
+          height: 100%;
+          object-fit: contain;
+      }
 
       .search-bar {
     flex: 1;
