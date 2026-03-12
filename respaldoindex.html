@@ -20,29 +20,31 @@
           display: flex;
           flex-direction: column;
       }
-      /* Header */
+     
+/* Header */
       header {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1000;
-          background-color: #fff;
-          padding: 12px 15px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-          border-radius: 0 0 20px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 10px;
-      }
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #9b1913; /* ← CAMBIO AQUÍ */
+            color: white; /* mejor contraste */
+            padding: 12px 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            border-radius: 0 0 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
       body {
-          padding-top: 140px;
+          padding-top: 200px;
       }
       @media (max-width: 768px) {
           body {
-              padding-top: 110px;
+              padding-top: 170px;
           }
           header {
               padding: 10px 12px;
@@ -50,7 +52,7 @@
           }
       }
       .logo {
-          height: 90px;
+          height: 120px;
       }
       .logo img {
           height: 100%;
@@ -527,60 +529,83 @@
       display: none;
   }
           /* Contenedor base */
-  .suggestion {
-      position: relative; /* Necesario para posicionar el ::after */
-      width: 120px;
-      height: 120px;
-      border-radius: 20px;
-      overflow: visible; /* Cambiado a visible para que el punto no se corte */
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-      cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      background: white; /* fondo para que el punto contraste bien */
-  }
-  /* Punto verde FIJO y siempre visible en locales abiertos */
-  .suggestion.abierto::after {
-      content: '';
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 14px;
-      height: 14px;
-      background: #00ff00; /* verde brillante */
-      border: 2.5px solid #ffffff;
-      border-radius: 50%;
-      box-shadow:
-          0 0 8px rgba(0, 255, 0, 0.8),
-          0 0 12px rgba(0, 255, 0, 0.5);
-      z-index: 20; /* muy alto para que no quede tapado */
-      pointer-events: none; /* no interfiere con clics */
-      display: block !important; /* fuerza visibilidad */
-  }
-  /* Efecto pulsing opcional (latido sutil) */
-  .suggestion.abierto.pulse::after {
-      animation: pulse 2.8s infinite ease-in-out;
-  }
-  @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.18); opacity: 0.9; }
-  }
-  /* Hover: solo agranda la tarjeta, NO afecta al punto */
-  .suggestion:hover {
-      transform: scale(1.1);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.25);
-  }
-  /* El punto NO cambia ni desaparece en hover */
-  .suggestion.abierto:hover::after,
-  .suggestion.abierto:active::after {
-      transform: none !important;
-      opacity: 1 !important;
-      animation: none !important; /* opcional: quitar pulse al hover si molesta */
-  }
-  /* Locales cerrados: sin punto, más opacos */
-  .suggestion.cerrado {
-      opacity: 0.65;
-      cursor: not-allowed;
-  }
+  /* Sugerencias de locales → ahora CIRCULARES */
+.suggestion {
+    position: relative;
+    width: 110px; /* tamaño base recomendado */
+    height: 110px;
+    border-radius: 50%; /* ¡CÍRCULO PERFECTO! */
+    overflow: hidden; /* recorta la imagen en círculo */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    cursor: pointer;
+    transition: all 0.28s ease;
+    background: white; /* fondo blanco para mejor contraste */
+    flex-shrink: 0;
+}
+/* Punto verde (abierto) */
+.suggestion.abierto::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    background: #00ff00;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0,255,0,0.9),
+                0 0 16px rgba(0,255,0,0.6);
+    z-index: 20;
+    pointer-events: none;
+}
+/* Pulse sutil solo en abiertos */
+.suggestion.abierto.pulse::after {
+    animation: pulse 2.6s infinite ease-in-out;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.22); opacity: 0.92; }
+}
+/* Hover: agrandar + sombra más fuerte */
+.suggestion:hover {
+    transform: scale(1.14);
+    box-shadow: 0 14px 38px rgba(0,0,0,0.26);
+}
+/* Imagen dentro del círculo */
+.suggestion img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* rellena el círculo sin deformar */
+    transition: transform 0.35s ease;
+}
+.suggestion:hover img {
+    transform: scale(1.12);
+}
+/* Locales cerrados: más opaco + cursor no permitido */
+.suggestion.cerrado {
+    opacity: 0.68;
+    cursor: not-allowed;
+}
+/* Ajustes responsive */
+@media (max-width: 768px) {
+    .suggestion {
+        width: 90px;
+        height: 90px;
+    }
+    .suggestion.abierto::after {
+        width: 14px;
+        height: 14px;
+        top: 5px;
+        right: 5px;
+        border-width: 2.5px;
+    }
+}
+@media (max-width: 480px) {
+    .suggestion {
+        width: 80px;
+        height: 80px;
+    }
+}
      
       .suggestion:hover, .suggestion:active {
           transform: scale(1.1);
