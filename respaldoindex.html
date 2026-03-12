@@ -51,8 +51,9 @@
               border-radius: 0;
           }
       }
-      .logo {
-    height: 140px;           /* ← más grande y con buena presencia */
+      /* Logo base (para pantallas grandes / tablets) */
+.logo {
+    height: 100px;           /* tamaño moderado en desktop y tablets */
 }
 
 .logo img {
@@ -60,26 +61,29 @@
     object-fit: contain;
 }
 
-/* Ajustar el espacio superior para que el contenido no quede tapado */
-body {
-    padding-top: 190px;      /* antes 170px → subimos proporcionalmente */
-}
-
+/* En celulares (≤ 768px) → logo MÁS GRANDE */
 @media (max-width: 768px) {
-    body {
-        padding-top: 160px;  /* antes 140px */
-    }
     .logo {
-        height: 110px;       /* un poco más chico en móviles para no aplastar */
+        height: 140px;       /* ← más grande en móviles, como pediste */
+    }
+    
+    body {
+        padding-top: 190px;  /* ajustado para que el contenido no quede tapado */
+    }
+    
+    header {
+        padding: 12px 15px;  /* un poco más de aire arriba/abajo */
     }
 }
 
+/* En celulares muy pequeños (≤ 480px) → opcional: aún más grande o límite */
 @media (max-width: 480px) {
     .logo {
-        height: 90px;        /* tamaño razonable en pantallas muy pequeñas */
+        height: 130px;       /* un poquito más chico que en 768px para no saturar */
     }
+    
     body {
-        padding-top: 140px;
+        padding-top: 180px;
     }
 }
       .search-bar {
