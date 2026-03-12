@@ -40,7 +40,7 @@
             gap: 10px;
         }
       body {
-          padding-top: 120px;
+          padding-top: 115px;
       }
       @media (max-width: 768px) {
           body {
@@ -680,60 +680,54 @@
           /* ============================================= */
   /* === CARRUSEL SIEMPRE CENTRADO ============== */
   /* ============================================= */
-  .carousel-wrapper {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      padding: 0 10px; /* margen lateral para que no choque con bordes */
-  }
   /* === CARRUSEL DE SUGERENCIAS / LOCALES === */
 
 .carousel-wrapper {
     position: relative;
     width: 100%;
     overflow: hidden;
-    padding: 0 8px;               /* base más conservadora */
+    padding: 0 8px;               /* base */
 }
 
 .carousel-container {
     display: flex;
     flex-wrap: nowrap;
-    gap: 18px;                    /* separación entre tarjetas */
+    gap: 18px;                    /* separación base (desktop/tablet) */
     overflow-x: auto;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 20px 32px;           /* base decente para desktop/tablet */
-    margin: 0 -32px;              /* compensación */
-    width: calc(100% + 64px);
+    padding: 20px 28px;           /* base decente */
+    margin: 0 -28px;
+    width: calc(100% + 56px);
     box-sizing: border-box;
-    justify-content: flex-start;  /* mejor que center cuando hay muchas tarjetas */
+    justify-content: flex-start;
 }
 
 .carousel-container::-webkit-scrollbar {
     display: none;
 }
 
-/* Cuando hay pocas tarjetas → forzamos centrado total */
+/* Pocas tarjetas → centrado total */
 .carousel-wrapper.few-items .carousel-container {
     justify-content: center;
-    padding: 20px 16px;
+    padding: 20px 12px;
     margin: 0;
     width: 100%;
 }
 
-/* Las tarjetas no crecen ni se achican */
+/* Tarjetas fijas */
 .carousel-container .suggestion,
 .carousel-container .suggestion-categoria {
     flex: 0 0 auto;
 }
 
-/* Botones de navegación (flechas) */
+/* Botones navegación */
 .carousel-btn {
-    display: none;                /* ocultas por defecto */
+    display: none;
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);  /* centrado vertical perfecto */
+    transform: translateY(-50%);
     width: 44px;
     height: 44px;
     background: rgba(211, 47, 47, 0.80);
@@ -747,7 +741,6 @@
     box-shadow: 0 3px 12px rgba(0,0,0,0.28);
     align-items: center;
     justify-content: center;
-    line-height: 1;
     transition: all 0.18s ease;
 }
 
@@ -756,43 +749,30 @@
     transform: translateY(-50%) scale(1.08);
 }
 
-.carousel-btn:active {
-    transform: translateY(-50%) scale(0.96);
-}
-
-.carousel-btn.left {
-    left: 8px;
-}
-
-.carousel-btn.right {
-    right: 8px;
-}
+.carousel-btn.left  { left: 8px; }
+.carousel-btn.right { right: 8px; }
 
 /* ────────────────────────────────────────────────
-   RESPONSIVE - Márgenes más pequeños en móvil
+   MÓVIL - menos margen y menos separación
 ───────────────────────────────────────────────── */
 
 @media (max-width: 992px) {
-    .carousel-wrapper {
-        padding: 0 6px;
-    }
+    .carousel-wrapper { padding: 0 5px; }
     .carousel-container {
-        padding: 20px 28px;
-        margin: 0 -28px;
-        width: calc(100% + 56px);
+        padding: 18px 24px;
+        margin: 0 -24px;
+        width: calc(100% + 48px);
         gap: 16px;
     }
 }
 
 @media (max-width: 768px) {
-    .carousel-wrapper {
-        padding: 0 4px;
-    }
+    .carousel-wrapper { padding: 0 3px; }
     .carousel-container {
-        padding: 16px 22px;       /* menos margen lateral */
-        margin: 0 -22px;
-        width: calc(100% + 44px);
-        gap: 14px;
+        padding: 16px 18px;       /* menos margen lateral */
+        margin: 0 -18px;
+        width: calc(100% + 36px);
+        gap: 12px;                /* ← separación más chica */
     }
     
     .carousel-btn {
@@ -802,26 +782,37 @@
     }
 }
 
-@media (max-width: 480px) {
-    .carousel-wrapper {
-        padding: 0 2px;
-    }
+@media (max-width: 520px) {
+    .carousel-wrapper { padding: 0 2px; }
     .carousel-container {
-        padding: 16px 14px;       /* bastante ajustado en celulares pequeños */
-        margin: 0 -14px;
-        width: calc(100% + 28px);
-        gap: 12px;
+        padding: 16px 12px;       /* muy ajustado */
+        margin: 0 -12px;
+        width: calc(100% + 24px);
+        gap: 10px;                /* ← aún más juntos */
     }
     
-    /* Tarjetas más pequeñas para aprovechar mejor el espacio */
+    /* Tarjetas más compactas */
     .suggestion {
-        width: 82px;
-        height: 82px;
+        width: 78px;
+        height: 78px;
+    }
+    
+    .suggestion.abierto::after {
+        width: 12px;
+        height: 12px;
+        top: 4px;
+        right: 4px;
+        border-width: 2px;
     }
     
     .suggestion-categoria {
-        width: 96px;
-        min-height: 120px;
+        width: 92px;
+        min-height: 116px;
+    }
+    
+    .suggestion-categoria img {
+        width: 58px;
+        height: 58px;
     }
     
     .carousel-btn {
@@ -834,14 +825,32 @@
     .carousel-btn.right { right: 4px; }
 }
 
-/* Mostrar flechas solo cuando hay overflow (mejor UX) */
+@media (max-width: 400px) {
+    .carousel-container {
+        padding: 14px 10px;
+        margin: 0 -10px;
+        width: calc(100% + 20px);
+        gap: 8px;                 /* ultra compacto en pantallas muy pequeñas */
+    }
+    
+    .suggestion {
+        width: 74px;
+        height: 74px;
+    }
+    
+    .suggestion-categoria {
+        width: 86px;
+        min-height: 110px;
+    }
+}
+
+/* Mostrar flechas en móvil (control real se hace con JS) */
 @media (max-width: 920px) {
-    /* La visibilidad real la controlamos con JS (ver más abajo) */
-    /* Pero como fallback mostramos en mobile */
     .carousel-btn {
         display: flex;
     }
 }
+        
       /* Carrito */
       .cart-backdrop {
           position: fixed;
