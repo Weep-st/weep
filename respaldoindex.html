@@ -62,57 +62,61 @@
     min-width: 200px;
     max-width: 500px;
     margin: 0 10px;
-    position: relative; /* para poder posicionar ícono de lupa si lo agregamos */
+    position: relative;           /* Necesario para posicionar la lupa */
 }
 
 .search-bar input {
     width: 100%;
-    padding: 12px 16px 12px 40px;          /* espacio a la izquierda para lupa */
-    border: 2px solid rgba(255, 255, 255, 0.25);
+    padding: 12px 15px 12px 45px;   /* ← más espacio a la izquierda para la lupa */
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 30px;
     font-size: 15px;
-    background: rgba(255, 255, 255, 0.95);  /* casi blanco, pero no 100% para que se integre */
-    color: #1a1a1a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.95);
+    color: #111;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     transition: all 0.2s ease;
 }
 
-/* Placeholder más legible */
 .search-bar input::placeholder {
     color: #555;
     opacity: 0.9;
 }
 
-/* Efecto focus - borde y sombra en tonos rojizos */
 .search-bar input:focus {
     outline: none;
     border-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(155, 25, 19, 0.4);   /* #9b1913 con transparencia */
+    box-shadow: 0 0 0 3px rgba(155, 25, 19, 0.4);
     background: white;
 }
 
-/* Icono de lupa (opcional pero muy recomendado con header oscuro) */
+/* Ícono de lupa usando la imagen que indicaste */
 .search-bar::before {
-    content: "🔍";
+    content: "";
     position: absolute;
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 1.1rem;
-    color: #444;
+    width: 22px;                  /* tamaño recomendado — puedes ajustar */
+    height: 22px;
+    background-image: url('https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     pointer-events: none;
     z-index: 1;
+    opacity: 0.75;                /* un poco más suave para que no destaque demasiado */
 }
 
-/* En mobile: ajustar padding si es necesario */
+/* Ajuste en móviles pequeños */
 @media (max-width: 576px) {
     .search-bar input {
-        padding: 11px 14px 11px 38px;
+        padding-left: 42px;
         font-size: 14px;
     }
     .search-bar::before {
         left: 12px;
-        font-size: 1rem;
+        width: 20px;
+        height: 20px;
     }
 }
       .header-right {
