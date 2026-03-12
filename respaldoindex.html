@@ -61,31 +61,30 @@
     object-fit: contain;
 }
 
-/* En celulares (≤ 768px) → logo MÁS GRANDE */
 @media (max-width: 768px) {
     .logo {
-        height: 140px;       /* ← más grande en móviles, como pediste */
+        height: 160px;           /* muy grande en móviles */
     }
     
     body {
-        padding-top: 190px;  /* ajustado para que el contenido no quede tapado */
+        padding-top: 220px;      /* hay que compensar bastante más espacio arriba */
     }
     
     header {
-        padding: 12px 15px;  /* un poco más de aire arriba/abajo */
+        padding: 15px 18px;      /* más padding para que respire */
+        align-items: flex-start; /* alinea mejor el logo arriba si es muy alto */
     }
 }
 
-/* En celulares muy pequeños (≤ 480px) → opcional: aún más grande o límite */
 @media (max-width: 480px) {
     .logo {
-        height: 130px;       /* un poquito más chico que en 768px para no saturar */
+        height: 140px;           /* reducimos un poco en pantallas muy chicas */
     }
-    
     body {
-        padding-top: 180px;
+        padding-top: 200px;
     }
 }
+
       .search-bar {
     flex: 1;
     min-width: 200px;
