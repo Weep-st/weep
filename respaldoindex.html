@@ -22,21 +22,22 @@
       }
       /* Header */
       header {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1000;
-          background-color: #fff;
-          padding: 12px 15px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-          border-radius: 0 0 20px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 10px;
-      }
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #9b1913;     /* ← CAMBIO AQUÍ */
+            color: white;                  /* mejor contraste */
+            padding: 12px 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            border-radius: 0 0 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
       body {
           padding-top: 140px;
       }
@@ -62,14 +63,15 @@
           max-width: 500px;
           margin: 0 10px;
       }
-      .search-bar input {
-          width: 100%;
-          padding: 12px 15px;
-          border: 1px solid #ccc;
-          border-radius: 30px;
-          font-size: 15px;
-          outline: none;
-      }
+      /* Ajustes de texto e iconos para mejor legibilidad con fondo oscuro */
+        .search-bar input {
+            background: rgba(255,255,255,0.92);
+            border: none;
+            color: #222;
+        }
+        .search-bar input::placeholder {
+            color: #666;
+        }
       .header-right {
           display: flex;
           align-items: center;
@@ -93,8 +95,8 @@
           position: absolute;
           top: -6px;
           right: -8px;
-          background: #d32f2f;
-          color: white;
+          background: #ffffff;
+          color: #9b1913;
           border-radius: 50%;
           min-width: 22px;
           height: 22px;
@@ -1180,7 +1182,7 @@
   <body>
       <header>
           <div class="logo">
-              <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep Logo">
+              <img src="https://i.postimg.cc/66Cw9GmP/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(4).png" alt="Weep Logo">
           </div>
           <div class="search-bar">
               <input type="text" id="search-input" placeholder="Buscar menús o locales...">
@@ -1203,7 +1205,7 @@
       </div>
       <!-- Reemplaza el <div class="cart-icon"> actual por: -->
   <div class="cart-icon" id="cart-icon">
-    <img src="https://i.postimg.cc/vBY0wJNq/18611-(1).jpg" alt="Carrito de compras">
+    <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito de compras">
     <div class="cart-count" id="cart-count">0</div>
   </div>
       </header>
