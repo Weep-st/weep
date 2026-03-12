@@ -52,12 +52,36 @@
           }
       }
       .logo {
-          height: 120px;
-      }
-      .logo img {
-          height: 100%;
-          object-fit: contain;
-      }
+    height: 140px;           /* ← más grande y con buena presencia */
+}
+
+.logo img {
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Ajustar el espacio superior para que el contenido no quede tapado */
+body {
+    padding-top: 190px;      /* antes 170px → subimos proporcionalmente */
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 160px;  /* antes 140px */
+    }
+    .logo {
+        height: 110px;       /* un poco más chico en móviles para no aplastar */
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        height: 90px;        /* tamaño razonable en pantallas muy pequeñas */
+    }
+    body {
+        padding-top: 140px;
+    }
+}
       .search-bar {
     flex: 1;
     min-width: 200px;
