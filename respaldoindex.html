@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+ 
       <style>
       * { box-sizing: border-box; }
       body {
@@ -20,8 +20,7 @@
           display: flex;
           flex-direction: column;
       }
- 
-/* Header */
+      /* Header */
       header {
             position: fixed;
             top: 0;
@@ -40,11 +39,11 @@
             gap: 10px;
         }
       body {
-          padding-top: 140px;
+          padding-top: 170px;
       }
       @media (max-width: 768px) {
           body {
-              padding-top: 110px;
+              padding-top: 140px;
           }
           header {
               padding: 10px 12px;
@@ -52,24 +51,22 @@
           }
       }
       .logo {
-          height: 90px;
+          height: 120px;
       }
       .logo img {
           height: 100%;
           object-fit: contain;
       }
-
       .search-bar {
     flex: 1;
     min-width: 200px;
     max-width: 500px;
     margin: 0 10px;
-    position: relative;           /* Necesario para posicionar la lupa */
+    position: relative; /* Necesario para posicionar la lupa */
 }
-
 .search-bar input {
     width: 100%;
-    padding: 12px 15px 12px 45px;   /* ← más espacio a la izquierda para la lupa */
+    padding: 12px 15px 12px 45px; /* ← más espacio a la izquierda para la lupa */
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 30px;
     font-size: 15px;
@@ -78,19 +75,16 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.18);
     transition: all 0.2s ease;
 }
-
 .search-bar input::placeholder {
     color: #555;
     opacity: 0.9;
 }
-
 .search-bar input:focus {
     outline: none;
     border-color: #ffffff;
     box-shadow: 0 0 0 3px rgba(155, 25, 19, 0.4);
     background: white;
 }
-
 /* Ícono de lupa usando la imagen que indicaste */
 .search-bar::before {
     content: "";
@@ -98,7 +92,7 @@
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    width: 22px;                  /* tamaño recomendado — puedes ajustar */
+    width: 22px; /* tamaño recomendado — puedes ajustar */
     height: 22px;
     background-image: url('https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png');
     background-size: contain;
@@ -106,9 +100,8 @@
     background-position: center;
     pointer-events: none;
     z-index: 1;
-    opacity: 0.75;                /* un poco más suave para que no destaque demasiado */
+    opacity: 0.75; /* un poco más suave para que no destaque demasiado */
 }
-
 /* Ajuste en móviles pequeños */
 @media (max-width: 576px) {
     .search-bar input {
@@ -535,93 +528,61 @@
       display: none;
   }
           /* Contenedor base */
-  /* Sugerencias de locales → ahora CIRCULARES */
-.suggestion {
-    position: relative;
-    width: 110px;                    /* tamaño base recomendado */
-    height: 110px;
-    border-radius: 50%;              /* ¡CÍRCULO PERFECTO! */
-    overflow: hidden;                /* recorta la imagen en círculo */
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-    cursor: pointer;
-    transition: all 0.28s ease;
-    background: white;               /* fondo blanco para mejor contraste */
-    flex-shrink: 0;
-}
-
-/* Punto verde (abierto) */
-.suggestion.abierto::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 16px;
-    height: 16px;
-    background: #00ff00;
-    border: 3px solid white;
-    border-radius: 50%;
-    box-shadow: 0 0 10px rgba(0,255,0,0.9),
-                0 0 16px rgba(0,255,0,0.6);
-    z-index: 20;
-    pointer-events: none;
-}
-
-/* Pulse sutil solo en abiertos */
-.suggestion.abierto.pulse::after {
-    animation: pulse 2.6s infinite ease-in-out;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50%      { transform: scale(1.22); opacity: 0.92; }
-}
-
-/* Hover: agrandar + sombra más fuerte */
-.suggestion:hover {
-    transform: scale(1.14);
-    box-shadow: 0 14px 38px rgba(0,0,0,0.26);
-}
-
-/* Imagen dentro del círculo */
-.suggestion img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;               /* rellena el círculo sin deformar */
-    transition: transform 0.35s ease;
-}
-
-.suggestion:hover img {
-    transform: scale(1.12);
-}
-
-/* Locales cerrados: más opaco + cursor no permitido */
-.suggestion.cerrado {
-    opacity: 0.68;
-    cursor: not-allowed;
-}
-
-/* Ajustes responsive */
-@media (max-width: 768px) {
-    .suggestion {
-        width: 90px;
-        height: 90px;
-    }
-    .suggestion.abierto::after {
-        width: 14px;
-        height: 14px;
-        top: 5px;
-        right: 5px;
-        border-width: 2.5px;
-    }
-}
-
-@media (max-width: 480px) {
-    .suggestion {
-        width: 80px;
-        height: 80px;
-    }
-}
-      
+  .suggestion {
+      position: relative; /* Necesario para posicionar el ::after */
+      width: 120px;
+      height: 120px;
+      border-radius: 20px;
+      overflow: visible; /* Cambiado a visible para que el punto no se corte */
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: white; /* fondo para que el punto contraste bien */
+  }
+  /* Punto verde FIJO y siempre visible en locales abiertos */
+  .suggestion.abierto::after {
+      content: '';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 14px;
+      height: 14px;
+      background: #00ff00; /* verde brillante */
+      border: 2.5px solid #ffffff;
+      border-radius: 50%;
+      box-shadow:
+          0 0 8px rgba(0, 255, 0, 0.8),
+          0 0 12px rgba(0, 255, 0, 0.5);
+      z-index: 20; /* muy alto para que no quede tapado */
+      pointer-events: none; /* no interfiere con clics */
+      display: block !important; /* fuerza visibilidad */
+  }
+  /* Efecto pulsing opcional (latido sutil) */
+  .suggestion.abierto.pulse::after {
+      animation: pulse 2.8s infinite ease-in-out;
+  }
+  @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.18); opacity: 0.9; }
+  }
+  /* Hover: solo agranda la tarjeta, NO afecta al punto */
+  .suggestion:hover {
+      transform: scale(1.1);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+  }
+  /* El punto NO cambia ni desaparece en hover */
+  .suggestion.abierto:hover::after,
+  .suggestion.abierto:active::after {
+      transform: none !important;
+      opacity: 1 !important;
+      animation: none !important; /* opcional: quitar pulse al hover si molesta */
+  }
+  /* Locales cerrados: sin punto, más opacos */
+  .suggestion.cerrado {
+      opacity: 0.65;
+      cursor: not-allowed;
+  }
+     
       .suggestion:hover, .suggestion:active {
           transform: scale(1.1);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
@@ -941,7 +902,6 @@
           font-size: 1rem;
           gap: 8px;
       }
- 
       .loading .spinner {
           width: 26px;
           height: 26px;
@@ -1159,43 +1119,38 @@
     position: relative;
     display: inline-block;
 }
-
 .profile-button {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px 14px;
     border-radius: 30px;
-    background: rgba(255, 255, 255, 0.15);     /* fondo semi-transparente blanco */
-    backdrop-filter: blur(4px);                 /* efecto vidrio esmerilado (opcional pero queda muy bien) */
+    background: rgba(255, 255, 255, 0.15); /* fondo semi-transparente blanco */
+    backdrop-filter: blur(4px); /* efecto vidrio esmerilado (opcional pero queda muy bien) */
     border: 1px solid rgba(255, 255, 255, 0.25);
     cursor: pointer;
     transition: all 0.25s ease;
     white-space: nowrap;
     color: white;
 }
-
 .profile-button:hover {
     background: rgba(255, 255, 255, 0.28);
     border-color: rgba(255, 255, 255, 0.45);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
-
 .profile-icon {
     width: 32px;
     height: 32px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #ffffff;                 /* borde blanco para destacar */
+    border: 2px solid #ffffff; /* borde blanco para destacar */
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-
 .profile-button span {
     font-weight: 500;
     font-size: 0.95rem;
 }
-
 /* Menú desplegable */
 .profile-dropdown {
     display: none;
@@ -1211,11 +1166,9 @@
     margin-top: 8px;
     border: 1px solid rgba(155, 25, 19, 0.15); /* borde sutil en tono del header */
 }
-
 .profile-dropdown.active {
     display: block;
 }
-
 .dropdown-item {
     display: block;
     padding: 12px 18px;
@@ -1224,24 +1177,20 @@
     font-size: 0.95rem;
     transition: all 0.2s ease;
 }
-
 .dropdown-item:hover {
-    background: #ffebee;                      /* rojo muy claro */
-    color: #9b1913;                           /* color del header */
+    background: #ffebee; /* rojo muy claro */
+    color: #9b1913; /* color del header */
 }
-
 .dropdown-item.logout {
     color: #d32f2f;
     border-top: 1px solid #eee;
     margin-top: 4px;
     padding-top: 12px;
 }
-
 .dropdown-item.logout:hover {
     background: #ffebee;
     color: #b71c1c;
 }
-
 /* Responsive */
 @media (max-width: 480px) {
     .profile-icon {
@@ -1295,7 +1244,7 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-      
+     
   </style>
       <!-- PWA - Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -1369,20 +1318,19 @@
   </div>
           <div class="suggestions">
       <h2 id="suggestions-title">Sugerencias de Locales</h2>
- 
       <div class="carousel-wrapper" id="suggestions-carousel-wrapper">
           <button class="carousel-btn left" id="prev-suggestion">←</button>
-     
+    
           <div class="carousel-container" id="suggestion-items">
               <!-- solo tarjetas aquí -->
           </div>
-     
+    
           <button class="carousel-btn right" id="next-suggestion">→</button>
       </div>
       <!-- Contenedor exclusivo para el botón "Ver todo" -->
       <div id="ver-todo-categoria-container" style="text-align: center; margin: 30px 0 50px;"></div>
   </div>
-     
+    
           <div id="menu-display" style="display:none;"></div>
   <!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
   <div id="cart-backdrop" class="cart-backdrop"></div>
@@ -1426,7 +1374,7 @@
   </select>
   <!-- Contenedor donde se mostrará el checkout de MP -->
   <div id="mercadopago-checkout" style="display:none; margin: 20px 0; min-height: 600px;"></div>
-  
+ 
                   <textarea id="observaciones" rows="3" placeholder="Observaciones (opcional)"></textarea>
                   <button type="button" id="checkout-btn" class="btn btn-rojo btn-lg w-100">
     <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
@@ -1435,12 +1383,12 @@
               </form>
           </div>
       </main>
-  
+ 
       <!-- Footer -->
   <footer class="text-center">
       <div class="container">
           <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-      
+     
           <p class="small mb-4">
               <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
           </p>
@@ -1451,7 +1399,7 @@
           </p>
       </div>
   </footer>
-  
+ 
       <!-- Login Modal -->
 <div id="login-modal" class="modal">
     <div class="modal-content">
@@ -1515,7 +1463,7 @@
               </div>
               <div class="modal-body text-start small">
                   <p><strong>Última actualización: febrero 2026</strong></p>
-              
+             
                   <p>Al usar Weep aceptás:</p>
                   <ul>
                       <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
@@ -1524,7 +1472,7 @@
                       <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
                       <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
                   </ul>
-              
+             
                   <p class="mt-3">Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com">bajoneando.st@gmail.com</a></p>
               </div>
               <div class="modal-footer">
@@ -1762,16 +1710,14 @@
         showError(container, "No pudimos cargar tus favoritos en este momento");
     }
 }
-         
+        
   function displayMenus(menus, title, categoriaDestacada = null) {
       const container = document.getElementById('menu-display');
- 
       // Limpiamos y preparamos la estructura básica
       container.innerHTML = `
           <h2>${title}</h2>
           <div class="menu-items"></div>
       `;
- 
       const itemsDiv = container.querySelector('.menu-items');
       currentDisplayedMenus = {}; // Limpiamos caché de menús mostrados
       // Caso: no hay menús
@@ -1781,17 +1727,17 @@
           // Mostramos cada plato
           menus.forEach((menu) => {
               currentDisplayedMenus[menu.id] = menu;
-    
+   
               const div = document.createElement('div');
               div.className = 'menu-item';
-    
+   
               // Resaltar si coincide con la categoría destacada
               const esDeCategoria = categoriaDestacada &&
                   menu.categoria?.toLowerCase().includes(categoriaDestacada.toLowerCase());
               if (esDeCategoria) {
                   div.classList.add('destacado-categoria');
               }
-    
+   
               // Lógica para imagen predeterminada basada en categoría si no hay imagen_url
               let imgSrc = menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen';
               if (!menu.imagen_url && menu.categoria) {
@@ -1804,7 +1750,7 @@
                       imgSrc = 'https://i.postimg.cc/SR4LVY3N/hambur.jpg';
                   }
               }
-    
+   
               div.innerHTML = `
                   <img src="${imgSrc}"
                        alt="${menu.nombre}"
@@ -1831,7 +1777,7 @@
                       </div>
                   </div>
               `;
-    
+   
               itemsDiv.appendChild(div);
           });
       }
@@ -1841,7 +1787,6 @@
       let showFullMenuButton = false;
       let currentLocalId = null;
       let localName = 'este local';
- 
       if (categoriaDestacada && menus.length > 0) {
           currentLocalId = menus[0].local_id;
           localName = menus[0].nombre_local || 'este local';
@@ -1872,7 +1817,7 @@
                   </button>
               </div>
           `;
-     
+    
           // Asignamos el evento al botón recién creado
           const fullMenuBtn = container.querySelector('.ver-todo-menu button');
           fullMenuBtn.onclick = () => {
@@ -1892,14 +1837,14 @@
           const headerHeight = header ? header.offsetHeight : 140; // fallback
           const extraOffset = 30; // espacio adicional para que no quede pegado al header
           const elementTop = container.getBoundingClientRect().top + window.pageYOffset;
-     
+    
           window.scrollTo({
               top: elementTop - headerHeight - extraOffset,
               behavior: 'smooth'
           });
       }, 300); // 300ms → da tiempo a que el DOM renderice y calcule alturas correctamente
   }
-  
+ 
           function addToCartById(menuId) {
       const menu = currentDisplayedMenus[menuId];
       if (!menu) {
@@ -2035,7 +1980,7 @@ async function registerUser() {
           setupCart();
           loadAllDrinks();
       });
-        
+       
           function loadAllDrinks() {
               fetch(`${scriptUrl}?action=getAllMenus`)
                   .then(r => r.ok ? r.json() : Promise.reject())
@@ -2100,7 +2045,7 @@ async function registerUser() {
           })
           .catch(() => showError(container, 'Error al cargar locales'));
   }
-     
+    
           function setupSearch() {
               const input = document.getElementById('search-input');
               let timeout;
@@ -2128,7 +2073,7 @@ async function registerUser() {
     const catElement = e.target.closest('.category');
     if (!catElement) return;
     const tipo = catElement.dataset.type;
-   
+  
     if (tipo === "favoritos") {
         // Ruta especial: mostrar favoritos
         showMyFavoritesSection();
@@ -2323,7 +2268,7 @@ async function registerUser() {
           envioOption.style.backgroundColor = '';
       }
   }
-    
+   
   function setupCart() {
       // ────────────────────────────────────────────────────────────────
       // Elementos del DOM relacionados con el carrito
@@ -2689,7 +2634,7 @@ async function registerUser() {
               const visible = Math.floor(container.parentElement.offsetWidth / cardWidth);
               document.getElementById('next-drink').disabled = currentDrinkIndex >= allDrinks.length - visible;
           }
-        
+       
           async function checkout() {
     if (!isLoggedIn) {
         showModal('login-modal');
@@ -2746,7 +2691,7 @@ async function registerUser() {
         btn.lastChild.textContent = 'Realizar Pedido';
     }
 }
-        
+       
           async function handleMercadoPagoPayment(direccion, delivery, prices, observaciones) {
     const checkoutBtn = document.getElementById('checkout-btn');
     checkoutBtn.disabled = true;
@@ -2814,8 +2759,8 @@ async function registerUser() {
         checkoutBtn.textContent = 'Realizar Pedido';
     }
 }
-        
-  
+       
+ 
   async function finalizeOrderAfterPayment() {
       if (!pendingOrderData) return;
       // ← CAMBIO IMPORTANTE: usamos el mismo flujo que efectivo
@@ -2837,25 +2782,21 @@ async function registerUser() {
     const status = urlParams.get('status');
     const paymentId = urlParams.get('payment_id');
     if (!status || !paymentId) return;
-
     const savedData = localStorage.getItem('pendingOrderData');
     if (!savedData) {
         alert('Error: no se encontraron datos del pedido. Intenta nuevamente.');
         return;
     }
-
     pendingOrderData = JSON.parse(savedData);
-
     // ←←← RESTAURAR EL CARRITO ←←←
     if (pendingOrderData.cart && Array.isArray(pendingOrderData.cart)) {
         cart = pendingOrderData.cart;
-        updateCartCount();           // actualiza el badge del carrito
-        updateCartDisplay();         // refresca visualmente el sidebar (si está abierto)
+        updateCartCount(); // actualiza el badge del carrito
+        updateCartDisplay(); // refresca visualmente el sidebar (si está abierto)
         console.log("Carrito restaurado desde pendingOrderData:", cart);
     } else {
         console.warn("No se encontró carrito en pendingOrderData");
     }
-
     try {
         // Verificar el pago
         const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -2863,7 +2804,6 @@ async function registerUser() {
         });
         if (!res.ok) throw new Error("No se pudo verificar el pago");
         const payment = await res.json();
-
         if (payment.status === "approved") {
             pendingOrderData.paymentId = paymentId;
             await finalizeOrderAfterPayment();
@@ -2929,10 +2869,10 @@ async function registerUser() {
                   // Actualizamos el almacenamiento local
                   localStorage.setItem('userName', name);
                   localStorage.setItem('userEmail', email);
-  
+ 
                   alert(data.message || 'Perfil actualizado correctamente');
                   closeModal('edit-profile-modal');
-  
+ 
                   // Refrescamos el estado visual si es necesario
                   checkLoginStatus();
               } else {
@@ -2959,11 +2899,11 @@ async function registerUser() {
               if (data.success) {
                   userAddress = newAddress;
                   localStorage.setItem('userAddress', newAddress);
-  
+ 
                   // Actualizamos el campo de dirección del checkout si está visible
                   const checkoutDir = document.getElementById('direccion');
                   if (checkoutDir) checkoutDir.value = newAddress;
-  
+ 
                   alert('Dirección actualizada correctamente');
                   closeModal('change-address-modal');
               } else {
@@ -2974,14 +2914,13 @@ async function registerUser() {
               alert('Error de conexión al actualizar dirección');
           });
   }
-       
+      
   // ------------------------------------------------------------------
   // Notificar a los locales - Versión ajustada a tu formato exacto
   // ------------------------------------------------------------------
   async function notifyLocalsAboutNewOrder(idPedido, direccion, tipoEntrega, observaciones, prices) {
     console.log("[NOTIFICACIÓN LOCALES] Iniciando...");
     let todasOk = true;
-
     // 1. Agrupar por local
     const groupedByLocal = {};
     cart.forEach(item => {
@@ -2998,16 +2937,13 @@ async function registerUser() {
         groupedByLocal[localId].items.push(item);
         groupedByLocal[localId].subtotal += item.precioUnitario * item.cantidad;
     });
-
     if (Object.keys(groupedByLocal).length === 0) {
         console.warn("[NOTIFICACIÓN] No hay locales en el carrito");
         return true;
     }
-
     // 2. Procesar cada local
     for (const localId in groupedByLocal) {
         const group = groupedByLocal[localId];
-
         // Obtener email del local
         if (!group.emailLocal) {
             try {
@@ -3020,13 +2956,11 @@ async function registerUser() {
                 console.warn(`No se obtuvo email del local ${localId}`);
             }
         }
-
         if (!group.emailLocal) {
             console.error(`Sin email para local ${localId} (${group.nombreLocal})`);
             todasOk = false;
             continue;
         }
-
         // Nombre del cliente
         let nombreCliente = localStorage.getItem('userName') || 'Cliente';
         try {
@@ -3038,58 +2972,53 @@ async function registerUser() {
         } catch (e) {
             console.warn("No se obtuvo nombre del usuario desde backend");
         }
-
         // Productos
         const itemsText = group.items.map(i =>
             `${i.nombreProducto} × ${i.cantidad} $${Number(i.precioUnitario * i.cantidad).toLocaleString('es-AR')}`
         ).join('\n');
-
         // Texto del método de pago con aclaración para transferencia
         let metodoPagoTexto = metodoPago;
         if (metodoPago.toLowerCase().includes("transferencia") || metodoPago.toLowerCase().includes("mercado pago")) {
             metodoPagoTexto += " (gestionar retiro en panel de locales)";
         }
-
         const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
         const htmlBody = `
             <div style="text-align:center; margin:24px 0 32px;">
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-        
+       
             <h2 style="color:#d32f2f; text-align:center; margin:0;">¡NUEVO PEDIDO RECIBIDO!</h2>
             <p style="text-align:center; font-size:1.4em; margin:12px 0; color:#333;">
                 #${idPedido} – ${group.nombreLocal}
             </p>
-        
+       
             <p style="margin:16px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
             <p style="margin:8px 0;"><strong>Tipo de entrega:</strong> ${tipoEntrega === 'envio' ? 'Con envío a domicilio' : 'Retiro en local'}</p>
             <p style="margin:8px 0;"><strong>Método de pago:</strong> ${metodoPagoTexto}</p>
             ${observaciones ? `<p style="margin:8px 0;"><strong>Observaciones:</strong> ${observaciones}</p>` : ''}
-        
+       
             <h3 style="color:#d32f2f; margin:32px 0 12px;">Productos solicitados</h3>
             <pre style="background:#f9f9f9; padding:16px; border-radius:8px; margin:0; font-family:monospace; white-space:pre-wrap;">
 ${itemsText}
             </pre>
-        
+       
             <p style="margin:20px 0 8px; text-align:right; font-size:1.1em;">
                 <strong>Subtotal productos:</strong> $${group.subtotal.toLocaleString('es-AR')}
             </p>
-        
+       
             <hr style="margin:32px 0;">
             <p style="text-align:center; color:#666; font-size:0.95em;">
                 Por favor prepara el pedido lo antes posible.<br>
                 Cualquier duda, responde directamente a este correo.
             </p>
         `;
-
         const emailParams = new URLSearchParams({
             action: 'enviarNotificacionEmail',
             toEmail: group.emailLocal,
             subject: `¡NUEVO PEDIDO! #${idPedido} – ${group.nombreLocal}`,
             htmlBody: htmlBody
         });
-
         try {
             await fetch(`${scriptUrl}?${emailParams.toString()}`, { method: 'GET', cache: 'no-cache' });
             console.log(`[LOCAL OK] Enviado a ${group.emailLocal}`);
@@ -3098,10 +3027,9 @@ ${itemsText}
             todasOk = false;
         }
     }
-
     return todasOk;
 }
-       
+      
   // ------------------------------------------------------------------
   // createOrderNormal – crea pedido + notifica locales + (si envío) asigna y notifica repartidor DESDE FRONTEND
   // ------------------------------------------------------------------
@@ -3182,19 +3110,16 @@ ${itemsText}
   async function notifyRepartidorFromFrontend(idPedido, direccion, observaciones, prices, metodoPago, repartidorInfo) {
     try {
         const logoUrl = "https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png";
-
         // Monto a cobrar al cliente (entrega)
         let montoCobrar = "NADA (pagado con " + metodoPago + ")";
         if (metodoPago.toLowerCase() === "efectivo") {
             montoCobrar = "$" + Number(prices.total).toLocaleString('es-AR');
         }
-
         // Monto a pagar al local (retiro) → solo si es efectivo
         let montoPagarLocal = "NADA (ya pagado con " + metodoPago + ")";
         if (metodoPago.toLowerCase() === "efectivo") {
             montoPagarLocal = "$" + cart.reduce((sum, i) => sum + (i.precioUnitario * i.cantidad), 0).toLocaleString('es-AR');
         }
-
         // Dirección del local
         let direccionRetiro = "—";
         if (cart.length > 0) {
@@ -3207,13 +3132,12 @@ ${itemsText}
                 }
             } catch (e) {}
         }
-
         const htmlBody = `
             <div style="text-align:center; margin:24px 0 32px;">
                 <img src="${logoUrl}" alt="Weep" width="120" style="border-radius:12px;">
             </div>
             <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
-        
+       
             <h2 style="color:#d32f2f; text-align:center;">¡Nuevo pedido asignado!</h2>
             <p style="text-align:center; font-size:1.2em; margin:8px 0;">
                 Pedido #<strong>${idPedido}</strong>
@@ -3231,14 +3155,12 @@ ${itemsText}
                 ¡Gracias por ser parte del equipo Weep!
             </p>
         `;
-
         const emailParams = new URLSearchParams({
             action: 'enviarNotificacionEmail',
             toEmail: repartidorInfo.email,
             subject: `🚚 PEDIDO ASIGNADO #${idPedido} - Weep`,
             htmlBody: htmlBody
         });
-
         const res = await fetch(`${scriptUrl}?${emailParams.toString()}`, {
             method: 'GET',
             cache: 'no-cache'
@@ -3250,7 +3172,7 @@ ${itemsText}
         return false;
     }
 }
-      
+     
           // Esta función debería llamarse SOLO cuando el pago está aprobado
   async function createConfirmedOrder(orderData) {
       const payload = {
@@ -3349,7 +3271,6 @@ ${itemsText}
       const container = document.getElementById(containerId);
       const prev = document.getElementById(prevId);
       const next = document.getElementById(nextId);
- 
       if (!container || !prev || !next) return;
       function scrollLeft() { container.scrollBy({ left: -container.clientWidth * 0.75, behavior: 'smooth' }); }
       function scrollRight() { container.scrollBy({ left: container.clientWidth * 0.75, behavior: 'smooth' }); }
@@ -3358,7 +3279,7 @@ ${itemsText}
       function updateButtons() {
           const atStart = container.scrollLeft <= 1;
           const atEnd = Math.abs(container.scrollLeft + container.clientWidth - container.scrollWidth) < 5;
-     
+    
           prev.disabled = atStart;
           prev.style.opacity = atStart ? '0.35' : '1';
           next.disabled = atEnd;
@@ -3366,19 +3287,15 @@ ${itemsText}
       }
       container.addEventListener('scroll', updateButtons);
       window.addEventListener('resize', updateButtons);
- 
       // Estado inicial
       setTimeout(updateButtons, 400);
   }
   // Llamar para ambos carruseles
   window.addEventListener('load', () => {
       // ... tus otras inicializaciones ...
- 
       setupGenericCarousel('suggestions-carousel-wrapper', 'suggestion-items', 'prev-suggestion', 'next-suggestion');
- 
       // Si más adelante creas otro carrusel, solo llamas de nuevo la función
   });
-
         window.addEventListener('load', checkPaymentReturn);
       </script>
   </body>
