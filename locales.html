@@ -29,7 +29,7 @@
   }
   h1, h2, h3, h5 {
     font-weight: 600;
-    color: #c62828;
+    color: white;
   }
   .text-rojo {
     color: #d32f2f;
@@ -42,18 +42,60 @@
     background-color: #b71c1c;
   }
   .header {
-    background-color: #9b1913; /* ← CAMBIO AQUÍ */
-    color: white; /* mejor contraste */
-    padding: 2rem 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    border-radius: 0 0 20px 20px;
-    margin-bottom: 3rem;
-  }
+  background: #9b1913;
+  color: white;
+  padding: 1.5rem 0 3rem 0;         /* ← más padding abajo para dar espacio al título */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  position: relative;
+  margin-bottom: 3rem;
+}
+
+.logo-plataforma {
+  width: 160px;
+  height: auto;
+  max-height: 90px;
+  object-fit: contain;
+  position: absolute;
+  top: 10px;           /* ← ajusta si quieres que baje o suba más */
+  left: 15px;          /* un poco más pegado al borde */
+  z-index: 10;
+}
+
+.titulo {
+  padding-top: 100px;   /* ← ESTO es lo que hace que el título baje */
+                       /* 80–110px suele quedar bien dependiendo del tamaño del logo */
+  padding-bottom: 1.rem;
+}
+
+.titulo h1 {
+  margin: 0 auto;
+  max-width: 90%;      /* evita que se estire demasiado en pantallas anchas */
+  font-size: 2.8rem;   /* o usa display-4 como tenías */
+  line-height: 1.1;
+}
+
+/* Responsive - móvil */
+@media (max-width: 768px) {
   .logo-plataforma {
-    width: 100px;
-    height: 100px;
-    object-fit: contain;
+    width: 120px;
+    max-height: 70px;
+    top: 12px;
+    left: 12px;
   }
+  
+  .titulo {
+    padding-top: 70px;   /* menos espacio en móvil para no quedar muy abajo */
+  }
+  
+  .titulo h1 {
+    font-size: 2.1rem;
+  }
+  
+  .header {
+    padding-bottom: 4rem; /* más espacio abajo en móvil */
+  }
+}
+
   .logo-perfil-sm {
     width: 50px;
     height: 50px;
@@ -176,29 +218,56 @@
     font-size: 1rem;
     padding: 0.5rem 1rem;
   }
-  footer {
-    background: #c62828;
-    color: white;
-    padding: 2rem 0;
-    margin-top: auto;
-  }
-  footer a {
-    color: #ffcdd2;
-    text-decoration: none;
-  }
-  footer a:hover {
-    color: white;
-  }
+  /* Footer actualizado */
+    footer {
+      background-color: #9b1913;
+      padding: 30px 20px;
+      text-align: center;
+      margin-top: auto;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+      color: white;
+    }
+
+    footer p {
+      margin: 8px 0;
+    }
+
+    footer a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
 </style>
   
 </head>
 <body>
   <header class="header">
-    <div class="container text-center">
-      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Logo Weep" class="logo-plataforma mb-3">
-      <h1 class="display-5 fw-bold text-rojo">Panel de Gestión</h1>
+  <div class="container-fluid px-3 px-md-4 position-relative">
+
+    <!-- Logo en esquina superior izquierda -->
+    <img
+      src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png"
+      alt="Logo Weep"
+      class="logo-plataforma"
+    >
+
+    <!-- Título centrado y más abajo -->
+    <div class="titulo text-center">
+      <h1 class="display-4 fw-bold text-white mb-0">Panel de Gestión</h1>
     </div>
-  </header>
+
+    <!-- Espacio derecha (opcional) -->
+    <div class="position-absolute top-0 end-0 p-3 d-none d-md-flex align-items-center gap-3">
+      <!-- Aquí va usuario, notificaciones, etc. si lo necesitas -->
+    </div>
+
+  </div>
+</header>
+
   <div class="container pb-5">
   <!-- SECCIÓN DE AUTENTICACIÓN -->
   <div id="auth-section" class="card shadow-lg p-5 mb-5 bg-white rounded-4">
