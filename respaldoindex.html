@@ -89,11 +89,11 @@
 .search-bar::before {
     content: "";
     position: absolute;
-    left: 14px;
+    left: 6px;
     top: 50%;
     transform: translateY(-50%);
-    width: 30px; /* tamaño recomendado — puedes ajustar */
-    height: 30px;
+    width: 40px; /* tamaño recomendado — puedes ajustar */
+    height: 40px;
     background-image: url('https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png');
     background-size: contain;
     background-repeat: no-repeat;
@@ -150,11 +150,12 @@
           padding: 0 5px;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       }
-      h1 {
+      
+h1 {
           text-align: center;
           color: #c62828;
-          font-size: 1.8rem;
-          margin: 30px 0;
+          font-size: 1.5rem;
+          margin: 50px 0;
       }
       h2 {
           text-align: center;
@@ -162,6 +163,7 @@
           font-size: 1.5rem;
           margin: 30px 0 8px;
       }
+
           /* Contenedor principal más inteligente */
   main {
       flex: 1;
@@ -1015,7 +1017,7 @@
   /* Mobile: ajustamos un poco para que no se vea muy grande */
   @media (max-width: 576px) {
       .loading {
-          min-height: 160px;
+          min-height: 120px;
           padding: 40px 15px;
           font-size: 1rem;
           gap: 8px;
@@ -1081,15 +1083,15 @@
           background: rgba(211,47,47,0.8);
           color: white;
           border: none;
-          width: 40px;
-          height: 40px;
+          width: 30px;
+          height: 30px;
           border-radius: 50%;
           font-size: 22px;
           cursor: pointer;
           z-index: 10;
       }
-      .carousel-btn.left { left: 10px; }
-      .carousel-btn.right { right: 10px; }
+      .carousel-btn.left { left: 0px; }
+      .carousel-btn.right { right: 0px; }
       /* Formulario checkout */
       #checkout-form input,
       #checkout-form select,
@@ -1143,10 +1145,10 @@
           .search-bar {
               order: 3;
               width: 100%;
-              margin: -10px 0 0;
+              margin: -12px 0 0;
               max-width: none;
           }
-          .header-right { gap: 12px; }
+          .header-right { gap: 5px; }
           .logo { height: 75px; }
           .suggestion {
               width: 75px;
@@ -1156,8 +1158,8 @@
               gap: 14px;
               padding: 15px 0;
           }
-          h1 { font-size: 1.6rem; }
-          h2 { font-size: 1.4rem; }
+          h1 { font-size: 1.2rem; margin: 20px 0; }
+          h2 { font-size: 1.2rem; margin: -10px 0 20px;}
       }
       @media (max-width: 480px) {
           .logo { height: 65px; }
