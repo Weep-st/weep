@@ -244,8 +244,12 @@
           <div class="logo-perfil-placeholder">Foto</div>
         </div>
         <div class="dropdown">
-          <button class="btn btn-outline-danger btn-lg dropdown-toggle" data-bs-toggle="dropdown">Mi Perfil</button>
+          <!-- CAMBIO: Mi Perfil → Mi Negocio -->
+          <button class="btn btn-outline-danger btn-lg dropdown-toggle" data-bs-toggle="dropdown">Mi Negocio</button>
           <ul class="dropdown-menu dropdown-menu-end">
+            <!-- NUEVOS ITEMS EN EL ORDEN QUE PEDISTE -->
+            <li><a class="dropdown-item" href="#" id="btn-mis-ventas">Mis Ventas</a></li>
+            <li><a class="dropdown-item" href="#" id="btn-gestion-cobros">Gestión de Cobros</a></li>
             <li><a class="dropdown-item" href="#" id="editar-perfil-btn">Editar Perfil</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-danger" href="#" id="logout">Cerrar sesión</a></li>
@@ -384,6 +388,44 @@
       </div>
       <div id="perfil-status" class="mt-3"></div>
     </div>
+
+    <!-- MIS VENTAS - NUEVO CUADRO (TABLA) -->
+      <div id="ventas-panel" class="d-none">
+        <h2 class="mb-4 text-rojo text-center">Mis Ventas</h2>
+        <div class="card shadow-lg p-4">
+          <div class="table-responsive">
+            <table class="table table-hover table-ventas align-middle" id="tabla-ventas">
+              <thead>
+                <tr>
+                  <th>ID Pedido</th>
+                  <th>Fecha</th>
+                  <th>Subtotal Local</th>
+                  <th>Cliente</th>
+                  <th>Método Pago</th>
+                </tr>
+              </thead>
+              <tbody id="ventas-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- GESTIÓN DE COBROS - ACTUALIZADO -->
+      <div id="cobros-panel" class="d-none">
+        <h2 class="mb-4 text-rojo text-center">Gestión de Cobros</h2>
+        <p class="text-center text-muted mb-4">Pagos con Transferencia • Comisión Weep 5% • Retira tu dinero</p>
+        
+        <div id="cobros-summary" class="row g-3 mb-5">
+          <!-- JS llena tarjetas -->
+        </div>
+
+        <h4 class="text-rojo mb-3">Historial de Solicitudes</h4>
+        <div id="historial-cobros-list" class="table-responsive mb-4"></div>
+
+        <div class="text-center">
+          <button id="btn-solicitar-cobro" class="btn btn-success btn-lg px-5">Solicitar Cobro</button>
+        </div>
+      </div>
     
     <!-- LISTADO MENÚ -->
     <div id="menu-listado">
@@ -454,6 +496,7 @@
   let menuItems = [];
   let pedidosData = [];
   let direccionLocal = ''; // Variable global para la dirección del local (usada en notificaciones)
+  let disponibleParaCobro = 0; // ← nueva variable global para el botón de cobro
   let estaProcesandoNuevoPedido = false;
   
   if (localToken) mostrarPanelPrincipal();
@@ -705,6 +748,19 @@ document.getElementById('modo-automatico')?.addEventListener('change', () => {
     localToken = null;
     location.reload();
   });
+
+  // === NUEVA NAVEGACIÓN "Mi Negocio" ===
+  document.getElementById('btn-mis-ventas').addEventListener('click', () => {
+    ocultarTodo();
+    document.getElementById('ventas-panel').classList.remove('d-none');
+    cargarMisVentas();
+  });
+  document.getElementById('btn-gestion-cobros').addEventListener('click', () => {
+    ocultarTodo();
+    document.getElementById('cobros-panel').classList.remove('d-none');
+    cargarGestionCobros();
+  });
+
   // === NAVEGACIÓN ===
   document.getElementById('btn-mi-menu').addEventListener('click', () => {
     ocultarTodo();
@@ -1269,7 +1325,8 @@ document.getElementById('guardar-perfil').addEventListener('click', async () => 
           metodoPago: general.metodoPago || 'No especificado',
           tipoEntrega: general.tipoEntrega || 'Para Retirar',
           emailCliente: general.emailCliente || '',
-          nombreCliente: general.nombreCliente || 'Cliente'
+          nombreCliente: general.nombreCliente || 'Cliente',
+          fecha: general.fecha || general.fechaCreacion || 'Sin fecha'   // ← AÑADIDO
         });
       }
       renderizarPedidosFinalizados();
@@ -1284,6 +1341,7 @@ document.getElementById('guardar-perfil').addEventListener('click', async () => 
     document.querySelectorAll('#proceso .btn-group .btn').forEach(b => b.classList.remove('active'));
     document.getElementById('filtro-todos-proceso').classList.add('active');
   }
+  // === ACTUALIZACIÓN DE generarHtmlPedido para mostrar FECHA ===
   function generarHtmlPedido(p, esFinalizado = false) {
     let itemsHtml = '<ul class="item-list">';
     let subtotal = 0;
@@ -1303,20 +1361,22 @@ document.getElementById('guardar-perfil').addEventListener('click', async () => 
     const botonesAccion = esFinalizado ? '' : `
       <div class="mt-4 d-flex flex-wrap gap-2 justify-content-end">
         <button class="btn btn-success btn-listos" data-id="${p.idPedidoLocal}" ${['Listo','Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-          <span class="spinner-border spinner-border-sm d-none"></span> Listo
+          Listo
         </button>
         <button class="btn btn-primary btn-entregado" data-id="${p.idPedidoLocal}" ${['Entregado','Rechazado'].includes(p.estadoActual) ? 'disabled' : ''}>
-          <span class="spinner-border spinner-border-sm d-none"></span> Entregado
+          Entregado
         </button>
         <button class="btn btn-danger btn-rechazar" data-id="${p.idPedidoLocal}" ${p.estadoActual === 'Rechazado' ? 'disabled' : ''}>
-          <span class="spinner-border spinner-border-sm d-none"></span> Rechazar
+          Rechazar
         </button>
       </div>`;
     return `
       <div class="pedido-card">
         <div class="pedido-header d-flex justify-content-between align-items-center">
           <div>
-            <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} ${tipoBadge}
+            <strong>Pedido #${p.idPedido}</strong> — Parte Local: ${p.idPedidoLocal} 
+            ${p.fecha ? `<span class="ms-3">📅 ${p.fecha}</span>` : ''} 
+            ${tipoBadge}
           </div>
           <span class="badge ${badgeClass} estado-badge">${p.estadoActual}</span>
         </div>
@@ -1334,6 +1394,7 @@ document.getElementById('guardar-perfil').addEventListener('click', async () => 
         </div>
       </div>`;
   }
+
   function renderizarPedidosEnProceso(filtro = 'todos') {
     const cont = document.getElementById('pedidos-proceso-listado');
     const pedidosProceso = pedidosData.filter(p => p.estadoActual === 'Pendiente' || p.estadoActual === 'Listo');
@@ -1686,6 +1747,241 @@ function handleClickMisPedidos() {
     .then(() => iniciarActualizacionAutomatica())
     .catch(err => console.error("Error al cargar pedidos iniciales:", err));
 }
+
+// === MIS VENTAS - TABLA SIMPLE ===
+    async function cargarMisVentas() {
+      const tbody = document.getElementById('ventas-tbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-danger"></div><p class="mt-3">Cargando ventas...</p></td></tr>';
+
+      if (pedidosData.length === 0) await cargarMisPedidos();
+
+      const ventas = pedidosData.filter(p => p.estadoActual === 'Entregado');
+      
+      if (ventas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><h5>Aún no tienes ventas entregadas</h5></td></tr>`;
+        return;
+      }
+
+      let html = '';
+      ventas.forEach(p => {
+        let subtotal = 0;
+        p.items.forEach(item => subtotal += item[7] || 0);
+        html += `
+          <tr>
+            <td><strong>#${p.idPedido}</strong></td>
+            <td>${p.fecha || 'Sin fecha'}</td>
+            <td class="fw-bold text-success">$${subtotal.toFixed(2)}</td>
+            <td>${p.nombreCliente}</td>
+            <td>${p.metodoPago}</td>
+          </tr>`;
+      });
+      tbody.innerHTML = html;
+    }
+
+  // === NUEVA FUNCIÓN: GESTIÓN DE COBROS (versión mejorada y completa) ===
+async function cargarGestionCobros() {
+  const summaryDiv = document.getElementById('cobros-summary');
+  const historialDiv = document.getElementById('historial-cobros-list');
+  const btnSolicitar = document.getElementById('btn-solicitar-cobro');
+
+  // Feedback de carga
+  summaryDiv.innerHTML = `
+    <div class="text-center py-5">
+      <div class="spinner-border text-danger" role="status"></div>
+      <p class="mt-3 loading">Calculando cobros disponibles...</p>
+    </div>`;
+  historialDiv.innerHTML = '';
+
+  try {
+    const res = await fetch(`${API_URL}?action=getCobrosByLocal&localId=${encodeURIComponent(localToken)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.message || "Respuesta inválida del servidor");
+    }
+
+    // Variables importantes (las guardamos en ámbito superior también)
+    const {
+      totalVentas = 0,
+      comisionWeep = 0,
+      totalIngresadoTransferencia = 0,
+      montoDisponibleParaRetirar = 0,
+      pedidosIncluidos = "",
+      historial = []
+    } = data;
+
+    disponibleParaCobro = montoDisponibleParaRetirar; // ← variable global usada en el botón
+
+    // ── Tarjetas de resumen ────────────────────────────────────────
+    summaryDiv.innerHTML = `
+      <div class="col-md-3">
+        <div class="card border-primary shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted mb-1">Total Ventas</h6>
+            <h4 class="fw-bold text-primary">$${totalVentas.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</h4>
+            <small class="text-muted">Pedidos entregados no cobrados</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-danger shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted mb-1">Comisión Weep (5%)</h6>
+            <h4 class="fw-bold text-danger">$${comisionWeep.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</h4>
+            <small class="text-muted">Adeudada por Weep</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-info shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted mb-1">Ingresado por Transferencia</h6>
+            <h4 class="fw-bold text-info">$${totalIngresadoTransferencia.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</h4>
+            <small class="text-muted">Solo pagos con transferencia</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-success shadow-sm h-100 ${montoDisponibleParaRetirar > 0 ? 'border-3' : ''}">
+          <div class="card-body text-center">
+            <h6 class="text-muted mb-1">Disponible para retirar</h6>
+            <h3 class="fw-bold ${montoDisponibleParaRetirar > 0 ? 'text-success' : 'text-secondary'}">
+              $${montoDisponibleParaRetirar.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </h3>
+            <small class="text-muted">Neto a transferir</small>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // ── Historial de solicitudes ───────────────────────────────────
+    if (historial.length === 0) {
+      historialDiv.innerHTML = `
+        <div class="alert alert-light text-center border py-4">
+          <i class="bi bi-info-circle me-2"></i>
+          Todavía no has solicitado ningún cobro
+        </div>`;
+    } else {
+      let html = `
+        <div class="table-responsive">
+          <table class="table table-hover table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Monto solicitado</th>
+                <th>Estado</th>
+                <th class="text-end">Pedidos incluidos</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      historial.forEach(item => {
+        let badgeClass = '';
+        let badgeText = item.estado;
+
+        switch (item.estado.toLowerCase()) {
+          case 'pendiente':    badgeClass = 'bg-warning'; break;
+          case 'aprobado':     badgeClass = 'bg-info';    break;
+          case 'transferido':  badgeClass = 'bg-success'; break;
+          case 'rechazado':    badgeClass = 'bg-danger';  break;
+          default:             badgeClass = 'bg-secondary';
+        }
+
+        html += `
+          <tr>
+            <td>${item.fechaSolicitud || '-'}</td>
+            <td class="fw-bold">$${Number(item.montoNeto || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+            <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+            <td class="text-end text-muted small">${item.idsIncluidos || '—'}</td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table></div>`;
+      historialDiv.innerHTML = html;
+    }
+
+    // Habilitar / deshabilitar botón de solicitar
+    if (montoDisponibleParaRetirar > 0) {
+      btnSolicitar.disabled = false;
+      btnSolicitar.classList.remove('btn-outline-success');
+      btnSolicitar.classList.add('btn-success');
+    } else {
+      btnSolicitar.disabled = true;
+      btnSolicitar.classList.remove('btn-success');
+      btnSolicitar.classList.add('btn-outline-success');
+    }
+
+  } catch (err) {
+    console.error("Error cargando gestión de cobros:", err);
+    summaryDiv.innerHTML = `
+      <div class="alert alert-danger">
+        <strong>Error al cargar datos de cobro</strong><br>
+        ${err.message || 'Revisa la consola y la configuración del Google Apps Script'}
+      </div>`;
+  }
+}
+
+// ────────────────────────────────────────────────
+// Botón "Solicitar Cobro"
+// ────────────────────────────────────────────────
+document.getElementById('btn-solicitar-cobro').addEventListener('click', async function() {
+  if (disponibleParaCobro <= 0) {
+    return alert('No hay monto disponible para solicitar en este momento.');
+  }
+
+  const montoMostrar = disponibleParaCobro.toLocaleString('es-AR', { minimumFractionDigits: 2 });
+
+  if (!confirm(
+    `¿Confirmas solicitar la transferencia de $${montoMostrar}?\n\n` +
+    `• Se marcarán todos los pedidos actuales como procesados\n` +
+    `• La solicitud quedará en estado "Pendiente" hasta que Weep la revise`
+  )) {
+    return;
+  }
+
+  const btn = this;
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Solicitando...`;
+
+  try {
+    const params = new URLSearchParams({
+      action: 'solicitarCobro',
+      localId: localToken,
+      montoNeto: disponibleParaCobro.toFixed(2)
+      // Opcional: podrías enviar también pedidosIncluidos si el backend no los recalcula
+    });
+
+    const url = `${API_URL}?${params.toString()}`;
+    console.log("Enviando solicitud de cobro →", url);
+
+    // Como usamos no-cors en la mayoría de las acciones, asumimos éxito si no hay error de red
+    await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-cache'
+    });
+
+    // Feedback éxito
+    alert(`¡Solicitud de cobro por $${montoMostrar} registrada correctamente!\n\n` +
+          `Estado: Pendiente\nRevisa el historial en unos momentos.`);
+
+    // Recargar la sección completa
+    cargarGestionCobros();
+
+  } catch (err) {
+    console.error("Error al solicitar cobro:", err);
+    alert("Hubo un problema al registrar la solicitud.\nPor favor intenta nuevamente.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+});
+
   
   // Al final del script
 window.addEventListener('beforeunload', () => {
