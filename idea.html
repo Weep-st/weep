@@ -1366,19 +1366,21 @@ h1 {
 }
     
   </style>
-      <!-- PWA - Manifest -->
-  <link rel="manifest" href="/manifest.json">
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
-  <!-- Mejoras para iOS -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="theme-color" content="#c62828">
-      <!-- Color de la barra de estado en móviles -->
-      <meta name="theme-color" content="#c62828">
+      <!-- Favicons y PWA (recomendado 2026) -->
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Weep">
+
+<!-- Manifest para PWA -->
+<link rel="manifest" href="/manifest.json">  <!-- o /site.webmanifest si preferís renombrarlo -->
+
+<!-- Mejoras iOS / Safari -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default"> <!-- o "black" si querés barra oscura -->
+<meta name="theme-color" content="#c62828">
+    
   </head>
   <body>
       <header>
@@ -3545,18 +3547,7 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
       loadAllDrinks();
       setupCategoriesCarousel(); // ← agregar esta línea
   });
-          // Service worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registrado con éxito:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Fallo al registrar el Service Worker:', error);
-          });
-      });
-    }
+          
           function setupGenericCarousel(wrapperId, containerId, prevId, nextId) {
       const wrapper = document.getElementById(wrapperId);
       const container = document.getElementById(containerId);
