@@ -2,444 +2,932 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Weep - Panel de Repartidores</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <!-- FAVICON (el mismo que en locales.html) -->
+  <!-- FAVICON y PWA -->
   <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
   <meta name="theme-color" content="#c62828">
-
+  
   <style>
+    :root {
+      --rojo: #c62828;
+      --verde: #27ae60;
+    }
     body {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      color: #222;
     }
-    .container-main {
-      max-width: 900px;
-      flex: 1;
-    }
-    h1, h2, h3, h5 {
-      font-weight: 600;
-      color: #c62828;
-    }
+    .container-main { max-width: 920px; flex: 1; }
+    h1, h2, h3 { font-weight: 700; color: var(--rojo); }
     .text-rojo { color: #d32f2f; }
-    .btn-rojo {
-      background-color: #d32f2f;
-      border: none;
-    }
+    .btn-rojo { background-color: var(--rojo); border: none; font-weight: 600; }
     .btn-rojo:hover { background-color: #b71c1c; }
-    .btn-verde {
-      background-color: #27ae60;
-      border: none;
-    }
+    .btn-verde { background-color: var(--verde); border: none; font-weight: 600; }
     .btn-verde:hover { background-color: #219653; }
     .header {
       background: white;
-      padding: 2rem 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      border-radius: 0 0 20px 20px;
-      margin-bottom: 3rem;
+      padding: 1.5rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      border-radius: 0 0 24px 24px;
     }
-    .logo-plataforma {
-      width: 100px;
-      height: 100px;
-      object-fit: contain;
-    }
-    /* Toggle más grande y estilizado */
+    .logo-plataforma { width: 88px; height: 88px; object-fit: contain; }
     .status-toggle {
-      width: 90px;
-      height: 44px;
-      position: relative;
-      display: inline-block;
+      width: 110px; height: 52px; position: relative; display: inline-block;
     }
-    .status-toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+    .status-toggle input { opacity: 0; width: 0; height: 0; }
     .status-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 44px;
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #bbb; transition: .4s; border-radius: 52px;
     }
     .status-slider:before {
-      position: absolute;
-      content: "";
-      height: 36px;
-      width: 36px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
+      position: absolute; content: ""; height: 44px; width: 44px;
+      left: 4px; bottom: 4px; background-color: white; transition: .4s;
+      border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    input:checked + .status-slider {
-      background-color: #27ae60;
-    }
-    input:checked + .status-slider:before {
-      transform: translateX(46px);
-    }
-    .card-repartidor {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-      overflow: hidden;
+    input:checked + .status-slider { background-color: var(--verde); }
+    input:checked + .status-slider:before { transform: translateX(56px); }
+    .card-repartidor, .viaje-card {
+      border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.12);
       transition: all 0.3s ease;
     }
-    .card-repartidor:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(211,47,47,0.2);
+    .card-repartidor:hover, .viaje-card:hover {
+      transform: translateY(-8px); box-shadow: 0 20px 40px rgba(211,47,47,0.25);
     }
-    .viaje-card {
-      border: none;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    .viaje-header { background: var(--rojo); color: white; padding: 1.25rem; font-weight: 700; }
+    .stats-box { background: white; border-radius: 16px; padding: 1.75rem; box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+    .pedido-card {
+      border-radius: 16px; background: white; transition: all 0.2s;
     }
-    .viaje-header {
-      background: #d32f2f;
-      color: white;
-      padding: 1.25rem;
-      font-weight: 600;
+    .pedido-card:hover { box-shadow: 0 12px 30px rgba(211,47,47,0.25); transform: scale(1.02); }
+    .nav-pills .nav-link {
+      font-weight: 600; padding: 14px 24px; border-radius: 50px;
     }
-    .stats-box {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      text-align: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    }
-    .loading { color: #d32f2f; font-weight: 600; }
-    footer {
-      background: #c62828;
-      color: white;
-      padding: 2rem 0;
-      margin-top: auto;
-    }
-    footer a { color: #ffcdd2; text-decoration: none; }
-    footer a:hover { color: white; }
+    .nav-pills .nav-link.active { background: var(--rojo); color: white; }
+    .btn-lg { padding: 14px 24px; font-size: 1.1rem; }
+    .modal-content { border-radius: 20px; }
+    canvas { border: 2px solid #ddd; background: white; touch-action: none; }
     .notificacion {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1050;
-      padding: 12px 20px;
-      border-radius: 8px;
-      color: white;
-      font-weight: 500;
+      position: fixed; top: 20px; right: 20px; z-index: 2000;
+      padding: 14px 24px; border-radius: 12px; color: white; font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-    .success { background: #27ae60; }
-    .error { background: #d32f2f; }
-
-    /* Ocultar por defecto todo lo que debe estar oculto al cargar */
-#auth-section,
-#panel-principal,
-#register-form,
-#viaje-actual {
-  display: none;
-}
-
-/* Clase que vamos a usar para mostrar */
-.visible {
-  display: block !important;
-}
+    footer { background: #c62828; color: white; }
+    .big-icon { font-size: 2.8rem; }
   </style>
 </head>
 <body>
-
   <header class="header">
     <div class="container text-center">
-      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" 
-           alt="Logo Weep" class="logo-plataforma mb-3">
-      <h1 class="display-5 fw-bold text-rojo">Panel de Repartidores</h1>
+      <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
+           alt="Logo Weep" class="logo-plataforma mb-2">
+      <h1 class="display-6 fw-bold text-rojo">Panel de Repartidores</h1>
     </div>
   </header>
 
-  <main class="container container-main py-5">
-
-    <!-- Sección de autenticación (visible al inicio) -->
-    <div id="auth-section" class="card shadow-lg p-5 mb-5 bg-white rounded-4 mx-auto" style="max-width: 600px;">
+  <main class="container container-main py-4">
+    <!-- AUTH -->
+    <div id="auth-section" class="card shadow-lg p-5 mx-auto" style="max-width: 580px;">
       <h2 class="text-center mb-4 text-rojo">Acceso Repartidor</h2>
       <div class="text-center mb-4">
         <button id="show-register" class="btn btn-outline-danger btn-lg me-3">Registrarme</button>
         <button id="show-login" class="btn btn-rojo btn-lg">Iniciar Sesión</button>
       </div>
 
-      <!-- Formulario de registro (oculto por defecto) -->
-      <form id="register-form" class="mt-4 hidden">
-        <div class="mb-3">
-          <input type="text" id="reg-nombre" class="form-control form-control-lg" placeholder="Nombre completo" required>
-        </div>
-        <div class="mb-3">
-          <input type="tel" id="reg-telefono" class="form-control form-control-lg" placeholder="Teléfono (ej: +54911...)" required>
-        </div>
-        <div class="mb-3">
-          <input type="email" id="reg-email" class="form-control form-control-lg" placeholder="Email" required>
-        </div>
-        <div class="mb-3">
-          <input type="password" id="reg-password" class="form-control form-control-lg" placeholder="Contraseña" required>
-        </div>
-        <div class="mb-3">
-          <input type="text" id="reg-patente" class="form-control form-control-lg" placeholder="Patente de la moto" required>
-        </div>
-        <div class="mb-3">
-          <input type="text" id="reg-marca-modelo" class="form-control form-control-lg" placeholder="Marca y modelo" required>
-        </div>
-        <button type="submit" class="btn btn-success btn-lg w-100">
-          <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-          Registrarme
-        </button>
+      <!-- Registro -->
+      <form id="register-form" class="mt-3 d-none">
+        <div class="mb-3"><input type="text" id="reg-nombre" class="form-control form-control-lg" placeholder="Nombre completo" required></div>
+        <div class="mb-3"><input type="tel" id="reg-telefono" class="form-control form-control-lg" placeholder="Teléfono (+549...)" required></div>
+        <div class="mb-3"><input type="email" id="reg-email" class="form-control form-control-lg" placeholder="Email" required></div>
+        <div class="mb-3"><input type="password" id="reg-password" class="form-control form-control-lg" placeholder="Contraseña" required></div>
+        <div class="mb-3"><input type="text" id="reg-patente" class="form-control form-control-lg" placeholder="Patente moto" required></div>
+        <div class="mb-3"><input type="text" id="reg-marca-modelo" class="form-control form-control-lg" placeholder="Marca y modelo" required></div>
+        <button type="submit" class="btn btn-success btn-lg w-100">Registrarme</button>
       </form>
 
-      <!-- Formulario de login (visible por defecto) -->
-      <form id="login-form" class="mt-4">
-        <div class="mb-3">
-          <input type="email" id="login-email" class="form-control form-control-lg" placeholder="Email" required>
-        </div>
-        <div class="mb-3">
-          <input type="password" id="login-password" class="form-control form-control-lg" placeholder="Contraseña" required>
-        </div>
-        <button type="submit" class="btn btn-rojo btn-lg w-100">
-          <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-          Iniciar Sesión
-        </button>
+      <!-- Login -->
+      <form id="login-form" class="mt-3">
+        <div class="mb-3"><input type="email" id="login-email" class="form-control form-control-lg" placeholder="Email" required></div>
+        <div class="mb-3"><input type="password" id="login-password" class="form-control form-control-lg" placeholder="Contraseña" required></div>
+        <button type="submit" class="btn btn-rojo btn-lg w-100">Iniciar Sesión</button>
       </form>
-
       <div id="auth-status" class="mt-3 text-center"></div>
     </div>
 
-    <!-- Panel principal (oculto hasta login exitoso) -->
-    <div id="panel-principal" class="hidden">
-      <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
+    <!-- PANEL PRINCIPAL -->
+    <div id="panel-principal" class="d-none">
+      <!-- HEADER REPARTIDOR -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div class="d-flex align-items-center gap-4">
           <label class="status-toggle">
             <input type="checkbox" id="toggle-estado">
             <span class="status-slider"></span>
           </label>
-          <span class="fw-bold fs-5" id="estado-texto">Inactivo</span>
+          <span class="fw-bold fs-4" id="estado-texto">Inactivo</span>
         </div>
-        <button class="btn btn-outline-danger btn-lg" id="logout-btn">Cerrar sesión</button>
+        <div>
+          <button id="btn-gps" class="btn btn-outline-dark btn-lg me-2"><i class="bi bi-geo-alt"></i> GPS</button>
+          <button id="btn-chat" class="btn btn-outline-dark btn-lg me-2"><i class="bi bi-chat-dots"></i> Chat</button>
+          <button id="logout-btn" class="btn btn-outline-danger btn-lg">Cerrar Sesión</button>
+        </div>
       </div>
 
-      <div class="card shadow-lg p-4 mb-5 text-center">
+      <!-- BIENVENIDA + STATS -->
+      <div class="stats-box mb-5 text-center">
         <h3>Bienvenido, <span id="nombre-repartidor" class="text-rojo"></span></h3>
-        <div class="mt-4">
-          <h5 class="text-muted">Viajes completados hoy</h5>
-          <h2 id="pedidos-hoy" class="display-4 fw-bold text-rojo">0</h2>
+        <div class="row mt-4">
+          <div class="col-6">
+            <small class="text-muted">Viajes hoy</small>
+            <h2 id="pedidos-hoy" class="display-5 fw-bold text-rojo mb-0">0</h2>
+          </div>
+          <div class="col-6">
+            <small class="text-muted">Ganancias hoy</small>
+            <h2 id="ganancias-hoy" class="display-5 fw-bold text-rojo mb-0">$0</h2>
+          </div>
         </div>
       </div>
 
-      <!-- Tarjeta de viaje (placeholder - se puede expandir después) -->
-      <div id="viaje-actual" class="viaje-card hidden mb-5">
-        <div class="viaje-header">
-          <h4 class="mb-0">Viaje Asignado</h4>
+      <!-- TABS -->
+      <ul class="nav nav-pills justify-content-center mb-4" id="tabs">
+        <li class="nav-item"><button class="nav-link active px-5 py-3" data-tab="disponibles">Pendientes</button></li>
+        <li class="nav-item"><button class="nav-link px-5 py-3" data-tab="historial">Historial</button></li>
+      </ul>
+
+      <!-- CONTENIDO TABS -->
+      <div id="tab-disponibles">
+        <h4 class="mb-3 text-rojo"><i class="bi bi-list-ul"></i> Pedidos Asignados</h4>
+        <div id="lista-disponibles" class="row g-3"></div>
+      </div>
+
+    <div id="tab-encurso" class="d-none">
+        <div id="viaje-actual-card" class="viaje-card">
+          <div class="viaje-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Viaje en curso</h4>
+            <span id="estado-viaje" class="badge bg-light text-dark fs-6">En preparación</span>
+          </div>
+
+            <!-- BOTONES GRANDES -->
+            <div class="row g-3 mt-3">
+              <div class="col-6">
+                <a id="btn-llamar" href="#" class="btn btn-outline-primary btn-lg w-100 d-flex align-items-center justify-content-center gap-2">
+                  <i class="bi bi-telephone-fill big-icon"></i><span>Llamar cliente</span>
+                </a>
+              </div>
+              <div class="col-6">
+                <a id="btn-navegar" href="#" target="_blank" class="btn btn-outline-primary btn-lg w-100 d-flex align-items-center justify-content-center gap-2">
+                  <i class="bi bi-geo-alt-fill big-icon"></i><span>Navegar GPS</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="mt-4">
+  <!-- Botón RETIRADO -->
+  <button id="btn-retirado" class="btn btn-rojo btn-lg w-100 mb-3">
+    🏍️ Marcar como RETIRADO
+  </button>
+
+  <!-- Botón ENTREGADO (abre modal) -->
+  <button id="btn-entrega" class="btn btn-verde btn-lg w-100" disabled>
+    🚀 Marcar como ENTREGADO (foto + firma)
+  </button>
+</div>
+
+        <div id="no-viaje" class="text-center py-5 text-muted d-none">
+          <i class="bi bi-truck display-1 mb-3"></i>
+          <p class="lead">No tienes viaje asignado.<br>Acepta uno de la pestaña <strong>Disponibles</strong></p>
         </div>
-        <div class="card-body p-5 text-center">
-          <p class="lead mb-4 text-muted">No hay viaje asignado en este momento</p>
-          <small class="text-muted">Cuando te asignen un pedido aparecerá aquí</small>
+      </div>
+
+      <div id="tab-historial" class="d-none">
+        <h4 class="mb-3 text-rojo"><i class="bi bi-clock-history"></i> Historial del día</h4>
+        <div id="lista-historial" class="row g-3"></div>
+        <div class="text-center mt-4">
+          <h5 class="text-muted">Total del día: <span id="total-historial" class="text-rojo fw-bold fs-3"></span></h5>
         </div>
       </div>
     </div>
-
   </main>
 
-  <footer>
-    <div class="container">
+  <!-- MODALES -->
+  <!-- Modal Chat -->
+  <div class="modal fade" id="modal-chat" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5>Chat Soporte / Cliente</h5>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" style="height: 380px; overflow-y:auto;" id="chat-body">
+          <div class="text-muted text-center py-5">Chat en tiempo real (demo)</div>
+        </div>
+        <div class="modal-footer">
+          <input id="chat-input" class="form-control" placeholder="Escribe aquí...">
+          <button id="btn-enviar-chat" class="btn btn-rojo">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Prueba de Entrega (ePOD) -->
+  <div class="modal fade" id="modal-entrega" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>Prueba de Entrega</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Foto -->
+          <div class="mb-4">
+            <label class="form-label fw-bold">Foto del paquete entregado</label>
+            <input type="file" id="input-foto" accept="image/*" class="form-control">
+            <img id="preview-foto" class="img-fluid mt-3 rounded d-none" style="max-height:220px;">
+          </div>
+          <!-- Firma -->
+          <div>
+            <label class="form-label fw-bold">Firma digital del cliente</label>
+            <canvas id="canvas-firma" width="340" height="180" class="w-100 border"></canvas>
+            <div class="mt-2">
+              <button id="btn-limpiar-firma" class="btn btn-secondary btn-sm">Limpiar firma</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-confirmar-entrega" class="btn btn-verde btn-lg w-100">Confirmar Entrega</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="py-4 mt-auto">
+    <div class="container text-center">
       <p class="mb-1">© 2026 Weep - Todos los derechos reservados</p>
-      <p class="mb-0 small">Plataforma de pedidos y delivery</p>
+      <p class="small mb-0">PWA optimizada para uso en moto • GPS en tiempo real</p>
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec';
-
     let repartidorId = localStorage.getItem('repartidorId');
+    let viajeActual = null;
+    let pedidosDisponibles = [];
+    let historial = [];
+    let watchId = null;
+    let totalGanancias = 0;
+    let pollingInterval = null;           // referencia al setInterval
+let ultimaCantidadPedidos = 0;        // para detectar nuevos pedidos
 
-    document.addEventListener('DOMContentLoaded', () => {
-  // Por defecto mostramos SOLO la sección de autenticación + login
-  document.getElementById('auth-section').classList.add('visible');
-  document.getElementById('login-form').classList.add('visible');
+    // ==================== UTILIDADES ====================
+    function playAlertSound() {
+      const audio = new AudioContext();
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+      oscillator.frequency.value = 800;
+      gain.gain.value = 0.6;
+      oscillator.start();
+      setTimeout(() => { oscillator.stop(); }, 800);
+    }
 
-  // Los demás quedan ocultos gracias al CSS
+    function mostrarNotificacion(texto, tipo = "success") {
+      const notif = document.createElement("div");
+      notif.className = `notificacion ${tipo === "success" ? "success" : "error"}`;
+      notif.textContent = texto;
+      document.body.appendChild(notif);
+      setTimeout(() => notif.remove(), 2800);
+    }
 
-  if (repartidorId) {
-    mostrarPanelPrincipal();
+    function actualizarStats() {
+      document.getElementById("pedidos-hoy").textContent = historial.length;
+      document.getElementById("ganancias-hoy").textContent = "$" + totalGanancias;
+      document.getElementById("total-historial").textContent = "$" + totalGanancias;
+    }
+
+function refrescarPedidosDisponibles() {
+    // Solo ejecuta si el repartidor está ACTIVO
+    const toggle = document.getElementById("toggle-estado");
+    if (!toggle || !toggle.checked) {
+        return;
+    }
+
+    cargarDisponibles();  // ← tu función existente que ya hace el fetch
+}
+
+function cargarDisponibles() {
+    const cb = "disp_" + Date.now();
+    window[cb] = (res) => {
+        delete window[cb];
+        console.log("Respuesta backend (polling):", res);
+
+        if (res?.success && Array.isArray(res.data)) {
+            // Ordenamos (como ya tenías)
+            const nuevosPedidos = res.data.sort((a, b) => Number(a.id) - Number(b.id));
+
+            // ── Detección de nuevos pedidos ───────────────────────────────
+            const cantidadActual = nuevosPedidos.length;
+
+            if (cantidadActual > ultimaCantidadPedidos) {
+                // Hay más pedidos → notificar + sonido
+                const nuevos = cantidadActual - ultimaCantidadPedidos;
+                const texto = nuevos === 1 
+                    ? "¡Nuevo pedido disponible!" 
+                    : `¡${nuevos} nuevos pedidos disponibles!`;
+
+                playAlertSound();
+                mostrarNotificacion("🛵 " + texto, "success");
+            }
+
+            // Actualizamos el contador para la próxima comparación
+            ultimaCantidadPedidos = cantidadActual;
+
+            pedidosDisponibles = nuevosPedidos;
+            renderDisponibles();
+        } else {
+            ultimaCantidadPedidos = 0;
+            document.getElementById("lista-disponibles").innerHTML = 
+                `<div class="col-12 text-center py-5 text-muted">No hay pedidos pendientes asignados</div>`;
+        }
+    };
+
+    const script = document.createElement("script");
+    script.src = `${API_URL}?action=get_pedidos_disponibles&id=${repartidorId}&callback=${cb}`;
+    document.head.appendChild(script);
+}
+
+  function renderDisponibles() {
+  const container = document.getElementById("lista-disponibles");
+  container.innerHTML = "";
+
+  if (pedidosDisponibles.length === 0) {
+    container.innerHTML = `<div class="col-12 text-center py-5 text-muted">No hay pedidos para mostrar</div>`;
+    return;
+  }
+
+  // Trabajamos con una copia para no modificar el array original
+  const pedidosParaMostrar = [...pedidosDisponibles];
+
+  // Si por seguridad querés reforzar que esté ordenado por ID ascendente (menor → mayor)
+  // descomentá la línea de abajo. Si ya lo ordenaste en cargarDisponibles(), no es necesario.
+  // pedidosParaMostrar.sort((a, b) => Number(a.id) - Number(b.id));
+
+  // Alternativa: si preferís los más nuevos arriba (ID descendente), usa esta:
+  // pedidosParaMostrar.sort((a, b) => Number(b.id) - Number(a.id));
+
+  // Detectamos si hay algún pedido en proceso (para bloquear aceptar nuevos)
+  const hayEnProceso = pedidosParaMostrar.some(p => 
+    p.estado === "Confirmado" || p.estado === "Retirado"
+  );
+
+  // Encontramos el pedido Pendiente más antiguo (el que se puede aceptar)
+  let primerPendienteId = null;
+  if (!hayEnProceso) {
+    const pendientes = pedidosParaMostrar.filter(p => p.estado === "Pendiente");
+    if (pendientes.length > 0) {
+      // Como el array ya está ordenado por ID ascendente, el primero es el más antiguo
+      primerPendienteId = pendientes[0].id;
+    }
+  }
+
+  // Renderizamos TODOS los pedidos en el orden que tiene el array
+  pedidosParaMostrar.forEach(p => {
+    const estado = p.estado || "Pendiente";
+
+    // Clase y texto del badge
+    let badgeClass = "";
+    let badgeText = estado;
+    if (estado === "Pendiente")   { badgeClass = "bg-warning text-dark"; }
+    else if (estado === "Confirmado") { badgeClass = "bg-info text-white"; }
+    else if (estado === "Retirado")   { badgeClass = "bg-success text-white"; }
+    else                              { badgeClass = "bg-secondary text-white"; }
+
+    // Determinamos qué botones/mensajes mostrar
+    let accionHTML = "";
+
+    if (estado === "Pendiente") {
+      if (hayEnProceso) {
+        accionHTML = `<small class="text-muted d-block text-center mt-3">Primero completa el pedido actual</small>`;
+      } else {
+        const esElPrimero = String(p.id) === String(primerPendienteId);
+        if (esElPrimero) {
+          accionHTML = `
+            <div class="d-grid mt-3">
+              <button class="btn btn-rojo btn-lg btn-aceptar" data-id="${p.id}">
+                Aceptar pedido →
+              </button>
+            </div>`;
+        } else {
+          accionHTML = `<small class="text-muted d-block text-center mt-3">Solo puedes aceptar el pedido más antiguo primero</small>`;
+        }
+      }
+    } 
+    else if (estado === "Confirmado") {
+      accionHTML = `
+        <div class="row g-2 mt-3">
+          <div class="col-6">
+            <button class="btn btn-rojo w-100 btn-retirar" data-id="${p.id}">
+              🏍️ Retirado
+            </button>
+          </div>
+          <div class="col-6">
+            <button class="btn btn-verde w-100 btn-entregar" data-id="${p.id}" disabled>
+              🚀 Entregado
+            </button>
+          </div>
+        </div>`;
+    } 
+    else if (estado === "Retirado") {
+      accionHTML = `
+        <div class="d-grid mt-3">
+          <button class="btn btn-verde btn-lg w-100 btn-entregar" data-id="${p.id}">
+            🚀 Confirmar entrega
+          </button>
+        </div>`;
+    } 
+    else {
+      accionHTML = `<small class="text-muted d-block text-center mt-3">Estado: ${estado}</small>`;
+    }
+
+    // Construimos la tarjeta
+    const card = document.createElement("div");
+    card.className = "col-12 col-md-6 col-lg-4";
+    card.innerHTML = `
+      <div class="pedido-card p-4 ${estado !== "Pendiente" ? 'border border-primary' : ''}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="text-rojo mb-0">Pedido #${p.id}</h5>
+          <span class="badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <div class="text-end mb-3">
+          <h4 class="fw-bold text-rojo">$${Number(p.monto || 0).toLocaleString('es-AR')}</h4>
+        </div>
+        <p class="mb-1"><i class="bi bi-person-fill text-muted me-1"></i> ${p.cliente || '?'}</p>
+        <p class="mb-3 small text-muted"><i class="bi bi-geo-alt-fill me-1"></i> ${p.direccion || 'Sin dirección'}</p>
+        <div class="d-flex justify-content-between mb-3">
+          <small class="text-muted">Pago:</small>
+          <span class="badge ${p.pago === 'Efectivo' ? 'bg-success' : 'bg-primary'}">${p.pago || '?'}</span>
+        </div>
+        ${accionHTML}
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+  // ==================== ACTUALIZAR ESTADO (Retirado / Entregado) ====================
+  function actualizarEstadoPedido(pedidoId, nuevoEstado, onSuccess) {
+    const cb = "upd_" + Date.now();
+    window[cb] = (data) => {
+      delete window[cb];
+      if (data?.success) {
+        onSuccess();
+      } else {
+        alert("Error al actualizar: " + (data?.error || "Respuesta inválida"));
+      }
+    };
+
+    const script = document.createElement("script");
+    script.src = `${API_URL}?action=update_estado_pedido&pedido_id=${pedidoId}&nuevo_estado=${encodeURIComponent(nuevoEstado)}&repartidor_id=${repartidorId}&callback=${cb}`;
+    document.head.appendChild(script);
+  }
+
+    // ==================== GEOLOCALIZACIÓN ====================
+    function iniciarGPS() {
+      if (!navigator.geolocation) return alert("Geolocalización no soportada");
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          console.log(`📍 GPS actualizado: ${pos.coords.latitude}, ${pos.coords.longitude}`);
+          // Simulación de envío cada 15 segundos (en producción usar WebSocket)
+          if (viajeActual) {
+            console.log(`Enviando posición a servidor para viaje ${viajeActual.id}`);
+          }
+        },
+        (err) => console.error(err),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
+      );
+      mostrarNotificacion("✅ GPS en tiempo real activado (cada 10-15s)", "success");
+    }
+
+
+  function renderViajeActual() {
+    const detalles = document.getElementById("detalles-viaje");
+    const noViaje = document.getElementById("no-viaje");
+    const card = document.getElementById("viaje-actual-card");
+
+    if (!viajeActual) {
+      card.classList.add("d-none");
+      noViaje.classList.remove("d-none");
+      return;
+    }
+
+    card.classList.remove("d-none");
+    noViaje.classList.add("d-none");
+
+    detalles.innerHTML = `
+      <div class="mb-4">
+        <h5 class="text-rojo">Pedido #${viajeActual.id}</h5>
+        <p><strong>Cliente:</strong> ${viajeActual.cliente}</p>
+        <p><strong>Destino:</strong> ${viajeActual.direccion}</p>
+        <p><strong>Monto:</strong> $${Number(viajeActual.monto).toLocaleString('es-AR')}</p>
+      </div>
+    `;
+
+    document.getElementById("btn-navegar").href = 
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viajeActual.direccion)}`;
+  }
+
+    // ==================== RENDER HISTORIAL ====================
+    function renderHistorial() {
+      const container = document.getElementById("lista-historial");
+      container.innerHTML = "";
+      if (historial.length === 0) {
+        container.innerHTML = `<div class="col-12 text-center py-5 text-muted">Aún no hay entregas hoy</div>`;
+        return;
+      }
+      historial.forEach(h => {
+        const div = document.createElement("div");
+        div.className = "col-12 col-md-6";
+        div.innerHTML = `
+          <div class="card-repartidor p-4">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <small class="text-muted">${h.fecha}</small>
+                <p class="mb-0 fw-bold">${h.cliente}</p>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-success">Entregado</span>
+                <h5 class="text-rojo mb-0">$${h.monto}</h5>
+              </div>
+            </div>
+          </div>`;
+        container.appendChild(div);
+      });
+    }
+
+    // ==================== CAMBIO DE TABS ====================
+    // ==================== TABS ====================
+  function mostrarTab(tab) {
+    document.querySelectorAll("#tab-disponibles, #tab-encurso, #tab-historial").forEach(d => d.classList.add("d-none"));
+    document.getElementById(`tab-${tab}`).classList.remove("d-none");
+    document.querySelectorAll("#tabs .nav-link").forEach(link => link.classList.toggle("active", link.dataset.tab === tab));
+
+    if (tab === "encurso") renderViajeActual();
+    if (tab === "historial") renderHistorial();
+    if (tab === "disponibles") cargarDisponibles();   // ← Recarga real cada vez
+  }
+
+    // ==================== FLUJO DE ESTADOS ====================
+    function setupViajeButtons() {
+  // Botón RETIRADO
+  document.getElementById("btn-retirado").addEventListener("click", () => {
+    if (!viajeActual) return;
+    if (confirm("¿Confirmas que ya RETIRASTE el pedido del local?")) {
+      actualizarEstadoPedido(viajeActual.id, "Retirado", () => {
+        document.getElementById("estado-viaje").textContent = "Retirado";
+        document.getElementById("btn-retirado").innerHTML = "🏍️ Retirado ✓";
+        document.getElementById("btn-retirado").classList.replace("btn-rojo", "btn-success");
+        document.getElementById("btn-retirado").disabled = true;
+
+        document.getElementById("btn-entrega").disabled = false; // ← habilitamos entrega
+
+        mostrarNotificacion("Pedido marcado como RETIRADO", "success");
+      });
+    }
+  });
+
+  // Botón ENTREGADO (el resto queda igual)
+  const modalEntrega = new bootstrap.Modal(document.getElementById("modal-entrega"));
+  document.getElementById("btn-entrega").addEventListener("click", () => {
+    if (!viajeActual) return;
+    modalEntrega.show();
+  });
+
+  // Confirmar entrega desde el modal
+  document.getElementById("btn-confirmar-entrega").addEventListener("click", () => {
+    const fotoInput = document.getElementById("input-foto");
+    if (fotoInput.files.length === 0) {
+      return alert("Debes adjuntar al menos una foto de la entrega");
+    }
+
+    // Aquí podrías también validar la firma si la haces obligatoria
+    // const firmaData = canvas.toDataURL();
+    // if (firmaData === canvasBaseVacia) return alert("Firma requerida");
+
+    actualizarEstadoPedido(viajeActual.id, "Entregado", () => {
+      historial.unshift({
+        fecha: new Date().toLocaleString("es-AR"),
+        cliente: viajeActual.cliente,
+        monto: viajeActual.monto
+      });
+      totalGanancias += Number(viajeActual.monto);
+      actualizarStats();
+      renderHistorial();
+
+      mostrarNotificacion("¡Entrega confirmada! ✓", "success");
+
+      viajeActual = null;
+      modalEntrega.hide();
+      renderViajeActual();
+      mostrarTab("historial"); // o "encurso" si prefieres
+    });
+  });
+
+  // Vista previa de foto (ya lo tienes)
+  document.getElementById("input-foto").addEventListener("change", function() {
+    if (this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById("preview-foto").src = e.target.result;
+        document.getElementById("preview-foto").classList.remove("d-none");
+      };
+      reader.readAsDataURL(this.files[0]);
+    }
+  });
+}
+
+
+
+    // ==================== CHAT SIMULADO ====================
+    function setupChat() {
+      const modalChat = new bootstrap.Modal(document.getElementById("modal-chat"));
+      document.getElementById("btn-chat").addEventListener("click", () => modalChat.show());
+
+      document.getElementById("btn-enviar-chat").addEventListener("click", () => {
+        const input = document.getElementById("chat-input");
+        if (!input.value.trim()) return;
+        const msg = document.createElement("div");
+        msg.className = "text-end mb-2";
+        msg.innerHTML = `<span class="bg-primary text-white px-3 py-2 rounded-pill">${input.value}</span>`;
+        document.getElementById("chat-body").appendChild(msg);
+        document.getElementById("chat-body").scrollTop = 9999;
+        input.value = "";
+      });
+    }
+
+    // ==================== AUTENTICACIÓN Y CARGA ====================
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("auth-section").classList.remove("d-none");
+
+      // Toggle login / register
+      document.getElementById("show-register").addEventListener("click", () => {
+        document.getElementById("register-form").classList.remove("d-none");
+        document.getElementById("login-form").classList.add("d-none");
+      });
+      document.getElementById("show-login").addEventListener("click", () => {
+        document.getElementById("login-form").classList.remove("d-none");
+        document.getElementById("register-form").classList.add("d-none");
+      });
+
+      // Login (JSONP)
+      document.getElementById("login-form").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const btn = this.querySelector("button");
+        btn.disabled = true;
+        const email = document.getElementById("login-email").value;
+        const pass = document.getElementById("login-password").value;
+        const cb = "cb_" + Date.now();
+        window[cb] = (data) => {
+          btn.disabled = false;
+          delete window[cb];
+          if (data?.success && data.data) {
+            repartidorId = data.data.ID;
+            localStorage.setItem("repartidorId", repartidorId);
+            mostrarPanelPrincipal();
+          } else {
+            alert(data?.error || "Credenciales incorrectas");
+          }
+        };
+        const script = document.createElement("script");
+        script.src = `${API_URL}?action=repartidor_login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}&callback=${cb}`;
+        document.head.appendChild(script);
+      });
+
+      // Registro (JSONP)
+      document.getElementById("register-form").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const params = {
+          nombre: document.getElementById("reg-nombre").value,
+          telefono: document.getElementById("reg-telefono").value,
+          email: document.getElementById("reg-email").value,
+          password: document.getElementById("reg-password").value,
+          patente: document.getElementById("reg-patente").value.toUpperCase(),
+          marcaModelo: document.getElementById("reg-marca-modelo").value
+        };
+        const qs = new URLSearchParams(params).toString();
+        const cb = "regcb_" + Date.now();
+        window[cb] = (data) => {
+          delete window[cb];
+          if (data?.success) {
+            alert("Registro exitoso. Ahora inicia sesión.");
+            document.getElementById("show-login").click();
+          } else alert(data?.error || "Error");
+        };
+        const script = document.createElement("script");
+        script.src = `${API_URL}?action=repartidor_register&${qs}&callback=${cb}`;
+        document.head.appendChild(script);
+      });
+
+      if (repartidorId) mostrarPanelPrincipal();
+    });
+
+    // ============================================================================
+// Función principal que muestra el panel del repartidor
+// ============================================================================
+function mostrarPanelPrincipal() {
+  document.getElementById("auth-section").classList.add("d-none");
+  document.getElementById("panel-principal").classList.remove("d-none");
+
+  // Cargar nombre y estadísticas del repartidor
+  const cb = "datos_" + Date.now();
+  window[cb] = (data) => {
+    delete window[cb];
+    if (data?.success && data.data) {
+      document.getElementById("nombre-repartidor").textContent = data.data.Nombre || "Repartidor";
+      document.getElementById("pedidos-hoy").textContent = data.data.PedidosHoy || 0;
+    }
+  };
+  const scriptDatos = document.createElement("script");
+  scriptDatos.src = `${API_URL}?action=repartidor_getDatos&id=${repartidorId}&callback=${cb}`;
+  document.head.appendChild(scriptDatos);
+
+  // Carga inicial de pedidos disponibles
+  ultimaCantidadPedidos = 0;           // ← reseteamos contador al entrar
+  cargarDisponibles();
+
+  // Actualiza estadísticas (historial + ganancias)
+  actualizarStats();
+
+  // Muestra la pestaña inicial
+  mostrarTab("disponibles");
+
+  // Configuraciones que se hacen UNA SOLA VEZ
+  setupViajeButtons();   // botones de Retirado / Entregado
+  setupChat();           // chat modal
+
+  // Toggle de estado (activo / inactivo) + polling
+  const toggle = document.getElementById("toggle-estado");
+  toggle.addEventListener("change", () => {
+    const estado = toggle.checked ? "Activo" : "Inactivo";
+    document.getElementById("estado-texto").textContent = estado;
+
+    if (toggle.checked) {
+      // Activar polling si no está ya corriendo
+      if (!pollingInterval) {
+        pollingInterval = setInterval(refrescarPedidosDisponibles, 30000); // 30 segundos
+        console.log("Polling de nuevos pedidos iniciado (cada 30s)");
+      }
+      iniciarGPS();
+    } else {
+      // Detener polling
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+        console.log("Polling de nuevos pedidos detenido");
+      }
+    }
+  });
+
+  // Botón GPS manual
+  document.getElementById("btn-gps").addEventListener("click", iniciarGPS);
+
+  // Logout (con limpieza del polling)
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+    localStorage.removeItem("repartidorId");
+    location.reload();
+  });
+
+  // Simulación de nuevos pedidos (solo para pruebas, quítalo en producción)
+  setInterval(() => {
+    if (toggle.checked && pedidosDisponibles.length < 5) {
+      const nuevo = {
+        id: Date.now(),
+        local: "Local Express",
+        cliente: "Nuevo Cliente",
+        distancia: (Math.random()*3 + 0.5).toFixed(1),
+        monto: Math.floor(Math.random()*1800) + 1200,
+        pago: Math.random() > 0.5 ? "Efectivo" : "Tarjeta",
+        direccion: "Calle Random 123",
+        tel: "54911" + Math.floor(Math.random()*9000000 + 1000000),
+        lat: -27.45 + Math.random()*0.03,
+        lon: -58.98 + Math.random()*0.03
+      };
+      pedidosDisponibles.unshift(nuevo);
+      renderDisponibles();
+      playAlertSound();
+      mostrarNotificacion("🛵 Nuevo pedido disponible! (simulación)", "success");
+    }
+  }, 35000);
+
+  // Service Worker (PWA)
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("https://weep-delivery.web.app/sw.js")
+      .then(() => console.log("Service Worker registrado"))
+      .catch(err => console.log("Error al registrar SW:", err));
+  }
+
+  // ====================================================
+// Listener delegado para botones de acción
+// ====================================================
+document.addEventListener("click", function(e) {
+  const target = e.target;
+
+  // ────────────────────────────────────────────────
+  // Botón Aceptar pedido → pasa a "Confirmado"
+  // ────────────────────────────────────────────────
+  if (target.closest(".btn-aceptar")) {
+    const btn = target.closest(".btn-aceptar");
+    const pedidoId = btn.dataset.id;
+
+    if (!pedidoId) return;
+
+    const pedido = pedidosDisponibles.find(p => String(p.id) === String(pedidoId));
+    if (!pedido) {
+      alert("No se encontró el pedido seleccionado");
+      return;
+    }
+
+    // Verificación clave: ¿hay algún pedido en proceso?
+    const hayEnProceso = pedidosDisponibles.some(p => 
+      p.estado === "Confirmado" || p.estado === "Retirado"
+    );
+
+    if (hayEnProceso) {
+      alert("Primero debes completar (entregar) el pedido actual antes de aceptar otro.");
+      return;
+    }
+
+    if (!confirm(`¿Aceptar el pedido #${pedidoId}?`)) return;
+
+    actualizarEstadoPedido(pedidoId, "Confirmado", () => {
+      mostrarNotificacion("Pedido aceptado → ahora puedes marcarlo como RETIRADO", "success");
+      cargarDisponibles();  // refresca la vista
+    });
+  }
+
+  // ────────────────────────────────────────────────
+  // Botón Retirado
+  // ────────────────────────────────────────────────
+  if (target.closest(".btn-retirar")) {
+    const btn = target.closest(".btn-retirar");
+    const pedidoId = btn.dataset.id;
+
+    if (confirm("¿Confirmas que RETIRASTE el pedido del local?")) {
+      actualizarEstadoPedido(pedidoId, "Retirado", () => {
+        mostrarNotificacion("Pedido marcado como RETIRADO", "success");
+        cargarDisponibles();
+      });
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  // Botón Entregado / Confirmar entrega
+  // ────────────────────────────────────────────────
+  if (target.closest(".btn-entregar")) {
+    const btn = target.closest(".btn-entregar");
+    const pedidoId = btn.dataset.id;
+
+    // Versión simple con confirm (cámbialo a modal si lo prefieres)
+    if (confirm("¿Confirmas la ENTREGA del pedido?")) {
+      actualizarEstadoPedido(pedidoId, "Entregado", () => {
+        mostrarNotificacion("¡Entrega confirmada! ✓", "success");
+        cargarDisponibles();
+
+        // Agregar a historial local
+        const pedido = pedidosDisponibles.find(p => String(p.id) === String(pedidoId));
+        if (pedido) {
+          historial.unshift({
+            fecha: new Date().toLocaleString("es-AR"),
+            cliente: pedido.cliente || "Cliente",
+            monto: pedido.monto || 0
+          });
+          totalGanancias += Number(pedido.monto || 0);
+          actualizarStats();
+          renderHistorial();
+        }
+      });
+    }
   }
 });
 
-    // Mostrar/ocultar formularios
-    document.getElementById('show-register').addEventListener('click', () => {
-      document.getElementById('register-form').classList.remove('hidden');
-      document.getElementById('login-form').classList.add('hidden');
-    });
-
-    document.getElementById('show-login').addEventListener('click', () => {
-      document.getElementById('login-form').classList.remove('hidden');
-      document.getElementById('register-form').classList.add('hidden');
-    });
-
-    // Registro (GET + JSONP)
-    document.getElementById('register-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const btn = this.querySelector('button');
-      const spinner = btn.querySelector('.spinner-border');
-      spinner.classList.remove('d-none');
-      btn.disabled = true;
-
-      const params = {
-        nombre: document.getElementById('reg-nombre').value.trim(),
-        telefono: document.getElementById('reg-telefono').value.trim(),
-        email: document.getElementById('reg-email').value.trim(),
-        password: document.getElementById('reg-password').value,
-        patente: document.getElementById('reg-patente').value.trim().toUpperCase(),
-        marcaModelo: document.getElementById('reg-marca-modelo').value.trim()
-      };
-
-      const qs = new URLSearchParams(params).toString();
-      const cb = 'jsonp_reg_' + Date.now();
-
-      window[cb] = function(data) {
-        spinner.classList.add('d-none');
-        btn.disabled = false;
-        delete window[cb];
-        const s = document.querySelector(`script[src*="${cb}"]`);
-        if (s) s.remove();
-
-        if (data && data.success) {
-          alert('Registro exitoso. Inicia sesión.');
-          document.getElementById('show-login').click();
-          document.getElementById('register-form').reset();
-        } else {
-          alert(data?.error || 'Error al registrarte');
-        }
-      };
-
-      const script = document.createElement('script');
-      script.src = `${API_URL}?action=repartidor_register&${qs}&callback=${cb}`;
-      document.head.appendChild(script);
-    });
-
-    // Login (JSONP - igual que locales.html)
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const btn = this.querySelector('button');
-      const spinner = btn.querySelector('.spinner-border');
-      spinner.classList.remove('d-none');
-      btn.disabled = true;
-
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value.trim();
-
-      const cb = 'jsonp_login_' + Date.now();
-
-      window[cb] = function(data) {
-        spinner.classList.add('d-none');
-        btn.disabled = false;
-        delete window[cb];
-        const s = document.querySelector(`script[src*="${cb}"]`);
-        if (s) s.remove();
-
-        if (data && data.success && data.data) {
-          repartidorId = data.data.ID;
-          localStorage.setItem('repartidorId', repartidorId);
-          mostrarPanelPrincipal();
-        } else {
-          alert(data?.error || 'Credenciales incorrectas');
-        }
-      };
-
-      const script = document.createElement('script');
-      script.src = `${API_URL}?action=repartidor_login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&callback=${cb}`;
-      document.head.appendChild(script);
-    });
-
-    function mostrarPanelPrincipal() {
-  document.getElementById('auth-section').classList.remove('visible');
-  document.getElementById('panel-principal').classList.add('visible');
-  cargarDatosRepartidor();
-}
-
-// Ejemplo toggle register/login
-document.getElementById('show-register').addEventListener('click', () => {
-  document.getElementById('register-form').classList.add('visible');
-  document.getElementById('login-form').classList.remove('visible');
-});
-
-document.getElementById('show-login').addEventListener('click', () => {
-  document.getElementById('login-form').classList.add('visible');
-  document.getElementById('register-form').classList.remove('visible');
-});
-    
-    // Cargar datos del repartidor (JSONP)
-    function cargarDatosRepartidor() {
-      if (!repartidorId) return logout();
-
-      const cb = 'jsonp_datos_' + Date.now();
-
-      window[cb] = function(data) {
-        delete window[cb];
-        const s = document.querySelector(`script[src*="${cb}"]`);
-        if (s) s.remove();
-
-        if (data && data.success && data.data) {
-          document.getElementById('nombre-repartidor').textContent = data.data.Nombre;
-          document.getElementById('pedidos-hoy').textContent = data.data.PedidosHoy || 0;
-
-          const isActive = data.data.Estado === 'Activo';
-          document.getElementById('toggle-estado').checked = isActive;
-          document.getElementById('estado-texto').textContent = isActive ? 'Activo' : 'Inactivo';
-        } else {
-          alert(data?.error || 'Error al cargar datos');
-          logout();
-        }
-      };
-
-      const script = document.createElement('script');
-      script.src = `${API_URL}?action=repartidor_getDatos&id=${encodeURIComponent(repartidorId)}&callback=${cb}`;
-      document.head.appendChild(script);
-    }
-
-    // Toggle estado (GET simple)
-    document.getElementById('toggle-estado').addEventListener('change', function() {
-      const nuevoEstado = this.checked ? 'Activo' : 'Inactivo';
-      document.getElementById('estado-texto').textContent = nuevoEstado;
-
-      const url = `${API_URL}?action=repartidor_actualizarEstado&id=${encodeURIComponent(repartidorId)}&estado=${encodeURIComponent(nuevoEstado)}`;
-
-      fetch(url, { method: 'GET', cache: 'no-cache' })
-        .then(r => r.json())
-        .then(data => {
-          if (!data.success) {
-            alert(data.error || 'No se pudo actualizar el estado');
-            this.checked = !this.checked;
-            document.getElementById('estado-texto').textContent = this.checked ? 'Activo' : 'Inactivo';
-          }
-        })
-        .catch(err => {
-          alert('Error de conexión');
-          this.checked = !this.checked;
-          document.getElementById('estado-texto').textContent = this.checked ? 'Activo' : 'Inactivo';
-        });
-    });
-
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      localStorage.removeItem('repartidorId');
-      repartidorId = null;
-      document.getElementById('panel-principal').classList.add('hidden');
-      document.getElementById('auth-section').classList.remove('hidden');
-      document.getElementById('show-login').click();
-    });
+    // Tabs click
+    document.querySelectorAll("#tabs .nav-link").forEach(link => {
+      link.addEventListener("click", () => mostrarTab(link.dataset.tab));
+    });}
   </script>
 </body>
 </html>
