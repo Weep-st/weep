@@ -8,27 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- PWA - Manifest -->
-<link rel="manifest" href="/manifest.json">
-
-<!-- Favicons -->
-<link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
-<link rel="icon" type="image/png" sizes="96x96" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
-<link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
-
-<!-- Apple / iOS -->
-<link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
-<meta name="apple-mobile-web-app-title" content="Weep">
-
-<!-- Mejoras para móviles / iOS -->
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-
-<!-- Color de la barra de estado en móviles -->
-<meta name="theme-color" content="#c62828">
-    
       <style>
       * { box-sizing: border-box; }
       body {
@@ -1385,9 +1364,215 @@ h1 {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+
+/* MIS PEDIDOS - DISEÑO MODERNO + RESPONSIVE */
+/* ========================================== */
+
+/* Base mobile-first */
+#mis-pedidos-section {
+    min-height: calc(100vh - 140px);           /* menos margen en mobile */
+    padding: 24px 16px 80px;                   /* menos padding lateral y bottom en móvil */
+    background: linear-gradient(180deg, #fffafafa 0%, #ffffff 100%);
+}
+
+#mis-pedidos-section .display-5 {
+    font-size: 2.4rem;                         /* más pequeño en mobile */
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: #c62828;
+    text-shadow: 0 2px 8px rgba(198, 40, 40, 0.07);
+    margin-bottom: 1rem;
+}
+
+.nav-tabs {
+    --bs-nav-tabs-link-padding-x: 1.25rem;
+    --bs-nav-tabs-link-padding-y: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.nav-tabs .nav-link {
+    color: #555;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-weight: 600;
+    font-size: 1rem;                           /* más pequeño en mobile */
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.nav-tabs .nav-link.active {
+    color: #c62828;
+    border-bottom: 4px solid #c62828;
+    background: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #c62828;
+    border-bottom: 4px solid #ffcccc;
+}
+
+/* Tarjetas - base mobile */
+.pedido-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+    transition: all 0.28s ease;
+    margin-bottom: 1.25rem;
+}
+
+.pedido-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 40px rgba(198,40,40,0.11);
+}
+
+.pedido-card .card-body {
+    padding: 1.5rem 1.25rem;                   /* más compacto en móvil */
+}
+
+.pedido-local {
+    font-size: 1.2rem;                         /* más pequeño en móvil */
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 0.6rem;
+    line-height: 1.3;
+}
+
+.estado-badge {
+    padding: 0.45rem 1rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+/* Botones más amigables en móvil */
+.pedido-card .btn {
+    font-size: 0.95rem;
+    padding: 0.65rem 1.2rem;
+    border-radius: 50px;
+}
+
+.pedido-card .btn-outline-primary,
+.pedido-card .btn-outline-warning {
+    transition: all 0.25s ease;
+}
+
+/* Estados específicos */
+.estado-entregado { 
+    background: #d4edda; 
+    color: #155724; 
+}
+
+.estado-preparando { 
+    background: #fff3cd; 
+    color: #856404; 
+}
+
+.estado-camino { 
+    background: linear-gradient(90deg, #d4edda, #c3e6cb); 
+    color: #0f5132; 
+}
+
+/* ────────────────────────────────────────────────
+   Media Queries - Escalado progresivo
+   ──────────────────────────────────────────────── */
+
+@media (min-width: 576px) {
+    #mis-pedidos-section {
+        padding: 32px 24px 100px;
+    }
+
+    #mis-pedidos-section .display-5 {
+        font-size: 2.8rem;
+    }
+
+    .nav-tabs .nav-link {
+        font-size: 1.1rem;
+        padding: 12px 28px;
+    }
+
+    .pedido-card .card-body {
+        padding: 1.75rem 1.5rem;
+    }
+
+    .pedido-local {
+        font-size: 1.3rem;
+    }
+}
+
+@media (min-width: 768px) {
+    #mis-pedidos-section {
+        padding: 40px 32px 120px;
+        min-height: calc(100vh - 160px);
+    }
+
+    #mis-pedidos-section .display-5 {
+        font-size: 3.1rem;
+    }
+
+    .nav-tabs .nav-link {
+        font-size: 1.15rem;
+        padding: 14px 32px;
+    }
+
+    .pedido-card {
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    .pedido-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 50px rgba(198,40,40,0.12);
+    }
+
+    .pedido-local {
+        font-size: 1.35rem;
+    }
+
+    .estado-badge {
+        padding: 8px 18px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (min-width: 992px) {
+    #mis-pedidos-section {
+        padding: 48px 40px 140px;
+    }
+
+    .pedido-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 60px rgba(198,40,40,0.15);
+    }
+}
+
+/* Evitar que las tarjetas queden muy anchas en pantallas grandes */
+@media (min-width: 1400px) {
+    .pedido-card {
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
     
   </style>
-    
+      <!-- PWA - Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/ZnBXJHJC/web-app-manifest-192x192.png">
+  <!-- Mejoras para iOS -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#c62828">
+      <!-- Color de la barra de estado en móviles -->
+      <meta name="theme-color" content="#c62828">
   </head>
   <body>
       <header>
@@ -1410,6 +1595,7 @@ h1 {
           <div class="profile-dropdown" id="profile-dropdown">
       <a href="#" class="dropdown-item" onclick="openEditProfileModal()">Editar perfil</a>
       <a href="#" class="dropdown-item" onclick="openChangeAddressModal()">Cambiar dirección</a>
+      <a href="#" class="dropdown-item" onclick="showMisPedidos()">Mis Pedidos</a>
       <a href="#" class="dropdown-item logout" id="logout-link">Cerrar sesión</a>
   </div>
       </div>
@@ -1419,7 +1605,155 @@ h1 {
     <div class="cart-count" id="cart-count">0</div>
   </div>
       </header>
-      <main>
+</main>
+
+<!-- ====================== -->
+<!-- SECCIÓN MIS PEDIDOS    -->
+<!-- ====================== -->
+<div id="mis-pedidos-section" class="container py-5" style="display: none;">
+    <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold text-danger mb-1">Mis Pedidos</h2>
+    </div>
+
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-outline-secondary btn-lg px-4 rounded-pill" onclick="volverInicio()">
+            ← Volver al inicio
+        </button>
+    </div>
+
+    <!-- Pestañas -->
+    <ul class="nav nav-tabs nav-fill mb-5 border-0 shadow-sm rounded" id="pedidosTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold py-3 fs-5" 
+                    id="en-curso-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#en-curso-panel" 
+                    type="button" role="tab"
+                    aria-controls="en-curso-panel" 
+                    aria-selected="true">
+                🟢 En curso
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-3 fs-5" 
+                    id="historial-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#historial-panel" 
+                    type="button" role="tab"
+                    aria-controls="historial-panel" 
+                    aria-selected="false">
+                📦 Historial
+            </button>
+        </li>
+    </ul>
+
+    <!-- Contenido de pestañas -->
+    <div class="tab-content" id="pedidosTabContent">
+        <div class="tab-pane fade show active" id="en-curso-panel" role="tabpanel" aria-labelledby="en-curso-tab">
+            <div id="pedidos-en-curso-list" class="row g-4"></div>
+            <div id="en-curso-empty" class="text-center py-5 d-none">
+                <img src="https://i.postimg.cc/PrR3Qb0z/empty-box.png" alt="Sin pedidos" style="width:140px;opacity:0.7;">
+                <p class="text-muted fs-4 mt-4">No hay pedidos en curso</p>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="historial-panel" role="tabpanel" aria-labelledby="historial-tab">
+            
+<!-- Antes (list-group) -->
+<div id="historial-pedidos-list" class="list-group"></div>
+            <div id="historial-empty" class="text-center py-5 d-none">
+                <img src="https://i.postimg.cc/PrR3Qb0z/empty-box.png" alt="Sin historial" style="width:140px;opacity:0.7;">
+                <p class="text-muted fs-4 mt-4">No hay pedidos completados</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Panel Seguimiento -->
+<div class="modal fade" id="seguimientoModal" tabindex="-1" aria-labelledby="seguimientoModalLabel">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="seguimientoModalLabel">Seguimiento del pedido #<span id="pedido-numero"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 1. Timeline -->
+                <div class="timeline mb-4">
+                    <div class="timeline-item done">
+                        <div class="timeline-icon">✔</div>
+                        <div class="timeline-content">
+                            <strong>Confirmado</strong>
+                            <small>Tu pedido fue confirmado</small>
+                        </div>
+                    </div>
+                    <!-- más items según estado -->
+                </div>
+
+                <!-- 2. Mapa placeholder (o integración futura con Google Maps / Leaflet) -->
+                <div id="mapa-seguimiento" class="bg-light rounded mb-4" style="height:280px; display:flex; align-items:center; justify-content:center;">
+                    [ Mapa del repartidor – próximamente ]
+                </div>
+
+                <!-- 3. Chat con repartidor (solo visible si está "Retirado") -->
+                <div id="chat-repartidor-container" class="d-none mb-4">
+                    <button class="btn btn-success w-100 mb-2">💬 Chat con repartidor</button>
+                    <div class="alert alert-info small">
+                        Mensajes rápidos sugeridos:<br>
+                        • Estoy saliendo<br>
+                        • Te espero en la puerta<br>
+                        • La casa es la de portón negro
+                    </div>
+                </div>
+
+                <!-- 4. Datos del pedido -->
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Datos del pedido</h6>
+                        <dl class="row small mb-0">
+                            <dt class="col-4">Local</dt><dd class="col-8" id="detalle-local"></dd>
+                            <dt class="col-4">Repartidor</dt><dd class="col-8" id="detalle-repartidor"></dd>
+                            <dt class="col-4">Dirección</dt><dd class="col-8" id="detalle-direccion"></dd>
+                            <dt class="col-4">Pago</dt><dd class="col-8" id="detalle-pago"></dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- 5. Botones rápidos -->
+                <div class="mt-4 d-flex gap-2">
+                    <button class="btn btn-outline-danger flex-fill">❗ Reportar problema</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calificacion pedido -->
+ <div class="modal fade" id="calificarModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Calificar pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Cómo calificarías tu experiencia?</p>
+                <div class="text-center mb-3" id="stars-container">
+                    <!-- Estrellas generadas por JS -->
+                </div>
+                <textarea id="comentario-calificacion" class="form-control" rows="3" placeholder="Comentario (opcional)"></textarea>
+                <input type="hidden" id="calificacion-valor" value="0">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="enviarCalificacion()">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+</main>
+
           <h1>¿Qué se te antoja?</h1>
           <div class="categories-carousel-wrapper">
       <button class="carousel-btn left categories-btn" id="prev-category" aria-label="Categoría anterior">←</button>
@@ -1461,10 +1795,30 @@ h1 {
   </div>
    
           <div id="menu-display" style="display:none;"></div>
+
+
+          <!-- Footer -->
+  <footer class="text-center">
+      <div class="container">
+          <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
+    
+          <p class="small mb-4">
+              <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
+          </p>
+          <p class="small mb-0">
+              <a href="#" data-bs-toggle="modal" data-bs-target="#terminosModal">Términos</a> •
+              <a href="#">Privacidad</a> •
+              <a href="mailto:bajoneando.st@gmail.com">Soporte</a>
+          </p>
+      </div>
+  </footer>
+  
+
   <!-- 1. Agregar el backdrop (fondo oscuro) justo después del </header> o al final del body -->
   <div id="cart-backdrop" class="cart-backdrop"></div>
   <!-- 2. Reemplaza completamente el <div id="cart-section"> original por este bloque -->
   <div id="cart-section" class="cart-sidebar">
+
     <div class="cart-header">
       <h2>Tu Carrito</h2>
       <button type="button" class="cart-close" aria-label="Cerrar carrito">×</button>
@@ -1510,22 +1864,9 @@ h1 {
 </button>
               </form>
           </div>
-      </main>
-      <!-- Footer -->
-  <footer class="text-center">
-      <div class="container">
-          <p class="mb-2">© 2026 <strong>Weep</strong> - Plataforma de Pedidos</p>
-    
-          <p class="small mb-4">
-              <a href="https://weep.com.ar/locales.html">Registrá tu local</a>
-          </p>
-          <p class="small mb-0">
-              <a href="#" data-bs-toggle="modal" data-bs-target="#terminosModal">Términos</a> •
-              <a href="#">Privacidad</a> •
-              <a href="mailto:bajoneando.st@gmail.com">Soporte</a>
-          </p>
-      </div>
-  </footer>
+</main>
+
+
       <!-- Login Modal -->
 <div id="login-modal" class="modal">
     <div class="modal-content">
@@ -3554,7 +3895,18 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
       loadAllDrinks();
       setupCategoriesCarousel(); // ← agregar esta línea
   });
-          
+          // Service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('Service Worker registrado con éxito:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Fallo al registrar el Service Worker:', error);
+          });
+      });
+    }
           function setupGenericCarousel(wrapperId, containerId, prevId, nextId) {
       const wrapper = document.getElementById(wrapperId);
       const container = document.getElementById(containerId);
@@ -3586,6 +3938,533 @@ async function createOrderNormal(direccion, metodoPago, tipoEntrega, prices, obs
       // Si más adelante creas otro carrusel, solo llamas de nuevo la función
   });
         window.addEventListener('load', checkPaymentReturn);
+
+
+/* MIS PEDIDOS */
+        // Agregar al menú desplegable del perfil (en addFavoritesLinkToDropdown o similar)
+function addMisPedidosLinkToDropdown() {
+    if (document.getElementById('mis-pedidos-link')) return;
+    const link = document.createElement('a');
+    link.href = '#';
+    link.id = 'mis-pedidos-link';
+    link.className = 'dropdown-item';
+    link.textContent = 'Mis Pedidos';
+    link.onclick = (e) => {
+        e.preventDefault();
+        profileDropdown.classList.remove('active');
+        showMisPedidosSection();
+    };
+    // Insertar después de "Mis Favoritos" o al final
+    profileDropdown.appendChild(link);
+}
+// Llamar esta función cuando el usuario está logueado
+// (puedes ponerla dentro de checkLoginStatus() después de loadUserFavorites())
+if (isLoggedIn) {
+    addMisPedidosLinkToDropdown();
+}
+async function showMisPedidosSection() {
+    if (!isLoggedIn) {
+        alert("Debes iniciar sesión para ver tus pedidos");
+        showModal('login-modal');
+        return;
+    }
+    // Ocultar otras secciones principales
+    document.getElementById('suggestions').style.display = 'none';
+    document.getElementById('menu-display').style.display = 'none';
+    document.getElementById('categories-carousel-wrapper').style.display = 'none';
+    // Mostrar sección de pedidos
+    const section = document.getElementById('mis-pedidos-section');
+    if (!section) {
+        console.error("No se encontró #mis-pedidos-section en el DOM");
+        return;
+    }
+    section.style.display = 'block';
+    // Scroll suave hacia arriba
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Cargar datos
+    await loadMisPedidos();
+}
+// ================================================
+// ABRIR PANEL "MIS PEDIDOS" DESDE EL MENÚ PERFIL
+// ================================================
+async function loadMisPedidos() {
+    const enCursoList = document.getElementById('pedidos-en-curso-list');
+    const historialList = document.getElementById('historial-pedidos-list');
+    const enCursoEmpty = document.getElementById('en-curso-empty');
+    const historialEmpty = document.getElementById('historial-empty');
+
+    if (!enCursoList || !historialList) {
+        console.error("Contenedores de pedidos no encontrados");
+        return;
+    }
+
+    // Limpiar contenido anterior
+    enCursoList.innerHTML = '';
+    historialList.innerHTML = '';
+    enCursoEmpty.classList.add('d-none');
+    historialEmpty.classList.add('d-none');
+
+    try {
+        const url = `${scriptUrl}?action=getMyOrders&userId=${userId}`;
+        const response = await fetch(url);
+        let text = await response.text();
+
+        // Limpieza típica de JSONP si el backend lo devuelve envuelto
+        if (text.trim().startsWith('callback(')) {
+            text = text.replace(/^callback\(\s*/, '').replace(/\s*\);?$/, '');
+        }
+
+        const data = JSON.parse(text);
+
+        if (!data.success) {
+            throw new Error(data.error || 'Error al obtener los pedidos');
+        }
+
+        // 1. PEDIDOS EN CURSO → solo Pendiente y Listo
+if (data.pedidosEnCurso && Array.isArray(data.pedidosEnCurso)) {
+    const estadosEnCurso = ['Pendiente', 'Listo'];
+
+    const filtradosEnCurso = data.pedidosEnCurso.filter(pedido => {
+        const estado = (pedido.estadoLocal || pedido.estado || '').trim();
+        return estadosEnCurso.includes(estado);
+    });
+
+    if (filtradosEnCurso.length > 0) {
+        filtradosEnCurso.forEach(pedido => {
+            const card = createPedidoEnCursoCard(pedido);
+            if (card) enCursoList.appendChild(card);
+        });
+    } else {
+        enCursoEmpty.classList.remove('d-none');
+    }
+} else {
+    enCursoEmpty.classList.remove('d-none');
+}
+
+        // ────────────────────────────────────────────────
+        // 2. HISTORIAL → solo entregados (ya filtrados por backend)
+        // ────────────────────────────────────────────────
+        let historialEntregados = data.historialEntregados || [];
+
+        // Fallback por si el backend aún devuelve el campo viejo "historial"
+        if (historialEntregados.length === 0 && data.historial && Array.isArray(data.historial)) {
+            historialEntregados = data.historial.filter(pedido => {
+                // Prioridad 1: estado general explícito
+                if (pedido.estadoGeneral === 'Entregado' || pedido.estado === 'Entregado') {
+                    return true;
+                }
+
+                // Prioridad 2: TODOS los locales están entregados
+                if (pedido.locales && Array.isArray(pedido.locales) && pedido.locales.length > 0) {
+                    return pedido.locales.every(loc => 
+                        (loc.estadoLocal || loc["Estado Local"] || '').trim() === 'Entregado'
+                    );
+                }
+
+                // Prioridad 3: estado local directo en el objeto raíz
+                if ((pedido.estadoLocal || '').trim() === 'Entregado') {
+                    return true;
+                }
+
+                return false;
+            });
+        }
+
+        if (historialEntregados.length > 0) {
+            historialEntregados.forEach(pedido => {
+                const item = createHistorialItem(pedido);
+                if (item) historialList.appendChild(item);
+            });
+        } else {
+            historialEmpty.classList.remove('d-none');
+        }
+
+        // Opcional: log para debug
+        console.log(`Mis Pedidos cargados → En curso: ${data.pedidosEnCurso?.length || 0} | Historial: ${historialEntregados.length}`);
+
+    } catch (err) {
+        console.error("Error al cargar mis pedidos:", err);
+        enCursoList.innerHTML = `<p class="text-danger text-center py-5">Error al cargar los pedidos. Intenta nuevamente.</p>`;
+        historialList.innerHTML = '';
+        historialEmpty.classList.add('d-none');
+        enCursoEmpty.classList.add('d-none');
+    }
+}
+
+
+// Abrir Mis Pedidos → oculta todo el contenido principal
+function showMisPedidos() {
+    if (!isLoggedIn) {
+        alert("Debes iniciar sesión para ver tus pedidos");
+        showModal('login-modal');
+        profileDropdown.classList.remove('active');
+        return;
+    }
+
+    // Ocultar TODA la vista inicial con un solo cambio
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.style.display = 'none';
+    }
+
+    // Mostrar Mis Pedidos
+    const misPedidos = document.getElementById('mis-pedidos-section');
+    if (misPedidos) {
+        misPedidos.style.display = 'block';
+    }
+
+    // Cerrar menú perfil
+    profileDropdown.classList.remove('active');
+
+    // Ir al tope
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Cargar pedidos
+    loadMisPedidos();
+}
+
+// Volver a la vista principal
+function volverInicio() {
+    // Ocultar Mis Pedidos
+    const misPedidos = document.getElementById('mis-pedidos-section');
+    if (misPedidos) {
+        misPedidos.style.display = 'none';
+    }
+
+    // Mostrar de nuevo toda la vista inicial
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.style.display = 'block';
+    }
+
+    // Scroll al inicio
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Opcional: refrescar sugerencias si quieres que se vean actualizadas
+    // loadFilters();
+}
+
+function formatPedidoCardData(pedido) {
+  const estado = (pedido.estadoLocal || pedido.estado || 'Pendiente').trim();
+  const esEntregado = estado === 'Entregado';
+
+  // Badge
+  const badgeClasses = {
+    'Pendiente': 'bg-warning text-dark',
+    'Listo':     'bg-primary text-white',
+    'Entregado': 'bg-success text-white',
+    // otros estados por si acaso
+    'Preparando': 'bg-info text-white',
+    'default':   'bg-secondary text-white'
+  };
+  const badgeClass = badgeClasses[estado] || badgeClasses.default;
+
+  // Texto del estado (más amigable)
+  const estadoMostrado = estado === 'Listo' ? 'Listo para retirar/envío' : estado;
+
+  // Items resumen
+  const itemsText = pedido.itemsResumen?.length > 0
+    ? pedido.itemsResumen
+        .slice(0, 3)
+        .map(i => `${i.cantidad}× ${i.nombre}`)
+        .join(' • ') + (pedido.itemsResumen.length > 3 ? ' • y más...' : '')
+    : 'Productos...';
+
+  // Fecha
+  let fechaFormateada = '—';
+  if (pedido.fecha) {
+    try {
+      const date = new Date(pedido.fecha);
+      fechaFormateada = date.toLocaleDateString('es-AR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {}
+  }
+
+  return {
+    estado,
+    esEntregado,
+    badgeClass,
+    estadoMostrado,
+    itemsText,
+    fechaFormateada
+  };
+}
+
+function createPedidoEnCursoCard(pedido) {
+  const col = document.createElement('div');
+  col.className = 'col-12 col-md-6 col-lg-4 mb-4';
+
+  const {
+    badgeClass,
+    estadoMostrado,
+    itemsText,
+    fechaFormateada
+  } = formatPedidoCardData(pedido);
+
+  const botonesHTML = `
+    <button class="btn btn-outline-primary flex-fill rounded-pill fw-semibold"
+            onclick="showSeguimientoModal('${pedido.idPedido}')">
+      Ver seguimiento →
+    </button>
+  `;
+
+  col.innerHTML = `
+    <div class="card shadow-sm h-100 border-0 pedido-card" style="border-radius: 16px; overflow: hidden;">
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h5 class="card-title fw-bold mb-0" style="color: #222; font-size: 1.25rem;">
+            ${pedido.nombreLocal || 'Local desconocido'}
+          </h5>
+          <span class="badge ${badgeClass} px-3 py-2 fs-6">
+            ${estadoMostrado}
+          </span>
+        </div>
+        <p class="text-muted mb-3 small" style="line-height: 1.5;">
+          ${itemsText}
+        </p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <p class="fw-bold text-danger fs-5 mb-0">
+            $${Number(pedido.total || 0).toLocaleString('es-AR')}
+          </p>
+          <small class="text-muted">
+            ${fechaFormateada}
+          </small>
+        </div>
+        <div class="mt-auto d-flex gap-2">
+          ${botonesHTML}
+        </div>
+      </div>
+    </div>
+  `;
+
+  return col;
+}
+
+function createHistorialItem(pedido) {
+  const div = document.createElement('div');
+  div.className = 'col-12 col-md-6 col-lg-4 mb-4';  // misma grilla que En curso
+
+  const {
+    badgeClass,
+    estadoMostrado,
+    itemsText,
+    fechaFormateada
+  } = formatPedidoCardData(pedido);
+
+  const botonesHTML = `
+    <button class="btn btn-outline-primary flex-fill rounded-pill fw-semibold"
+            onclick="reOrder('${pedido.idPedido}')">
+      Pedir de nuevo
+    </button>
+    <button class="btn btn-outline-warning flex-fill rounded-pill fw-semibold"
+            onclick="openCalificarModal('${pedido.idPedido}')">
+      Calificar
+    </button>
+  `;
+
+  div.innerHTML = `
+    <div class="card shadow-sm h-100 border-0 pedido-card" style="border-radius: 16px; overflow: hidden;">
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h5 class="card-title fw-bold mb-0" style="color: #222; font-size: 1.25rem;">
+            ${pedido.nombreLocal || 'Local desconocido'}
+          </h5>
+          <span class="badge ${badgeClass} px-3 py-2 fs-6">
+            ${estadoMostrado}
+          </span>
+        </div>
+        <p class="text-muted mb-3 small" style="line-height: 1.5;">
+          ${itemsText}
+        </p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <p class="fw-bold text-danger fs-5 mb-0">
+            $${Number(pedido.total || 0).toLocaleString('es-AR')}
+          </p>
+          <small class="text-muted">
+            ${fechaFormateada}
+          </small>
+        </div>
+        <div class="mt-auto d-flex gap-2">
+          ${botonesHTML}
+        </div>
+      </div>
+    </div>
+  `;
+
+  return div;
+}
+
+
+function showSeguimientoModal(pedidoId) {
+    const modalElement = document.getElementById('seguimientoModal');
+    if (!modalElement) {
+        console.error("Modal #seguimientoModal no encontrado en DOM");
+        return;
+    }
+
+    // Resetear contenido
+    document.getElementById('pedido-numero').textContent = pedidoId;
+    document.getElementById('detalle-local').textContent = 'Cargando...';
+    document.getElementById('detalle-repartidor').textContent = '—';
+    document.getElementById('detalle-direccion').textContent = '—';
+    document.getElementById('detalle-pago').textContent = '—';
+    document.getElementById('chat-repartidor-container').classList.add('d-none');
+
+    // Intentar abrir modal (con fallback si Bootstrap falla)
+    let modal;
+    try {
+        modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } catch (e) {
+        console.error("Error al instanciar Bootstrap Modal:", e);
+        modalElement.classList.add('show');
+        modalElement.style.display = 'block';
+        document.body.classList.add('modal-open');
+    }
+
+    // Cargar datos reales
+    fetch(`${scriptUrl}?action=getOrderDetail&userId=${userId}&pedidoId=${pedidoId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('detalle-local').textContent = 'Error al cargar';
+                return;
+            }
+
+            const d = data.detalle;
+            document.getElementById('detalle-local').textContent = d.locales?.[0]?.nombreLocal || '—';
+            document.getElementById('detalle-direccion').textContent = d.direccion || 'Retiro en local';
+            document.getElementById('detalle-pago').textContent = d.metodoPago || '—';
+
+            if (d.repartidor?.nombre) {
+                document.getElementById('detalle-repartidor').textContent = 
+                    `${d.repartidor.nombre} (${d.repartidor.estado || '—'})`;
+            }
+
+            if ((d.estadoGeneral || '').toLowerCase().includes('retirado') || 
+                (d.estadoGeneral || '').toLowerCase().includes('camino')) {
+                document.getElementById('chat-repartidor-container').classList.remove('d-none');
+            }
+
+            renderTimeline(d);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('detalle-local').textContent = 'Error de conexión';
+        });
+}
+
+function renderTimeline(detalle) {
+    const timeline = document.querySelector('.timeline');
+    if (!timeline) return;
+    timeline.innerHTML = '';
+    const estados = [
+        { key: 'Pendiente', texto: 'Tu pedido fue recibido', icon: '✔' },
+        { key: 'Confirmado', texto: 'El local confirmó tu pedido', icon: '✔' },
+        { key: 'Listo', texto: detalle.tipoEntrega === 'retiro' ? 'Listo para retirar' : 'Listo para envío', icon: '✔' },
+        { key: 'Retirado', texto: 'El repartidor retiró el pedido', icon: '🛵' },
+        { key: 'En camino', texto: 'Tu pedido está en camino', icon: '🛵' },
+        { key: 'Entregado', texto: '¡Pedido entregado!', icon: '📦' }
+    ];
+    const estadoActual = detalle.estadoGeneral?.toLowerCase() || 'pendiente';
+    estados.forEach(est => {
+        const isDone = estadoActual.includes(est.key.toLowerCase()) ||
+                       (est.key === 'Entregado' && estadoActual === 'entregado');
+        const item = document.createElement('div');
+        item.className = `timeline-item ${isDone ? 'done' : ''}`;
+        item.innerHTML = `
+            <div class="timeline-icon">${est.icon}</div>
+            <div class="timeline-content">
+                <strong>${est.key}</strong>
+                <small>${est.texto}</small>
+            </div>
+        `;
+        timeline.appendChild(item);
+    });
+}
+async function reOrder(pedidoId) {
+    if (!confirm('¿Quieres agregar los productos de este pedido al carrito?')) return;
+    try {
+        const res = await fetch(`${scriptUrl}?action=reOrder&userId=${userId}&pedidoId=${pedidoId}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'No se pudieron recuperar los ítems');
+        // Agregar cada ítem al carrito local
+        data.items.forEach(item => {
+            // Aquí usas tu función addToCart existente, adaptada
+            addToCart({
+                idLocal: 'recuperado', // podrías necesitar obtenerlo del backend
+                nombreLocal: 'Pedido anterior',
+                idProducto: item.idProducto,
+                nombreProducto: item.nombreProducto,
+                precioUnitario: item.precioUnitario,
+                cantidad: item.cantidad,
+                categoria: '' // opcional
+            });
+        });
+        alert('Productos agregados al carrito ✓');
+        openCart(); // opcional: abrir carrito automáticamente
+    } catch (err) {
+        console.error(err);
+        alert('No pudimos recuperar el pedido. Intenta de nuevo.');
+    }
+}
+// CALIFICACION PEDIDO
+let pedidoIdCalificando = null;
+function openCalificarModal(pedidoId) {
+    pedidoIdCalificando = pedidoId;
+    const modal = new bootstrap.Modal(document.getElementById('calificarModal'));
+   
+    // Generar estrellas
+    const container = document.getElementById('stars-container');
+    container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.style.fontSize = '2rem';
+        star.style.cursor = 'pointer';
+        star.style.margin = '0 5px';
+        star.textContent = '☆';
+        star.dataset.value = i;
+        star.onclick = () => {
+            document.getElementById('calificacion-valor').value = i;
+            container.querySelectorAll('span').forEach(s => {
+                s.textContent = s.dataset.value <= i ? '★' : '☆';
+            });
+        };
+        container.appendChild(star);
+    }
+    modal.show();
+}
+async function enviarCalificacion() {
+    const calificacion = Number(document.getElementById('calificacion-valor').value);
+    const comentario = document.getElementById('comentario-calificacion').value.trim();
+    if (calificacion < 1) {
+        alert('Por favor selecciona una calificación');
+        return;
+    }
+    try {
+        const res = await fetch(`${scriptUrl}?action=rateOrder&userId=${userId}&pedidoId=${pedidoIdCalificando}&calificacion=${calificacion}&comentario=${encodeURIComponent(comentario)}`);
+        const data = await res.json();
+        if (data.success) {
+            alert('¡Gracias por tu calificación!');
+            bootstrap.Modal.getInstance(document.getElementById('calificarModal')).hide();
+            // Opcional: refrescar lista de pedidos
+            loadMisPedidos();
+        } else {
+            alert(data.error || 'No se pudo registrar la calificación');
+        }
+    } catch (err) {
+        alert('Error al enviar calificación');
+    }
+}
+
       </script>
+      <!-- Bootstrap JS + Popper (obligatorio para tabs y modals) -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   </body>
   </html>
