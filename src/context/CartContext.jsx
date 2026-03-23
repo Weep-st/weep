@@ -12,10 +12,8 @@ export function CartProvider({ children }) {
     setItems(prev => {
       const existing = prev.find(i => i.id === menu.id);
       if (existing) {
-        toast.success(`${menu.nombre} × ${existing.qty + 1}`);
         return prev.map(i => i.id === menu.id ? { ...i, qty: i.qty + 1 } : i);
       }
-      toast.success(`${menu.nombre} agregado`);
       return [...prev, { ...menu, qty: 1 }];
     });
   }, []);

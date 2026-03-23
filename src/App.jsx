@@ -5,6 +5,7 @@ import Landing from './pages/Landing';
 import CustomerApp from './pages/CustomerApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import DriverDashboard from './pages/DriverDashboard';
+import MisPedidos from './pages/MisPedidos';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/pedir" element={<CustomerApp />} />
+          <Route path="/mis-pedidos" element={<MisPedidos />} />
           <Route path="/locales" element={<RestaurantDashboard />} />
           <Route path="/repartidores" element={<DriverDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />

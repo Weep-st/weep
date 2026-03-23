@@ -81,6 +81,7 @@
 
 .profile-btn:hover { background: rgba(255,255,255,0.28); }
 .profile-avatar { font-size: 1.2rem; }
+.profile-avatar-img { width: 24px; height: 24px; object-fit: contain; }
 
 .cart-btn {
   position: relative;
@@ -98,6 +99,8 @@
 }
 
 .cart-btn:hover { background: rgba(255,255,255,0.28); transform: scale(1.05); }
+
+.cart-icon-img { width: 26px; height: 26px; object-fit: contain; }
 
 .cart-badge {
   position: absolute;
@@ -205,8 +208,8 @@
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid var(--gray-300);
+  overflow: visible;
+  border: none;
   background: white;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -215,16 +218,21 @@
   padding: 0;
 }
 
-.local-circle.open { border-color: var(--green-500); }
 .local-circle.closed { filter: grayscale(0.5); opacity: 0.7; }
 .local-circle:hover { transform: scale(1.08); box-shadow: var(--shadow-lg); }
 
-.local-circle img { width: 100%; height: 100%; object-fit: cover; }
+.local-circle img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  border-radius: 50%; 
+}
 
 .open-dot {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
   width: 16px;
   height: 16px;
   background: #00e676;
@@ -243,6 +251,74 @@
   .local-circle { width: 74px; height: 74px; }
   .open-dot { width: 13px; height: 13px; border-width: 2px; }
 }
+
+/* ─── Suggestion Categoria Cards (from idea.html) ─── */
+.suggestion-categoria {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 6px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+  transition: all 0.25s ease;
+  width: 110px;
+  height: auto;
+  min-height: 130px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.suggestion-categoria.open { border-color: var(--green-500); }
+.suggestion-categoria.closed { filter: grayscale(0.5); opacity: 0.7; }
+
+.suggestion-categoria:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.suggestion-categoria img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #ffebee;
+  background: #fff;
+  padding: 3px;
+  margin-bottom: 8px;
+}
+
+.suggestion-categoria .suggestion-info { width: 100%; }
+
+.suggestion-categoria .local-name {
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: #333;
+  margin-bottom: 5px;
+  line-height: 1.2;
+}
+
+.suggestion-categoria .categoria-precio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.78rem;
+}
+
+.suggestion-categoria .cat {
+  color: #d32f2f;
+  font-weight: 500;
+  background: #ffebee;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+}
+
+.suggestion-categoria .precio-min { color: #2e7d32; font-weight: 700; }
 
 /* ─── Menus ─── */
 .menu-section { margin: 24px 0; }
@@ -541,6 +617,8 @@
   width: 100%;
   position: relative;
   box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-box h2 {
@@ -590,4 +668,147 @@
   padding: 8px 0;
   border-bottom: 1px solid var(--gray-100);
   font-size: 0.92rem;
+}
+
+/* ─── Drinks Carousel (Cart) ─── */
+.drinks-section {
+  margin: 20px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid #ffe0b2;
+}
+
+.drinks-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--amber-600);
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.drinks-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+}
+
+.drinks-scroll::-webkit-scrollbar { display: none; }
+
+.drink-card {
+  flex: 0 0 auto;
+  width: 120px;
+  background: white;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 8px;
+  transition: transform var(--transition-fast);
+}
+
+.drink-card:hover { transform: scale(1.03); }
+
+.drink-card img {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+}
+
+.drink-info {
+  padding: 6px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drink-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+.drink-price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--red-500);
+}
+
+.btn-xs {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  border-radius: var(--radius-full);
+}
+
+/* ─── Comisión Line ─── */
+.comision-line {
+  color: var(--amber-600);
+  font-style: italic;
+  font-size: 0.88rem;
+}
+
+/* ─── Footer ─── */
+.footer {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--gray-500);
+  font-size: 0.85rem;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+}
+
+.footer p { margin: 4px 0; }
+.footer a,
+.footer-link {
+  color: var(--red-500);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+
+.footer a:hover,
+.footer-link:hover { color: var(--red-700); text-decoration: underline; }
+
+/* ─── Misc Utils ─── */
+.hide-mobile { display: inline; }
+@media (max-width: 480px) {
+  .hide-mobile { display: none; }
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 4px;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  font-family: inherit;
+}
+
+.form-textarea:focus {
+  border-color: var(--red-400);
 }

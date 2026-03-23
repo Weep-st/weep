@@ -9,12 +9,42 @@ export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
   const [authView, setAuthView] = useState('login');
   const [authLoading, setAuthLoading] = useState(false);
+  
+  // Dashboard state
   const [driverData, setDriverData] = useState(null);
   const [isActive, setIsActive] = useState(false);
+  const [activeTab, setActiveTab] = useState('disponibles'); // 'disponibles', 'historial'
+  const [pedidos, setPedidos] = useState([]);
+  const [historial, setHistorial] = useState([]); // Mock temporal o real local
+  
+  const [sessionGanancias, setSessionGanancias] = useState(0);
 
+  // Modals state
+  const [showEntregaModal, setShowEntregaModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [pinInput, setPinInput] = useState('');
+
+  // On Login/Load
   useEffect(() => {
     if (driver) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driver]);
+
+  // Polling para pedidos disponibles
+  useEffect(() => {
+    let interval;
+    if (driver && isActive) {
+      // First fetch
+      fetchPedidos();
+      // Polling cada 30 segundos
+      interval = setInterval(fetchPedidos, 30000);
+    } else {
+      setPedidos([]);
+    }
+    return () => clearInterval(interval);
+  }, [driver, isActive]);
 
   const loadData = async () => {
     try {
@@ -26,6 +56,22 @@ export default function DriverDashboard() {
     } catch { toast.error('Error al cargar datos'); }
   };
 
+  const fetchPedidos = async () => {
+    if (!driver) return;
+    try {
+      const res = await api.getPedidosDisponibles(driver.id);
+      if (res.success) {
+        // Ordenamos por fecha mas antigua primero, o por ID
+        // res.data trae la lista. Vamos a ordenarlos ascendente por id.
+        const sorted = res.data.sort((a,b) => a.id.localeCompare(b.id));
+        setPedidos(sorted);
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  // ─── AUTH ACTIONS ───
   const handleLogin = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -64,61 +110,271 @@ export default function DriverDashboard() {
     try {
       const d = await api.repartidorActualizarEstado(driver.id, newState);
       if (!d.success) { setIsActive(isActive); toast.error('No se pudo actualizar'); }
+      else {
+        toast.success(`Modo ${newState}`);
+        if(newState === 'Activo') iniciarGPS();
+      }
     } catch { setIsActive(isActive); toast.error('Error de conexión'); }
   };
 
   const handleLogout = () => {
     logoutDriver();
     setDriverData(null);
+    setIsActive(false);
     toast.success('Sesión cerrada');
   };
 
-  // ─── Auth ───
-  if (!driver) return (
-    <div className="dd-page">
-      <header className="dd-header">
-        <Link to="/">
-          <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" className="dd-logo" />
-        </Link>
-        <h1>Panel de Repartidores</h1>
-      </header>
-      <main className="dd-main">
-        <div className="dd-auth-card card animate-fade-in">
-          <div className="card-body">
-            <h2>Acceso Repartidor</h2>
-            <div className="rd-auth-tabs">
-              <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('login')}>Iniciar Sesión</button>
-              <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('register')}>Registrarme</button>
-            </div>
-            {authView === 'login' ? (
-              <form onSubmit={handleLogin} className="dd-form">
-                <input name="email" type="email" className="form-input" placeholder="Email" required />
-                <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
-                <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
-                  {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleRegister} className="dd-form">
-                <input name="nombre" className="form-input" placeholder="Nombre completo" required />
-                <input name="telefono" type="tel" className="form-input" placeholder="Teléfono (ej: +54911...)" required />
-                <input name="email" type="email" className="form-input" placeholder="Email" required />
-                <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
-                <input name="patente" className="form-input" placeholder="Patente de la moto" required />
-                <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
-                <button type="submit" className="btn btn-success btn-full" disabled={authLoading}>
-                  {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
-                </button>
-              </form>
-            )}
-          </div>
+  const iniciarGPS = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => toast.success('GPS activado (Demostración)'),
+        () => toast.error('No se pudo activar GPS')
+      );
+    }
+  };
+
+  // ─── PEDIDO ACTIONS ───
+  const aceptarPedido = async (pedidoId) => {
+    toast.loading('Aceptando...', { id: 'ac' });
+    try {
+      const res = await api.updateEstadoPedido(pedidoId, 'Confirmado', driver.id);
+      if (res.success) {
+        toast.success('¡Pedido aceptado!', { id: 'ac' });
+        fetchPedidos();
+      } else {
+        toast.error(res.error || 'Error al aceptar', { id: 'ac' });
+      }
+    } catch { toast.error('Error de conexión', { id: 'ac' }); }
+  };
+
+  const retirarPedido = async (pedidoId) => {
+    if(!window.confirm('¿Confirmas que ya RETIRASTE el pedido del local?')) return;
+    toast.loading('Actualizando...', { id: 'ret' });
+    try {
+      const res = await api.updateEstadoPedido(pedidoId, 'Retirado', driver.id);
+      if (res.success) {
+        toast.success('Pedido marcado como RETIRADO', { id: 'ret' });
+        fetchPedidos();
+      } else {
+        toast.error(res.error || 'Error', { id: 'ret' });
+      }
+    } catch { toast.error('Error de conexión', { id: 'ret' }); }
+  };
+
+  const confirmarEntregaClick = () => {
+    setShowEntregaModal(true);
+  };
+
+  const finalizarEntrega = async (pedido) => {
+    if (!pinInput || pinInput.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el cliente');
+    toast.loading('Confirmando entrega...', { id: 'ent' });
+    try {
+      const res = await api.updateEstadoPedido(pedido.id, 'Entregado', driver.id, pinInput);
+      if (res.success) {
+        toast.success('¡Entrega confirmada!', { id: 'ent' });
+        // Modificar stats locales y cerrar modal
+        setSessionGanancias(prev => prev + pedido.monto);
+        setHistorial([{...pedido, fecha: new Date().toLocaleTimeString()}, ...historial]);
+        setDriverData(prev => ({...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1}));
+        setShowEntregaModal(false);
+        setPinInput('');
+        setActiveTab('historial');
+        fetchPedidos();
+      } else {
+        toast.error(res.error || 'Error', { id: 'ent' });
+      }
+    } catch { toast.error('Error de conexión', { id: 'ent' }); }
+  };
+
+  // ─── RENDERS ───
+  const renderAuth = () => (
+    <div className="dd-auth-card card animate-fade-in">
+      <div className="card-body">
+        <h2>Acceso Repartidor</h2>
+        <div className="rd-auth-tabs">
+          <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('login')}>Iniciar Sesión</button>
+          <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('register')}>Registrarme</button>
         </div>
-      </main>
-      <footer className="footer"><p>© 2026 <strong>Weep</strong></p></footer>
+        {authView === 'login' ? (
+          <form onSubmit={handleLogin} className="dd-form">
+            <input name="email" type="email" className="form-input" placeholder="Email" required />
+            <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+            <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+              {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} className="dd-form">
+            <input name="nombre" className="form-input" placeholder="Nombre completo" required />
+            <input name="telefono" type="tel" className="form-input" placeholder="Teléfono (ej: +54911...)" required />
+            <input name="email" type="email" className="form-input" placeholder="Email" required />
+            <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+            <input name="patente" className="form-input" placeholder="Patente de la moto" required />
+            <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
+            <button type="submit" className="btn btn-success btn-full" disabled={authLoading}>
+              {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 
-  // ─── Dashboard ───
+  const renderDisponibles = () => {
+    // Si hay pedidos Confirmado/Retirado, estamos "En Viaje"
+    const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
+    
+    if (enViaje) {
+      const isRetirado = enViaje.estado === 'Retirado';
+      return (
+        <div className="dd-viaje-card animate-slide-up">
+          <div className="dd-viaje-header">
+            <h4>Viaje en curso</h4>
+            <span className="dd-badge bg-light text-dark">{enViaje.estado}</span>
+          </div>
+          <div className="dd-viaje-body">
+            <div className="dd-viaje-details">
+              <h5>Pedido #{enViaje.id.split('-').pop()}</h5>
+              <p><strong>Cliente:</strong> {enViaje.cliente}</p>
+              <p><strong>Destino:</strong> {enViaje.direccion}</p>
+              <p><strong>Monto:</strong> ${Number(enViaje.monto).toLocaleString('es-AR')}</p>
+            </div>
+            
+            <div className="dd-action-grid">
+              <a href="#" className="dd-btn-outline dd-btn-large">
+                📞 Llamar cliente
+              </a>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enViaje.direccion)}`} target="_blank" rel="noreferrer" className="dd-btn-outline dd-btn-large">
+                📍 Navegar GPS
+              </a>
+            </div>
+
+            <div style={{ marginTop: 24, display:'flex', flexDirection:'column', gap:16}}>
+              <button 
+                className={`dd-btn-rojo dd-btn-large ${isRetirado ? 'bg-success' : ''}`} 
+                onClick={() => retirarPedido(enViaje.id)}
+                disabled={isRetirado}
+                style={isRetirado ? {backgroundColor: '#27ae60'} : {}}
+              >
+                {isRetirado ? '🏍️ Retirado ✓' : '🏍️ Marcar como RETIRADO'}
+              </button>
+
+              <button 
+                className="dd-btn-verde dd-btn-large" 
+                onClick={confirmarEntregaClick}
+                disabled={!isRetirado}
+              >
+                🚀 Marcar como ENTREGADO (PIN)
+              </button>
+            </div>
+          </div>
+
+          {showEntregaModal && (
+            <div className="dd-modal-overlay">
+              <div className="dd-modal-content animate-slide-down">
+                <div className="dd-modal-header">
+                  <h5>Prueba de Entrega</h5>
+                  <button className="dd-modal-close" onClick={() => setShowEntregaModal(false)}>×</button>
+                </div>
+                <div className="dd-modal-body">
+                  <div style={{marginBottom: 16}}>
+                    <label style={{fontWeight:'bold', display:'block', marginBottom:8}}>Ingresa el PIN de 4 dígitos del cliente</label>
+                    <input 
+                      type="text" 
+                      maxLength="4"
+                      placeholder="Ej: 1234"
+                      className="form-input" 
+                      style={{ fontSize: '24px', textAlign: 'center', letterSpacing: '8px', fontWeight: 'bold' }}
+                      value={pinInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPinInput(val);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="dd-modal-footer">
+                  <button className="dd-btn-verde dd-btn-large" onClick={() => finalizarEntrega(enViaje)}>Confirmar Entrega</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // List of pending orders (Disponibles)
+    const pendientes = pedidos.filter(p => p.estado === 'Pendiente');
+    if (pendientes.length === 0) {
+      return (
+        <div className="empty-state">
+          <h3>No hay pedidos pendientes</h3>
+          <p>Los pedidos que te asignen aparecerán aquí cuando estés Activo.</p>
+        </div>
+      );
+    }
+
+    // The oldest order is the first one because we sorted by id ascending
+    const primerPendienteId = pendientes[0].id;
+
+    return (
+      <div className="dd-orders-grid animate-fade-in">
+        {pendientes.map(p => {
+          const esFirst = p.id === primerPendienteId;
+          return (
+            <div className="dd-order-card" key={p.id}>
+              <div className="dd-order-head">
+                <h5>Pedido #{p.id.substring(4, 12)}</h5>
+                <span className="dd-badge bg-warning text-dark">Pendiente</span>
+              </div>
+              <div className="dd-order-amount">${Number(p.monto).toLocaleString('es-AR')}</div>
+              <div className="dd-order-info">
+                <p>👤 Cliente UID: {p.cliente.substring(0,8)}</p>
+                <p>📍 {p.direccion}</p>
+              </div>
+              <div className="dd-order-pago">
+                <span>Pago:</span>
+                <span className={`dd-badge ${p.pago === 'Efectivo' ? 'bg-success' : 'bg-primary'}`}>{p.pago}</span>
+              </div>
+              <div className="dd-order-actions">
+                {esFirst ? (
+                  <button className="dd-btn-rojo" onClick={() => aceptarPedido(p.id)}>Aceptar pedido →</button>
+                ) : (
+                  <small style={{color:'var(--gray-500)', textAlign:'center', display:'block'}}>Debes aceptar el pedido más antiguo primero.</small>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderHistorial = () => {
+    if (historial.length === 0) {
+      return (
+        <div className="empty-state">
+          <h3>Aún no hay entregas finalizadas en esta sesión</h3>
+        </div>
+      );
+    }
+    return (
+      <div className="dd-orders-grid animate-fade-in">
+        {historial.map((h, i) => (
+          <div className="dd-order-card" key={i}>
+            <div className="dd-order-head">
+              <small style={{color:'var(--gray-500)'}}>{h.fecha}</small>
+              <span className="dd-badge bg-success">Entregado</span>
+            </div>
+            <p style={{margin:'8px 0', fontWeight:'bold'}}>{h.direccion}</p>
+            <div className="dd-order-amount" style={{margin:0}}>${Number(h.monto).toLocaleString('es-AR')}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ─── MAIN RENDER ───
   return (
     <div className="dd-page">
       <header className="dd-header">
@@ -129,76 +385,90 @@ export default function DriverDashboard() {
       </header>
 
       <main className="dd-main">
-        {/* Top bar */}
-        <div className="dd-topbar animate-fade-in">
-          <div className="dd-topbar-left">
-            <label className="toggle" onClick={toggleEstado}>
-              <input type="checkbox" checked={isActive} readOnly />
-              <span className="toggle-track" />
-              <span className="toggle-thumb" />
-            </label>
-            <span className={`dd-status ${isActive ? 'active' : ''}`}>
-              {isActive ? '🟢 Activo' : '⚫ Inactivo'}
-            </span>
-          </div>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-500)' }} onClick={handleLogout}>Cerrar sesión</button>
-        </div>
-
-        {/* Welcome */}
-        <div className="dd-welcome card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <div className="card-body" style={{ textAlign: 'center' }}>
-            <h3 style={{ color: 'var(--gray-800)', marginBottom: 4 }}>
-              Bienvenido, <span style={{ color: 'var(--red-500)' }}>{driverData?.Nombre || '...'}</span>
-            </h3>
-            <div className="dd-stats">
-              <div className="dd-stat-card">
-                <span className="dd-stat-number">{driverData?.PedidosHoy || 0}</span>
-                <span className="dd-stat-label">Viajes hoy</span>
+        {!driver ? renderAuth() : (
+          <>
+            <div className="dd-topbar animate-fade-in">
+              <div className="dd-topbar-left">
+                <label className="toggle" onClick={toggleEstado}>
+                  <input type="checkbox" checked={isActive} readOnly />
+                  <span className="toggle-track" />
+                  <span className="toggle-thumb" />
+                </label>
+                <span className={`dd-status ${isActive ? 'active' : ''}`}>
+                  {isActive ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              <div className="dd-topbar-actions">
+                <button className="btn btn-secondary btn-sm" onClick={iniciarGPS}>📍 GPS</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setShowChatModal(true)}>💬 Chat</button>
+                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-500)' }} onClick={handleLogout}>Cerrar sesión</button>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Trip Card */}
-        <div className="dd-trip card animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="dd-trip-header">
-            <h3>🏍️ Viaje Asignado</h3>
-          </div>
-          <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <p style={{ fontSize: '1.1rem', color: 'var(--gray-500)' }}>No hay viaje asignado en este momento</p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', marginTop: 8 }}>Cuando te asignen un pedido aparecerá aquí</p>
-          </div>
-        </div>
-
-        {/* Driver Info */}
-        {driverData && (
-          <div className="dd-info card animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="card-body">
-              <h3 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Mis Datos</h3>
-              <div className="dd-info-grid">
-                <div className="dd-info-item">
-                  <span className="dd-info-label">Nombre</span>
-                  <span className="dd-info-value">{driverData.Nombre}</span>
+            <div className="dd-stats-box animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <h3>Bienvenido, <span>{driverData?.Nombre || '...'}</span></h3>
+              <div className="dd-stats-grid">
+                <div className="dd-stat-item">
+                  <small>Viajes hoy</small>
+                  <strong>{driverData?.PedidosHoy || 0}</strong>
                 </div>
-                <div className="dd-info-item">
-                  <span className="dd-info-label">Email</span>
-                  <span className="dd-info-value">{driverData.Email}</span>
-                </div>
-                <div className="dd-info-item">
-                  <span className="dd-info-label">Teléfono</span>
-                  <span className="dd-info-value">{driverData.Telefono}</span>
-                </div>
-                <div className="dd-info-item">
-                  <span className="dd-info-label">Vehículo</span>
-                  <span className="dd-info-value">{driverData.MarcaModelo} — {driverData.Patente}</span>
+                <div className="dd-stat-item">
+                  <small>Ganancias sesión</small>
+                  <strong>${sessionGanancias}</strong>
                 </div>
               </div>
             </div>
-          </div>
+
+            <div className="dd-tabs animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <button className={`dd-tab-link ${activeTab === 'disponibles' ? 'active' : ''}`} onClick={() => setActiveTab('disponibles')}>
+                Pendientes
+              </button>
+              <button className={`dd-tab-link ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
+                Historial
+              </button>
+            </div>
+
+            <div className="dd-tab-content">
+              {activeTab === 'disponibles' ? renderDisponibles() : renderHistorial()}
+            </div>
+
+            {/* Chat Modal */}
+            {showChatModal && (
+              <div className="dd-modal-overlay">
+                <div className="dd-modal-content animate-slide-down">
+                  <div className="dd-modal-header">
+                    <h5>Chat Soporte / Cliente</h5>
+                    <button className="dd-modal-close" onClick={() => setShowChatModal(false)}>×</button>
+                  </div>
+                  <div className="dd-modal-body" style={{height: 300, display: 'flex', flexDirection: 'column', gap: 8}}>
+                    <div style={{textAlign:'center', color:'var(--gray-400)', margin:'auto'}}>Chat en tiempo real (demo)</div>
+                    {chatMessages.map((msg, i) => (
+                      <div key={i} style={{textAlign: 'right'}}>
+                        <span style={{background:'var(--blue-500)', color:'white', padding:'8px 16px', borderRadius:'16px', display:'inline-block'}}>{msg}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="dd-modal-footer">
+                    <input 
+                      type="text" 
+                      className="dd-chat-input" 
+                      placeholder="Escribe aquí..." 
+                      value={chatInput} 
+                      onChange={e=>setChatInput(e.target.value)}
+                      onKeyDown={e=>{ if(e.key==='Enter' && chatInput) { setChatMessages([...chatMessages, chatInput]); setChatInput(''); }}}
+                    />
+                    <button className="dd-btn-rojo" style={{width: 'auto', padding: '10px 16px'}} onClick={() => { if(chatInput) { setChatMessages([...chatMessages, chatInput]); setChatInput(''); }}}>Enviar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
-
-      <footer className="footer"><p>© 2026 <strong>Weep</strong> — Panel de Repartidores</p></footer>
+      <footer className="footer" style={{background: 'var(--red-600)', color: 'white', borderTop: 'none', padding: 24, textAlign: 'center'}}>
+        <p style={{margin:0}}>© 2026 Weep - Todos los derechos reservados</p>
+        <p style={{fontSize:'0.8rem', opacity:0.8, margin:'8px 0 0'}}>PWA optimizada para uso en moto • GPS en tiempo real</p>
+      </footer>
     </div>
   );
 }
