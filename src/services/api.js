@@ -1112,3 +1112,12 @@ export async function getLocalDatos(localId) {
   return data;
 }
 
+export async function getMontoLocalPedido(pedidoId, localId) {
+  const { data } = await supabase.from('pedidos_locales')
+    .select('total')
+    .eq('pedido_id', pedidoId)
+    .eq('local_id', localId)
+    .single();
+  return data ? Number(data.total) : 0;
+}
+

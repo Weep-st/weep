@@ -19,6 +19,7 @@ export default function DriverDashboard() {
   
   const [sessionGanancias, setSessionGanancias] = useState(0);
   const [localInfo, setLocalInfo] = useState({ nombre: '', direccion: '' });
+  const [montoLocal, setMontoLocal] = useState(0);
 
   // Modals state
   const [showEntregaModal, setShowEntregaModal] = useState(false);
@@ -51,11 +52,16 @@ export default function DriverDashboard() {
   useEffect(() => {
     const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
     if (enViaje && enViaje.local_id) {
-      api.getLocalDatos(enViaje.local_id).then(data => {
-        if (data) setLocalInfo({ nombre: data.nombre, direccion: data.direccion });
+      Promise.all([
+        api.getLocalDatos(enViaje.local_id),
+        api.getMontoLocalPedido(enViaje.id, enViaje.local_id)
+      ]).then(([lData, monto]) => {
+        if (lData) setLocalInfo({ nombre: lData.nombre, direccion: lData.direccion });
+        setMontoLocal(monto || 0);
       }).catch(e => console.error(e));
     } else {
       setLocalInfo({ nombre: '', direccion: '' });
+      setMontoLocal(0);
     }
   }, [pedidos]);
 
@@ -253,8 +259,20 @@ export default function DriverDashboard() {
           <div className="dd-viaje-body">
             <div className="dd-viaje-details">
               <h5>Pedido #{enViaje.id.split('-').pop()}</h5>
-              <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--red-600)' }}>Monto: ${Number(enViaje.monto).toLocaleString('es-AR')}</p>
+              <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--red-600)', marginBottom: 5 }}>Monto: ${Number(enViaje.monto).toLocaleString('es-AR')}</p>
               
+              <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: 15 }}>
+                <p style={{ margin: '3px 0', fontSize: '1.1rem' }}>
+                  <strong>💵 A Cobrar al Cliente:</strong> 
+                  <span style={{ color: '#2e7d32', fontWeight: 'bold' }}> {enViaje.pago === 'Efectivo' ? `$${Number(enViaje.monto).toLocaleString('es-AR')}` : '$0 (Ya Pagó)'}</span>
+                </p>
+                <p style={{ margin: '3px 0', fontSize: '1.1rem' }}>
+                  <strong>🏪 A Pagar al Local:</strong> 
+                  <span style={{ color: '#d32f2f', fontWeight: 'bold' }}> {enViaje.pago === 'Efectivo' ? `$${Number(montoLocal).toLocaleString('es-AR')}` : '$0'}</span>
+                </p>
+                {enViaje.pago !== 'Efectivo' && <small style={{ color: 'var(--gray-500)', display: 'block', marginTop: 5 }}>Pago online realizado. No cobres ni pagues efectivo.</small>}
+              </div>
+
               <div style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 15 }}>
                 <h5 style={{ color: '#d32f2f', marginBottom: 8 }}>📍 1. RETIRO</h5>
                 <p><strong>Local:</strong> {localInfo.nombre || 'Cargando...'}</p>
