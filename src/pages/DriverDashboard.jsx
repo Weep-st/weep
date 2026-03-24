@@ -18,6 +18,7 @@ export default function DriverDashboard() {
   const [historial, setHistorial] = useState([]); // Mock temporal o real local
   
   const [sessionGanancias, setSessionGanancias] = useState(0);
+  const [localInfo, setLocalInfo] = useState({ nombre: '', direccion: '' });
 
   // Modals state
   const [showEntregaModal, setShowEntregaModal] = useState(false);
@@ -46,6 +47,18 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [driver, isActive]);
 
+  // Carga de datos del local para viaje en curso
+  useEffect(() => {
+    const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
+    if (enViaje && enViaje.local_id) {
+      api.getLocalDatos(enViaje.local_id).then(data => {
+        if (data) setLocalInfo({ nombre: data.nombre, direccion: data.direccion });
+      }).catch(e => console.error(e));
+    } else {
+      setLocalInfo({ nombre: '', direccion: '' });
+    }
+  }, [pedidos]);
+
   const loadData = async () => {
     try {
       const d = await api.repartidorGetDatos(driver.id);
@@ -61,10 +74,15 @@ export default function DriverDashboard() {
     try {
       const res = await api.getPedidosDisponibles(driver.id);
       if (res.success) {
-        // Ordenamos por fecha mas antigua primero, o por ID
-        // res.data trae la lista. Vamos a ordenarlos ascendente por id.
         const sorted = res.data.sort((a,b) => a.id.localeCompare(b.id));
-        setPedidos(sorted);
+        setPedidos(prev => {
+          const pendientesNuevos = sorted.filter(p => p.estado === 'Pendiente');
+          const pendientesViejos = prev.filter(p => p.estado === 'Pendiente');
+          if (pendientesNuevos.length > pendientesViejos.length) {
+            api.playNotificationSound();
+          }
+          return sorted;
+        });
       }
     } catch(err) {
       console.error(err);
@@ -235,37 +253,51 @@ export default function DriverDashboard() {
           <div className="dd-viaje-body">
             <div className="dd-viaje-details">
               <h5>Pedido #{enViaje.id.split('-').pop()}</h5>
-              <p><strong>Cliente:</strong> {enViaje.cliente}</p>
-              <p><strong>Destino:</strong> {enViaje.direccion}</p>
-              <p><strong>Monto:</strong> ${Number(enViaje.monto).toLocaleString('es-AR')}</p>
+              <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--red-600)' }}>Monto: ${Number(enViaje.monto).toLocaleString('es-AR')}</p>
+              
+              <div style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 15 }}>
+                <h5 style={{ color: '#d32f2f', marginBottom: 8 }}>📍 1. RETIRO</h5>
+                <p><strong>Local:</strong> {localInfo.nombre || 'Cargando...'}</p>
+                <p><strong>Dirección:</strong> {localInfo.direccion || 'Cargando...'}</p>
+              </div>
+
+              <div style={{ margin: '15px 0' }}>
+                <button 
+                  className={`dd-btn-rojo dd-btn-large ${isRetirado ? 'bg-success' : ''}`} 
+                  onClick={() => retirarPedido(enViaje.id)}
+                  disabled={isRetirado}
+                  style={isRetirado ? {backgroundColor: '#27ae60', border:'none'} : {}}
+                >
+                  {isRetirado ? '🏍️ Retirado ✓' : '🏍️ Marcar como RETIRADO'}
+                </button>
+              </div>
+
+              <div style={{ borderTop: '1px solid #eee', paddingTop: 15 }}>
+                <h5 style={{ color: '#27ae60', marginBottom: 8 }}>📍 2. ENTREGA</h5>
+                <p><strong>Cliente UID:</strong> {enViaje.cliente.substring(0,8)}</p>
+                <p><strong>Dirección:</strong> {enViaje.direccion}</p>
+              </div>
+
+              <div style={{ marginTop: 15 }}>
+                <button 
+                  className="dd-btn-verde dd-btn-large" 
+                  onClick={confirmarEntregaClick}
+                  disabled={!isRetirado}
+                >
+                  🚀 Marcar como ENTREGADO (PIN)
+                </button>
+              </div>
             </div>
             
-            <div className="dd-action-grid">
-              <a href="#" className="dd-btn-outline dd-btn-large">
-                📞 Llamar cliente
+            <div className="dd-action-grid" style={{ marginTop: 25, borderTop: '1px solid #eee', paddingTop: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enViaje.direccion)}`} target="_blank" rel="noreferrer" className="dd-btn-outline" style={{ textAlign: 'center', textDecoration: 'none' }}>
+                🗺️ GPS Cliente
               </a>
-              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enViaje.direccion)}`} target="_blank" rel="noreferrer" className="dd-btn-outline dd-btn-large">
-                📍 Navegar GPS
-              </a>
-            </div>
-
-            <div style={{ marginTop: 24, display:'flex', flexDirection:'column', gap:16}}>
-              <button 
-                className={`dd-btn-rojo dd-btn-large ${isRetirado ? 'bg-success' : ''}`} 
-                onClick={() => retirarPedido(enViaje.id)}
-                disabled={isRetirado}
-                style={isRetirado ? {backgroundColor: '#27ae60'} : {}}
-              >
-                {isRetirado ? '🏍️ Retirado ✓' : '🏍️ Marcar como RETIRADO'}
-              </button>
-
-              <button 
-                className="dd-btn-verde dd-btn-large" 
-                onClick={confirmarEntregaClick}
-                disabled={!isRetirado}
-              >
-                🚀 Marcar como ENTREGADO (PIN)
-              </button>
+              {localInfo.direccion && (
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localInfo.direccion)}`} target="_blank" rel="noreferrer" className="dd-btn-outline" style={{ textAlign: 'center', textDecoration: 'none' }}>
+                  🏢 GPS Local
+                </a>
+              )}
             </div>
           </div>
 

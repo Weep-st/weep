@@ -662,7 +662,7 @@ export async function assignRepartidor(pedidoId) {
 
 export async function getPedidosDisponibles(repartidorId) {
   const { data } = await supabase.from('pedidos_general')
-    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega')
+    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id')
     .eq('repartidor_id', repartidorId)
     .in('estado', ['Pendiente', 'Confirmado', 'Retirado'])
     .order('created_at', { ascending: false });
@@ -670,6 +670,7 @@ export async function getPedidosDisponibles(repartidorId) {
     id: p.id, cliente: p.usuario_id, direccion: p.direccion || 'Sin dirección',
     monto: +p.total || 0, pago: p.metodo_pago || 'Efectivo',
     estado: p.estado, observaciones: p.observaciones || '', envio: p.tipo_entrega || 'envio',
+    local_id: p.local_id
   })) };
 }
 
@@ -900,6 +901,12 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
           </tbody>
         </table>
         
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://weep.com.ar/mis-pedidos" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            Ver Seguimiento 🗺️
+          </a>
+        </div>
+
         <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
           Podés seguir el estado de tu pedido desde la sección "Mis Pedidos" en la app.<br>
           <strong>¡Gracias por elegir Weep Delivery!</strong>
@@ -1080,5 +1087,28 @@ export async function notifyOrderRechazado(pedido) {
     console.error('Error in notifyOrderRechazado:', err);
     return { success: false, error: err.message };
   }
+}
+
+export function playNotificationSound() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    for (let i = 0; i < 3; i++) {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime + i * 0.5);
+      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime + i * 0.5);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.5 + 0.3);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start(audioCtx.currentTime + i * 0.5);
+      oscillator.stop(audioCtx.currentTime + i * 0.5 + 0.3);
+    }
+  } catch (err) { console.error("Error playing sound:", err); }
+}
+
+export async function getLocalDatos(localId) {
+  const { data } = await supabase.from('locales').select('nombre, direccion').eq('id', localId).single();
+  return data;
 }
 
