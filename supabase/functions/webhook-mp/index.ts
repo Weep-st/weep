@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
         await notifyLocalsAndCustomer({
           pedidoId: rpcResult.pedido_id,
           numConfirmacion: rpcResult.num_confirmacion,
+          repartidorId: rpcResult.repartidor_id,
           cart: cart_data,
           orderInfo: order_info,
           supabase
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
   }
 })
 
-async function notifyLocalsAndCustomer({ pedidoId, numConfirmacion, cart, orderInfo, supabase }: any) {
+async function notifyLocalsAndCustomer({ pedidoId, numConfirmacion, repartidorId, cart, orderInfo, supabase }: any) {
   try {
     const { direccion, tipoEntrega, observaciones, metodoPago, emailCliente, nombreCliente } = orderInfo;
 
@@ -150,25 +151,34 @@ async function notifyLocalsAndCustomer({ pedidoId, numConfirmacion, cart, orderI
 
     const promesasLocales = Object.entries(byLocal).map(async ([localId, group]: any) => {
       if (localId === 'unknown') return;
+      
       const { data: localData } = await supabase.from('locales').select('email, nombre').eq('id', localId).single();
       if (localData && localData.email) {
         let itemsHtml = group.items.map((i: any) => 
-          `<tr><td>${i.cantidad || 1}</td><td>${i.nombre}</td><td>$${Number(i.precio).toLocaleString('es-AR')}</td><td>$${(Number(i.precio) * (i.cantidad || 1)).toLocaleString('es-AR')}</td></tr>`
+          `<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.cantidad || 1}</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.nombre}</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">$${Number(i.precio).toLocaleString('es-AR')}</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">$${(Number(i.precio) * (i.cantidad || 1)).toLocaleString('es-AR')}</td></tr>`
         ).join('');
 
         const htmlBody = `
-          <div style="font-family: Arial, sans-serif;">
-            <h2>¡Nuevo Pedido para ${localData.nombre}!</h2>
-            <p><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
-            <p><strong>💳 Método de Pago:</strong> ${metodoPago.toUpperCase()}</p>
-            <p><strong>🚚 Entrega:</strong> ${tipoEntrega}</p>
-            <p><strong>📍 Dirección:</strong> ${direccion || 'Retiro en Local'}</p>
-            ${observaciones ? `<p><strong>📝 Observaciones:</strong> ${observaciones}</p>` : ''}
-            <table border="1" style="width: 100%; border-collapse: collapse;">
-              <thead><tr><th>Cant.</th><th>Item</th><th>Precio</th><th>Subtotal</th></tr></thead>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #9b1913;">¡Nuevo Pedido para ${localData.nombre}!</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
+              <p style="margin: 5px 0;"><strong>💳 Método de Pago:</strong> ${metodoPago.toUpperCase()}</p>
+              <p style="margin: 5px 0;"><strong>🚚 Entrega:</strong> ${tipoEntrega}</p>
+              <p style="margin: 5px 0;"><strong>📍 Dirección:</strong> ${direccion || 'Retiro en Local'}</p>
+              ${observaciones ? `<p style="margin: 5px 0;"><strong>📝 Observaciones:</strong> ${observaciones}</p>` : ''}
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <thead><tr style="background-color: #f1f1f1;"><th style="padding: 10px; text-align: left;">Cant.</th><th style="padding: 10px; text-align: left;">Item</th><th style="padding: 10px; text-align: left;">Precio</th><th style="padding: 10px; text-align: left;">Subtotal</th></tr></thead>
               <tbody>${itemsHtml}</tbody>
             </table>
-            <h3>Total Local: $${group.subtotal.toLocaleString('es-AR')}</h3>
+            <h3 style="text-align: right; color: #2e7d32;">Total Local: $${group.subtotal.toLocaleString('es-AR')}</h3>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://weep.com.ar/locales" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                Ir a mis pedidos de locales 🖥️
+              </a>
+            </div>
           </div>
         `;
 
@@ -178,33 +188,56 @@ async function notifyLocalsAndCustomer({ pedidoId, numConfirmacion, cart, orderI
       }
     });
 
-    // 2. Notificar al Cliente
-    if (emailCliente) {
-      let itemsHtml = cart.map((i: any) =>
-        `<tr><td>${i.cantidad || 1}</td><td>${i.nombre}</td><td>$${Number(i.precio).toLocaleString('es-AR')}</td><td>$${(Number(i.precio) * (i.cantidad || 1)).toLocaleString('es-AR')}</td></tr>`
-      ).join('');
+    // 2. Notificar al Cliente - ELIMINADO (Se envía cuando el local acepta)
 
-      const isEnvio = tipoEntrega && (tipoEntrega.toLowerCase().includes('env') || tipoEntrega.toLowerCase() === 'con envío');
-      const pinMessageHTML = isEnvio 
-        ? `<p><strong>Importante:</strong> Informarle este número al repartidor para confirmar la entrega.</p>`
-        : `<p><strong>Importante:</strong> Brindar este número en el mostrador para retirar tu pedido.</p>`;
+    // 3. Notificar al Repartidor si fue asignado automáticamente
+    if (repartidorId) {
+      const { data: repData } = await supabase.from('repartidores').select('email').eq('id', repartidorId).single();
+      if (repData && repData.email) {
+        
+        let montoCobrar = "NADA (pagado con " + metodoPago + ")";
+        if (metodoPago.toLowerCase() === "efectivo") {
+          montoCobrar = "$" + Number(orderInfo.totalCalculado).toLocaleString('es-AR');
+        }
 
-      const htmlBodyCliente = `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>¡Hola ${nombreCliente || 'Cliente'}! Tu pedido está confirmado. 🍔</h2>
-          <div style="background: #eef2f5; padding: 10px;">
-            <h3>PIN DE CONFIRMACIÓN: ${numConfirmacion}</h3>
-            ${pinMessageHTML}
+        let montoPagarLocal = "NADA";
+        if (metodoPago.toLowerCase() === "efectivo") {
+          montoPagarLocal = "$" + cart.reduce((sum: any, i: any) => sum + (Number(i.precio) * (i.cantidad || 1)), 0).toLocaleString('es-AR');
+        }
+
+        const firstLocalId = cart[0]?.local_id || 'Local';
+        let direccionRetiro = "Consultar en panel de locales";
+        if (firstLocalId !== 'Local') {
+          const { data: lData } = await supabase.from('locales').select('direccion').eq('id', firstLocalId).single();
+          if (lData?.direccion) direccionRetiro = lData.direccion;
+        }
+
+        const htmlBodyRepartidor = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <div style="text-align:center; margin: 20px 0;">
+              <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" width="120" style="border-radius:12px;">
+            </div>
+            <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
+            <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
+            </div>
+            
+            <h3 style="color: #2e7d32; margin-top: 20px;">📍 RETIRO</h3>
+            <p style="margin: 5px 0;"><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
+            <p style="margin: 5px 0;"><strong>Total a pagar al local:</strong> ${montoPagarLocal}</p>
+            
+            <h3 style="color: #2e7d32; margin-top: 20px;">📍 ENTREGA</h3>
+            <p style="margin: 5px 0;"><strong>Dirección de entrega:</strong> ${direccion || 'Retiro en Local'}</p>
+            <p style="margin: 5px 0;"><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+            <p style="margin: 5px 0;"><strong>Total a cobrar al cliente:</strong> ${montoCobrar}</p>
           </div>
-          <p><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
-          <p><strong>🚚 Entrega:</strong> ${tipoEntrega}</p>
-          <table border="1"><thead><tr><th>Cant.</th><th>Item</th><th>Precio</th><th>Subtotal</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-        </div>
-      `;
+        `;
 
-      await supabase.functions.invoke('send-email', {
-        body: { to: emailCliente, subject: `Confirmación de Pedido #${pedidoId} - Weep 🛵`, htmlBody: htmlBodyCliente }
-      });
+        await supabase.functions.invoke('send-email', {
+          body: { to: repData.email, subject: `🚚 PEDIDO ASIGNADO #${pedidoId} - Weep`, htmlBody: htmlBodyRepartidor }
+        });
+      }
     }
 
     await Promise.allSettled(promesasLocales);

@@ -1,3 +1,7 @@
+import nodemailer from "npm:nodemailer@6.9.13";
+
+// @deno-types="npm:@types/nodemailer"
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -10,44 +14,43 @@ Deno.serve(async (req) => {
 
   try {
     const { to, subject, htmlBody } = await req.json()
-    const resendApiKey = Deno.env.get("RESEND_API_KEY")
+    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD")
+    const gmailEmail = "bajoneando.st@gmail.com" // Cuenta proporcionada por el usuario
 
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY is not configured in Supabase Edge Functions")
+    if (!gmailAppPassword) {
+      throw new Error("GMAIL_APP_PASSWORD is not configured in Supabase Edge Functions")
     }
 
     if (!to || !subject || !htmlBody) {
       throw new Error("Missing required parameters: to, subject, or htmlBody")
     }
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json"
+    // Configurar el transporte SMTP para Gmail
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465, // SSL
+      secure: true, // true para puerto 465
+      auth: {
+        user: gmailEmail,
+        pass: gmailAppPassword,
       },
-      body: JSON.stringify({
-        from: "WEEP <onboarding@resend.dev>", // Cambiar por tu correo verificado
-        to: [to],
-        subject: subject,
-        html: htmlBody
-      })
-    })
+    });
 
-    const data = await response.json()
+    const info = await transporter.sendMail({
+      from: `"WEEP" <${gmailEmail}>`,
+      to: [to],
+      subject: subject,
+      html: htmlBody,
+    });
 
-    if (!response.ok) {
-      throw new Error(data.message || "Error sending email via Resend")
-    }
-
-    return new Response(JSON.stringify({ success: true, id: data.id }), {
+    return new Response(JSON.stringify({ success: true, id: info.messageId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
 
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200
+      status: 200 // Mantenemos Status 200 según la estructura previa para evitar romper el cliente
     })
   }
 })

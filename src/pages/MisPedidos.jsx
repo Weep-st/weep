@@ -97,6 +97,7 @@ export default function MisPedidos() {
     if (!dateStr) return '—';
     try {
       return new Date(dateStr).toLocaleDateString('es-AR', {
+        timeZone: 'UTC',
         weekday: 'short', day: 'numeric', month: 'short',
         hour: '2-digit', minute: '2-digit',
       });

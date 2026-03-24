@@ -128,6 +128,9 @@ export default function RestaurantDashboard() {
           emailCliente: resGeneral.emailCliente || '',
           nombreCliente: resGeneral.nombreCliente || 'Cliente',
           fecha: resGeneral.fecha,
+          numConfirmacion: resGeneral.numConfirmacion,
+          repartidorId: resGeneral.repartidorId,
+          localId: p[2],
           totalLocal: Number(p[3]) || 0,
         });
       }
@@ -306,7 +309,34 @@ export default function RestaurantDashboard() {
       
       // Send notifications logic
       try {
-        if (action === 'Listo') {
+        if (action === 'Aceptado') {
+          // Mapear items (array de arrays) a formato esperado por notifyCustomerAboutNewOrder
+          const mappedCart = pedido.items.map(item => ({
+            id: item[2],
+            nombre: item[4],
+            precio: Number(item[5]),
+            cantidad: Number(item[6]),
+            qty: Number(item[6]),
+            local_id: pedido.localId
+          }));
+          await api.notifyCustomerAboutNewOrder(
+            pedido.idPedido, mappedCart, pedido.direccion, 
+            pedido.tipoEntrega, pedido.numConfirmacion, 
+            pedido.emailCliente, pedido.nombreCliente
+          );
+
+          // Notificar al repartidor si está asignado
+          if (pedido.repartidorId) {
+            api.repartidorGetDatos(pedido.repartidorId).then(rep => {
+              if (rep.success && rep.data?.Email) {
+                api.notifyDriverAboutNewOrder(
+                  pedido.idPedido, mappedCart, pedido.direccion, 
+                  pedido.observaciones, pedido.totalLocal, pedido.metodoPago, rep.data.Email
+                ).catch(e => console.error("Error notificando driver desde dashboard:", e));
+              }
+            }).catch(e => console.error(e));
+          }
+        } else if (action === 'Listo') {
           const direccionLocal = profileData?.direccion || 'Dirección del local';
           await api.notifyOrderListo(pedido, direccionLocal);
         } else if (action === 'Entregado') {
@@ -784,7 +814,7 @@ function OrderCard({ order: o, onAction, finished }) {
         <div>
           <strong>Pedido #{o.idPedido}</strong>
           <span className="rd-order-sub">Local #{o.idPedidoLocal}</span>
-          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
           <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
             {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
           </span>

@@ -334,7 +334,8 @@ export async function getPedidoGeneral(pedidoId) {
     direccion: data.direccion, observaciones: data.observaciones,
     metodoPago: data.metodo_pago, tipoEntrega: data.tipo_entrega,
     emailCliente: data.email_cliente, nombreCliente: data.nombre_cliente,
-    fecha: data.created_at,
+    fecha: data.created_at, numConfirmacion: data.num_confirmacion,
+    repartidorId: data.repartidor_id,
   };
 }
 
@@ -815,12 +816,25 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
             
             <h3 style="text-align: right; color: #2e7d32;">Total Local: $${group.subtotal.toLocaleString('es-AR')}</h3>
             
-            <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://weep.com.ar/locales" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                Ir a mis pedidos de locales 🖥️
+              </a>
+            </div>
+
+            <p style="margin-top: 30px; font-size: 16px; color: #d32f2f; text-align: center; font-weight: bold;">
+              ⚠️ IMPORTANTE: Debes ingresar al panel para ACEPTAR o RECHAZAR este pedido.
+            </p>
+
+            <p style="margin-top: 15px; font-size: 14px; color: #666; text-align: center;">
               Por favor, revisa el panel de administración de Weep para preparar el pedido.<br>
               <strong>Weep Delivery</strong>
             </p>
           </div>
         `;
+
+        // DEBUG LOG
+        console.log(`[DEBUG] Enviando Correo a Local ${localData.email} para Pedido #${pedidoId}. Contiene el botón?`, htmlBody.includes('Ir a mis pedidos de locales'));
 
         await supabase.functions.invoke('send-email', {
           body: {
@@ -902,6 +916,68 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     });
   } catch (error) {
     console.error("Error enviando email al cliente:", error);
+  }
+}
+
+export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, observaciones, total, metodoPago, repartidorEmail) {
+  try {
+    if (!repartidorEmail) return;
+
+    let montoCobrar = "NADA (pagado con " + metodoPago + ")";
+    if (metodoPago.toLowerCase() === "efectivo") {
+      montoCobrar = "$" + Number(total).toLocaleString('es-AR');
+    }
+
+    // Calcular monto a pagar al local (solo efectivo)
+    let montoPagarLocal = "NADA";
+    if (metodoPago.toLowerCase() === "efectivo") {
+      montoPagarLocal = "$" + cart.reduce((sum, i) => sum + (Number(i.precio) * (i.cantidad || i.qty || 1)), 0).toLocaleString('es-AR');
+    }
+
+    const firstLocalId = cart[0]?.local_id || 'Local';
+    let direccionRetiro = "Consultar en panel de locales";
+    
+    if (firstLocalId !== 'Local') {
+      const { data: localData } = await supabase.from('locales').select('direccion').eq('id', firstLocalId).single();
+      if (localData?.direccion) direccionRetiro = localData.direccion;
+    }
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="text-align:center; margin: 20px 0;">
+          <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" width="120" style="border-radius:12px;">
+        </div>
+        <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
+        <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
+        </div>
+        
+        <h3 style="color: #2e7d32; margin-top: 20px;">📍 RETIRO</h3>
+        <p style="margin: 5px 0;"><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
+        <p style="margin: 5px 0;"><strong>Total a pagar al local:</strong> ${montoPagarLocal}</p>
+        
+        <h3 style="color: #2e7d32; margin-top: 20px;">📍 ENTREGA</h3>
+        <p style="margin: 5px 0;"><strong>Dirección de entrega:</strong> ${direccion || 'Retiro en Local'}</p>
+        <p style="margin: 5px 0;"><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
+        <p style="margin: 5px 0;"><strong>Total a cobrar al cliente:</strong> ${montoCobrar}</p>
+        
+        <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
+          Por favor, dirígete a la dirección lo antes posible.<br>
+          <strong>¡Gracias por ser parte de Weep!</strong>
+        </p>
+      </div>
+    `;
+
+    await supabase.functions.invoke('send-email', {
+      body: {
+        to: repartidorEmail,
+        subject: `🚚 PEDIDO ASIGNADO #${pedidoId} - Weep`,
+        htmlBody
+      }
+    });
+  } catch (error) {
+    console.error("Error enviando email al repartidor:", error);
   }
 }
 

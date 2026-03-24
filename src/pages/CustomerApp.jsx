@@ -267,12 +267,29 @@ export default function CustomerApp() {
           fd.get('observaciones') || '', mp
         ).catch(e => console.error(e));
 
+        // El correo de confirmación al cliente ahora se envía cuando el local acepta el pedido (en RestaurantDashboard)
+        /*
         api.notifyCustomerAboutNewOrder(
           response.pedidoId, cart.items,
           cart.deliveryType === 'envio' ? dir : 'Retiro en local', 
           cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar', 
           response.numConfirmacion, user.email, user.name
         ).catch(e => console.error(e));
+        */
+
+        // Notificar al repartidor si fue asignado automáticamente
+        if (response.repartidorId) {
+          api.repartidorGetDatos(response.repartidorId).then(rep => {
+            if (rep.success && rep.data?.Email) {
+              api.notifyDriverAboutNewOrder(
+                response.pedidoId, cart.items,
+                cart.deliveryType === 'envio' ? dir : 'Retiro en local',
+                fd.get('observaciones') || '',
+                exactTotal, mp, rep.data.Email
+              ).catch(e => console.error("Error notificando chofer:", e));
+            }
+          }).catch(e => console.error(e));
+        }
 
         cart.clearCart();
         setCartOpen(false);
