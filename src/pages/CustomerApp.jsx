@@ -277,20 +277,6 @@ export default function CustomerApp() {
         ).catch(e => console.error(e));
         */
 
-        // Notificar al repartidor si fue asignado automáticamente
-        if (response.repartidorId) {
-          api.repartidorGetDatos(response.repartidorId).then(rep => {
-            if (rep.success && rep.data?.Email) {
-              api.notifyDriverAboutNewOrder(
-                response.pedidoId, cart.items,
-                cart.deliveryType === 'envio' ? dir : 'Retiro en local',
-                fd.get('observaciones') || '',
-                exactTotal, mp, rep.data.Email
-              ).catch(e => console.error("Error notificando chofer:", e));
-            }
-          }).catch(e => console.error(e));
-        }
-
         cart.clearCart();
         setCartOpen(false);
         e.target.reset();

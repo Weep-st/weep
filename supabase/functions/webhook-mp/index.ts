@@ -190,55 +190,7 @@ async function notifyLocalsAndCustomer({ pedidoId, numConfirmacion, repartidorId
 
     // 2. Notificar al Cliente - ELIMINADO (Se envía cuando el local acepta)
 
-    // 3. Notificar al Repartidor si fue asignado automáticamente
-    if (repartidorId) {
-      const { data: repData } = await supabase.from('repartidores').select('email').eq('id', repartidorId).single();
-      if (repData && repData.email) {
-        
-        let montoCobrar = "NADA (pagado con " + metodoPago + ")";
-        if (metodoPago.toLowerCase() === "efectivo") {
-          montoCobrar = "$" + Number(orderInfo.totalCalculado).toLocaleString('es-AR');
-        }
-
-        let montoPagarLocal = "NADA";
-        if (metodoPago.toLowerCase() === "efectivo") {
-          montoPagarLocal = "$" + cart.reduce((sum: any, i: any) => sum + (Number(i.precio) * (i.cantidad || 1)), 0).toLocaleString('es-AR');
-        }
-
-        const firstLocalId = cart[0]?.local_id || 'Local';
-        let direccionRetiro = "Consultar en panel de locales";
-        if (firstLocalId !== 'Local') {
-          const { data: lData } = await supabase.from('locales').select('direccion').eq('id', firstLocalId).single();
-          if (lData?.direccion) direccionRetiro = lData.direccion;
-        }
-
-        const htmlBodyRepartidor = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-            <div style="text-align:center; margin: 20px 0;">
-              <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" width="120" style="border-radius:12px;">
-            </div>
-            <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
-            <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-              <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
-            </div>
-            
-            <h3 style="color: #2e7d32; margin-top: 20px;">📍 RETIRO</h3>
-            <p style="margin: 5px 0;"><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
-            <p style="margin: 5px 0;"><strong>Total a pagar al local:</strong> ${montoPagarLocal}</p>
-            
-            <h3 style="color: #2e7d32; margin-top: 20px;">📍 ENTREGA</h3>
-            <p style="margin: 5px 0;"><strong>Dirección de entrega:</strong> ${direccion || 'Retiro en Local'}</p>
-            <p style="margin: 5px 0;"><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
-            <p style="margin: 5px 0;"><strong>Total a cobrar al cliente:</strong> ${montoCobrar}</p>
-          </div>
-        `;
-
-        await supabase.functions.invoke('send-email', {
-          body: { to: repData.email, subject: `🚚 PEDIDO ASIGNADO #${pedidoId} - Weep`, htmlBody: htmlBodyRepartidor }
-        });
-      }
-    }
+    // 3. Notificar al Repartidor - ELIMINADO (Se envía cuando el local acepta)
 
     await Promise.allSettled(promesasLocales);
   } catch (e) {
