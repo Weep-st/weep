@@ -25,6 +25,7 @@ export default function RestaurantDashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [cobrosData, setCobrosData] = useState(null);
   const [cobrosLoading, setCobrosLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const pollingRef = useRef(null);
   const previousOrdersRef = useRef([]);
   const localOpenRef = useRef(false);
@@ -249,7 +250,11 @@ export default function RestaurantDashboard() {
     const fd = new FormData(e.target);
     setAuthLoading(true);
     try {
-      await api.registerLocal(fd.get('nombre'), fd.get('direccion'), fd.get('email'), fd.get('password'));
+      await api.registerLocal(
+        fd.get('nombre'), fd.get('direccion'), fd.get('email'), fd.get('password'),
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
+      );
       toast.success('¡Local registrado! Iniciá sesión.');
       setAuthView('login');
     } catch { toast.error('Error al registrar'); }
@@ -427,6 +432,14 @@ export default function RestaurantDashboard() {
                 <input name="direccion" className="form-input" placeholder="Dirección (calle, número, barrio)" required />
                 <input name="email" type="email" className="form-input" placeholder="Email" required />
                 <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+                
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
+                  <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+                  <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>Términos y Condiciones y Política de Privacidad</button> para Locales.
+                  </label>
+                </div>
+
                 <button type="submit" className="btn btn-success btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Registrar Local'}
                 </button>
@@ -436,6 +449,61 @@ export default function RestaurantDashboard() {
         </div>
       </main>
       <footer className="footer"><p>© 2026 <strong>Weep</strong></p></footer>
+
+      {showTerms && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowTerms(false)}>
+          <div className="modal-box animate-fade-in" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.5rem' }}>Términos y Condiciones y Política de Privacidad</h2>
+            <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
+              <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 2. LOCALES – TÉRMINOS Y CONDICIONES</h3>
+              <p><strong>1. Independencia</strong></p>
+              <p>El Local opera de forma independiente, no tiene relación laboral con Weep y opera bajo su propio riesgo.</p>
+              
+              <p><strong>2. Responsabilidad total</strong></p>
+              <p>El Local es responsable de la elaboración, calidad, seguridad alimentaria e información de los productos.</p>
+              
+              <p><strong>3. Exención de Weep</strong></p>
+              <p>Weep no será responsable por productos defectuosos, intoxicaciones o reclamos de usuarios.</p>
+              
+              <p><strong>4. Precios</strong></p>
+              <p>El Local define sus propios precios y promociones. Weep no interviene.</p>
+              
+              <p><strong>5. Pedidos</strong></p>
+              <p>El Local debe cumplir con los pedidos aceptados y mantener su información actualizada (horarios, stock).</p>
+              
+              <p><strong>6. Pagos</strong></p>
+              <p>Procesados mediante Mercado Pago. Weep puede aplicar comisiones por venta.</p>
+              
+              <p><strong>7. Indemnidad</strong></p>
+              <p>El Local mantiene indemne a Weep ante cualquier reclamo de terceros derivado de su actividad.</p>
+
+              <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+
+              <h3 style={{ color: 'var(--red-600)' }}>🔒 LOCALES – POLÍTICA DE PRIVACIDAD</h3>
+              <p><strong>Datos recolectados:</strong></p>
+              <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                <li>Datos del comercio y titular</li>
+                <li>Ventas e historial de pedidos</li>
+              </ul>
+              
+              <p><strong>Uso de datos:</strong></p>
+              <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                <li>Operar la plataforma y gestionar pedidos</li>
+                <li>Liquidaciones de pagos</li>
+                <li>Soporte técnico</li>
+              </ul>
+              
+              <p><strong>Compartición:</strong></p>
+              <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                <li>Usuarios (clientes)</li>
+                <li>Repartidores</li>
+                <li>Proveedores de pago</li>
+              </ul>
+            </div>
+            <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 

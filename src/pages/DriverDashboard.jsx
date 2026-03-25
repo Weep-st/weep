@@ -9,6 +9,7 @@ export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
   const [authView, setAuthView] = useState('login');
   const [authLoading, setAuthLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   
   // Dashboard state
   const [driverData, setDriverData] = useState(null);
@@ -119,6 +120,8 @@ export default function DriverDashboard() {
         nombre: fd.get('nombre'), telefono: fd.get('telefono'),
         email: fd.get('email'), password: fd.get('password'),
         patente: fd.get('patente').toUpperCase(), marcaModelo: fd.get('marcaModelo'),
+        termsAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        privacyAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
       });
       if (d?.success) {
         toast.success('¡Registro exitoso! Iniciá sesión.');
@@ -235,10 +238,78 @@ export default function DriverDashboard() {
             <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
             <input name="patente" className="form-input" placeholder="Patente de la moto" required />
             <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
+            
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
+              <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+              <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
+                Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>Términos y Condiciones y Política de Privacidad</button> para Repartidores.
+              </label>
+            </div>
+
             <button type="submit" className="btn btn-success btn-full" disabled={authLoading}>
               {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
             </button>
           </form>
+        )}
+        
+        {showTerms && (
+          <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowTerms(false)}>
+            <div className="dd-modal-content animate-slide-down" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+              <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Términos y Condiciones y Política de Privacidad</h4>
+              <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
+                <h5 style={{ color: 'red', marginTop: 0 }}>📄 3. REPARTIDORES – TÉRMINOS Y CONDICIONES</h5>
+                <p><strong>🔴 CLAVE: esto es lo más importante</strong></p>
+                
+                <p><strong>1. Naturaleza</strong></p>
+                <p>El repartidor es un trabajador independiente, no tiene relación laboral con Weep y opera bajo su propio riesgo.</p>
+                
+                <p><strong>2. Autonomía</strong></p>
+                <p>Puede aceptar/rechazar pedidos libremente, define sus propios horarios y no existe exclusividad.</p>
+                
+                <p><strong>3. Logística</strong></p>
+                <p>Weep solo facilita la asignación de pedidos. No dirige la actividad como empleador.</p>
+                
+                <p><strong>4. Responsabilidad total</strong></p>
+                <p>El repartidor es responsable de accidentes, daños, estado del vehículo y cumplimiento de normas viales.</p>
+                
+                <p><strong>5. Seguro</strong></p>
+                <p>Debe contar con seguro propio y cobertura médica. Weep no provee seguros.</p>
+                
+                <p><strong>6. Exención de responsabilidad</strong></p>
+                <p>Weep no será responsable por accidentes, lesiones o daños a terceros durante la actividad.</p>
+                
+                <p><strong>7. Indemnidad</strong></p>
+                <p>El repartidor mantiene indemne a Weep ante cualquier reclamo de terceros.</p>
+                
+                <p><strong>8. Conducta</strong></p>
+                <p>Debe actuar de forma segura, legal y respetuosa.</p>
+
+                <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+
+                <h5 style={{ color: 'red' }}>🔒 REPARTIDORES – POLÍTICA DE PRIVACIDAD</h5>
+                <p><strong>Datos recolectados:</strong></p>
+                <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                  <li>Datos personales (nombre, teléfono, email)</li>
+                  <li>Ubicación en tiempo real (GPS)</li>
+                  <li>Actividad de entregas</li>
+                </ul>
+                
+                <p><strong>Uso de datos:</strong></p>
+                <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                  <li>Asignación de pedidos y optimización de rutas</li>
+                  <li>Seguimiento del pedido por el cliente</li>
+                  <li>Seguridad del sistema</li>
+                </ul>
+                
+                <p><strong>Compartición:</strong></p>
+                <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                  <li>Usuarios (clientes)</li>
+                  <li>Comercios (locales)</li>
+                </ul>
+              </div>
+              <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -170,7 +170,11 @@ export default function CustomerApp() {
     if (fd.get('password').length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
     setAuthLoading(true);
     try {
-      const d = await api.registerUsuario(fd.get('nombre'), fd.get('email').toLowerCase(), fd.get('password'), fd.get('direccion'));
+      const d = await api.registerUsuario(
+        fd.get('nombre'), fd.get('email').toLowerCase(), fd.get('password'), fd.get('direccion'),
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
+      );
       if (d.success) {
         loginAsUser({ userId: d.userId, name: fd.get('nombre'), email: fd.get('email'), address: fd.get('direccion') });
         setModal(null);
@@ -684,6 +688,14 @@ export default function CustomerApp() {
                 <input name="email" type="email" className="form-input" placeholder="Email" required />
                 <input name="password" type="password" className="form-input" placeholder="Contraseña (6+ caracteres)" required />
                 <input name="direccion" className="form-input" placeholder="Dirección (opcional)" />
+                
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
+                  <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+                  <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setModal('terms')}>Términos y Condiciones y Política de Privacidad</button> para Usuarios.
+                  </label>
+                </div>
+
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
                 </button>
@@ -742,20 +754,62 @@ export default function CustomerApp() {
 
             {modal === 'terms' && (
               <div>
-                <h2>Términos y Condiciones</h2>
-                <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.6 }}>
-                  <p><strong>Última actualización: febrero 2026</strong></p>
-                  <p>Al usar Weep aceptás:</p>
-                  <ul style={{ paddingLeft: 20, marginTop: 8 }}>
-                    <li>Utilizar la plataforma de buena fe y respetando las leyes vigentes.</li>
-                    <li>No publicar contenido falso, engañoso o ilegal.</li>
-                    <li>Que los pedidos generados son acuerdos entre el cliente y el local adherido.</li>
-                    <li>Weep actúa solo como intermediario tecnológico y no se responsabiliza por la calidad de los productos, tiempos de entrega ni disputas entre usuarios y comercios.</li>
-                    <li>Nos reservamos el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
+                <h2>Términos y Condiciones y Política de Privacidad</h2>
+                <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, maxHeight: '350px', overflowY: 'auto', paddingRight: '10px', textAlign: 'left' }}>
+                  <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 1. USUARIOS – TÉRMINOS Y CONDICIONES</h3>
+                  <p><strong>1. Naturaleza del servicio</strong></p>
+                  <p>Weep es una plataforma que Intermedia entre usuarios y comercios, facilita la gestión de pedidos y coordina la logística de entrega. Weep no elabora ni comercializa productos.</p>
+                  
+                  <p><strong>2. Relación contractual</strong></p>
+                  <p>El usuario acepta que la compra es con el comercio, la entrega es realizada por repartidores independientes, y Weep no es parte directa de dichas relaciones.</p>
+                  
+                  <p><strong>3. Productos</strong></p>
+                  <p>Los comercios son los únicos responsables de Calidad, Ingredientes, Higiene y Estado. Weep no garantiza los productos.</p>
+                  
+                  <p><strong>4. Entregas</strong></p>
+                  <p>Weep coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logística.</p>
+                  
+                  <p><strong>5. Limitación de responsabilidad</strong></p>
+                  <p>Weep no será responsable por intoxicaciones, problemas de salud, daños derivados del producto, demoras razonables o fallas de terceros.</p>
+                  
+                  <p><strong>6. Pagos</strong></p>
+                  <p>Los pagos se procesan mediante Mercado Pago. Weep no es entidad financiera, no fija precios y puede aplicar comisiones.</p>
+                  
+                  <p><strong>7. Cancelaciones</strong></p>
+                  <p>Dependen del comercio y estado del pedido.</p>
+                  
+                  <p><strong>8. Indemnidad</strong></p>
+                  <p>El usuario mantiene indemne a Weep ante reclamos derivados del uso.</p>
+                  
+                  <p><strong>9. Aceptación</strong></p>
+                  <p>Mediante registro y confirmación electrónica.</p>
+                  
+                  <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+                  
+                  <h3 style={{ color: 'var(--red-600)' }}>🔒 USUARIOS – POLÍTICA DE PRIVACIDAD</h3>
+                  <p><strong>Datos recolectados:</strong></p>
+                  <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                    <li>Nombre, teléfono, email</li>
+                    <li>Dirección</li>
+                    <li>Ubicación en tiempo real</li>
+                    <li>Historial de pedidos</li>
                   </ul>
-                  <p style={{ marginTop: 16 }}>Cualquier duda escribinos a <a href="mailto:bajoneando.st@gmail.com" style={{ color: 'var(--red-500)' }}>bajoneando.st@gmail.com</a></p>
+                  
+                  <p><strong>Uso de datos:</strong></p>
+                  <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                    <li>Procesar pedidos</li>
+                    <li>Coordinar entregas</li>
+                    <li>Asignar repartidores</li>
+                  </ul>
+                  
+                  <p><strong>Compartición:</strong></p>
+                  <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                    <li>Comercios</li>
+                    <li>Repartidores</li>
+                    <li>Proveedores de pago (Mercado Pago)</li>
+                  </ul>
                 </div>
-                <button className="btn btn-secondary btn-full" onClick={() => setModal(null)} style={{ marginTop: 16 }}>Cerrar</button>
+                <button className="btn btn-secondary btn-full" onClick={() => setModal('register')} style={{ marginTop: 16 }}>Volver al Registro</button>
               </div>
             )}
           </div>

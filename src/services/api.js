@@ -32,9 +32,15 @@ export async function loginUsuario(email, password) {
   return { success: true, userId: data.id, nombre: data.nombre, direccion: data.direccion, telefono: data.telefono, email: data.email };
 }
 
-export async function registerUsuario(nombre, email, password, direccion) {
+export async function registerUsuario(nombre, email, password, direccion, termsAccepted = true, privacyAccepted = true) {
   const id = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-  const { error } = await supabase.from('usuarios').insert({ id, nombre, email, password, direccion });
+  const { error } = await supabase.from('usuarios').insert({ 
+    id, nombre, email, password, direccion,
+    terms_accepted: termsAccepted,
+    privacy_accepted: privacyAccepted,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: 'v1'
+  });
   if (error) throw new Error(error.message);
   return { success: true, userId: id };
 }
@@ -59,9 +65,15 @@ export async function loginLocal(email, password) {
   return { success: true, localId: data.id };
 }
 
-export async function registerLocal(nombre, direccion, email, password) {
+export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true) {
   const id = 'LOC-' + Date.now();
-  const { error } = await supabase.from('locales').insert({ id, nombre, direccion, email, password });
+  const { error } = await supabase.from('locales').insert({ 
+    id, nombre, direccion, email, password,
+    terms_accepted: termsAccepted,
+    privacy_accepted: privacyAccepted,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: 'v1'
+  });
   if (error) throw new Error(error.message);
   return { success: true };
 }
@@ -120,6 +132,10 @@ export async function repartidorRegister(params) {
     email: params.email, password: params.password,
     patente: params.patente, marca_modelo: params.marcaModelo,
     fecha_registro: new Date().toISOString(),
+    terms_accepted: params.termsAccepted ?? true,
+    privacy_accepted: params.privacyAccepted ?? true,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: 'v1'
   });
   if (error) return { success: false, error: error.message };
   return { success: true };
