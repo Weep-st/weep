@@ -258,7 +258,6 @@ export default function DriverDashboard() {
               <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Términos y Condiciones y Política de Privacidad</h4>
               <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
                 <h5 style={{ color: 'red', marginTop: 0 }}>📄 3. REPARTIDORES – TÉRMINOS Y CONDICIONES</h5>
-                <p><strong>🔴 CLAVE: esto es lo más importante</strong></p>
                 
                 <p><strong>1. Naturaleza</strong></p>
                 <p>El repartidor es un trabajador independiente, no tiene relación laboral con Weep y opera bajo su propio riesgo.</p>
