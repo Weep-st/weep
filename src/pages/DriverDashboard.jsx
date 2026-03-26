@@ -240,8 +240,8 @@ export default function DriverDashboard() {
             <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
-              <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
-              <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
+              <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.95rem', color: 'var(--gray-700)', cursor: 'pointer', padding: '8px 0' }}>
+                <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
                 Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>Términos y Condiciones y Política de Privacidad</button> para Repartidores.
               </label>
             </div>
