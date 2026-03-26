@@ -569,6 +569,7 @@ export default function RestaurantDashboard() {
     } else if (tutorialStep === 3) {
       setView('orders');
       setCurrentTab('pendientes');
+      playAlertSound();
       setTutorialStep(4);
     } else if (tutorialStep === 4) {
       setTutorialStep(5);
