@@ -662,7 +662,7 @@ export default function RestaurantDashboard() {
                     💰 Mis Ventas
                   </button>
                   <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); }}>
-                    🏦 Cobros
+                    🏦 Gestión de Pagos
                   </button>
                   <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); }}>
                     👤 Editar Perfil
@@ -994,7 +994,7 @@ export default function RestaurantDashboard() {
                 💰 Mis Ventas
               </button>
               <button className={profileSubView === 'cobros' ? 'active' : ''} onClick={() => { setProfileSubView('cobros'); loadCobros(); }}>
-                🏦 Cobros
+                🏦 Gestión de Pagos
               </button>
               <button className={profileSubView === 'edit' ? 'active' : ''} onClick={() => setProfileSubView('edit')}>
                 👤 Editar Perfil
@@ -1037,53 +1037,109 @@ export default function RestaurantDashboard() {
 
             {profileSubView === 'cobros' && (
               <div className="card card-body">
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Cobros</h2>
-                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Pagos con Transferencia • Comisión Weep 5% • Retira tu dinero</p>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Pagos</h2>
+                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Weep 8% • Abona tu saldo pendiente por transferencia</p>
                 
                 {cobrosLoading || !cobrosData ? (
                   <div className="loading-state"><div className="spinner" /> Cargando...</div>
                 ) : (
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--gray-400)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Ventas Totales</p>
-                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem' }}>${cobrosData.totalVentas}</h3>
+                      {/* Total */}
+                      <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--gray-400)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Total ventas</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem' }}>${cobrosData.totalVentas}</h3>
                       </div>
-                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Ingresado Transferencias</p>
-                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem' }}>${cobrosData.totalIngresadoTransferencia}</h3>
+                      <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total (8%)</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: 'var(--amber-600)' }}>${cobrosData.comisionTotal}</h3>
                       </div>
-                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--red-600)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Comisión Weep (5%)</p>
-                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem', color: 'var(--red-600)' }}>-${cobrosData.comisionWeep}</h3>
+
+                      {/* Transferencia */}
+                      <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid #bae6fd' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Ventas Transferencia</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem' }}>${cobrosData.ventasTransf}</h3>
                       </div>
-                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--green-500)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Disponible Para Retirar</p>
-                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem', color: 'var(--green-600)' }}>${cobrosData.montoDisponibleParaRetirar}</h3>
+                      <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--green-500)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión saldada</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: 'var(--green-600)' }}>${cobrosData.comisionSaldada}</h3>
+                      </div>
+
+                      {/* Efectivo */}
+                      <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid #fed7aa' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Ventas Efectivo</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem' }}>${cobrosData.ventasEfectivo}</h3>
+                      </div>
+                      <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--red-600)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Pendiente</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: 'var(--red-600)' }}>${cobrosData.comisionPendiente}</h3>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                      <button 
-                        className="btn btn-success" 
-                        style={{ fontSize: '1.1rem', padding: '12px 32px' }}
-                        onClick={() => {
-                          const ans = prompt(`Monto a retirar (Máximo $${cobrosData.montoDisponibleParaRetirar}):`, cobrosData.montoDisponibleParaRetirar);
-                          if (ans) {
-                            const num = parseFloat(ans);
-                            if (!isNaN(num)) handleSolicitarCobro(num);
-                          }
-                        }}
-                        disabled={cobrosData.montoDisponibleParaRetirar < 5000}
-                      >
-                        Solicitar Cobro
-                      </button>
-                      {cobrosData.montoDisponibleParaRetirar < 5000 && (
-                        <p style={{ fontSize: '0.8rem', color: 'var(--red-500)', marginTop: '8px' }}>El monto mínimo para retirar es de $5000.</p>
-                      )}
-                    </div>
+                    {cobrosData.comisionPendiente > 0 && (
+                      <div className="animate-fade-in" style={{ backgroundColor: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', padding: '24px', marginBottom: '32px' }}>
+                        <h3 style={{ color: '#9a3412', marginBottom: '16px', textAlign: 'center' }}>Pagar Saldo Pendiente</h3>
+                        <p style={{ textAlign: 'center', fontSize: '0.95rem', color: '#7c2d12', marginBottom: '20px' }}>
+                          Para saldar tu comisión de pedidos en efectivo, realizá una transferencia a la siguiente cuenta y adjuntá el comprobante.
+                        </p>
+                        
+                        <div style={{ maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #fed7aa' }}>
+                            <div>
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: '#9a3412' }}>Nombre de cuenta</p>
+                              <p style={{ margin: 0, fontWeight: '600' }}>Axel Damian Martinez</p>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #fed7aa' }}>
+                            <div>
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: '#9a3412' }}>Alias</p>
+                              <p style={{ margin: 0, fontWeight: '600' }}>weep.ar</p>
+                            </div>
+                            <button className="btn btn-sm btn-ghost" onClick={() => { navigator.clipboard.writeText('weep.ar'); toast.success('Alias copiado'); }}>Copiar</button>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '8px', border: '1px solid #fed7aa' }}>
+                            <div>
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: '#9a3412' }}>CVU</p>
+                              <p style={{ margin: 0, fontWeight: '600', fontSize: '0.85rem' }}>0000003100022130092564</p>
+                            </div>
+                            <button className="btn btn-sm btn-ghost" onClick={() => { navigator.clipboard.writeText('0000003100022130092564'); toast.success('CVU copiado'); }}>Copiar</button>
+                          </div>
+                          
+                          <div style={{ marginTop: '16px' }}>
+                            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '8px', fontWeight: '600' }}>Adjuntar comprobante (imagen)</label>
+                            <input type="file" id="comprobante_pago" accept="image/*" className="form-input" style={{ marginBottom: '16px' }} />
+                            
+                            <button 
+                              className="btn btn-success btn-full" 
+                              onClick={async () => {
+                                const fileInput = document.getElementById('comprobante_pago');
+                                const file = fileInput?.files[0];
+                                if (!file) { toast.error('Debes adjuntar el comprobante'); return; }
+                                
+                                setCobrosLoading(true);
+                                try {
+                                  const imgUrl = await api.uploadImage(file);
+                                  const res = await api.solicitarCobro(restaurant.id, cobrosData.comisionPendiente, imgUrl);
+                                  if (res.success) {
+                                    toast.success('Pago solicitado correctamente');
+                                    loadCobros();
+                                  } else {
+                                    toast.error(res.error || 'Error al enviar');
+                                  }
+                                } catch (e) {
+                                  toast.error('Error al subir comprobante');
+                                }
+                                setCobrosLoading(false);
+                              }}
+                            >
+                              Confirmar y Pagar Saldo (${cobrosData.comisionPendiente})
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                    <h3 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Historial de Solicitudes</h3>
+                    <h3 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Historial de Pago</h3>
                     <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
                       {cobrosData.historial.length === 0 ? (
                         <p className="rd-empty">No hay solicitudes anteriores.</p>
@@ -1094,6 +1150,7 @@ export default function RestaurantDashboard() {
                               <th style={{ padding: '12px 8px' }}>Fecha</th>
                               <th style={{ padding: '12px 8px' }}>Monto</th>
                               <th style={{ padding: '12px 8px' }}>Estado</th>
+                              <th style={{ padding: '12px 8px' }}>Comprobante</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1103,8 +1160,15 @@ export default function RestaurantDashboard() {
                                 <td style={{ padding: '12px 8px', fontWeight: '600' }}>${h.montoNeto}</td>
                                 <td style={{ padding: '12px 8px' }}>
                                   <span className={`badge ${h.estado === 'Pendiente' ? 'badge-amber' : h.estado === 'Completado' ? 'badge-green' : 'badge-gray'}`}>
-                                    {h.estado}
+                                    {h.estado === 'Pendiente' ? 'Pago solicitado' : h.estado}
                                   </span>
+                                </td>
+                                <td style={{ padding: '12px 8px' }}>
+                                  {h.comprobanteUrl ? (
+                                    <a href={h.comprobanteUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost" style={{ fontSize: '0.75rem' }}>Ver</a>
+                                  ) : (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>Sin adjunto</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -1116,6 +1180,7 @@ export default function RestaurantDashboard() {
                 )}
               </div>
             )}
+
 
             {profileSubView === 'edit' && (
               <div className="card card-body">

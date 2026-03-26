@@ -703,56 +703,80 @@ export async function getCobrosByLocal(localId) {
     .from('pedidos_locales')
     .select('id, pedido_id, total, estado, cobro_procesado, metodo_pago')
     .eq('local_id', localId).eq('estado', 'Entregado').eq('cobro_procesado', false);
-  let totalVentas = 0, totalTransf = 0;
+  
+  let totalVentas = 0, totalTransf = 0, totalEfectivo = 0;
   const pedidosIncluidos = [];
+  
   for (const p of (pedidosLocales || [])) {
     const sub = Number(p.total) || 0;
     totalVentas += sub;
     pedidosIncluidos.push(p.pedido_id);
-    if ((p.metodo_pago || '').toLowerCase().includes('transfer')) totalTransf += sub;
+    if ((p.metodo_pago || '').toLowerCase().includes('efectivo')) {
+      totalEfectivo += sub;
+    } else {
+      totalTransf += sub;
+    }
   }
-  const comision = totalVentas * 0.05;
+
+  const comisionTotal = totalVentas * 0.08;
+  const comisionSaldada = totalTransf * 0.08;
+  const comisionPendiente = totalEfectivo * 0.08;
+
   const { data: historial } = await supabase.from('gestion_cobros')
     .select('*').eq('local_id', localId).eq('tipo', 'Solicitud')
     .order('created_at', { ascending: false });
+
   return {
-    success: true, totalVentas: +totalVentas.toFixed(2),
-    comisionWeep: +comision.toFixed(2),
-    totalIngresadoTransferencia: +totalTransf.toFixed(2),
-    montoDisponibleParaRetirar: +Math.max(0, totalTransf - comision).toFixed(2),
+    success: true, 
+    totalVentas: +totalVentas.toFixed(2),
+    comisionTotal: +comisionTotal.toFixed(2),
+    ventasTransf: +totalTransf.toFixed(2),
+    comisionSaldada: +comisionSaldada.toFixed(2),
+    ventasEfectivo: +totalEfectivo.toFixed(2),
+    comisionPendiente: +comisionPendiente.toFixed(2),
     pedidosIncluidos: pedidosIncluidos.join(', '),
     historial: (historial || []).map(h => ({
-      fechaSolicitud: h.fecha_solicitud, montoNeto: +h.monto_neto || 0,
-      estado: h.estado || 'Pendiente', idsIncluidos: h.pedidos_incluidos || '',
+      fechaSolicitud: h.fecha_solicitud || h.created_at, 
+      montoNeto: +h.monto_neto || 0,
+      estado: h.estado || 'Pendiente', 
+      idsIncluidos: h.pedidos_incluidos || '',
+      comprobanteUrl: h.comprobante_url || ''
     })),
   };
 }
 
-export async function solicitarCobro(localId, montoNeto) {
+export async function solicitarCobro(localId, monto, comprobanteUrl = '') {
   const est = await getCobrosByLocal(localId);
   if (!est.success) return { success: false, error: 'Error recalculando cobros' };
-  if (montoNeto > est.montoDisponibleParaRetirar + 0.01)
-    return { success: false, error: `Monto supera disponible ($${est.montoDisponibleParaRetirar})` };
-  if (montoNeto < 5000) return { success: false, error: 'Mínimo $5.000' };
-  const { data: pend } = await supabase.from('gestion_cobros').select('id')
-    .eq('local_id', localId).eq('estado', 'Pendiente').limit(1);
-  if (pend?.length) return { success: false, error: 'Ya tienes solicitud pendiente' };
-  const id = `COBRO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.random().toString(36).substring(2,5).toUpperCase()}`;
+  
+  const id = `PAGO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.random().toString(36).substring(2,5).toUpperCase()}`;
+  
   const { error } = await supabase.from('gestion_cobros').insert({
-    id, tipo: 'Solicitud', local_id: localId, total_ventas: est.totalVentas,
-    comision_weep: est.comisionWeep, total_transferencia: est.totalIngresadoTransferencia,
-    monto_disponible: est.montoDisponibleParaRetirar, monto_neto: montoNeto,
-    estado: 'Pendiente', pedidos_incluidos: est.pedidosIncluidos,
+    id, 
+    tipo: 'Solicitud', 
+    local_id: localId, 
+    total_ventas: est.totalVentas,
+    comision_weep: est.totalComisiones, 
+    total_transferencia: est.comisionSaldada, // Reuse this column for saldada
+    monto_disponible: est.comisionPendiente,  // Reuse this column for pending
+    monto_neto: monto,
+    estado: 'Pendiente', 
+    fecha_solicitud: new Date().toISOString(),
+    pedidos_incluidos: est.pedidosIncluidos,
+    comprobante_url: comprobanteUrl
   });
+
   if (error) return { success: false, error: error.message };
+
   if (est.pedidosIncluidos) {
     for (const pid of est.pedidosIncluidos.split(',').map(s => s.trim()).filter(Boolean)) {
       await supabase.from('pedidos_locales').update({ cobro_procesado: true })
         .eq('pedido_id', pid).eq('local_id', localId);
     }
   }
-  return { success: true, idSolicitud: id, montoNeto, estado: 'Pendiente' };
+  return { success: true, idSolicitud: id, monto, estado: 'Pendiente' };
 }
+
 
 // ═══════════════════════════════════════════════════
 // REPARTIDORES — Advanced
