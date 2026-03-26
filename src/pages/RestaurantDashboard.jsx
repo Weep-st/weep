@@ -26,6 +26,14 @@ export default function RestaurantDashboard() {
   const [cobrosData, setCobrosData] = useState(null);
   const [cobrosLoading, setCobrosLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [sabores, setSabores] = useState([]);
+  const [saboresLoading, setSaboresLoading] = useState(false);
+  const [itemCategory, setItemCategory] = useState('');
+  const [profileSubView, setProfileSubView] = useState('edit'); // 'ventas', 'cobros', 'edit'
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [adicionales, setAdicionales] = useState([]);
+  const [adicionalesLoading, setAdicionalesLoading] = useState(false);
   const pollingRef = useRef(null);
   const previousOrdersRef = useRef([]);
   const localOpenRef = useRef(false);
@@ -190,6 +198,17 @@ export default function RestaurantDashboard() {
     return () => clearInterval(intervalId);
   }, [profileData?.modo_automatico, profileData?.horario_apertura, profileData?.horario_cierre, verificarEstadoAutomatico]);
 
+  // Click outside to close dropdowns
+  useEffect(() => {
+    if (!profileMenuOpen && !addMenuOpen) return;
+    const handleClickOutside = () => {
+      setProfileMenuOpen(false);
+      setAddMenuOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [profileMenuOpen, addMenuOpen]);
+
   const loadCobros = async () => {
     if (!restaurant) return;
     setCobrosLoading(true);
@@ -212,6 +231,82 @@ export default function RestaurantDashboard() {
       }
     } catch { toast.error('Error de red'); }
     setCobrosLoading(false);
+  };
+
+  const loadSabores = useCallback(async () => {
+    if (!restaurant) return;
+    setSaboresLoading(true);
+    setAdicionalesLoading(true);
+    try {
+      const [sabs, ads] = await Promise.all([
+        api.getSaboresByLocal(restaurant.id),
+        api.getAdicionalesByLocal(restaurant.id)
+      ]);
+      setSabores(sabs);
+      setAdicionales(ads);
+    } catch { toast.error('Error al cargar datos de helados'); }
+    setSaboresLoading(false);
+    setAdicionalesLoading(false);
+  }, [restaurant]);
+
+  const handleAddSabor = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const nombre = fd.get('nombre').trim();
+    const tipo = fd.get('tipo') || 'Sabor';
+    if (!nombre) return;
+    try {
+      await api.addSabor(restaurant.id, nombre, tipo);
+      toast.success(`${tipo} agregado`);
+      e.target.reset();
+      loadSabores();
+    } catch { toast.error('Error al agregar'); }
+  };
+
+  const handleAddAdicional = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const nombre = fd.get('nombre').trim();
+    const precio = fd.get('precio');
+    if (!nombre || !precio) return;
+    try {
+      await api.addAdicional(restaurant.id, nombre, precio);
+      toast.success('Adicional agregado');
+      e.target.reset();
+      loadSabores();
+    } catch { toast.error('Error al agregar adicional'); }
+  };
+
+  const handleToggleAdicionalDisp = async (id, current) => {
+    try {
+      await api.updateAdicionalDisponibilidad(id, !current);
+      setAdicionales(prev => prev.map(a => a.id === id ? { ...a, disponible: !current } : a));
+    } catch { toast.error('Error'); }
+  };
+
+  const handleDeleteAdicional = async (id) => {
+    if (!confirm('¿Eliminar este adicional?')) return;
+    try {
+      await api.deleteAdicional(id);
+      toast.success('Adicional eliminado');
+      loadSabores();
+    } catch { toast.error('Error al eliminar'); }
+  };
+
+  const handleToggleSaborDisp = async (id, current) => {
+    try {
+      await api.updateSaborDisponibilidad(id, !current);
+      setSabores(prev => prev.map(s => s.id === id ? { ...s, disponible: !current } : s));
+    } catch { toast.error('Error'); }
+  };
+
+  const handleDeleteSabor = async (id) => {
+    if (!confirm('¿Eliminar este sabor?')) return;
+    try {
+      await api.deleteSabor(id);
+      toast.success('Sabor eliminado');
+      loadSabores();
+    } catch { toast.error('Error al eliminar'); }
   };
 
   const toggleEstado = async () => {
@@ -269,12 +364,34 @@ export default function RestaurantDashboard() {
     try {
       let imgUrl = '';
       if (file && file.size > 0) imgUrl = await api.uploadImage(file);
+      let precioVal = fd.get('precio');
+      let variantesVal = fd.get('variantes');
+      
+      if (fd.get('categoria') === 'Helados') {
+        const iceCreamConfig = {
+          es_helado: true,
+          precios: {
+            '1/4kg': { precio: fd.get('p_14'), max: parseInt(fd.get('m_14')) || 3 },
+            '1/2kg': { precio: fd.get('p_12'), max: parseInt(fd.get('m_12')) || 3 },
+            '1kg': { precio: fd.get('p_1'), max: parseInt(fd.get('m_1')) || 4 }
+          }
+        };
+        variantesVal = JSON.stringify(iceCreamConfig);
+        precioVal = fd.get('p_14');
+      } else if (fd.get('categoria') === 'Hamburguesas' && fd.get('ofrecer_papas') === 'on') {
+        const burgerConfig = {
+          con_papas: true,
+          precio_papas: parseFloat(fd.get('precio_papas')) || 0
+        };
+        variantesVal = JSON.stringify(burgerConfig);
+      }
+
       const data = {
         localId: restaurant.id,
         nombre: fd.get('nombre'), categoria: fd.get('categoria'),
-        descripcion: fd.get('descripcion'), precio: fd.get('precio'),
+        descripcion: fd.get('descripcion'), precio: precioVal,
         disponibilidad: fd.get('disponibilidad') === 'true',
-        tamano_porcion: fd.get('tamano_porcion'), variantes: fd.get('variantes'),
+        tamano_porcion: fd.get('tamano_porcion'), variantes: variantesVal,
         tiempo_preparacion: fd.get('tiempo_preparacion'),
         imagen_url: imgUrl,
       };
@@ -530,7 +647,30 @@ export default function RestaurantDashboard() {
           </div>
           <div className="rd-topbar-right">
             {profileData?.foto_url && <img src={profileData.foto_url} alt="" className="rd-avatar" />}
-            <button className="btn btn-ghost btn-sm" onClick={() => { setView('profile'); loadProfile(); }}>Mi Perfil</button>
+            
+            <div className="rd-dropdown-container">
+              <button 
+                className={`btn btn-ghost btn-sm ${view === 'profile' ? 'active' : ''}`} 
+                onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
+              >
+                Mi Perfil ▾
+              </button>
+              
+              {profileMenuOpen && (
+                <div className="rd-dropdown-menu animate-fade-in">
+                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('ventas'); loadOrders(); }}>
+                    💰 Mis Ventas
+                  </button>
+                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); }}>
+                    🏦 Cobros
+                  </button>
+                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); }}>
+                    👤 Editar Perfil
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-500)' }} onClick={() => { logoutRestaurant(); window.location.reload(); }}>Salir</button>
           </div>
         </div>
@@ -560,9 +700,25 @@ export default function RestaurantDashboard() {
             {pendingCount > 0 && <span className="rd-nav-badge">{pendingCount}</span>}
           </button>
           <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
-          <button className={`rd-nav-btn ${view === 'addItem' ? 'active' : ''}`} onClick={() => { setEditItem(null); setView('addItem'); }}>➕ Plato</button>
-          <button className={`rd-nav-btn ${view === 'ventas' ? 'active' : ''}`} onClick={() => { setView('ventas'); }}>💰 Ventas</button>
-          <button className={`rd-nav-btn ${view === 'cobros' ? 'active' : ''}`} onClick={() => { setView('cobros'); loadCobros(); }}>🏦 Cobros</button>
+          
+          <div className="rd-dropdown-container">
+            <button 
+              className={`rd-nav-btn ${(view === 'addItem' || view === 'sabores') ? 'active' : ''}`} 
+              onClick={(e) => { e.stopPropagation(); setAddMenuOpen(!addMenuOpen); }}
+            >
+              ➕ Añadir ▾
+            </button>
+            {addMenuOpen && (
+              <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, right: 'auto' }}>
+                <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory(''); setAddMenuOpen(false); }}>
+                  🍔 Nuevo Plato
+                </button>
+                <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setAddMenuOpen(false); }}>
+                  🍦 Sabores y Adicionales
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* ─── Orders View ─── */}
@@ -642,34 +798,94 @@ export default function RestaurantDashboard() {
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
                   <input name="nombre" className="form-input" placeholder="Nombre del plato" defaultValue={editItem?.nombre || ''} required />
-                  <select name="categoria" className="form-select" defaultValue={editItem?.categoria || ''} required>
+                  <select 
+                    name="categoria" 
+                    className="form-select" 
+                    defaultValue={editItem?.categoria || ''} 
+                    required 
+                    onChange={(e) => setItemCategory(e.target.value)}
+                  >
                     <option value="">Categoría</option>
                     <option value="Hamburguesas">Hamburguesas</option>
                     <option value="Pizza">Pizzas</option>
                     <option value="Empanadas">Empanadas</option>
                     <option value="Merienda">Panadería</option>
                     <option value="Bebidas">Bebidas</option>
+                    <option value="Helados">Helados</option>
                   </select>
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
-                <div className="rd-form-row rd-form-row-3">
-                  <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={editItem?.precio || ''} required />
-                  <select name="disponibilidad" className="form-select" defaultValue={editItem ? (editItem.disponibilidad ? 'true' : 'false') : 'true'}>
-                    <option value="true">Disponible</option>
-                    <option value="false">No disponible</option>
-                  </select>
-                  <select name="tamano_porcion" className="form-select" defaultValue={editItem?.tamano || ''}>
-                    <option value="">Tamaño/Porción</option>
-                    <option value="1 persona">1 persona</option>
-                    <option value="2 personas">2 personas</option>
-                    <option value="3 personas">3 personas</option>
-                    <option value="4+ personas">4+ personas</option>
-                  </select>
-                </div>
+                
+                {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') ? (
+                  <div className="card" style={{ padding: 12, marginBottom: 16, background: '#fff9db' }}>
+                    {(() => {
+                      let iceConfig = null;
+                      try { if (editItem?.variantes) iceConfig = JSON.parse(editItem.variantes); } catch(e){}
+                      return (
+                        <>
+                          <p style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: 8 }}>Configuración por peso (Helados)</p>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                            <div>
+                              <label style={{ fontSize: '0.75rem' }}>Precio 1/4 kg</label>
+                              <input name="p_14" type="number" className="form-input" placeholder="$" defaultValue={iceConfig?.precios?.['1/4kg']?.precio || ''} required />
+                              <label style={{ fontSize: '0.75rem' }}>Máx Sabores</label>
+                              <input name="m_14" type="number" className="form-input" defaultValue={iceConfig?.precios?.['1/4kg']?.max || 3} required />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '0.75rem' }}>Precio 1/2 kg</label>
+                              <input name="p_12" type="number" className="form-input" placeholder="$" defaultValue={iceConfig?.precios?.['1/2kg']?.precio || ''} required />
+                              <label style={{ fontSize: '0.75rem' }}>Máx Sabores</label>
+                              <input name="m_12" type="number" className="form-input" defaultValue={iceConfig?.precios?.['1/2kg']?.max || 3} required />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '0.75rem' }}>Precio 1 kg</label>
+                              <input name="p_1" type="number" className="form-input" placeholder="$" defaultValue={iceConfig?.precios?.['1kg']?.precio || ''} required />
+                              <label style={{ fontSize: '0.75rem' }}>Máx Sabores</label>
+                              <input name="m_1" type="number" className="form-input" defaultValue={iceConfig?.precios?.['1kg']?.max || 4} required />
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="rd-form-row rd-form-row-3">
+                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={editItem?.precio || ''} required />
+                    <select name="disponibilidad" className="form-select" defaultValue={editItem ? (editItem.disponibilidad ? 'true' : 'false') : 'true'}>
+                      <option value="true">Disponible</option>
+                      <option value="false">No disponible</option>
+                    </select>
+                    <select name="tamano_porcion" className="form-select" defaultValue={editItem?.tamano || ''}>
+                      <option value="">Tamaño/Porción</option>
+                      <option value="1 persona">1 persona</option>
+                      <option value="2 personas">2 personas</option>
+                      <option value="3 personas">3 personas</option>
+                      <option value="4+ personas">4+ personas</option>
+                    </select>
+                  </div>
+                )}
                 <div className="rd-form-row">
                   <input name="variantes" className="form-input" placeholder="Variantes (ej: con cheddar)" defaultValue={editItem?.variantes || ''} />
                   <input name="tiempo_preparacion" type="number" className="form-input" placeholder="Tiempo prep. (min)" defaultValue={editItem?.tiempo_preparacion || ''} />
                 </div>
+
+                {(itemCategory === 'Hamburguesas' || editItem?.categoria === 'Hamburguesas') && (
+                  <div className="card" style={{ padding: 12, marginBottom: 16, background: '#f1f1f1', display: 'flex', alignItems: 'center', gap: 15 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {(() => {
+                        let burgerConfig = null;
+                        try { if (editItem?.variantes) burgerConfig = JSON.parse(editItem.variantes); } catch(e){}
+                        return (
+                          <>
+                            <input type="checkbox" name="ofrecer_papas" id="ofrecer_papas" defaultChecked={burgerConfig?.con_papas} style={{ width: 'auto' }} />
+                            <label htmlFor="ofrecer_papas" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ofrecer con papas (+ $)</label>
+                            <input name="precio_papas" type="number" className="form-input" style={{ width: 100, marginBottom: 0 }} placeholder="Extra $" defaultValue={burgerConfig?.precio_papas || ''} />
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
                 <input name="foto" type="file" className="form-input" accept="image/*" />
                 <div className="rd-form-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); }}>Cancelar</button>
@@ -682,198 +898,295 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
-        {/* ─── Mis Ventas ─── */}
-        {view === 'ventas' && (
+        {/* ─── Gestión de Helados (Sabores, Salsas, Adicionales) ─── */}
+        {view === 'sabores' && (
           <section className="animate-fade-in">
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Mis Ventas</h2>
-            <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
-              {finishedOrders.length === 0 ? (
-                <p className="rd-empty">No hay ventas registradas aún.</p>
-              ) : (
-                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                      <th style={{ padding: '12px 8px' }}>Pedido #</th>
-                      <th style={{ padding: '12px 8px' }}>Fecha</th>
-                      <th style={{ padding: '12px 8px' }}>Cliente</th>
-                      <th style={{ padding: '12px 8px' }}>Método</th>
-                      <th style={{ padding: '12px 8px' }}>Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {finishedOrders.map(o => (
-                      <tr key={o.idPedidoLocal} style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                        <td style={{ padding: '12px 8px' }}>{o.idPedido}</td>
-                        <td style={{ padding: '12px 8px' }}>{o.fecha ? new Date(o.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' }) : '---'}</td>
-                        <td style={{ padding: '12px 8px' }}>{o.nombreCliente}</td>
-                          <td style={{ padding: '12px 8px', textTransform: 'capitalize' }}>{o.metodoPago}</td>
-                          <td style={{ padding: '12px 8px', fontWeight: '600', color: 'var(--red-600)' }}>
-                            ${o.totalLocal.toFixed(0)}
-                          </td>
-                        </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* ─── Gestión de Cobros ─── */}
-        {view === 'cobros' && (
-          <section className="animate-fade-in">
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Cobros</h2>
-            <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Pagos con Transferencia • Comisión Weep 5% • Retira tu dinero</p>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 24, textAlign: 'center' }}>Gestión de Helados</h2>
             
-            {cobrosLoading || !cobrosData ? (
-              <div className="loading-state"><div className="spinner" /> Cargando...</div>
-            ) : (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-                  <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--gray-400)' }}>
-                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Ventas Totales</p>
-                    <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem' }}>${cobrosData.totalVentas}</h3>
-                  </div>
-                  <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
-                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Ingresado Transferencias</p>
-                    <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem' }}>${cobrosData.totalIngresadoTransferencia}</h3>
-                  </div>
-                  <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--red-600)' }}>
-                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Comisión Weep (5%)</p>
-                    <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem', color: 'var(--red-600)' }}>-${cobrosData.comisionWeep}</h3>
-                  </div>
-                  <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--green-500)' }}>
-                    <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Disponible Para Retirar</p>
-                    <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem', color: 'var(--green-600)' }}>${cobrosData.montoDisponibleParaRetirar}</h3>
-                  </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+              {/* Sección Sabores y Salsas */}
+              <div>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>🍦 Sabores y Salsas</h3>
+                <div className="card card-body" style={{ marginBottom: 16 }}>
+                  <form onSubmit={handleAddSabor} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input name="nombre" className="form-input" placeholder="Nombre (Ej: Dulce de Leche)" required />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select name="tipo" className="form-select" style={{ flex: 1 }}>
+                        <option value="Sabor">Es un Sabor</option>
+                        <option value="Salsa">Es una Salsa</option>
+                      </select>
+                      <button type="submit" className="btn btn-primary">Agregar</button>
+                    </div>
+                  </form>
                 </div>
 
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                  <button 
-                    className="btn btn-success" 
-                    style={{ fontSize: '1.1rem', padding: '12px 32px' }}
-                    onClick={() => {
-                      const ans = prompt(`Monto a retirar (Máximo $${cobrosData.montoDisponibleParaRetirar}):`, cobrosData.montoDisponibleParaRetirar);
-                      if (ans) {
-                        const num = parseFloat(ans);
-                        if (!isNaN(num)) handleSolicitarCobro(num);
-                      }
-                    }}
-                    disabled={cobrosData.montoDisponibleParaRetirar < 5000}
-                  >
-                    Solicitar Cobro
-                  </button>
-                  {cobrosData.montoDisponibleParaRetirar < 5000 && (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--red-500)', marginTop: '8px' }}>El monto mínimo para retirar es de $5000.</p>
-                  )}
+                {saboresLoading ? (
+                  <div className="loading-state"><div className="spinner" /> Cargando...</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                    {sabores.length === 0 ? <p className="rd-empty" style={{ padding: 10 }}>No hay sabores/salsas</p> : 
+                     sabores.map(s => (
+                      <div key={s.id} className="card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <label className="toggle">
+                            <input type="checkbox" checked={s.disponible} onChange={() => handleToggleSaborDisp(s.id, s.disponible)} />
+                            <span className="toggle-track" />
+                            <span className="toggle-thumb" />
+                          </label>
+                          <div>
+                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: s.disponible ? 'inherit' : 'var(--gray-400)' }}>{s.nombre}</span>
+                            <span className={`badge ${s.tipo === 'Salsa' ? 'badge-amber' : 'badge-blue'}`} style={{ marginLeft: 8, fontSize: '0.7rem' }}>{s.tipo}</span>
+                          </div>
+                        </div>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteSabor(s.id)} style={{ color: 'var(--red-500)', padding: 4 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Sección Adicionales (Pagos) */}
+              <div>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>📦 Adicionales (Con Precio)</h3>
+                <div className="card card-body" style={{ marginBottom: 16 }}>
+                  <form onSubmit={handleAddAdicional} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input name="nombre" className="form-input" placeholder="Nombre (Ej: Cucurucho)" required />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input name="precio" type="number" className="form-input" placeholder="Precio $" style={{ flex: 1 }} required />
+                      <button type="submit" className="btn btn-success">Agregar</button>
+                    </div>
+                  </form>
                 </div>
 
-                <h3 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Historial de Solicitudes</h3>
-                <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
-                  {cobrosData.historial.length === 0 ? (
-                    <p className="rd-empty">No hay solicitudes anteriores.</p>
-                  ) : (
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                          <th style={{ padding: '12px 8px' }}>Fecha</th>
-                          <th style={{ padding: '12px 8px' }}>Monto</th>
-                          <th style={{ padding: '12px 8px' }}>Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cobrosData.historial.map((h, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                            <td style={{ padding: '12px 8px' }}>{new Date(h.fechaSolicitud).toLocaleDateString()}</td>
-                            <td style={{ padding: '12px 8px', fontWeight: '600' }}>${h.montoNeto}</td>
-                            <td style={{ padding: '12px 8px' }}>
-                              <span className={`badge ${h.estado === 'Pendiente' ? 'badge-amber' : h.estado === 'Completado' ? 'badge-green' : 'badge-gray'}`}>
-                                {h.estado}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </>
-            )}
+                {adicionalesLoading ? (
+                  <div className="loading-state"><div className="spinner" /> Cargando...</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                    {adicionales.length === 0 ? <p className="rd-empty" style={{ padding: 10 }}>No hay adicionales</p> : 
+                     adicionales.map(a => (
+                      <div key={a.id} className="card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <label className="toggle">
+                            <input type="checkbox" checked={a.disponible} onChange={() => handleToggleAdicionalDisp(a.id, a.disponible)} />
+                            <span className="toggle-track" />
+                            <span className="toggle-thumb" />
+                          </label>
+                          <div>
+                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: a.disponible ? 'inherit' : 'var(--gray-400)' }}>{a.nombre}</span>
+                            <span style={{ marginLeft: 8, color: 'var(--red-600)', fontWeight: 700, fontSize: '0.9rem' }}>${a.precio}</span>
+                          </div>
+                        </div>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteAdicional(a.id)} style={{ color: 'var(--red-500)', padding: 4 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
         )}
 
         {/* ─── Profile ─── */}
         {view === 'profile' && (
           <section className="animate-fade-in">
-            <div className="card card-body">
-              <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Editar Perfil del Local</h2>
-              {profileData && (
-                <form onSubmit={handleSaveProfile} className="rd-item-form">
-                  {profileData.foto_url && <img src={profileData.foto_url} alt="" style={{ width: 120, borderRadius: 12, margin: '0 auto 16px', display: 'block' }} />}
-                  <input name="foto" type="file" className="form-input" accept="image/*" />
-                  <div className="rd-form-row">
-                    <input name="nombre" className="form-input" placeholder="Nombre del local" defaultValue={profileData.nombre || ''} required />
-                    <input name="direccion" className="form-input" placeholder="Dirección" defaultValue={profileData.direccion || ''} required />
-                  </div>
-                  <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
-                  <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
-                  
-                  <h3 style={{ marginTop: '24px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Horarios de Atención</h3>
-                  <div className="rd-form-row rd-form-row-3">
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
-                      <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData.horario_apertura || '09:00'} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
-                      <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData.horario_cierre || '23:00'} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
-                      <select name="modo_automatico" className="form-select" defaultValue={profileData.modo_automatico ? 'true' : 'false'}>
-                        <option value="true">Sí (Abrir/Cerrar auto)</option>
-                        <option value="false">No (Manual)</option>
-                      </select>
-                    </div>
-                  </div>
+            <div className="rd-tabs" style={{ gap: 8, marginBottom: 24 }}>
+              <button className={profileSubView === 'ventas' ? 'active' : ''} onClick={() => setProfileSubView('ventas')}>
+                💰 Mis Ventas
+              </button>
+              <button className={profileSubView === 'cobros' ? 'active' : ''} onClick={() => { setProfileSubView('cobros'); loadCobros(); }}>
+                🏦 Cobros
+              </button>
+              <button className={profileSubView === 'edit' ? 'active' : ''} onClick={() => setProfileSubView('edit')}>
+                👤 Editar Perfil
+              </button>
+            </div>
 
-                  <div className="rd-form-actions" style={{ marginTop: '24px' }}>
-                    <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>
-                    <button type="submit" className="btn btn-success">Guardar Cambios</button>
+            {profileSubView === 'ventas' && (
+              <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Mis Ventas</h2>
+                {finishedOrders.length === 0 ? (
+                  <p className="rd-empty">No hay ventas registradas aún.</p>
+                ) : (
+                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                        <th style={{ padding: '12px 8px' }}>Pedido #</th>
+                        <th style={{ padding: '12px 8px' }}>Fecha</th>
+                        <th style={{ padding: '12px 8px' }}>Cliente</th>
+                        <th style={{ padding: '12px 8px' }}>Método</th>
+                        <th style={{ padding: '12px 8px' }}>Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {finishedOrders.map(o => (
+                        <tr key={o.idPedidoLocal} style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                          <td style={{ padding: '12px 8px' }}>#{o.idPedido.substring(0, 8)}</td>
+                          <td style={{ padding: '12px 8px' }}>{o.fecha ? new Date(o.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' }) : '---'}</td>
+                          <td style={{ padding: '12px 8px' }}>{o.nombreCliente}</td>
+                          <td style={{ padding: '12px 8px', textTransform: 'capitalize' }}>{o.metodoPago}</td>
+                          <td style={{ padding: '12px 8px', fontWeight: '600', color: 'var(--red-600)' }}>
+                            ${o.totalLocal.toFixed(0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {profileSubView === 'cobros' && (
+              <div className="card card-body">
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Cobros</h2>
+                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Pagos con Transferencia • Comisión Weep 5% • Retira tu dinero</p>
+                
+                {cobrosLoading || !cobrosData ? (
+                  <div className="loading-state"><div className="spinner" /> Cargando...</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--gray-400)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Ventas Totales</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem' }}>${cobrosData.totalVentas}</h3>
+                      </div>
+                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Ingresado Transferencias</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem' }}>${cobrosData.totalIngresadoTransferencia}</h3>
+                      </div>
+                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--red-600)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Comisión Weep (5%)</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem', color: 'var(--red-600)' }}>-${cobrosData.comisionWeep}</h3>
+                      </div>
+                      <div className="card" style={{ padding: '24px', textAlign: 'center', borderTop: '4px solid var(--green-500)' }}>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.9rem' }}>Disponible Para Retirar</p>
+                        <h3 style={{ margin: '8px 0 0', fontSize: '1.8rem', color: 'var(--green-600)' }}>${cobrosData.montoDisponibleParaRetirar}</h3>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                      <button 
+                        className="btn btn-success" 
+                        style={{ fontSize: '1.1rem', padding: '12px 32px' }}
+                        onClick={() => {
+                          const ans = prompt(`Monto a retirar (Máximo $${cobrosData.montoDisponibleParaRetirar}):`, cobrosData.montoDisponibleParaRetirar);
+                          if (ans) {
+                            const num = parseFloat(ans);
+                            if (!isNaN(num)) handleSolicitarCobro(num);
+                          }
+                        }}
+                        disabled={cobrosData.montoDisponibleParaRetirar < 5000}
+                      >
+                        Solicitar Cobro
+                      </button>
+                      {cobrosData.montoDisponibleParaRetirar < 5000 && (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--red-500)', marginTop: '8px' }}>El monto mínimo para retirar es de $5000.</p>
+                      )}
+                    </div>
+
+                    <h3 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Historial de Solicitudes</h3>
+                    <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
+                      {cobrosData.historial.length === 0 ? (
+                        <p className="rd-empty">No hay solicitudes anteriores.</p>
+                      ) : (
+                        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                              <th style={{ padding: '12px 8px' }}>Fecha</th>
+                              <th style={{ padding: '12px 8px' }}>Monto</th>
+                              <th style={{ padding: '12px 8px' }}>Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cobrosData.historial.map((h, i) => (
+                              <tr key={i} style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                                <td style={{ padding: '12px 8px' }}>{new Date(h.fechaSolicitud).toLocaleDateString()}</td>
+                                <td style={{ padding: '12px 8px', fontWeight: '600' }}>${h.montoNeto}</td>
+                                <td style={{ padding: '12px 8px' }}>
+                                  <span className={`badge ${h.estado === 'Pendiente' ? 'badge-amber' : h.estado === 'Completado' ? 'badge-green' : 'badge-gray'}`}>
+                                    {h.estado}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {profileSubView === 'edit' && (
+              <div className="card card-body">
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Editar Perfil del Local</h2>
+                {profileData && (
+                  <form onSubmit={handleSaveProfile} className="rd-item-form">
+                    {profileData.foto_url && <img src={profileData.foto_url} alt="" style={{ width: 120, borderRadius: 12, margin: '0 auto 16px', display: 'block' }} />}
+                    <input name="foto" type="file" className="form-input" accept="image/*" />
+                    <div className="rd-form-row">
+                      <input name="nombre" className="form-input" placeholder="Nombre del local" defaultValue={profileData.nombre || ''} required />
+                      <input name="direccion" className="form-input" placeholder="Dirección" defaultValue={profileData.direccion || ''} required />
+                    </div>
+                    <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
+                    <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
+                    
+                    <h3 style={{ marginTop: '24px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Horarios de Atención</h3>
+                    <div className="rd-form-row rd-form-row-3">
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
+                        <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData.horario_apertura || '09:00'} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
+                        <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData.horario_cierre || '23:00'} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
+                        <select name="modo_automatico" className="form-select" defaultValue={profileData.modo_automatico ? 'true' : 'false'}>
+                          <option value="true">Sí (Abrir/Cerrar auto)</option>
+                          <option value="false">No (Manual)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="rd-form-actions" style={{ marginTop: '24px' }}>
+                      <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>
+                      <button type="submit" className="btn btn-success">Guardar Cambios</button>
+                    </div>
+                  </form>
+                )}
+                
+                <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
+                <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                  <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
+                    Cobros con Mercado Pago
+                  </h3>
+                  <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
+                    Conectá tu cuenta de Mercado Pago para que tus clientes puedan abonar sus pedidos por transferencia o tarjeta directamente. El dinero irá a esta cuenta.
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
+                      onClick={() => {
+                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicación de Mercado Pago:");
+                        if (!clientId) return;
+                        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL || 'https://jskxfescamdjesdrcnkf.supabase.co'}/functions/v1/mp-oauth-callback`;
+                        const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                        window.location.href = authUrl;
+                      }}
+                    >
+                      Vincular Cuenta de MercadoPago
+                    </button>
+                    {profileData?.mp_access_token && (
+                      <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Cuenta Vinculada</span>
+                    )}
                   </div>
-                </form>
-              )}
-              
-              <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
-              <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
-                <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
-                  Cobros con Mercado Pago
-                </h3>
-                <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Conectá tu cuenta de Mercado Pago para que tus clientes puedan abonar sus pedidos por transferencia o tarjeta directamente. El dinero irá a esta cuenta.
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <button 
-                    className="btn btn-primary" 
-                    style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
-                    onClick={() => {
-                      const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicación de Mercado Pago:");
-                      if (!clientId) return;
-                      // El state enviará el ID del local para relacionarlo en el backend
-                      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL || 'https://jskxfescamdjesdrcnkf.supabase.co'}/functions/v1/mp-oauth-callback`;
-                      const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-                      window.location.href = authUrl;
-                    }}
-                  >
-                    Vincular Cuenta de MercadoPago
-                  </button>
-                  {profileData?.mp_access_token && (
-                    <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Cuenta Vinculada</span>
-                  )}
                 </div>
               </div>
-            </div>
+            )}
           </section>
         )}
       </main>
@@ -913,9 +1226,16 @@ function OrderCard({ order: o, onAction, finished }) {
         {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
         <div className="rd-order-items">
           {o.items.map((item, i) => (
-            <div key={i} className="rd-order-item">
-              <span>{item[4]} × {item[6]}</span>
-              <span>${item[7]}</span>
+            <div key={i} className="rd-order-item" style={{ flexDirection: 'column', alignItems: 'flex-start', borderBottom: '1px dashed var(--gray-100)', padding: '10px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontWeight: 600 }}>
+                <span>{item[4]} × {item[6]}</span>
+                <span>${item[7].toFixed(2)}</span>
+              </div>
+              {item[5] && item[5] !== 'null' && item[5] !== '' && (
+                <div style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginTop: 4, fontStyle: 'italic' }}>
+                  {item[5]}
+                </div>
+              )}
             </div>
           ))}
         </div>

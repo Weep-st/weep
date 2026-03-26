@@ -25,6 +25,16 @@ export default function CustomerApp() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [iceCreamModal, setIceCreamModal] = useState(null);
+  const [iceCreamFlavors, setIceCreamFlavors] = useState([]);
+  const [iceCreamSauces, setIceCreamSauces] = useState([]);
+  const [iceCreamExtras, setIceCreamExtras] = useState([]);
+  const [selectedSize, setSelectedSize] = useState('1/4kg');
+  const [selectedFlavors, setSelectedFlavors] = useState([]);
+  const [selectedSauces, setSelectedSauces] = useState([]);
+  const [selectedExtras, setSelectedExtras] = useState([]);
+  const [burgerModal, setBurgerModal] = useState(null);
+  const [withFries, setWithFries] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [drinks, setDrinks] = useState([]);
   const [hasRepartidores, setHasRepartidores] = useState(true);
@@ -207,7 +217,52 @@ export default function CustomerApp() {
   const comision = metodoPago === 'transferencia' ? cart.subtotal * 0.04 : 0;
   const totalConComision = cart.total + comision;
 
-  const handleAddToCart = (menu) => {
+  const handleAddToCart = async (menu) => {
+    // Detect if it's ice cream
+    let isIceCream = false;
+    let iceConfig = null;
+    try {
+      if (menu.variantes && menu.variantes.includes('es_helado')) {
+        iceConfig = JSON.parse(menu.variantes);
+        isIceCream = iceConfig.es_helado;
+      }
+    } catch (e) {}
+
+    if (isIceCream) {
+      setSelectedSize('1/4kg');
+      setSelectedFlavors([]);
+      setSelectedSauces([]);
+      setSelectedExtras([]);
+      try {
+        const [flavors, extras] = await Promise.all([
+          api.getSaboresByLocal(menu.local_id),
+          api.getAdicionalesByLocal(menu.local_id)
+        ]);
+        setIceCreamFlavors(flavors.filter(f => f.disponible && f.tipo === 'Sabor'));
+        setIceCreamSauces(flavors.filter(f => f.disponible && f.tipo === 'Salsa'));
+        setIceCreamExtras(extras.filter(e => e.disponible));
+        setIceCreamModal(menu);
+        return; // Stop flow, modal will handle addition
+      } catch {
+        toast.error('Error al cargar opciones de helado');
+      }
+    }
+
+    // Detect if it's a Burger with Fries option
+    let burgerConfig = null;
+    try {
+      if ((menu.categoria || '').toLowerCase() === 'hamburguesas' && menu.variantes && menu.variantes.includes('con_papas')) {
+        burgerConfig = JSON.parse(menu.variantes);
+      }
+    } catch(e){}
+
+    if (burgerConfig && burgerConfig.con_papas) {
+      setBurgerModal(menu);
+      setWithFries(false);
+      return; // Stop flow, burger modal handles it
+    }
+
+    // Default addition for other items
     cart.addItem(menu);
     toast((t) => (
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -246,7 +301,8 @@ export default function CustomerApp() {
       const exactTotal = calcSubtotal + shipping + calcComision;
 
       const orderItems = cart.items.map(i => ({
-        id: i.id, nombre: i.nombre, precio: Number(i.precio),
+        id: i.menuId || i.id, // Use original menu item ID for database
+        nombre: i.nombre, precio: Number(i.precio),
         cantidad: i.qty, local_id: i.local_id || '',
       }));
 
@@ -751,7 +807,6 @@ export default function CustomerApp() {
                 <button type="submit" className="btn btn-primary btn-full">Guardar</button>
               </form>
             )}
-
             {modal === 'terms' && (
               <div>
                 <h2>Términos y Condiciones y Política de Privacidad</h2>
@@ -759,33 +814,23 @@ export default function CustomerApp() {
                   <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 1. USUARIOS – TÉRMINOS Y CONDICIONES</h3>
                   <p><strong>1. Naturaleza del servicio</strong></p>
                   <p>Weep es una plataforma que Intermedia entre usuarios y comercios, facilita la gestión de pedidos y coordina la logística de entrega. Weep no elabora ni comercializa productos.</p>
-                  
                   <p><strong>2. Relación contractual</strong></p>
                   <p>El usuario acepta que la compra es con el comercio, la entrega es realizada por repartidores independientes, y Weep no es parte directa de dichas relaciones.</p>
-                  
                   <p><strong>3. Productos</strong></p>
                   <p>Los comercios son los únicos responsables de Calidad, Ingredientes, Higiene y Estado. Weep no garantiza los productos.</p>
-                  
                   <p><strong>4. Entregas</strong></p>
                   <p>Weep coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logística.</p>
-                  
                   <p><strong>5. Limitación de responsabilidad</strong></p>
                   <p>Weep no será responsable por intoxicaciones, problemas de salud, daños derivados del producto, demoras razonables o fallas de terceros.</p>
-                  
                   <p><strong>6. Pagos</strong></p>
                   <p>Los pagos se procesan mediante Mercado Pago. Weep no es entidad financiera, no fija precios y puede aplicar comisiones.</p>
-                  
                   <p><strong>7. Cancelaciones</strong></p>
                   <p>Dependen del comercio y estado del pedido.</p>
-                  
                   <p><strong>8. Indemnidad</strong></p>
                   <p>El usuario mantiene indemne a Weep ante reclamos derivados del uso.</p>
-                  
                   <p><strong>9. Aceptación</strong></p>
                   <p>Mediante registro y confirmación electrónica.</p>
-                  
                   <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-                  
                   <h3 style={{ color: 'var(--red-600)' }}>🔒 USUARIOS – POLÍTICA DE PRIVACIDAD</h3>
                   <p><strong>Datos recolectados:</strong></p>
                   <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
@@ -794,14 +839,12 @@ export default function CustomerApp() {
                     <li>Ubicación en tiempo real</li>
                     <li>Historial de pedidos</li>
                   </ul>
-                  
                   <p><strong>Uso de datos:</strong></p>
                   <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
                     <li>Procesar pedidos</li>
                     <li>Coordinar entregas</li>
                     <li>Asignar repartidores</li>
                   </ul>
-                  
                   <p><strong>Compartición:</strong></p>
                   <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
                     <li>Comercios</li>
@@ -815,6 +858,222 @@ export default function CustomerApp() {
           </div>
         </div>
       )}
+
+      {/* ─── Ice Cream Modal ─── */}
+      {iceCreamModal && (
+        <div className="modal-overlay" onClick={() => setIceCreamModal(null)}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>{iceCreamModal.nombre}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
+            
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
+              {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
+                <button 
+                  key={size}
+                  className={`btn ${selectedSize === size ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
+                  style={{ fontSize: '0.9rem', padding: '8px 4px' }}
+                >
+                  {size}<br/>
+                  <small>${JSON.parse(iceCreamModal.variantes).precios[size].precio}</small>
+                </button>
+              ))}
+            </div>
+
+            <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>
+               Seleccioná tus sabores <small>(Máx {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max})</small>
+            </h3>
+            
+            <div className="flavors-list" style={{ maxHeight: 200, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: 4 }}>
+              {iceCreamFlavors.map(flavor => {
+                const isSelected = selectedFlavors.includes(flavor.nombre);
+                const max = JSON.parse(iceCreamModal.variantes).precios[selectedSize].max;
+                const canSelect = selectedFlavors.length < max;
+                
+                return (
+                  <button 
+                    key={flavor.id}
+                    className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 44 }}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedFlavors(prev => prev.filter(f => f !== flavor.nombre));
+                      } else if (canSelect) {
+                        setSelectedFlavors(prev => [...prev, flavor.nombre]);
+                      }
+                    }}
+                  >
+                    {flavor.nombre}
+                  </button>
+                );
+              })}
+            </div>
+
+            {iceCreamSauces.length > 0 && (
+              <>
+                <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>Salsas <small>(Opcional)</small></h3>
+                <div className="sauces-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+                  {iceCreamSauces.map(sauce => {
+                    const isSelected = selectedSauces.includes(sauce.nombre);
+                    return (
+                      <button 
+                        key={sauce.id}
+                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => {
+                          if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
+                          else setSelectedSauces(prev => [...prev, sauce.nombre]);
+                        }}
+                      >
+                        {sauce.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {iceCreamExtras.length > 0 && (
+              <>
+                <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>Adicionales</h3>
+                <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                  {iceCreamExtras.map(extra => {
+                    const isSelected = selectedExtras.some(e => e.id === extra.id);
+                    return (
+                      <button 
+                        key={extra.id}
+                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => {
+                          if (isSelected) setSelectedExtras(prev => prev.filter(e => e.id !== extra.id));
+                          else setSelectedExtras(prev => [...prev, extra]);
+                        }}
+                      >
+                        {extra.nombre} (+${extra.precio})
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {(() => {
+              const configuration = JSON.parse(iceCreamModal.variantes);
+              const basePrice = parseFloat(configuration.precios[selectedSize].precio || 0);
+              const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
+              const currentTotal = basePrice + extrasPrice;
+
+              return (
+                <button 
+                  className="btn btn-primary btn-full btn-lg"
+                  disabled={selectedFlavors.length === 0}
+                  onClick={() => {
+                    const details = [];
+                    details.push(`Sabores: ${selectedFlavors.join(', ')}`);
+                    if (selectedSauces.length > 0) details.push(`Salsas: ${selectedSauces.join(', ')}`);
+                    if (selectedExtras.length > 0) details.push(`Extras: ${selectedExtras.map(e => e.nombre).join(', ')}`);
+
+                    const finalItem = {
+                      ...iceCreamModal,
+                      menuId: iceCreamModal.id,
+                      id: `${iceCreamModal.id}-${selectedSize}-${Date.now()}`,
+                      nombre: `${iceCreamModal.nombre} ${selectedSize}`,
+                      precio: currentTotal,
+                      flavors: selectedFlavors,
+                      sauces: selectedSauces,
+                      extras: selectedExtras,
+                      descripcion: details.join(' | ')
+                    };
+                    cart.addItem(finalItem);
+                    setIceCreamModal(null);
+                    toast.success('¡Helado agregado!');
+                  }}
+                >
+                  Agregar al carrito • ${currentTotal}
+                </button>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {burgerModal && (
+        <div className="modal-overlay" onClick={() => setBurgerModal(null)}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setBurgerModal(null)}>✕</button>
+            <div style={{ fontSize: '3rem', marginBottom: 15 }}>{withFries ? '🍟' : '🍔'}</div>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 10 }}>¿Lo hacemos COMBO?</h2>
+            <p style={{ color: 'var(--gray-600)', marginBottom: 20 }}>
+              ¿Querés sumar <strong>papas fritas</strong> a tu {burgerModal.nombre}?
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+              <div 
+                className={`selection-card ${withFries ? 'active' : ''}`}
+                onClick={() => setWithFries(true)}
+                style={{ 
+                  padding: '20px 10px', 
+                  borderRadius: '12px', 
+                  border: withFries ? '2px solid var(--red-500)' : '2px solid #eee',
+                  backgroundColor: withFries ? '#fff5f5' : '#fff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <div style={{ fontSize: '2rem' }}>🍟</div>
+                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>¡Si, con papas!</div>
+                <div style={{ color: 'var(--red-600)', fontWeight: 600 }}>+ ${JSON.parse(burgerModal.variantes).precio_papas}</div>
+              </div>
+
+              <div 
+                className={`selection-card ${!withFries ? 'active' : ''}`}
+                onClick={() => setWithFries(false)}
+                style={{ 
+                  padding: '20px 10px', 
+                  borderRadius: '12px', 
+                  border: !withFries ? '2px solid var(--gray-600)' : '2px solid #eee',
+                  backgroundColor: !withFries ? '#f9f9f9' : '#fff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <div style={{ fontSize: '2rem' }}>🍔</div>
+                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>No, solo la burguer</div>
+                <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem' }}>Sin adicionales</div>
+              </div>
+            </div>
+
+            <button 
+              className="btn btn-primary btn-full btn-lg"
+              onClick={() => {
+                const config = JSON.parse(burgerModal.variantes);
+                const extra = withFries ? Number(config.precio_papas) : 0;
+                const finalItem = {
+                  ...burgerModal,
+                  menuId: burgerModal.id, // CRITICAL FIX: Store original menu item ID
+                  nombre: withFries ? `${burgerModal.nombre} + PAPAS` : burgerModal.nombre,
+                  precio: Number(burgerModal.precio) + extra,
+                  id: withFries ? `${burgerModal.id}-conpapas` : burgerModal.id // Unique ID for cart
+                };
+                cart.addItem(finalItem);
+                setBurgerModal(null);
+                toast.success('¡Agregado!');
+              }}
+            >
+              Agregar • ${Number(burgerModal.precio) + (withFries ? Number(JSON.parse(burgerModal.variantes).precio_papas) : 0)}
+            </button>
+          </div>
+        </div>
+      )}
+
+
 
       <footer className="footer">
         <p>© 2026 <strong>Weep</strong> — Plataforma de Pedidos y Delivery</p>

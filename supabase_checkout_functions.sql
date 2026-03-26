@@ -76,6 +76,10 @@ BEGIN
     WHERE estado = 'Activo' 
     ORDER BY random() 
     LIMIT 1;
+
+    IF v_repartidor_id IS NOT NULL THEN
+      UPDATE repartidores SET estado = 'Ocupado' WHERE id = v_repartidor_id;
+    END IF;
   END IF;
 
   INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, repartidor_id, local_id, num_confirmacion, fecha, created_at)

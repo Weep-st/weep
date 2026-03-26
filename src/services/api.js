@@ -4,7 +4,7 @@
 import { supabase } from './supabase';
 
 // Cloudinary config
-const CLOUD_NAME = 'drjchiokc';
+const CLOUD_NAME = 'dw10wkbac';
 const UPLOAD_PRESET = 'ml_default';
 
 // ─── Image Upload ───
@@ -257,6 +257,87 @@ export async function updateDisponibilidad(itemId, disponibilidad) {
 }
 
 // ═══════════════════════════════════════════════════
+// HELADOS - SABORES
+// ═══════════════════════════════════════════════════
+
+export async function getSaboresByLocal(localId) {
+  const { data, error } = await supabase
+    .from('helado_sabores')
+    .select('*')
+    .eq('local_id', localId)
+    .order('tipo', { ascending: false }) // Sabor then Salsa
+    .order('nombre');
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function addSabor(localId, nombre, tipo = 'Sabor') {
+  const { error } = await supabase
+    .from('helado_sabores')
+    .insert({ local_id: localId, nombre, tipo, disponible: true });
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function updateSaborDisponibilidad(id, disponible) {
+  const { error } = await supabase
+    .from('helado_sabores')
+    .update({ disponible })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function deleteSabor(id) {
+  const { error } = await supabase
+    .from('helado_sabores')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// HELADOS - ADICIONALES (Cucuruchos, etc)
+// ═══════════════════════════════════════════════════
+
+export async function getAdicionalesByLocal(localId) {
+  const { data, error } = await supabase
+    .from('helado_adicionales')
+    .select('*')
+    .eq('local_id', localId)
+    .order('nombre');
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function addAdicional(localId, nombre, precio) {
+  const { error } = await supabase
+    .from('helado_adicionales')
+    .insert({ local_id: localId, nombre, precio: parseFloat(precio), disponible: true });
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function updateAdicionalDisponibilidad(id, disponible) {
+  const { error } = await supabase
+    .from('helado_adicionales')
+    .update({ disponible })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function deleteAdicional(id) {
+  const { error } = await supabase
+    .from('helado_adicionales')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
 // FAVORITOS
 // ═══════════════════════════════════════════════════
 export async function getFavoritos(userId) {
@@ -358,6 +439,17 @@ export async function getPedidoGeneral(pedidoId) {
 export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
   const { error } = await supabase.from('pedidos_locales').update({ estado }).eq('id', pedidoLocalId);
   if (error) throw new Error(error.message);
+
+  if (estado === 'Rechazado') {
+    const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).single();
+    if (pl) {
+      const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pl.pedido_id).single();
+      if (pg && pg.repartidor_id) {
+        await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
+      }
+      await supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', pl.pedido_id);
+    }
+  }
   return { success: true };
 }
 
@@ -673,6 +765,10 @@ export async function assignRepartidor(pedidoId) {
   const { error } = await supabase.from('pedidos_general')
     .update({ repartidor_id: elegido.id }).eq('id', pedidoId);
   if (error) return { success: false, error: error.message };
+
+  // Marcar como ocupado al ser asignado manualmente o por sistema
+  await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', elegido.id);
+
   return { success: true, repartidor: elegido };
 }
 
@@ -703,7 +799,11 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
 
   const { error } = await supabase.from('pedidos_general').update({ estado: nuevoEstado }).eq('id', pedidoId);
   if (error) return { success: false, error: error.message };
+  
   if (nuevoEstado === 'Entregado') {
+    // Liberar repartidor al terminar
+    await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', repartidorId);
+    
     const { data: d } = await supabase.from('repartidores').select('pedidos_hoy').eq('id', repartidorId).single();
     if (d) await supabase.from('repartidores').update({ pedidos_hoy: (d.pedidos_hoy || 0) + 1 }).eq('id', repartidorId);
   }

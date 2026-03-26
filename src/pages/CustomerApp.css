@@ -597,6 +597,58 @@
   margin-top: 20px;
 }
 
+/* Ice Cream Customization Modal */
+.flavors-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--red-200) transparent;
+}
+
+.flavors-list::-webkit-scrollbar { width: 5px; }
+.flavors-list::-webkit-scrollbar-thumb { background: var(--red-200); border-radius: 10px; }
+
+.btn-xs {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  min-height: auto;
+}
+
+.btn-outline {
+  background: white;
+  color: var(--gray-600);
+  border: 1px solid var(--gray-300);
+}
+
+.btn-outline:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
+}
+
+.btn-outline.active, .btn-primary {
+  background: var(--red-500);
+  color: white;
+  border-color: var(--red-500);
+}
+
+.sauces-list, .extras-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.extras-list .btn-xs {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.extras-list .btn-xs.btn-primary {
+  background: #22c55e;
+  color: white;
+  border-color: #22c55e;
+}
+
 /* ─── Modal ─── */
 .modal-overlay {
   position: fixed;
