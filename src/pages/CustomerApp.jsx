@@ -745,10 +745,12 @@ export default function CustomerApp() {
                 <input name="password" type="password" className="form-input" placeholder="Contraseña (6+ caracteres)" required />
                 <input name="direccion" className="form-input" placeholder="Dirección (opcional)" />
                 
-                <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.95rem', color: 'var(--gray-700)', cursor: 'pointer', padding: '10px 0', textAlign: 'left' }}>
-                  <input type="checkbox" required style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
-                  Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setModal('terms')}>Términos y Condiciones y Política de Privacidad</button> para Usuarios.
-                </label>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
+                  <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+                  <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setModal('terms')}>Términos y Condiciones y Política de Privacidad</button> para Usuarios.
+                  </label>
+                </div>
 
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
