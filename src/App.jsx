@@ -6,6 +6,7 @@ import CustomerApp from './pages/CustomerApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import MisPedidos from './pages/MisPedidos';
+import ConfirmarEmail from './pages/ConfirmarEmail';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/mis-pedidos" element={<MisPedidos />} />
           <Route path="/locales" element={<RestaurantDashboard />} />
           <Route path="/repartidores" element={<DriverDashboard />} />
+          <Route path="/confirmar-email" element={<ConfirmarEmail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </CartProvider>

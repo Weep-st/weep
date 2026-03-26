@@ -29,19 +29,34 @@ export async function loginUsuario(email, password) {
     .eq('password', password)
     .single();
   if (error || !data) return { success: false };
-  return { success: true, userId: data.id, nombre: data.nombre, direccion: data.direccion, telefono: data.telefono, email: data.email };
+  return { 
+    success: true, 
+    userId: data.id, 
+    nombre: data.nombre, 
+    direccion: data.direccion, 
+    telefono: data.telefono, 
+    email: data.email,
+    emailConfirmado: data.email_confirmado 
+  };
 }
 
 export async function registerUsuario(nombre, email, password, direccion, termsAccepted = true, privacyAccepted = true) {
   const id = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('usuarios').insert({ 
     id, nombre, email, password, direccion,
     terms_accepted: termsAccepted,
     privacy_accepted: privacyAccepted,
     terms_accepted_at: new Date().toISOString(),
-    terms_version: 'v1'
+    terms_version: 'v1',
+    email_confirmado: false,
+    token_confirmacion: code
   });
   if (error) throw new Error(error.message);
+  
+  // Enviar email de confirmación
+  sendConfirmationEmail(email, code, 'usuario', nombre).catch(console.error);
+  
   return { success: true, userId: id };
 }
 
@@ -62,19 +77,26 @@ export async function loginLocal(email, password) {
     .eq('password', password)
     .single();
   if (error || !data) return { success: false };
-  return { success: true, localId: data.id };
+  return { success: true, localId: data.id, emailConfirmado: data.email_confirmado };
 }
 
 export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true) {
   const id = 'LOC-' + Date.now();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
     id, nombre, direccion, email, password,
     terms_accepted: termsAccepted,
     privacy_accepted: privacyAccepted,
     terms_accepted_at: new Date().toISOString(),
-    terms_version: 'v1'
+    terms_version: 'v1',
+    email_confirmado: false,
+    token_confirmacion: code
   });
   if (error) throw new Error(error.message);
+  
+  // Enviar email de confirmación
+  sendConfirmationEmail(email, code, 'local', nombre).catch(console.error);
+  
   return { success: true };
 }
 
@@ -121,12 +143,14 @@ export async function repartidorLogin(email, password) {
       Telefono: data.telefono, Patente: data.patente,
       MarcaModelo: data.marca_modelo, Estado: data.estado,
       PedidosHoy: data.pedidos_hoy,
+      EmailConfirmado: data.email_confirmado
     },
   };
 }
 
 export async function repartidorRegister(params) {
   const id = 'REP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('repartidores').insert({
     id, nombre: params.nombre, telefono: params.telefono,
     email: params.email, password: params.password,
@@ -135,9 +159,79 @@ export async function repartidorRegister(params) {
     terms_accepted: params.termsAccepted ?? true,
     privacy_accepted: params.privacyAccepted ?? true,
     terms_accepted_at: new Date().toISOString(),
-    terms_version: 'v1'
+    terms_version: 'v1',
+    email_confirmado: false,
+    token_confirmacion: code
   });
   if (error) return { success: false, error: error.message };
+  
+  // Enviar email de confirmación
+  sendConfirmationEmail(params.email, code, 'repartidor', params.nombre).catch(console.error);
+  
+  return { success: true };
+}
+
+// ─── Email Confirmation Logic ───
+async function sendConfirmationEmail(email, code, tipo, nombre) {
+  const isProd = window.location.hostname !== 'localhost';
+  const baseUrl = isProd ? 'https://weep.com.ar' : window.location.origin;
+  const link = `${baseUrl}/confirmar-email?email=${encodeURIComponent(email)}&tipo=${tipo}`;
+  
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; borderRadius: 10px; background-color: #ffffff;">
+      <h2 style="color: #e63946; text-align: center;">¡Hola ${nombre}!</h2>
+      <p style="font-size: 16px; color: #333; text-align: center;">Gracias por registrarte en <strong>WEEP</strong>. Para completar tu registro, ingresá el siguiente código de confirmación:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <span style="font-size: 42px; font-weight: bold; color: #e63946; letter-spacing: 10px; border: 2px dashed #e63946; padding: 10px 20px; border-radius: 10px;">${code}</span>
+      </div>
+      <p style="font-size: 14px; color: #666; text-align: center;">También podés confirmar haciendo clic en el siguiente botón:</p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${link}" style="background-color: #e63946; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirmar mi email</a>
+      </div>
+      <p style="font-size: 12px; color: #999; text-align: center;">El código expirará pronto. Si no creaste esta cuenta, ignorá este correo.</p>
+    </div>
+  `;
+
+  return supabase.functions.invoke('send-email', {
+    body: {
+      to: email,
+      subject: `Código de confirmación WEEP: ${code}`,
+      htmlBody: htmlBody
+    }
+  });
+}
+
+export async function confirmarEmail(code, tipo, email) {
+  const { data, error } = await supabase.rpc('confirmar_email', {
+    token_input: code,
+    tipo_input: tipo,
+    email_input: email
+  });
+    
+  if (error) {
+    console.error('Error in confirmation RPC:', error);
+    return { success: false, error: 'Ocurrió un error en el servidor' };
+  }
+  
+  if (!data) return { success: false, error: 'Código inválido o expirado' };
+  return { success: true };
+}
+
+export async function reenviarEmailConfirmacion(email, tipo) {
+  const table = tipo === 'usuario' ? 'usuarios' : tipo === 'local' ? 'locales' : 'repartidores';
+  
+  // Buscar usuario y generar nuevo código
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const { data, error } = await supabase
+    .from(table)
+    .update({ token_confirmacion: code })
+    .eq('email', email)
+    .select('nombre')
+    .single();
+    
+  if (error || !data) return { success: false, error: 'No se encontró el usuario' };
+  
+  await sendConfirmationEmail(email, code, tipo, data.nombre);
   return { success: true };
 }
 

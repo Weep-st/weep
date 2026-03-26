@@ -34,6 +34,12 @@ export default function RestaurantDashboard() {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [adicionales, setAdicionales] = useState([]);
   const [adicionalesLoading, setAdicionalesLoading] = useState(false);
+  
+  // Tutorial State
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(1);
+  const [tutorialSampleOrderState, setTutorialSampleOrderState] = useState('Pendiente'); // To simulate order states
+
   const pollingRef = useRef(null);
   const previousOrdersRef = useRef([]);
   const localOpenRef = useRef(false);
@@ -166,6 +172,13 @@ export default function RestaurantDashboard() {
     loadEstado();
     loadProfile();
     loadOrders();
+
+    // Check if tutorial was already seen
+    const hasSeenTutorial = localStorage.getItem(`tutorial_seen_${restaurant.id}`);
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+      setTutorialStep(1);
+    }
     
     const handleFocus = () => loadOrders(true);
     window.addEventListener('focus', handleFocus);
@@ -356,6 +369,19 @@ export default function RestaurantDashboard() {
     setAuthLoading(false);
   };
 
+  const handleResendConfirmationService = async () => {
+    if (!profileData?.email) {
+      toast.error('No se encontró el email en tu perfil');
+      return;
+    }
+    const loading = toast.loading('Reenviando email...');
+    try {
+      const res = await api.reenviarEmailConfirmacion(profileData.email, 'local');
+      if (res.success) toast.success('¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
+      else toast.error(res.error || 'Error al reenviar', { id: loading });
+    } catch { toast.error('Error de conexión', { id: loading }); }
+  };
+
   const handleSaveItem = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -499,6 +525,65 @@ export default function RestaurantDashboard() {
     } catch { toast.error('Error al guardar perfil'); }
   };
 
+  // ─── Tutorial Mock Data logic ───
+  const tutorialSampleDish = {
+    id: 'sample-dish-1',
+    nombre: 'Hamburguesa Weep (Muestra)',
+    categoria: 'Hamburguesas',
+    descripcion: 'Doble carne, mucho cheddar y bacon crocante.',
+    precio: 4500,
+    disponibilidad: true,
+    imagen_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=300'
+  };
+
+  const tutorialSampleOrder = {
+    idPedidoLocal: 'sample-order-1',
+    idPedido: 'SAMPLE-1',
+    estadoActual: tutorialSampleOrderState,
+    items: [[null, null, 'sample-dish-1', 1, 'Hamburguesa Weep (Muestra)', '', 1, 4500]],
+    direccion: 'Calle Falsa 123 (Muestra)',
+    observaciones: 'Sin cebolla por favor',
+    metodoPago: 'Efectivo',
+    tipoEntrega: 'Delivery',
+    emailCliente: 'cliente@ejemplo.com',
+    nombreCliente: 'Juan Pérez (Muestra)',
+    fecha: new Date().toISOString(),
+    numConfirmacion: '1234',
+    repartidorId: null,
+    localId: restaurant?.id,
+    totalLocal: 4500,
+  };
+
+  const finishTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem(`tutorial_seen_${restaurant?.id}`, 'true');
+    setView('orders');
+  };
+
+  const handleTutorialNext = () => {
+    if (tutorialStep === 1) {
+      setTutorialStep(2);
+    } else if (tutorialStep === 2) {
+      setView('menu');
+      setTutorialStep(3);
+    } else if (tutorialStep === 3) {
+      setView('orders');
+      setCurrentTab('pendientes');
+      setTutorialStep(4);
+    } else if (tutorialStep === 4) {
+      setTutorialStep(5);
+    } else {
+      finishTutorial();
+    }
+  };
+
+  const handleTutorialPrev = () => {
+    if (tutorialStep === 2) setTutorialStep(1);
+    else if (tutorialStep === 3) { setView('orders'); setTutorialStep(2); }
+    else if (tutorialStep === 4) { setView('menu'); setTutorialStep(3); }
+    else if (tutorialStep === 5) { setTutorialStep(4); }
+  };
+
   // Categories for select
   const categories = [...new Set(menuItems.map(i => i.categoria).filter(Boolean))].sort();
   const filteredMenu = menuItems.filter(i => {
@@ -506,6 +591,8 @@ export default function RestaurantDashboard() {
     const catOk = !menuCatFilter || i.categoria === menuCatFilter;
     return nameOk && catOk;
   });
+
+  const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
   const processOrders = orders.filter(o => ['Pendiente', 'Aceptado', 'Listo'].includes(o.estadoActual));
   const finishedOrders = orders.filter(o => ['Entregado', 'Rechazado'].includes(o.estadoActual));
@@ -517,6 +604,21 @@ export default function RestaurantDashboard() {
   const currentTabOrders = currentTab === 'pendientes' ? pendientesOrders :
                            currentTab === 'preparacion' ? preparacionOrders :
                            listosOrders;
+
+  const finalOrders = (() => {
+    if (!showTutorial || view !== 'orders') return currentTabOrders;
+    
+    const tabToState = {
+      'pendientes': 'Pendiente',
+      'preparacion': 'Aceptado',
+      'listos': 'Listo'
+    };
+    
+    if (tutorialSampleOrder.estadoActual === tabToState[currentTab]) {
+      return [tutorialSampleOrder, ...currentTabOrders];
+    }
+    return currentTabOrders;
+  })();
 
   // ─── Auth Screen ───
   if (!restaurant) return (
@@ -624,9 +726,109 @@ export default function RestaurantDashboard() {
     </div>
   );
 
+  // ─── Tutorial Overlay ───
+  const renderTutorial = () => {
+    if (!showTutorial) return null;
+
+    const mascotUrl = "https://i.postimg.cc/76cK0DSH/Gemini-Generated-Image-aqk3geaqk3geaqk3-(2).png";
+
+    const steps = [
+      {
+        title: "¡Bienvenido a Weep!",
+        text: "Soy tu guía. En este panel gestionarás todo tu negocio de forma simple.",
+        position: "bottom-right"
+      },
+      {
+        title: "Cargar nuevo plato",
+        text: "Haz click en '+ Añadir' para crear platos. ¡Las buenas fotos atraen más clientes!",
+        target: ".rd-nav-btn:nth-child(3)",
+      },
+      {
+        title: "Gestionar tu Menú",
+        text: "Aquí ves tus platos. Puedes pausarlos si no tienes stock. Mira este ejemplo de hamburguesa.",
+        target: ".rd-menu-item"
+      },
+      {
+        title: "Logística de Pedidos",
+        text: tutorialSampleOrderState === 'Pendiente' ? "¡Mira! Tienes un pedido. Dale a 'Aceptar' para empezar a cocinar." :
+              tutorialSampleOrderState === 'Aceptado' ? "¡Muy bien! Ahora está en preparación. Cuando termines, dale a 'Listo'." :
+              "¡Perfecto! El pedido está listo para ser entregado.",
+        target: ".rd-tabs"
+      },
+      {
+        title: "¡Todo listo!",
+        text: "Ya dominas lo básico. Encuéntrame en Mi Perfil > Ver tutorial si me necesitas de nuevo.",
+        position: "center"
+      }
+    ];
+
+    const step = steps[tutorialStep - 1];
+
+    return (
+      <div className="tutorial-floating-container" style={{
+        position: 'fixed', top: '70px', right: '20px', zIndex: 9999,
+        maxWidth: '380px', width: '90%', pointerEvents: 'none'
+      }}>
+        <div className="tutorial-card card animate-fade-in" style={{
+          padding: '20px', border: '5px solid var(--red-500)', 
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)', pointerEvents: 'auto',
+          background: 'white', position: 'relative', overflow: 'visible',
+          borderRadius: '16px'
+        }}>
+          {/* Avatar Guía */}
+          <div style={{
+            position: 'absolute', top: '-50px', left: '20px',
+            width: '80px', height: '80px', borderRadius: '50%',
+            border: '3px solid var(--red-500)', backgroundColor: 'white',
+            overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          }}>
+            <img src={mascotUrl} alt="Guía" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+
+          <div style={{ marginTop: '30px' }}>
+            <h3 style={{ color: 'var(--red-600)', marginBottom: '8px', fontSize: '1.2rem' }}>
+              {step.title}
+            </h3>
+            <p style={{ fontSize: '0.92rem', color: 'var(--gray-700)', lineHeight: '1.4', marginBottom: '16px' }}>
+              {step.text}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button className="btn btn-ghost btn-xs" onClick={finishTutorial} style={{ fontSize: '0.75rem' }}>Saltar tutorial</button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {tutorialStep > 1 && tutorialStep !== 4 && (
+                  <button className="btn btn-secondary btn-sm" onClick={handleTutorialPrev}>Atrás</button>
+                )}
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  onClick={handleTutorialNext}
+                  disabled={tutorialStep === 4 && tutorialSampleOrderState !== 'Entregado'}
+                >
+                  {tutorialStep === steps.length ? '¡Empezar!' : 
+                   tutorialStep === 4 ? (tutorialSampleOrderState === 'Entregado' ? 'Continuar' : 'Sigue los pasos...') :
+                   'Siguiente'}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Progress dots */}
+          <div style={{ display: 'flex', gap: '4px', marginTop: '12px', justifyContent: 'center' }}>
+            {steps.map((_, i) => (
+              <div key={i} style={{ 
+                width: '6px', height: '6px', borderRadius: '50%', 
+                background: i === tutorialStep - 1 ? 'var(--red-500)' : '#ddd' 
+              }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ─── Dashboard ───
   return (
     <div className="rd-page">
+      {renderTutorial()}
       <header className="rd-header">
         <Link to="/">
           <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" className="rd-logo" />
@@ -635,6 +837,30 @@ export default function RestaurantDashboard() {
       </header>
 
       <main className="rd-main">
+        {restaurant && !restaurant.emailConfirmado && (
+          <div className="unconfirmed-banner" style={{
+            background: '#fff7e6',
+            border: '1px solid #ffd591',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            margin: '0 16px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.9rem',
+            color: '#874d00'
+          }}>
+            <span>⚠️ <strong>Email no confirmado:</strong> Por favor confirma tu dirección de correo para operar con normalidad.</span>
+            <button 
+              className="btn btn-sm" 
+              style={{ background: '#faad14', color: '#fff', border: 'none' }}
+              onClick={handleResendConfirmationService}
+            >
+              Reenviar enlace
+            </button>
+          </div>
+        )}
         {/* Top bar */}
         <div className="rd-topbar animate-fade-in">
           <div className="rd-topbar-left">
@@ -667,6 +893,9 @@ export default function RestaurantDashboard() {
                   <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); }}>
                     👤 Editar Perfil
                   </button>
+                  <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }} style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>
+                    📖 Ver tutorial
+                  </button>
                 </div>
               )}
             </div>
@@ -697,7 +926,11 @@ export default function RestaurantDashboard() {
         <nav className="rd-nav animate-slide-up" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
           <button className={`rd-nav-btn ${view === 'orders' ? 'active' : ''}`} onClick={() => { setView('orders'); loadOrders(); }}>
             📋 Pedidos
-            {pendingCount > 0 && <span className="rd-nav-badge">{pendingCount}</span>}
+            {(pendingCount > 0 || (showTutorial && tutorialSampleOrderState === 'Pendiente')) && (
+              <span className="rd-nav-badge">
+                {pendingCount + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}
+              </span>
+            )}
           </button>
           <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
           
@@ -726,21 +959,43 @@ export default function RestaurantDashboard() {
           <section className="animate-fade-in">
             <div className="rd-tabs" style={{ gap: 8 }}>
               <button className={currentTab === 'pendientes' ? 'active' : ''} onClick={() => setCurrentTab('pendientes')} style={{ position: 'relative' }}>
-                Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length}</span>
+                Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}</span>
               </button>
               <button className={currentTab === 'preparacion' ? 'active' : ''} onClick={() => setCurrentTab('preparacion')} style={{ position: 'relative' }}>
-                En Preparación <span className="badge badge-info" style={{ marginLeft: 6 }}>{preparacionOrders.length}</span>
+                En Preparación <span className="badge badge-info" style={{ marginLeft: 6 }}>{preparacionOrders.length + (showTutorial && tutorialSampleOrderState === 'Aceptado' ? 1 : 0)}</span>
               </button>
               <button className={currentTab === 'listos' ? 'active' : ''} onClick={() => setCurrentTab('listos')} style={{ position: 'relative' }}>
-                Listos <span className="badge badge-blue" style={{ marginLeft: 6 }}>{listosOrders.length}</span>
+                Listos <span className="badge badge-blue" style={{ marginLeft: 6 }}>{listosOrders.length + (showTutorial && tutorialSampleOrderState === 'Listo' ? 1 : 0)}</span>
               </button>
             </div>
             {ordersLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando...</div>
-            ) : currentTabOrders.length === 0 ? (
+            ) : finalOrders.length === 0 ? (
               <p className="rd-empty">No hay pedidos en esta sección</p>
-            ) : currentTabOrders.map(o => (
-              <OrderCard key={o.idPedidoLocal} order={o} onAction={handleOrderAction} />
+            ) : finalOrders.map(o => (
+              <OrderCard 
+                key={o.idPedidoLocal} 
+                order={o} 
+                onAction={(order, action) => {
+                  if (order.idPedidoLocal === 'sample-order-1') {
+                    if (action === 'Aceptado') {
+                       setTutorialSampleOrderState('Aceptado');
+                       setCurrentTab('preparacion');
+                       toast.success('¡Pedido aceptado! (Muestra)');
+                    } else if (action === 'Listo') {
+                       setTutorialSampleOrderState('Listo');
+                       setCurrentTab('listos');
+                       toast.success('¡Pedido listo! (Muestra)');
+                    } else if (action === 'Entregado') {
+                       setTutorialSampleOrderState('Entregado');
+                       toast.success('¡Pedido entregado! (Muestra)');
+                       setTutorialStep(5); // Move to next step if in tutorial
+                    }
+                  } else {
+                    handleOrderAction(order, action);
+                  }
+                }} 
+              />
             ))}
           </section>
         )}
@@ -757,9 +1012,9 @@ export default function RestaurantDashboard() {
             </div>
             {menuLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando menú...</div>
-            ) : filteredMenu.length === 0 ? (
+            ) : finalMenu.length === 0 ? (
               <p className="rd-empty">No hay platos. ¡Agregá tu primer plato!</p>
-            ) : filteredMenu.map(item => (
+            ) : finalMenu.map(item => (
               <div key={item.id} className="rd-menu-item card">
                 {item.imagen_url ? <img src={item.imagen_url} alt={item.nombre} className="rd-menu-img" /> :
                   <div className="rd-menu-img-placeholder">Sin foto</div>}

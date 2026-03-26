@@ -111,6 +111,16 @@ export default function DriverDashboard() {
     setAuthLoading(false);
   };
 
+  const handleResendConfirmation = async () => {
+    if (!driverData?.Email) return;
+    const loading = toast.loading('Reenviando email...');
+    try {
+      const res = await api.reenviarEmailConfirmacion(driverData.Email, 'repartidor');
+      if (res.success) toast.success('¡Email reenviado!', { id: loading });
+      else toast.error(res.error || 'Error al reenviar', { id: loading });
+    } catch { toast.error('Error de conexión', { id: loading }); }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -506,6 +516,29 @@ export default function DriverDashboard() {
       </header>
 
       <main className="dd-main">
+        {driver && !driver.emailConfirmado && (
+          <div className="unconfirmed-banner" style={{
+            background: '#fff7e6',
+            border: '1px solid #ffd591',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.9rem',
+            color: '#874d00'
+          }}>
+            <span>⚠️ <strong>Email no confirmado:</strong> Por favor confirma tu correo.</span>
+            <button 
+              className="btn btn-sm" 
+              style={{ background: '#faad14', color: '#fff', border: 'none' }}
+              onClick={handleResendConfirmation}
+            >
+              Reenviar
+            </button>
+          </div>
+        )}
         {!driver ? renderAuth() : (
           <>
             <div className="dd-topbar animate-fade-in">

@@ -15,12 +15,23 @@ export function AuthProvider({ children }) {
         name: localStorage.getItem('userName') || '',
         email: localStorage.getItem('userEmail') || '',
         address: localStorage.getItem('userAddress') || '',
+        emailConfirmado: localStorage.getItem('userEmailConfirmado') === 'true',
       });
     }
     const localToken = localStorage.getItem('localToken');
-    if (localToken) setRestaurant({ id: localToken });
+    if (localToken) {
+      setRestaurant({ 
+        id: localToken,
+        emailConfirmado: localStorage.getItem('localEmailConfirmado') === 'true'
+      });
+    }
     const repartidorId = localStorage.getItem('repartidorId');
-    if (repartidorId) setDriver({ id: repartidorId });
+    if (repartidorId) {
+      setDriver({ 
+        id: repartidorId,
+        emailConfirmado: localStorage.getItem('driverEmailConfirmado') === 'true'
+      });
+    }
   }, []);
 
   const loginAsUser = (data) => {
@@ -28,31 +39,46 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userName', data.name || '');
     localStorage.setItem('userEmail', data.email || '');
     localStorage.setItem('userAddress', data.address || '');
-    setUser({ id: data.userId, name: data.name, email: data.email, address: data.address });
+    localStorage.setItem('userEmailConfirmado', String(!!data.emailConfirmado));
+    setUser({ 
+      id: data.userId, 
+      name: data.name, 
+      email: data.email, 
+      address: data.address,
+      emailConfirmado: !!data.emailConfirmado 
+    });
   };
 
   const logoutUser = () => {
-    ['userId', 'userName', 'userEmail', 'userAddress'].forEach(k => localStorage.removeItem(k));
+    ['userId', 'userName', 'userEmail', 'userAddress', 'userEmailConfirmado'].forEach(k => localStorage.removeItem(k));
     setUser(null);
   };
 
-  const loginAsRestaurant = (localId) => {
+  const loginAsRestaurant = (data) => {
+    const localId = typeof data === 'string' ? data : data.localId;
+    const confirmed = typeof data === 'object' ? !!data.emailConfirmado : false;
+    
     localStorage.setItem('localToken', localId);
-    setRestaurant({ id: localId });
+    localStorage.setItem('localEmailConfirmado', String(confirmed));
+    setRestaurant({ id: localId, emailConfirmado: confirmed });
   };
 
   const logoutRestaurant = () => {
-    localStorage.removeItem('localToken');
+    ['localToken', 'localEmailConfirmado'].forEach(k => localStorage.removeItem(k));
     setRestaurant(null);
   };
 
-  const loginAsDriver = (id) => {
+  const loginAsDriver = (data) => {
+    const id = typeof data === 'string' ? data : data.ID || data.id;
+    const confirmed = typeof data === 'object' ? !!(data.EmailConfirmado || data.emailConfirmado) : false;
+
     localStorage.setItem('repartidorId', id);
-    setDriver({ id });
+    localStorage.setItem('driverEmailConfirmado', String(confirmed));
+    setDriver({ id, emailConfirmado: confirmed });
   };
 
   const logoutDriver = () => {
-    localStorage.removeItem('repartidorId');
+    ['repartidorId', 'driverEmailConfirmado'].forEach(k => localStorage.removeItem(k));
     setDriver(null);
   };
 

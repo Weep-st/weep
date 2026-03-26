@@ -174,6 +174,16 @@ export default function CustomerApp() {
     setAuthLoading(false);
   };
 
+  const handleResendConfirmation = async () => {
+    if (!user?.email) return;
+    const loading = toast.loading('Reenviando email...');
+    try {
+      const res = await api.reenviarEmailConfirmacion(user.email, 'usuario');
+      if (res.success) toast.success('¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
+      else toast.error(res.error || 'Error al reenviar', { id: loading });
+    } catch { toast.error('Error de conexión', { id: loading }); }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -449,6 +459,36 @@ export default function CustomerApp() {
 
   return (
     <div className="customer-app">
+      {user && !user.emailConfirmado && (
+        <div className="unconfirmed-banner" style={{
+          background: 'var(--amber-100)',
+          color: 'var(--amber-900)',
+          padding: '10px 20px',
+          textAlign: 'center',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          borderBottom: '1px solid var(--amber-200)'
+        }}>
+          <span>⚠️ Tu email no está confirmado. Algunas funciones pueden estar limitadas.</span>
+          <button 
+            onClick={handleResendConfirmation}
+            style={{
+              background: 'var(--amber-600)',
+              color: 'white',
+              border: 'none',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Reenviar enlace
+          </button>
+        </div>
+      )}
       {/* ─── Header ─── */}
       <header className="app-header">
         <Link to="/" className="app-logo-link">
