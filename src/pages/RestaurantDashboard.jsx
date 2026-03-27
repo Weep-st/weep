@@ -1088,15 +1088,32 @@ export default function RestaurantDashboard() {
               <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>{editItem ? 'Editar Plato' : 'Nuevo Plato'}</h2>
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
-                  <input 
-                    name="nombre" 
-                    className="form-input" 
-                    placeholder="Nombre del plato" 
-                    value={editItem ? undefined : itemName}
-                    defaultValue={editItem ? editItem.nombre : undefined}
-                    onChange={(e) => !editItem && setItemName(e.target.value)}
-                    required 
-                  />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input 
+                        name="nombre" 
+                        className="form-input" 
+                        placeholder="Nombre del plato" 
+                        value={editItem ? undefined : itemName}
+                        defaultValue={editItem ? editItem.nombre : undefined}
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          if (!editItem && itemCategory === 'Combos') {
+                            if (!val.toUpperCase().startsWith('COMBO ')) {
+                              val = 'COMBO ' + val.replace(/^COMBO\s*/i, '');
+                            }
+                            if (val.length < 6) val = 'COMBO ';
+                          }
+                          if (!editItem) setItemName(val);
+                        }}
+                        required 
+                        style={{ flex: 1 }}
+                      />
+                      {!editItem && itemCategory === 'Combos' && itemName === 'COMBO ' && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--red-400)', whiteSpace: 'nowrap' }}>(completar nombre)</span>
+                      )}
+                    </div>
+                  </div>
                   <select 
                     name="categoria" 
                     className="form-select" 
