@@ -1097,10 +1097,11 @@ export default function RestaurantDashboard() {
                   >
                     <option value="">Categoría</option>
                     <option value="Hamburguesas">Hamburguesas</option>
-                    <option value="Pizza">Pizzas</option>
+                    <option value="Pizzas">Pizzas</option>
                     <option value="Empanadas">Empanadas</option>
                     <option value="Merienda">Panadería</option>
                     <option value="Helados">Helados</option>
+                    <option value="Combos">Combos</option>
                   </select>
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
