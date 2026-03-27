@@ -41,6 +41,7 @@ export default function RestaurantDashboard() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1);
   const [tutorialSampleOrderState, setTutorialSampleOrderState] = useState('Pendiente'); // To simulate order states
+  const [itemName, setItemName] = useState('');
 
   const pollingRef = useRef(null);
   const previousOrdersRef = useRef([]);
@@ -1087,13 +1088,27 @@ export default function RestaurantDashboard() {
               <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>{editItem ? 'Editar Plato' : 'Nuevo Plato'}</h2>
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
-                  <input name="nombre" className="form-input" placeholder="Nombre del plato" defaultValue={editItem?.nombre || ''} required />
+                  <input 
+                    name="nombre" 
+                    className="form-input" 
+                    placeholder="Nombre del plato" 
+                    value={editItem ? undefined : itemName}
+                    defaultValue={editItem ? editItem.nombre : undefined}
+                    onChange={(e) => !editItem && setItemName(e.target.value)}
+                    required 
+                  />
                   <select 
                     name="categoria" 
                     className="form-select" 
                     defaultValue={editItem?.categoria || ''} 
                     required 
-                    onChange={(e) => setItemCategory(e.target.value)}
+                    onChange={(e) => {
+                      const cat = e.target.value;
+                      setItemCategory(cat);
+                      if (cat === 'Combos' && !editItem && !itemName.toUpperCase().startsWith('COMBO')) {
+                        setItemName('COMBO ');
+                      }
+                    }}
                   >
                     <option value="">Categoría</option>
                     <option value="Hamburguesas">Hamburguesas</option>
