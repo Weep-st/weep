@@ -41,6 +41,46 @@ export default function CustomerApp() {
   const [hasRepartidores, setHasRepartidores] = useState(true);
   const [metodoPago, setMetodoPago] = useState('');
   const searchTimeout = useRef(null);
+  
+  const isLocalOpen = useCallback((local) => {
+    if (!local) return false;
+    
+    // Si no tiene modo automático, dependemos del estado manual
+    if (!local.modo_automatico) {
+      return local.estado?.toLowerCase() === 'activo';
+    }
+
+    // Si tiene modo automático, verificamos horario y días
+    const { horario_apertura, horario_cierre, dias_apertura } = local;
+    if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
+
+    // Verificar días
+    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
+      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const currentDayName = daysMap[new Date().getDay()];
+      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normalizedDays = dias_apertura.map(normalize);
+      const normalizedCurrentDay = normalize(currentDayName);
+      if (!normalizedDays.includes(normalizedCurrentDay)) return false;
+    }
+
+    // Verificar horario
+    const [hA, mA] = horario_apertura.split(':').map(Number);
+    const [hC, mC] = horario_cierre.split(':').map(Number);
+    const minApertura = hA * 60 + mA;
+    const minCierre = hC * 60 + mC;
+    const now = new Date();
+    const current = now.getHours() * 60 + now.getMinutes();
+
+    let insideTime = false;
+    if (minApertura < minCierre) {
+      insideTime = current >= minApertura && current <= minCierre;
+    } else {
+      insideTime = current >= minApertura || current <= minCierre;
+    }
+
+    return insideTime;
+  }, []);
 
   // Load locals + drinks on mount
   useEffect(() => {
@@ -135,7 +175,11 @@ export default function CustomerApp() {
         nombre: l.nombre_local,
         logo: l.logo_url,
         estado: l.estado,
-        precio_min: l.precio_min_categoria || 0
+        precio_min: l.precio_min_categoria || 0,
+        horario_apertura: l.horario_apertura,
+        horario_cierre: l.horario_cierre,
+        modo_automatico: l.modo_automatico,
+        dias_apertura: l.dias_apertura
       }));
       setFilteredLocals(mapped);
       setSelectedCategory(cat);
@@ -545,7 +589,7 @@ export default function CustomerApp() {
             {!loadingLocals && !filteredLocals && locals.length === 0 && <p className="empty-text">Cargando locales...</p>}
             {!loadingLocals && filteredLocals && filteredLocals.length === 0 && <p className="empty-text">No hay locales para esta categoría.</p>}
             {!loadingLocals && (filteredLocals || locals).map(local => {
-              const open = local.estado?.toLowerCase() === 'activo';
+              const open = isLocalOpen(local);
               
               if (filteredLocals) {
                 return (

@@ -263,10 +263,12 @@ export async function repartidorActualizarEstado(driverId, estado) {
 // LOCALES — Get all
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
-  const { data } = await supabase.from('locales').select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre');
+  const { data } = await supabase.from('locales').select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
     estado: l.estado, direccion: l.direccion,
+    horario_apertura: l.horario_apertura, horario_cierre: l.horario_cierre,
+    modo_automatico: l.modo_automatico, dias_apertura: l.dias_apertura
   }));
 }
 
@@ -762,7 +764,7 @@ export async function checkActiveRepartidores() {
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -778,6 +780,10 @@ export async function getLocalesByCategoria(categoria) {
         logo_url: item.locales?.foto_url || '',
         estado: item.locales?.estado || 'Inactivo',
         precio_min_categoria: item.precio,
+        horario_apertura: item.locales?.horario_apertura,
+        horario_cierre: item.locales?.horario_cierre,
+        modo_automatico: item.locales?.modo_automatico,
+        dias_apertura: item.locales?.dias_apertura
       };
     } else {
       if (item.precio < groupedMap[lid].precio_min_categoria) {

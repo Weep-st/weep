@@ -74,8 +74,23 @@ export default function RestaurantDashboard() {
   }, [restaurant]);
 
   /* ─── Modo Automático ─── */
-  const estaDentroDeHorario = useCallback((apertura, cierre) => {
+  const estaDentroDeHorario = useCallback((apertura, cierre, diasApertura) => {
     if (!apertura || !cierre) return false;
+    
+    // Verificar días de apertura si existen
+    if (diasApertura && Array.isArray(diasApertura) && diasApertura.length > 0) {
+      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const currentDayName = daysMap[new Date().getDay()];
+      
+      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normalizedDays = diasApertura.map(normalize);
+      const normalizedCurrentDay = normalize(currentDayName);
+      
+      if (!normalizedDays.includes(normalizedCurrentDay)) {
+        return false;
+      }
+    }
+
     const [hA, mA] = apertura.split(':').map(Number);
     const [hC, mC] = cierre.split(':').map(Number);
     const minApertura = hA * 60 + mA;
@@ -94,7 +109,7 @@ export default function RestaurantDashboard() {
   const verificarEstadoAutomatico = useCallback(() => {
     if (!profileData || !profileData.modo_automatico || !profileData.horario_apertura || !profileData.horario_cierre) return;
     
-    const shouldBeOpen = estaDentroDeHorario(profileData.horario_apertura, profileData.horario_cierre);
+    const shouldBeOpen = estaDentroDeHorario(profileData.horario_apertura, profileData.horario_cierre, profileData.dias_apertura);
     
     if (localOpenRef.current !== shouldBeOpen) {
       const nuevoEstado = shouldBeOpen ? 'Activo' : 'Inactivo';
@@ -509,6 +524,11 @@ export default function RestaurantDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     const file = fd.get('foto');
+    const selectedDays = [];
+    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+      if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
+    });
+
     try {
       let fotoUrl = '';
       if (file && file.size > 0) fotoUrl = await api.uploadImage(file);
@@ -517,7 +537,8 @@ export default function RestaurantDashboard() {
         direccion: fd.get('direccion'), email: fd.get('email'),
         horario_apertura: fd.get('horario_apertura'),
         horario_cierre: fd.get('horario_cierre'),
-        modo_automatico: fd.get('modo_automatico') === 'true'
+        modo_automatico: fd.get('modo_automatico') === 'true',
+        dias_apertura: selectedDays
       };
       const pass = fd.get('password');
       if (pass) params.password = pass;
@@ -1519,7 +1540,7 @@ export default function RestaurantDashboard() {
                     <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
                     
                     <h3 style={{ marginTop: '24px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Horarios de Atención</h3>
-                    <div className="rd-form-row rd-form-row-3">
+                    <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 16 }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
                         <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData.horario_apertura || '09:00'} />
@@ -1535,6 +1556,21 @@ export default function RestaurantDashboard() {
                           <option value="false">No (Manual)</option>
                         </select>
                       </div>
+                    </div>
+
+                    <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)', display: 'block', marginBottom: '8px' }}>Días de Apertura</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const dayNorm = normalize(day);
+                        const isSelected = profileData.dias_apertura?.some(d => normalize(d) === dayNorm);
+                        return (
+                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData.dias_apertura} />
+                            {day}
+                          </label>
+                        );
+                      })}
                     </div>
 
                     <div className="rd-form-actions" style={{ marginTop: '24px' }}>
