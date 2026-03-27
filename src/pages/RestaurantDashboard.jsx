@@ -680,7 +680,10 @@ export default function RestaurantDashboard() {
                     autoComplete="new-password" 
                   />
                   <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                      alt="Ver" 
+                    />
                   </button>
                 </div>
                 
