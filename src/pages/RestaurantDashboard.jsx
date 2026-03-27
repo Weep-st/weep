@@ -10,6 +10,8 @@ export default function RestaurantDashboard() {
 
   const [view, setView] = useState('orders'); // 'menu','addItem','orders','profile'
   const [authView, setAuthView] = useState('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [localOpen, setLocalOpen] = useState(false);
   const [profileData, setProfileData] = useState(null);
@@ -356,14 +358,16 @@ export default function RestaurantDashboard() {
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const email = fd.get('email');
     setAuthLoading(true);
     try {
       await api.registerLocal(
-        fd.get('nombre'), fd.get('direccion'), fd.get('email'), fd.get('password'),
+        fd.get('nombre'), fd.get('direccion'), email, fd.get('password'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
       );
       toast.success('¡Local registrado! Iniciá sesión.');
+      setAuthEmail(email);
       setAuthView('login');
     } catch { toast.error('Error al registrar'); }
     setAuthLoading(false);
@@ -631,27 +635,59 @@ export default function RestaurantDashboard() {
         <h1>Panel de Gestión</h1>
       </header>
       <main className="rd-main">
-        <div className="rd-auth-card card animate-fade-in">
+        <div className="rd-auth-card card animate-fade-in" key={authView}>
           <div className="card-body">
             <h2>Acceso Local</h2>
             <div className="rd-auth-tabs">
-              <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('login')}>Iniciar Sesión</button>
-              <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('register')}>Registrar Local</button>
+              <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar Sesión</button>
+              <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrar Local</button>
             </div>
             {authView === 'login' ? (
               <form onSubmit={handleLogin} className="rd-auth-form">
-                <input name="email" type="email" className="form-input" placeholder="Email" required />
-                <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+                <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={authEmail} required autoComplete="username" />
+                <div className="password-container">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    className="form-input" 
+                    placeholder="Contraseña" 
+                    required 
+                    autoComplete="current-password" 
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
+                      alt="Toggle Password" 
+                      style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                    />
+                  </button>
+                </div>
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
                 </button>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="rd-auth-form">
-                <input name="nombre" className="form-input" placeholder="Nombre del Local" required />
-                <input name="direccion" className="form-input" placeholder="Dirección (calle, número, barrio)" required />
-                <input name="email" type="email" className="form-input" placeholder="Email" required />
-                <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+                <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
+                <input name="nombre" className="form-input" placeholder="Nombre del Local" required autoComplete="organization" />
+                <input name="direccion" className="form-input" placeholder="Dirección (calle, número, barrio)" required autoComplete="street-address" />
+                <div className="password-container">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    className="form-input" 
+                    placeholder="Contraseña" 
+                    required 
+                    autoComplete="new-password" 
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
+                      alt="Toggle Password" 
+                      style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                    />
+                  </button>
+                </div>
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
                   <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />

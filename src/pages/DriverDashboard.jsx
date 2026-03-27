@@ -8,6 +8,7 @@ import './DriverDashboard.css';
 export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
   const [authView, setAuthView] = useState('login');
+  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
@@ -229,23 +230,55 @@ export default function DriverDashboard() {
       <div className="card-body">
         <h2>Acceso Repartidor</h2>
         <div className="rd-auth-tabs">
-          <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('login')}>Iniciar Sesión</button>
-          <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setAuthView('register')}>Registrarme</button>
+          <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar Sesión</button>
+          <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrarme</button>
         </div>
         {authView === 'login' ? (
           <form onSubmit={handleLogin} className="dd-form">
-            <input name="email" type="email" className="form-input" placeholder="Email" required />
-            <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+            <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+            <div className="password-container">
+              <input 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                className="form-input" 
+                placeholder="Contraseña" 
+                required 
+                autoComplete="current-password" 
+              />
+              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                <img 
+                  src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
+                  alt="Toggle Password" 
+                  style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                />
+              </button>
+            </div>
             <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
               {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
             </button>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="dd-form">
-            <input name="nombre" className="form-input" placeholder="Nombre completo" required />
+            <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+            <input name="nombre" className="form-input" placeholder="Nombre completo" required autoComplete="name" />
             <input name="telefono" type="tel" className="form-input" placeholder="Teléfono (ej: +54911...)" required />
-            <input name="email" type="email" className="form-input" placeholder="Email" required />
-            <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+            <div className="password-container">
+              <input 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                className="form-input" 
+                placeholder="Contraseña" 
+                required 
+                autoComplete="new-password" 
+              />
+              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                <img 
+                  src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
+                  alt="Toggle Password" 
+                  style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                />
+              </button>
+            </div>
             <input name="patente" className="form-input" placeholder="Patente de la moto" required />
             <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
 

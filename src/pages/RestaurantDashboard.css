@@ -501,3 +501,34 @@
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
 }
+
+/* Password Toggle */
+.password-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-container .form-input {
+  padding-right: 40px;
+  width: 100%;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  font-size: 1.2rem;
+}
+
+.password-toggle:hover {
+  color: var(--red-500);
+}

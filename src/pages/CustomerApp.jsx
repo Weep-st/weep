@@ -24,6 +24,7 @@ export default function CustomerApp() {
   const [loadingLocals, setLoadingLocals] = useState(false);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [iceCreamModal, setIceCreamModal] = useState(null);
   const [iceCreamFlavors, setIceCreamFlavors] = useState([]);
@@ -768,22 +769,54 @@ export default function CustomerApp() {
             {modal === 'login' && (
               <form onSubmit={handleLogin}>
                 <h2>Iniciar Sesión</h2>
-                <input name="email" type="email" className="form-input" placeholder="Email" required />
-                <input name="password" type="password" className="form-input" placeholder="Contraseña" required />
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <div className="password-container">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    className="form-input" 
+                    placeholder="Contraseña" 
+                    required 
+                    autoComplete="current-password" 
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
+                      alt="Toggle Password" 
+                      style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                    />
+                  </button>
+                </div>
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Entrar'}
                 </button>
-                <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => setModal('register')}>Registrate</button></p>
+                <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
               </form>
             )}
 
             {modal === 'register' && (
               <form onSubmit={handleRegister}>
                 <h2>Registro</h2>
-                <input name="nombre" className="form-input" placeholder="Nombre completo" required />
-                <input name="email" type="email" className="form-input" placeholder="Email" required />
-                <input name="password" type="password" className="form-input" placeholder="Contraseña (6+ caracteres)" required />
-                <input name="direccion" className="form-input" placeholder="Dirección (opcional)" />
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <input name="nombre" className="form-input" placeholder="Nombre completo" required autoComplete="name" />
+                <div className="password-container">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    className="form-input" 
+                    placeholder="Contraseña (6+ caracteres)" 
+                    required 
+                    autoComplete="new-password" 
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
+                      alt="Toggle Password" 
+                      style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                    />
+                  </button>
+                </div>
+                <input name="direccion" className="form-input" placeholder="Dirección (opcional)" autoComplete="street-address" />
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
                   <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
@@ -795,7 +828,7 @@ export default function CustomerApp() {
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
                 </button>
-                <p className="modal-switch">¿Ya tenés cuenta? <button type="button" onClick={() => setModal('login')}>Iniciar sesión</button></p>
+                <p className="modal-switch">¿Ya tenés cuenta? <button type="button" onClick={() => { setModal('login'); setShowPassword(false); }}>Iniciar sesión</button></p>
               </form>
             )}
 
