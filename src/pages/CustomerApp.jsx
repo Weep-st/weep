@@ -107,13 +107,7 @@ export default function CustomerApp() {
         ...i, local_nombre: local?.nombre || 'Local', local_logo: local?.logo || '',
       }));
       if (catId) {
-        mapped = mapped.filter(i => {
-          const matchCat = (i.categoria || '').toLowerCase() === catId.toLowerCase();
-          if (catId.toLowerCase() === 'combos') {
-            return matchCat && (i.nombre || '').toUpperCase().startsWith('COMBO');
-          }
-          return matchCat;
-        });
+        mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
       }
       setMenus(mapped);
       setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `Menú de ${local?.nombre || 'Local'}`);
