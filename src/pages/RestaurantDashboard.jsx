@@ -656,9 +656,8 @@ export default function RestaurantDashboard() {
                   />
                   <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
                     <img 
-                      src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
-                      alt="Toggle Password" 
-                      style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                      src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                      alt="Ver" 
                     />
                   </button>
                 </div>
@@ -681,11 +680,7 @@ export default function RestaurantDashboard() {
                     autoComplete="new-password" 
                   />
                   <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
-                    <img 
-                      src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
-                      alt="Toggle Password" 
-                      style={{ width: '24px', height: '24px', objectFit: 'contain' }}
-                    />
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
                   </button>
                 </div>
                 

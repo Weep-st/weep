@@ -8,8 +8,8 @@ import './DriverDashboard.css';
 export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
   const [authView, setAuthView] = useState('login');
-  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
   // Dashboard state
@@ -234,7 +234,7 @@ export default function DriverDashboard() {
           <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrarme</button>
         </div>
         {authView === 'login' ? (
-          <form onSubmit={handleLogin} className="dd-form">
+          <form onSubmit={handleLogin} className="dd-form" key="login">
             <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
             <div className="password-container">
               <input 
@@ -247,9 +247,8 @@ export default function DriverDashboard() {
               />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
                 <img 
-                  src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
-                  alt="Toggle Password" 
-                  style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                  src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                  alt="Ver" 
                 />
               </button>
             </div>
@@ -258,10 +257,10 @@ export default function DriverDashboard() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleRegister} className="dd-form">
-            <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+          <form onSubmit={handleRegister} className="dd-form" key="register">
+            <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
             <input name="nombre" className="form-input" placeholder="Nombre completo" required autoComplete="name" />
-            <input name="telefono" type="tel" className="form-input" placeholder="Teléfono (ej: +54911...)" required />
+            <input name="telefono" type="tel" className="form-input" placeholder="Teléfono (ej: +54911...)" required autoComplete="tel" />
             <div className="password-container">
               <input 
                 name="password" 
@@ -273,9 +272,8 @@ export default function DriverDashboard() {
               />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
                 <img 
-                  src={showPassword ? "https://i.postimg.cc/NjLCKxNZ/Captura-de-pantalla-2026-03-26-203551.png" : "https://i.postimg.cc/Z5g7py2T/Captura-de-pantalla-2026-03-26-203551-(1).png"} 
-                  alt="Toggle Password" 
-                  style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+                  src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                  alt="Ver" 
                 />
               </button>
             </div>
