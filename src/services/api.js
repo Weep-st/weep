@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    WEEP API — Supabase Backend
    ═══════════════════════════════════════════════════ */
-import { supabase } from './supabase';
+export { supabase } from './supabase';
 
 // Cloudinary config
 const CLOUD_NAME = 'dw10wkbac';
