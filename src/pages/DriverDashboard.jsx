@@ -17,22 +17,62 @@ export default function DriverDashboard() {
   const [isActive, setIsActive] = useState(false);
   const [activeTab, setActiveTab] = useState('disponibles'); // 'disponibles', 'historial'
   const [pedidos, setPedidos] = useState([]);
-  const [historial, setHistorial] = useState([]); // Mock temporal o real local
+  const [historial, setHistorial] = useState([]); 
 
   const [sessionGanancias, setSessionGanancias] = useState(0);
   const [localInfo, setLocalInfo] = useState({ nombre: '', direccion: '' });
   const [montoLocal, setMontoLocal] = useState(0);
 
+  // New views state
+  const [view, setView] = useState('main'); // 'main', 'cobros', 'perfil'
+  const [cobrosData, setCobrosData] = useState(null);
+  const [cobrosLoading, setCobrosLoading] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  // Tutorial State
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(1);
+
   // Modals state
   const [showEntregaModal, setShowEntregaModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [activeChatPedidoId, setActiveChatPedidoId] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [pinInput, setPinInput] = useState('');
 
+  // Realtime Chat Subscription
+  useEffect(() => {
+    if (!activeChatPedidoId) return;
+
+    const channel = api.supabase
+      .channel(`chat_${activeChatPedidoId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chat_pedidos',
+        filter: `id_pedido=eq.${activeChatPedidoId}`
+      }, (payload) => {
+        setChatMessages(prev => [...prev, payload.new]);
+      })
+      .subscribe();
+
+    return () => {
+      api.supabase.removeChannel(channel);
+    };
+  }, [activeChatPedidoId]);
+
   // On Login/Load
   useEffect(() => {
-    if (driver) loadData();
+    if (driver) {
+      loadData();
+      // Check if tutorial was already seen
+      const hasSeenTutorial = localStorage.getItem(`tutorial_seen_driver_${driver.id}`);
+      if (!hasSeenTutorial) {
+        setShowTutorial(true);
+        setTutorialStep(1);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driver]);
 
@@ -142,6 +182,71 @@ export default function DriverDashboard() {
     setAuthLoading(false);
   };
 
+  const loadCobros = async () => {
+    if (!driver) return;
+    setCobrosLoading(true);
+    try {
+      const d = await api.repartidorGetCobros(driver.id);
+      if (d.success) setCobrosData(d);
+    } catch { toast.error('Error al cargar cobros'); }
+    setCobrosLoading(false);
+  };
+
+  const handleSolicitarCobro = async (monto) => {
+    try {
+      setCobrosLoading(true);
+      const res = await api.repartidorSolicitarCobro(driver.id, monto);
+      if (res.success) {
+        toast.success('Solicitud enviada');
+        loadCobros();
+      } else {
+        toast.error(res.error || 'Error al solicitar');
+      }
+    } catch { toast.error('Error de red'); }
+    setCobrosLoading(false);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const file = fd.get('foto');
+    const selectedDays = [];
+    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+      if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
+    });
+
+    const loading = toast.loading('Guardando perfil...');
+    try {
+      let fotoUrl = driverData?.FotoUrl || '';
+      if (file && (file instanceof File || file instanceof Blob) && file.size > 0) {
+        fotoUrl = await api.uploadImage(file);
+      }
+      
+      const params = {
+        driverId: driver.id,
+        nombre: fd.get('nombre'),
+        telefono: fd.get('telefono'),
+        email: fd.get('email'),
+        patente: fd.get('patente'),
+        marca_modelo: fd.get('marca_modelo'),
+        horario_apertura: fd.get('horario_apertura'),
+        horario_cierre: fd.get('horario_cierre'),
+        dias_apertura: selectedDays,
+        foto_url: fotoUrl
+      };
+      
+      const pass = fd.get('password');
+      if (pass) params.password = pass;
+
+      await api.repartidorUpdatePerfil(params);
+      toast.success('Perfil actualizado', { id: loading });
+      loadData();
+      setView('main');
+    } catch (err) { 
+      toast.error('Error: ' + err.message, { id: loading }); 
+    }
+  };
+
   const toggleEstado = async () => {
     const newState = isActive ? 'Inactivo' : 'Activo';
     setIsActive(!isActive);
@@ -211,7 +316,7 @@ export default function DriverDashboard() {
       if (res.success) {
         toast.success('¡Entrega confirmada!', { id: 'ent' });
         // Modificar stats locales y cerrar modal
-        setSessionGanancias(prev => prev + pedido.monto);
+        setSessionGanancias(prev => prev + 2000);
         setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString() }, ...historial]);
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);
@@ -222,6 +327,37 @@ export default function DriverDashboard() {
         toast.error(res.error || 'Error', { id: 'ent' });
       }
     } catch { toast.error('Error de conexión', { id: 'ent' }); }
+  };
+
+  const handleTutorialNext = () => {
+    if (tutorialStep === 1) setTutorialStep(2);
+    else if (tutorialStep === 2) setTutorialStep(3);
+    else if (tutorialStep === 3) setTutorialStep(4);
+    else if (tutorialStep === 4) setTutorialStep(5);
+    else {
+      setShowTutorial(false);
+      localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
+    }
+  };
+
+  const openChat = async (pedidoId) => {
+    setActiveChatPedidoId(pedidoId);
+    setShowChatModal(true);
+    setChatMessages([]);
+    try {
+      const res = await api.getChatMessages(pedidoId);
+      if (res.success) setChatMessages(res.data);
+    } catch { toast.error('Error al cargar chat'); }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !activeChatPedidoId) return;
+    const msg = chatInput;
+    setChatInput('');
+    try {
+      await api.sendChatMessage(activeChatPedidoId, driver.id, msg);
+    } catch { toast.error('Error al enviar mensaje'); }
   };
 
   // ─── RENDERS ───
@@ -366,7 +502,10 @@ export default function DriverDashboard() {
         <div className="dd-viaje-card animate-slide-up">
           <div className="dd-viaje-header">
             <h4>Viaje en curso</h4>
-            <span className="dd-badge bg-light text-dark">{enViaje.estado}</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-sm btn-light" onClick={() => openChat(enViaje.id)}>💬 Chat Cliente</button>
+              <span className="dd-badge bg-light text-dark">{enViaje.estado}</span>
+            </div>
           </div>
           <div className="dd-viaje-body">
             <div className="dd-viaje-details">
@@ -536,6 +675,156 @@ export default function DriverDashboard() {
     );
   };
 
+  const renderCobros = () => {
+    if (cobrosLoading && !cobrosData) return <div className="spinner-container" style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><span className="spinner" /></div>;
+    
+    return (
+      <div className="dd-cobros-view animate-fade-in">
+        <div className="dd-card-header" style={{ marginBottom: '24px' }}>
+          <h3>Gestión de Cobros</h3>
+          <p style={{ color: 'var(--gray-600)' }}>Retirá tus ganancias acumuladas por pagos con transferencia.</p>
+        </div>
+
+        <div className="dd-stats-grid" style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+          <div className="dd-stat-item highlight" style={{ background: 'var(--red-50)', border: '1px solid var(--red-200)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <small style={{ color: 'var(--gray-600)', display: 'block', marginBottom: '8px', fontSize: '1rem' }}>Saldo a Cobrar</small>
+            <strong style={{ fontSize: '2.5rem', color: 'var(--red-600)' }}>${Number(cobrosData?.totalDisponible || 0).toLocaleString('es-AR')}</strong>
+          </div>
+        </div>
+
+        <button 
+          className="dd-btn-rojo dd-btn-large" 
+          disabled={!cobrosData?.totalDisponible || cobrosData.totalDisponible <= 0 || cobrosLoading}
+          onClick={() => handleSolicitarCobro(cobrosData.totalDisponible)}
+        >
+          {cobrosLoading ? 'Procesando...' : 'Solicitar Cobro'}
+        </button>
+
+        <div className="dd-history-section" style={{ marginTop: 32 }}>
+          <h4 style={{ marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Historial de Solicitudes</h4>
+          {cobrosData?.historial?.length === 0 ? (
+            <p className="empty-msg" style={{ textAlign: 'center', color: 'var(--gray-400)', padding: '20px' }}>No hay solicitudes previas.</p>
+          ) : (
+            <div className="dd-history-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {cobrosData?.historial?.map((h, i) => (
+                <div className="dd-history-item" key={i} style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="dd-history-info">
+                    <span className="dd-date" style={{ display: 'block', fontSize: '0.85rem', color: 'var(--gray-500)' }}>{new Date(h.fechaSolicitud).toLocaleDateString()}</span>
+                    <span className="dd-amount" style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>${Number(h.montoNeto).toLocaleString('es-AR')}</span>
+                  </div>
+                  <span className={`dd-badge status-${h.estado.toLowerCase()}`} style={{ 
+                    padding: '4px 12px', 
+                    borderRadius: '20px', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 'bold',
+                    backgroundColor: h.estado === 'Pagado' ? '#e6fffa' : '#fff7ed',
+                    color: h.estado === 'Pagado' ? '#047481' : '#c2410c'
+                  }}>{h.estado}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPerfil = () => {
+    const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const currentDays = driverData?.DiasApertura || [];
+
+    return (
+      <div className="dd-perfil-view animate-fade-in" style={{ paddingBottom: '40px' }}>
+        <form onSubmit={handleSaveProfile} className="dd-profile-form">
+          <div className="dd-form-section" style={{ marginBottom: '32px' }}>
+            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Información Personal</h4>
+            
+            <div className="dd-photo-upload" style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div className="dd-avatar-preview" style={{ position: 'relative', display: 'inline-block' }}>
+                <img src={driverData?.FotoUrl || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} alt="Perfil" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <label className="dd-photo-edit-badge" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--red-500)', color: 'white', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                  📷
+                  <input name="foto" type="file" accept="image/*" style={{ display: 'none' }} />
+                </label>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Nombre Completo</label>
+              <input name="nombre" className="form-input" defaultValue={driverData?.Nombre} required />
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Email</label>
+              <input name="email" type="email" className="form-input" defaultValue={driverData?.Email} required />
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Teléfono</label>
+              <input name="telefono" className="form-input" defaultValue={driverData?.Telefono} required />
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Nueva Contraseña (opcional)</label>
+              <input name="password" type="password" className="form-input" placeholder="Dejar vacío para no cambiar" />
+            </div>
+          </div>
+
+          <div className="dd-form-section" style={{ marginBottom: '32px' }}>
+            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Vehículo</h4>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Patente</label>
+              <input name="patente" className="form-input" defaultValue={driverData?.Patente} required />
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Marca y Modelo</label>
+              <input name="marca_modelo" className="form-input" defaultValue={driverData?.MarcaModelo} required />
+            </div>
+          </div>
+
+          <div className="dd-form-section" style={{ marginBottom: '32px' }}>
+            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Disponibilidad y Horarios</h4>
+            <div className="dd-time-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Desde</label>
+                <input name="horario_apertura" type="time" className="form-input" defaultValue={driverData?.HorarioApertura || '09:00'} />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Hasta</label>
+                <input name="horario_cierre" type="time" className="form-input" defaultValue={driverData?.HorarioCierre || '23:00'} />
+              </div>
+            </div>
+            
+            <div className="dd-days-selector">
+              <label style={{ display: 'block', marginBottom: 12, fontSize: '0.9rem', fontWeight: '500' }}>Días Activo</label>
+              <div className="dd-days-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {diasSemana.map(day => (
+                  <label key={day} className="dd-day-chip" style={{ 
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    borderRadius: '20px',
+                    background: currentDays.includes(day) ? 'var(--red-500)' : '#f3f4f6',
+                    color: currentDays.includes(day) ? 'white' : 'var(--gray-600)',
+                    fontSize: '0.85rem',
+                    transition: 'all 0.2s'
+                  }}>
+                    <input type="checkbox" name={`day_${day}`} defaultChecked={currentDays.includes(day)} style={{ display: 'none' }} />
+                    <span>{day.substring(0, 3)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="dd-profile-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button type="submit" className="dd-btn-rojo dd-btn-large">Guardar Cambios</button>
+            <button type="button" className="dd-btn-outline dd-btn-large" onClick={() => setView('main')}>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
   // ─── MAIN RENDER ───
   return (
     <div className="dd-page">
@@ -585,71 +874,187 @@ export default function DriverDashboard() {
               </div>
               <div className="dd-topbar-actions">
                 <button className="btn btn-secondary btn-sm" onClick={iniciarGPS}>📍 GPS</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setShowChatModal(true)}>💬 Chat</button>
-                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-500)' }} onClick={handleLogout}>Cerrar sesión</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setProfileMenuOpen(true)}>☰ Menú</button>
               </div>
             </div>
 
-            <div className="dd-stats-box animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <h3>Bienvenido, <span>{driverData?.Nombre || '...'}</span></h3>
-              <div className="dd-stats-grid">
-                <div className="dd-stat-item">
-                  <small>Viajes hoy</small>
-                  <strong>{driverData?.PedidosHoy || 0}</strong>
-                </div>
-                <div className="dd-stat-item">
-                  <small>Ganancias sesión</small>
-                  <strong>${sessionGanancias}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="dd-tabs animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <button className={`dd-tab-link ${activeTab === 'disponibles' ? 'active' : ''}`} onClick={() => setActiveTab('disponibles')}>
-                Pendientes
-              </button>
-              <button className={`dd-tab-link ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
-                Historial
-              </button>
-            </div>
-
-            <div className="dd-tab-content">
-              {activeTab === 'disponibles' ? renderDisponibles() : renderHistorial()}
-            </div>
-
-            {/* Chat Modal */}
-            {showChatModal && (
-              <div className="dd-modal-overlay">
-                <div className="dd-modal-content animate-slide-down">
-                  <div className="dd-modal-header">
-                    <h5>Chat Soporte / Cliente</h5>
-                    <button className="dd-modal-close" onClick={() => setShowChatModal(false)}>×</button>
-                  </div>
-                  <div className="dd-modal-body" style={{ height: 300, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ textAlign: 'center', color: 'var(--gray-400)', margin: 'auto' }}>Chat en tiempo real (demo)</div>
-                    {chatMessages.map((msg, i) => (
-                      <div key={i} style={{ textAlign: 'right' }}>
-                        <span style={{ background: 'var(--blue-500)', color: 'white', padding: '8px 16px', borderRadius: '16px', display: 'inline-block' }}>{msg}</span>
+            <div className="dd-tab-content" style={{ marginTop: '20px' }}>
+              {view === 'main' && (
+                <>
+                  <div className="dd-stats-box animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <h3>Bienvenido, <span>{driverData?.Nombre || '...'}</span></h3>
+                    <div className="dd-stats-grid">
+                      <div className="dd-stat-item">
+                        <small>Viajes hoy</small>
+                        <strong>{driverData?.PedidosHoy || 0}</strong>
                       </div>
-                    ))}
+                      <div className="dd-stat-item">
+                        <small>Ganancias sesión</small>
+                        <strong>${sessionGanancias}</strong>
+                      </div>
+                    </div>
                   </div>
-                  <div className="dd-modal-footer">
-                    <input
-                      type="text"
-                      className="dd-chat-input"
-                      placeholder="Escribe aquí..."
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && chatInput) { setChatMessages([...chatMessages, chatInput]); setChatInput(''); } }}
-                    />
-                    <button className="dd-btn-rojo" style={{ width: 'auto', padding: '10px 16px' }} onClick={() => { if (chatInput) { setChatMessages([...chatMessages, chatInput]); setChatInput(''); } }}>Enviar</button>
+
+                  <div className="dd-tabs animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                    <button className={`dd-tab-link ${activeTab === 'disponibles' ? 'active' : ''}`} onClick={() => setActiveTab('disponibles')}>
+                      Pendientes
+                    </button>
+                    <button className={`dd-tab-link ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
+                      Historial
+                    </button>
                   </div>
-                </div>
-              </div>
-            )}
+                  {activeTab === 'disponibles' ? renderDisponibles() : renderHistorial()}
+                </>
+              )}
+              {view === 'cobros' && renderCobros()}
+              {view === 'perfil' && renderPerfil()}
+            </div>
           </>
         )}
       </main>
+
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <div className="dd-tutorial-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="dd-tutorial-content animate-slide-up" style={{ background: 'white', borderRadius: '20px', maxWidth: '450px', width: '100%', overflow: 'hidden' }}>
+            <div className="dd-tutorial-header" style={{ background: 'var(--red-600)', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" style={{ height: '30px' }} />
+              <button className="close-btn" style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }} onClick={() => { setShowTutorial(false); localStorage.setItem(`tutorial_seen_driver_${driver?.id}`, 'true'); }}>×</button>
+            </div>
+            <div className="dd-tutorial-body" style={{ padding: '30px', textAlign: 'center' }}>
+              {tutorialStep === 1 && (
+                <>
+                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>¡Bienvenido al Panel de Repartidores! 🏍️</h3>
+                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>Aquí gestionarás tus entregas y ganancias de forma rápida y sencilla.</p>
+                </>
+              )}
+              {tutorialStep === 2 && (
+                <>
+                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Pedidos en Tiempo Real</h3>
+                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>Activa el modo <strong>"Activo"</strong> arriba a la izquierda para empezar a recibir pedidos asignados por el sistema.</p>
+                </>
+              )}
+              {tutorialStep === 3 && (
+                <>
+                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Cobros Online</h3>
+                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>En el menú <strong>"Gestión de Cobros"</strong> podrás ver lo acumulado por pedidos con transferencia y solicitar tu pago a Weep.</p>
+                </>
+              )}
+              {tutorialStep === 4 && (
+                <>
+                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Configura tus Horarios</h3>
+                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>En <strong>"Editar Perfil"</strong> carga tus días y horarios de disponibilidad para que el sistema sepa cuándo asignarte viajes automáticamente.</p>
+                </>
+              )}
+              {tutorialStep === 5 && (
+                <>
+                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>¡Todo listo!</h3>
+                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>Mantén siempre la app abierta y el GPS activo mientras estés de turno. ¡Buen viaje!</p>
+                </>
+              )}
+            </div>
+            <div className="dd-tutorial-footer" style={{ padding: '0 30px 30px' }}>
+              <button className="dd-btn-rojo dd-btn-large" onClick={handleTutorialNext}>
+                {tutorialStep === 5 ? '¡Entendido!' : 'Siguiente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Sidebar/Menu */}
+      {driver && profileMenuOpen && (
+        <div className="dd-sidebar-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 1500 }} onClick={() => setProfileMenuOpen(false)}>
+          <div className="dd-sidebar animate-slide-right" style={{ background: 'white', width: '280px', height: '100%', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div className="dd-sidebar-header" style={{ padding: '30px 20px', background: 'var(--gray-50)', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <img src={driverData?.FotoUrl || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} alt="Avatar" className="dd-user-avatar" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--red-500)' }} />
+              <div className="dd-user-info">
+                <strong style={{ display: 'block', fontSize: '1.1rem' }}>{driverData?.Nombre}</strong>
+                <small style={{ color: 'var(--gray-500)' }}>{driverData?.Email}</small>
+              </div>
+            </div>
+            <nav className="dd-sidebar-nav" style={{ flex: 1, padding: '20px 0' }}>
+              <button className={`dd-nav-item ${view === 'main' ? 'active' : ''}`} style={{ 
+                width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'main' ? 'var(--red-50)' : 'transparent', color: view === 'main' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'main' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
+              }} onClick={() => { setView('main'); setProfileMenuOpen(false); }}>
+                🏁 Mis Entregas
+              </button>
+              <button className={`dd-nav-item ${view === 'cobros' ? 'active' : ''}`} style={{ 
+                width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'cobros' ? 'var(--red-50)' : 'transparent', color: view === 'cobros' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'cobros' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
+              }} onClick={() => { setView('cobros'); loadCobros(); setProfileMenuOpen(false); }}>
+                💰 Gestión Cobros
+              </button>
+              <button className={`dd-nav-item ${view === 'perfil' ? 'active' : ''}`} style={{ 
+                width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'perfil' ? 'var(--red-50)' : 'transparent', color: view === 'perfil' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'perfil' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
+              }} onClick={() => { setView('perfil'); setProfileMenuOpen(false); }}>
+                👤 Editar Perfil
+              </button>
+              <button className="dd-nav-item" style={{ 
+                width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: 'transparent', color: 'var(--gray-700)', display: 'flex', alignItems: 'center', gap: '12px' 
+              }} onClick={() => { setShowTutorial(true); setTutorialStep(1); setProfileMenuOpen(false); }}>
+                📖 Ver Tutorial
+              </button>
+              <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
+              <button className="dd-nav-item text-red" style={{ 
+                width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: 'transparent', color: 'var(--red-600)', display: 'flex', alignItems: 'center', gap: '12px' 
+              }} onClick={handleLogout}>
+                🚪 Cerrar Sesión
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChatModal && (
+        <div className="dd-modal-overlay" onClick={() => { setShowChatModal(false); setActiveChatPedidoId(null); }}>
+          <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()} style={{ height: '500px' }}>
+            <div className="dd-modal-header">
+              <h5>Chat con Cliente</h5>
+              <button className="dd-modal-close" onClick={() => { setShowChatModal(false); setActiveChatPedidoId(null); }}>×</button>
+            </div>
+            <div className="dd-modal-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
+              {chatMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--gray-400)', margin: 'auto' }}>Inicia la conversación con el cliente</div>
+              ) : (
+                chatMessages.map((msg, i) => (
+                  <div key={i} style={{ 
+                    textAlign: msg.sender_id === driver.id ? 'right' : 'left',
+                    marginBottom: '8px'
+                  }}>
+                    <div style={{ 
+                      background: msg.sender_id === driver.id ? 'var(--red-600)' : '#f0f0f0', 
+                      color: msg.sender_id === driver.id ? 'white' : 'black', 
+                      padding: '8px 12px', 
+                      borderRadius: '12px', 
+                      display: 'inline-block',
+                      maxWidth: '80%',
+                      fontSize: '0.9rem',
+                      lineHeight: '1.4'
+                    }}>
+                      {msg.message}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '2px' }}>
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <form className="dd-modal-footer" onSubmit={handleSendMessage}>
+              <input
+                type="text"
+                className="dd-chat-input"
+                placeholder="Escribe aquí..."
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+              />
+              <button type="submit" className="dd-btn-rojo" style={{ width: 'auto', padding: '10px 16px' }}>Enviar</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <footer className="footer" style={{ background: 'var(--red-600)', color: 'white', borderTop: 'none', padding: 24, textAlign: 'center' }}>
         <p style={{ margin: 0 }}>© 2026 Weep - Todos los derechos reservados</p>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: '8px 0 0' }}>PWA optimizada para uso en moto • GPS en tiempo real</p>

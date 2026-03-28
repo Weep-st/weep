@@ -25,6 +25,32 @@ export default function MisPedidos() {
   const [comentario, setComentario] = useState('');
   const [ratingLoading, setRatingLoading] = useState(false);
 
+  // Chat state
+  const [activeChatPedidoId, setActiveChatPedidoId] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+
+  // Realtime Chat Subscription for Customer
+  useEffect(() => {
+    if (!activeChatPedidoId) return;
+
+    const channel = api.supabase
+      .channel(`chat_${activeChatPedidoId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chat_pedidos',
+        filter: `id_pedido=eq.${activeChatPedidoId}`
+      }, (payload) => {
+        setChatMessages(prev => [...prev, payload.new]);
+      })
+      .subscribe();
+
+    return () => {
+      api.supabase.removeChannel(channel);
+    };
+  }, [activeChatPedidoId]);
+
   const loadPedidos = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -91,6 +117,26 @@ export default function MisPedidos() {
       toast.error('Error al enviar calificación');
     }
     setRatingLoading(false);
+  };
+
+  const openChat = async (pedidoId) => {
+    setActiveChatPedidoId(pedidoId);
+    setChatMessages([]);
+    setChatInput('');
+    try {
+      const res = await api.getChatMessages(pedidoId);
+      if (res.success) setChatMessages(res.data);
+    } catch { toast.error('Error al cargar chat'); }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !activeChatPedidoId) return;
+    const msg = chatInput;
+    setChatInput('');
+    try {
+      await api.sendChatMessage(activeChatPedidoId, user.id, msg);
+    } catch { toast.error('Error al enviar mensaje'); }
   };
 
   const formatDate = (dateStr) => {
@@ -206,9 +252,16 @@ export default function MisPedidos() {
                     <span className="pedido-total">${Number(p.total || 0).toLocaleString('es-AR')}</span>
                     <span className="pedido-date">{formatDate(p.fecha)}</span>
                   </div>
-                  <button className="btn btn-primary btn-sm btn-full" onClick={() => openSeguimiento(p.idPedido)}>
-                    Ver seguimiento →
-                  </button>
+                  <div className="pedido-card-actions-row" style={{ gap: 8 }}>
+                    <button className="btn btn-primary btn-sm btn-full" onClick={() => openSeguimiento(p.idPedido)}>
+                      Ver seguimiento →
+                    </button>
+                    {p.repartidorId && p.estado !== 'Cancelado' && p.estado !== 'Entregado' && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => openChat(p.idPedido)} style={{ flex: '0 0 auto', padding: '0 12px' }}>
+                        💬 Chat
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -347,6 +400,51 @@ export default function MisPedidos() {
                 {ratingLoading ? <span className="spinner spinner-white" /> : 'Enviar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Chat Modal ─── */}
+      {activeChatPedidoId && (
+        <div className="modal-overlay" onClick={() => setActiveChatPedidoId(null)}>
+          <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()} style={{ height: '500px', display: 'flex', flexDirection: 'column' }}>
+            <button className="modal-close" onClick={() => setActiveChatPedidoId(null)}>✕</button>
+            <h2>Chat con Repartidor</h2>
+            <div className="chat-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', padding: '10px 0', borderTop: '1px solid #eee' }}>
+              {chatMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#999', margin: 'auto' }}>Aún no hay mensajes.</div>
+              ) : (
+                chatMessages.map((msg, i) => (
+                  <div key={i} style={{ 
+                    textAlign: msg.sender_id === user.id ? 'right' : 'left',
+                    marginBottom: 4
+                  }}>
+                    <div style={{ 
+                      background: msg.sender_id === user.id ? 'var(--blue-500)' : '#f0f0f0', 
+                      color: msg.sender_id === user.id ? 'white' : '#333', 
+                      padding: '8px 12px', 
+                      borderRadius: '12px', 
+                      display: 'inline-block',
+                      maxWidth: '80%',
+                      fontSize: '0.9rem',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}>
+                      {msg.message}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <form className="chat-footer" onSubmit={handleSendMessage} style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid #eee' }}>
+              <input
+                className="form-input"
+                style={{ flex: 1, marginBottom: 0 }}
+                placeholder="Escribe un mensaje..."
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+              />
+              <button type="submit" className="btn btn-primary" style={{ padding: '0 16px' }}>Enviar</button>
+            </form>
           </div>
         </div>
       )}

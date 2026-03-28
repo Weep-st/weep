@@ -143,7 +143,11 @@ export async function repartidorLogin(email, password) {
       Telefono: data.telefono, Patente: data.patente,
       MarcaModelo: data.marca_modelo, Estado: data.estado,
       PedidosHoy: data.pedidos_hoy,
-      EmailConfirmado: data.email_confirmado
+      EmailConfirmado: data.email_confirmado,
+      FotoUrl: data.foto_url,
+      HorarioApertura: data.horario_apertura,
+      HorarioCierre: data.horario_cierre,
+      DiasApertura: data.dias_apertura
     },
   };
 }
@@ -245,8 +249,33 @@ export async function repartidorGetDatos(driverId) {
       Telefono: data.telefono, Patente: data.patente,
       MarcaModelo: data.marca_modelo, Estado: data.estado,
       PedidosHoy: data.pedidos_hoy,
+      FotoUrl: data.foto_url,
+      HorarioApertura: data.horario_apertura,
+      HorarioCierre: data.horario_cierre,
+      DiasApertura: data.dias_apertura
     },
   };
+}
+
+export async function repartidorUpdatePerfil(params) {
+  const { driverId, ...updates } = params;
+  
+  // Transform camelCase to snake_case if necessary, or just use the keys directly if they match
+  const dbUpdates = {};
+  if (params.nombre) dbUpdates.nombre = params.nombre;
+  if (params.telefono) dbUpdates.telefono = params.telefono;
+  if (params.email) dbUpdates.email = params.email;
+  if (params.password) dbUpdates.password = params.password;
+  if (params.patente) dbUpdates.patente = params.patente;
+  if (params.marca_modelo) dbUpdates.marca_modelo = params.marca_modelo;
+  if (params.foto_url) dbUpdates.foto_url = params.foto_url;
+  if (params.horario_apertura !== undefined) dbUpdates.horario_apertura = params.horario_apertura;
+  if (params.horario_cierre !== undefined) dbUpdates.horario_cierre = params.horario_cierre;
+  if (params.dias_apertura !== undefined) dbUpdates.dias_apertura = params.dias_apertura;
+
+  const { error } = await supabase.from('repartidores').update(dbUpdates).eq('id', driverId);
+  if (error) throw new Error(error.message);
+  return { success: true };
 }
 
 export async function repartidorActualizarEstado(driverId, estado) {
@@ -258,6 +287,7 @@ export async function repartidorActualizarEstado(driverId, estado) {
   if (error) return { success: false };
   return { success: true };
 }
+
 
 // ═══════════════════════════════════════════════════
 // LOCALES — Get all
@@ -618,6 +648,7 @@ export async function getMisPedidos(userId) {
       total: p.total, fecha: p.fecha || p.created_at, direccion: p.direccion,
       metodoPago: p.metodo_pago, tipoEntrega: p.tipo_entrega,
       observaciones: p.observaciones, numConfirmacion: p.num_confirmacion,
+      repartidorId: p.repartidor_id,
       itemsResumen: items.map(i => ({ nombre: i.nombre_item, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 
@@ -932,6 +963,95 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     if (d) await supabase.from('repartidores').update({ pedidos_hoy: (d.pedidos_hoy || 0) + 1 }).eq('id', repartidorId);
   }
   return { success: true, mensaje: `Estado actualizado a "${nuevoEstado}"` };
+}
+
+export async function repartidorGetCobros(repartidorId) {
+  // Solo pedidos Entregados, del repartidor, y que no hayan sido procesados para pago
+  const { data: pedidos } = await supabase
+    .from('pedidos_general')
+    .select('id, total, metodo_pago, cobro_repartidor_procesado')
+    .eq('repartidor_id', repartidorId)
+    .eq('estado', 'Entregado')
+    .neq('metodo_pago', 'Efectivo')
+    .eq('cobro_repartidor_procesado', false);
+
+  let totalDisponible = 0;
+  const idsIncluidos = [];
+
+  if (pedidos) {
+    pedidos.forEach(p => {
+      // El repartidor gana un fijo de $2.000 por pedido (para cobros de transferencias)
+      totalDisponible += 2000;
+      idsIncluidos.push(p.id);
+    });
+  }
+
+  const { data: historial } = await supabase
+    .from('gestion_cobros')
+    .select('*')
+    .eq('repartidor_id', repartidorId)
+    .order('created_at', { ascending: false });
+
+  return {
+    success: true,
+    totalDisponible: +totalDisponible.toFixed(2),
+    idsIncluidos: idsIncluidos.join(', '),
+    historial: (historial || []).map(h => ({
+      fechaSolicitud: h.fecha_solicitud || h.created_at,
+      montoNeto: +h.monto_neto || 0,
+      estado: h.estado || 'Pendiente',
+      pedidosIncluidos: h.pedidos_incluidos || '',
+      comprobanteUrl: h.comprobante_url || ''
+    }))
+  };
+}
+
+export async function repartidorSolicitarCobro(repartidorId, monto) {
+  const est = await repartidorGetCobros(repartidorId);
+  if (!est.success) return { success: false, error: 'Error al calcular cobros' };
+
+  const id = `REP-PAGO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+
+  const { error } = await supabase.from('gestion_cobros').insert({
+    id,
+    tipo: 'Solicitud-Repartidor',
+    repartidor_id: repartidorId,
+    total_ventas: est.totalDisponible, // En este caso total_ventas refleja el acumulado de $2000s
+    monto_neto: monto,
+    estado: 'Pendiente',
+    fecha_solicitud: new Date().toISOString(),
+    pedidos_incluidos: est.idsIncluidos
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  // Marcar pedidos como procesados para el repartidor
+  if (est.idsIncluidos) {
+    const ids = est.idsIncluidos.split(',').map(s => s.trim()).filter(Boolean);
+    for (const pid of ids) {
+      await supabase.from('pedidos_general').update({ cobro_repartidor_procesado: true }).eq('id', pid);
+    }
+  }
+
+  return { success: true, idSolicitud: id };
+}
+
+export async function getChatMessages(pedidoId) {
+  const { data, error } = await supabase
+    .from('chat_pedidos')
+    .select('*')
+    .eq('id_pedido', pedidoId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return { success: true, data: data || [] };
+}
+
+export async function sendChatMessage(pedidoId, senderId, message) {
+  const { data, error } = await supabase
+    .from('chat_pedidos')
+    .insert({ id_pedido: pedidoId, sender_id: senderId, message });
+  if (error) throw new Error(error.message);
+  return { success: true };
 }
 
 // ═══════════════════════════════════════════════════

@@ -1,10 +1,10 @@
-/* ═══════════ Driver Dashboard ═══════════ */
 .dd-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  background: #f8f9fa;
   font-family: 'Inter', sans-serif;
+  color: var(--gray-800);
 }
 
 .dd-header {
@@ -392,4 +392,95 @@
   width: 22px;
   height: 22px;
   object-fit: contain;
+}
+
+/* ─── NEW STYLES ─── */
+
+/* Sidebar / Menu */
+.dd-sidebar-overlay {
+  animation: fadeIn 0.3s ease;
+}
+
+.dd-sidebar {
+  box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+}
+
+.dd-nav-item {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dd-nav-item:hover {
+  background: #fdf2f2 !important;
+  color: var(--red-600) !important;
+}
+
+.dd-nav-item.active {
+  background: #fee2e2 !important;
+  color: var(--red-700) !important;
+  font-weight: 700;
+  border-right: 4px solid var(--red-500);
+}
+
+/* Profile Form */
+.dd-profile-form {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.dd-form-section h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.dd-day-chip input:checked + span {
+  font-weight: bold;
+}
+
+.dd-photo-edit-badge:hover {
+  transform: scale(1.1);
+  background: var(--red-600);
+}
+
+/* Cobros View */
+.dd-history-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dd-history-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideRight {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fadeIn { animation: fadeIn 0.4s ease forwards; }
+.animate-slideRight { animation: slideRight 0.4s ease-out forwards; }
+.animate-slideUp { animation: slideUp 0.5s ease-out forwards; }
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .dd-main { padding: 15px 12px 100px; }
+  .dd-stats-grid { flex-direction: column; gap: 15px; }
+  .dd-stat-item strong { font-size: 1.8rem; }
+  .dd-sidebar { width: 85% !important; }
 }
