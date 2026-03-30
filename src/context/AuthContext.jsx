@@ -55,12 +55,12 @@ export function AuthProvider({ children }) {
   };
 
   const loginAsRestaurant = (data) => {
-    const localId = typeof data === 'string' ? data : data.localId;
-    const confirmed = typeof data === 'object' ? !!data.emailConfirmado : false;
+    const id = typeof data === 'string' ? data : data.localId;
+    const confirmed = typeof data === 'object' ? !!data.emailConfirmado : (localStorage.getItem('localEmailConfirmado') === 'true');
     
-    localStorage.setItem('localToken', localId);
+    localStorage.setItem('localToken', id);
     localStorage.setItem('localEmailConfirmado', String(confirmed));
-    setRestaurant({ id: localId, emailConfirmado: confirmed });
+    setRestaurant({ id, emailConfirmado: confirmed });
   };
 
   const logoutRestaurant = () => {
@@ -69,8 +69,8 @@ export function AuthProvider({ children }) {
   };
 
   const loginAsDriver = (data) => {
-    const id = typeof data === 'string' ? data : data.ID || data.id;
-    const confirmed = typeof data === 'object' ? !!(data.EmailConfirmado || data.emailConfirmado) : false;
+    const id = typeof data === 'string' ? data : (data.ID || data.id);
+    const confirmed = typeof data === 'object' ? !!(data.EmailConfirmado || data.emailConfirmado) : (localStorage.getItem('driverEmailConfirmado') === 'true');
 
     localStorage.setItem('repartidorId', id);
     localStorage.setItem('driverEmailConfirmado', String(confirmed));

@@ -261,7 +261,7 @@ export default function DriverDashboard() {
     try {
       const d = await api.repartidorLogin(fd.get('email'), fd.get('password'));
       if (d?.success && d.data) {
-        loginAsDriver(d.data.ID);
+        loginAsDriver(d.data);
         toast.success('¡Bienvenido!');
       } else toast.error(d?.error || 'Credenciales incorrectas');
     } catch { toast.error('Error de conexión'); }
@@ -977,6 +977,37 @@ export default function DriverDashboard() {
   // ─── MAIN RENDER ───
   return (
     <div className="dd-page">
+      {driver && !driver.emailConfirmado && (
+        <div className="unconfirmed-banner" style={{
+          background: 'var(--amber-100)',
+          color: 'var(--amber-900)',
+          padding: '10px 20px',
+          textAlign: 'center',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          borderBottom: '1px solid var(--amber-200)',
+          zIndex: 100
+        }}>
+          <span>⚠️ Tu email no está confirmado. Algunas funciones pueden estar limitadas.</span>
+          <button 
+            onClick={handleResendConfirmation}
+            style={{
+              background: 'var(--amber-600)',
+              color: 'white',
+              border: 'none',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Reenviar enlace
+          </button>
+        </div>
+      )}
       <header className="dd-header">
         <Link to="/">
           <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" className="dd-logo" />

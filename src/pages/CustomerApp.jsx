@@ -58,6 +58,7 @@ export default function CustomerApp() {
   const [drinks, setDrinks] = useState([]);
   const [hasRepartidores, setHasRepartidores] = useState(true);
   const [metodoPago, setMetodoPago] = useState('');
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = useState(false);
@@ -128,9 +129,16 @@ export default function CustomerApp() {
   useEffect(() => {
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
-    if (user) api.getFavoritos(user.id).then(d => {
-      if (Array.isArray(d)) setFavorites(d);
-    }).catch(() => {});
+    if (user) {
+      api.getFavoritos(user.id).then(d => {
+        if (Array.isArray(d)) setFavorites(d);
+      }).catch(() => {});
+      
+      // Check for active orders
+      api.getMisPedidos(user.id).then(res => {
+        setHasActiveOrder(res.enCurso && res.enCurso.length > 0);
+      }).catch(() => {});
+    }
   }, [user]);
 
   // MP Return URL Parse
@@ -563,7 +571,8 @@ export default function CustomerApp() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: '10px',
-          borderBottom: '1px solid var(--amber-200)'
+          borderBottom: '1px solid var(--amber-200)',
+          zIndex: 100
         }}>
           <span>⚠️ Tu email no está confirmado. Algunas funciones pueden estar limitadas.</span>
           <button 
@@ -580,6 +589,40 @@ export default function CustomerApp() {
           >
             Reenviar enlace
           </button>
+        </div>
+      )}
+
+      {hasActiveOrder && (
+        <div className="active-order-banner" style={{
+          background: 'var(--red-500)',
+          color: 'white',
+          padding: '12px 20px',
+          textAlign: 'center',
+          fontSize: '0.9rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '15px',
+          fontWeight: 600,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          zIndex: 99
+        }}>
+          <span>🛵 Tienes un pedido en proceso</span>
+          <Link 
+            to="/pedir?view=orders"
+            style={{
+              background: 'white',
+              color: 'var(--red-500)',
+              textDecoration: 'none',
+              padding: '5px 15px',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+            }}
+          >
+            Ver Pedido
+          </Link>
         </div>
       )}
       {/* ─── Header ─── */}
