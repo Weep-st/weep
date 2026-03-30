@@ -285,9 +285,6 @@ export async function repartidorUpdatePerfil(params) {
 
 export async function repartidorActualizarEstado(driverId, estado) {
   const updates = { estado };
-  if (estado === 'Activo') updates.activo_desde = new Date().toISOString();
-  else updates.inactivo_desde = new Date().toISOString();
-  updates.ultima_conexion = new Date().toISOString();
   const { error } = await supabase.from('repartidores').update(updates).eq('id', driverId);
   if (error) return { success: false };
   return { success: true };
@@ -656,7 +653,7 @@ export async function getMisPedidos(userId) {
       metodoPago: p.metodo_pago, tipoEntrega: p.tipo_entrega,
       observaciones: p.observaciones, numConfirmacion: p.num_confirmacion,
       repartidorId: p.repartidor_id,
-      itemsResumen: items.map(i => ({ nombre: i.nombre_item, cantidad: i.cantidad, precio: i.precio_unitario })),
+      itemsResumen: items.map(i => ({ nombre: i.nombre || i.nombre_item, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 
     const estadosCurso = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino'];

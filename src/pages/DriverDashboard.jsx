@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import MapComponent from '../components/MapComponent';
 import './DriverDashboard.css';
 
+const GOOGLE_MAPS_LIBRARIES = ['places'];
+
 export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
   // Map Loading
@@ -18,7 +20,7 @@ export default function DriverDashboard() {
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: googleMapsApiKey,
-    libraries: ['places']
+    libraries: GOOGLE_MAPS_LIBRARIES
   });
 
   if (loadError) {

@@ -65,6 +65,13 @@ export default function MisPedidos() {
   }, [user]);
 
   useEffect(() => { loadPedidos(); }, [loadPedidos]);
+  
+  // Polling cada 30 segundos
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(loadPedidos, 30000);
+    return () => clearInterval(interval);
+  }, [user, loadPedidos]);
 
   const openSeguimiento = async (pedidoId) => {
     setSeguimientoLoading(true);
