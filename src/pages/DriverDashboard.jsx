@@ -225,15 +225,20 @@ export default function DriverDashboard() {
 
   const loadData = async () => {
     try {
+      if (!driver) return;
       const d = await api.repartidorGetDatos(driver.id);
       if (d?.success && d.data) {
         setDriverData(d.data);
         setIsActive(d.data.Estado === 'Activo' || d.data.Estado === 'Ocupado');
+        // Sync email confirmation state with context
+        if (d.data.EmailConfirmado !== driver.emailConfirmado) {
+          loginAsDriver(d.data);
+        }
       }
     } catch { toast.error('Error al cargar datos'); }
   };
 
-  const fetchPedidos = async () => {
+  const fetchPedidos = useCallback(async (silent = false) => {
     if (!driver) return;
     try {
       const res = await api.getPedidosDisponibles(driver.id);
@@ -251,7 +256,7 @@ export default function DriverDashboard() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [driver]);
 
   // ─── AUTH ACTIONS ───
   const handleLogin = async (e) => {

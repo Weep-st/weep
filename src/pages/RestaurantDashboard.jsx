@@ -98,6 +98,10 @@ export default function RestaurantDashboard() {
         setProfileAddress(d.direccion || '');
         setProfileLat(d.lat);
         setProfileLng(d.lng);
+        // Sync email confirmation state with context
+        if (d.email_confirmado !== restaurant.emailConfirmado) {
+          loginAsRestaurant({ localId: restaurant.id, emailConfirmado: d.email_confirmado });
+        }
       }
     } catch {}
   }, [restaurant]);

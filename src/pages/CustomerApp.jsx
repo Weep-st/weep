@@ -586,70 +586,40 @@ export default function CustomerApp() {
 
       <main className="app-main">
         <div className="banners-container" style={{ marginBottom: '20px' }}>
-          {user && !user.emailConfirmado && (
-            <div className="unconfirmed-banner" style={{
-              background: 'var(--amber-100)',
-              color: 'var(--amber-900)',
-              padding: '10px 20px',
-              textAlign: 'center',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              borderBottom: '1px solid var(--amber-200)',
-              borderRadius: '8px',
-              marginBottom: '10px'
-            }}>
-              <span>⚠️ Tu email no está confirmado. Algunas funciones pueden estar limitadas.</span>
-              <button 
-                onClick={handleResendConfirmation}
-                style={{
-                  background: 'var(--amber-600)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '4px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: 600
-                }}
-              >
-                Reenviar enlace
-              </button>
-            </div>
-          )}
-
           {user && hasActiveOrder && (
             <div className="active-order-banner" style={{
-              background: 'var(--blue-100)',
-              color: 'var(--blue-900)',
-              padding: '10px 20px',
+              background: '#ff9800',
+              color: 'white',
+              padding: '12px 20px',
               textAlign: 'center',
-              fontSize: '0.85rem',
+              fontSize: '0.9rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px',
-              borderBottom: '1px solid var(--blue-200)',
-              borderRadius: '8px'
+              gap: '12px',
+              borderBottom: '2px solid #e68a00',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(255,152,0,0.3)',
+              fontWeight: '600',
+              zIndex: 90
             }}>
-              <span>🛵 Tienes un pedido en proceso.</span>
-              <Link 
-                to="/pedir?view=mis-pedidos"
-                onClick={() => setModal('mis-pedidos')}
+              <span>🛵 ¡Tienes un pedido en proceso!</span>
+              <button 
+                onClick={() => navigate('/mis-pedidos')} 
                 style={{
-                  background: 'var(--blue-600)',
-                  color: 'white',
-                  textDecoration: 'none',
-                  padding: '4px 12px',
+                  background: 'white',
+                  color: '#ff9800',
+                  border: 'none',
+                  padding: '6px 14px',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.8rem'
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}
               >
                 Ver Mis Pedidos
-              </Link>
+              </button>
             </div>
           )}
         </div>
