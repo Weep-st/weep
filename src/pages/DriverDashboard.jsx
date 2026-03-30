@@ -115,6 +115,41 @@ export default function DriverDashboard() {
     };
   }, [activeChatPedidoId]);
 
+  const loadData = useCallback(async () => {
+    try {
+      if (!driver) return;
+      const d = await api.repartidorGetDatos(driver.id);
+      if (d?.success && d.data) {
+        setDriverData(d.data);
+        setIsActive(d.data.Estado === 'Activo' || d.data.Estado === 'Ocupado');
+        // Sync email confirmation state with context
+        if (d.data.EmailConfirmado !== driver.emailConfirmado) {
+          loginAsDriver(d.data);
+        }
+      }
+    } catch { toast.error('Error al cargar datos'); }
+  }, [driver, loginAsDriver]);
+
+  const fetchPedidos = useCallback(async (silent = false) => {
+    if (!driver) return;
+    try {
+      const res = await api.getPedidosDisponibles(driver.id);
+      if (res.success) {
+        const sorted = res.data.sort((a, b) => a.id.localeCompare(b.id));
+        setPedidos(prev => {
+          const pendientesNuevos = sorted.filter(p => p.estado === 'Pendiente');
+          const pendientesViejos = prev.filter(p => p.estado === 'Pendiente');
+          if (pendientesNuevos.length > pendientesViejos.length) {
+            api.playNotificationSound();
+          }
+          return sorted;
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [driver]);
+
   // On Login/Load
   useEffect(() => {
     if (driver) {
@@ -221,42 +256,6 @@ export default function DriverDashboard() {
       }
     });
   };
-
-
-  const loadData = async () => {
-    try {
-      if (!driver) return;
-      const d = await api.repartidorGetDatos(driver.id);
-      if (d?.success && d.data) {
-        setDriverData(d.data);
-        setIsActive(d.data.Estado === 'Activo' || d.data.Estado === 'Ocupado');
-        // Sync email confirmation state with context
-        if (d.data.EmailConfirmado !== driver.emailConfirmado) {
-          loginAsDriver(d.data);
-        }
-      }
-    } catch { toast.error('Error al cargar datos'); }
-  };
-
-  const fetchPedidos = useCallback(async (silent = false) => {
-    if (!driver) return;
-    try {
-      const res = await api.getPedidosDisponibles(driver.id);
-      if (res.success) {
-        const sorted = res.data.sort((a, b) => a.id.localeCompare(b.id));
-        setPedidos(prev => {
-          const pendientesNuevos = sorted.filter(p => p.estado === 'Pendiente');
-          const pendientesViejos = prev.filter(p => p.estado === 'Pendiente');
-          if (pendientesNuevos.length > pendientesViejos.length) {
-            api.playNotificationSound();
-          }
-          return sorted;
-        });
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }, [driver]);
 
   // ─── AUTH ACTIONS ───
   const handleLogin = async (e) => {
