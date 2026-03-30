@@ -44,7 +44,7 @@ const MapComponent = ({
         id: 'local',
         position: { lat: Number(localLat), lng: Number(localLng) },
         title: localName,
-        icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        icon: 'https://i.postimg.cc/ZKHbrvdP/Home-free-icons-designed-by-nawicon-(1).png'
       });
     }
     if (deliveryLat && deliveryLng && isWithinSantoTome(deliveryLat, deliveryLng)) {
@@ -52,7 +52,7 @@ const MapComponent = ({
         id: 'delivery',
         position: { lat: Number(deliveryLat), lng: Number(deliveryLng) },
         title: deliveryAddress,
-        icon: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+        icon: 'https://i.postimg.cc/zfbqZdPs/Home-free-icons-designed-by-nawicon.png'
       });
     }
     if (driverLat && driverLng && isWithinSantoTome(driverLat, driverLng)) {

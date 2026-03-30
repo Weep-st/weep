@@ -1010,11 +1010,11 @@ export default function DriverDashboard() {
           <>
             <div className="dd-topbar animate-fade-in">
               <div className="dd-topbar-left">
-                <label className="toggle" onClick={toggleEstado}>
+                <div className="toggle" onClick={toggleEstado} style={{ cursor: 'pointer' }}>
                   <input type="checkbox" checked={isActive} readOnly />
                   <span className="toggle-track" />
                   <span className="toggle-thumb" />
-                </label>
+                </div>
                 <span className={`dd-status ${isActive ? 'active' : ''}`}>
                   {isActive ? 'Activo' : 'Inactivo'}
                 </span>

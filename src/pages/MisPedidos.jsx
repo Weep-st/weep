@@ -256,7 +256,8 @@ export default function MisPedidos() {
                     <button className="btn btn-primary btn-sm btn-full" onClick={() => openSeguimiento(p.idPedido)}>
                       Ver seguimiento →
                     </button>
-                    {p.repartidorId && p.estado !== 'Cancelado' && p.estado !== 'Entregado' && (
+                    {p.repartidorId && 
+                     ['Retirado', 'En camino'].includes(p.estado) && (
                       <button className="btn btn-secondary btn-sm" onClick={() => openChat(p.idPedido)} style={{ flex: '0 0 auto', padding: '0 12px' }}>
                         💬 Chat
                       </button>
@@ -430,6 +431,9 @@ export default function MisPedidos() {
                       boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                     }}>
                       {msg.message}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '2px' }}>
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 ))
