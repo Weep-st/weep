@@ -484,3 +484,119 @@
   .dd-stat-item strong { font-size: 1.8rem; }
   .dd-sidebar { width: 85% !important; }
 }
+
+/* Simplified Order Card Styles */
+.dd-simple-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  margin-bottom: 24px;
+  border: 1px solid #eee;
+}
+
+.dd-simple-header {
+  background: var(--red-600);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dd-simple-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.dd-simple-body {
+  padding: 20px;
+}
+
+.dd-section-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dd-info-block {
+  background: #fcfcfc;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.dd-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.dd-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.dd-info-label {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+
+.dd-info-value {
+  font-size: 1rem;
+  color: var(--gray-800);
+  font-weight: 700;
+}
+
+.dd-info-value.monto {
+  color: var(--red-600);
+  font-size: 1.2rem;
+}
+
+.dd-info-value.monto.cobrar {
+  color: #27ae60;
+}
+
+.dd-simple-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+
+.dd-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dd-status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.2);
+}
+
+.dd-envio-status {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .dd-btn-row {
+    grid-template-columns: 1fr;
+  }
+}

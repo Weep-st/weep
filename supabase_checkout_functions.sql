@@ -51,6 +51,8 @@ CREATE OR REPLACE FUNCTION create_pedido_completo(
   p_estado TEXT,
   p_email_cliente TEXT,
   p_nombre_cliente TEXT,
+  p_lat NUMERIC,
+  p_lng NUMERIC,
   p_cart JSONB
 )
 RETURNS JSONB AS $$
@@ -82,8 +84,8 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, repartidor_id, local_id, num_confirmacion, fecha, created_at)
-  VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours');
+  INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, lat, lng, repartidor_id, local_id, num_confirmacion, fecha, created_at)
+  VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours');
 
   FOR v_local_id IN SELECT DISTINCT COALESCE(elem->>'local_id', 'unknown') FROM jsonb_array_elements(p_cart) AS elem
   LOOP

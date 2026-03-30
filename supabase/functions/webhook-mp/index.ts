@@ -95,6 +95,8 @@ Deno.serve(async (req) => {
         p_estado: 'Pendiente',
         p_email_cliente: order_info.emailCliente || '',
         p_nombre_cliente: order_info.nombreCliente || '',
+        p_lat: order_info.lat || 0,
+        p_lng: order_info.lng || 0,
         p_cart: cart_data
       });
 

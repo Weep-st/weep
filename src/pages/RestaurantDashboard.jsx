@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useJsApiLoader } from '@react-google-maps/api';
+import AddressSelector from '../components/AddressSelector';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
 import './RestaurantDashboard.css';
@@ -37,11 +39,23 @@ export default function RestaurantDashboard() {
   const [adicionales, setAdicionales] = useState([]);
   const [adicionalesLoading, setAdicionalesLoading] = useState(false);
   
+  const { isLoaded: isMapLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+
   // Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1);
   const [tutorialSampleOrderState, setTutorialSampleOrderState] = useState('Pendiente'); // To simulate order states
   const [itemName, setItemName] = useState('');
+
+  // Location State
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
+  const [profileAddress, setProfileAddress] = useState('');
+  const [profileLat, setProfileLat] = useState(null);
+  const [profileLng, setProfileLng] = useState(null);
 
   const pollingRef = useRef(null);
   const previousOrdersRef = useRef([]);
@@ -69,7 +83,12 @@ export default function RestaurantDashboard() {
     if (!restaurant) return;
     try {
       const d = await api.getPerfilLocal(restaurant.id);
-      if (d.success) setProfileData(d);
+      if (d.success) {
+        setProfileData(d);
+        setProfileAddress(d.direccion || '');
+        setProfileLat(d.lat);
+        setProfileLng(d.lng);
+      }
     } catch {}
   }, [restaurant]);
 
@@ -524,6 +543,7 @@ export default function RestaurantDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     const file = fd.get('foto');
+    const direccion = fd.get('direccion');
     const selectedDays = [];
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
       if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
@@ -532,14 +552,20 @@ export default function RestaurantDashboard() {
     try {
       let fotoUrl = '';
       if (file && file.size > 0) fotoUrl = await api.uploadImage(file);
+      
       const params = {
-        localId: restaurant.id, nombre: fd.get('nombre'),
-        direccion: fd.get('direccion'), email: fd.get('email'),
+        localId: restaurant.id, 
+        nombre: fd.get('nombre'),
+        direccion: profileAddress,
+        lat: profileLat,
+        lng: profileLng,
+        email: fd.get('email'),
         horario_apertura: fd.get('horario_apertura'),
         horario_cierre: fd.get('horario_cierre'),
         modo_automatico: fd.get('modo_automatico') === 'true',
         dias_apertura: selectedDays
       };
+
       const pass = fd.get('password');
       if (pass) params.password = pass;
       if (fotoUrl) params.foto_url = fotoUrl;
@@ -549,6 +575,13 @@ export default function RestaurantDashboard() {
       loadProfile();
       setView('orders');
     } catch { toast.error('Error al guardar perfil'); }
+  };
+
+  const handleAddressConfirm = (data) => {
+    setProfileAddress(data.address);
+    setProfileLat(data.lat);
+    setProfileLng(data.lng);
+    setShowAddressSelector(false);
   };
 
   // ─── Tutorial Mock Data logic ───
@@ -1534,7 +1567,32 @@ export default function RestaurantDashboard() {
                     <input name="foto" type="file" className="form-input" accept="image/*" />
                     <div className="rd-form-row">
                       <input name="nombre" className="form-input" placeholder="Nombre del local" defaultValue={profileData.nombre || ''} required />
-                      <input name="direccion" className="form-input" placeholder="Dirección" defaultValue={profileData.direccion || ''} required />
+                      <div className="address-display-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '12px', 
+                          background: 'var(--gray-50)', 
+                          padding: '10px 14px', 
+                          borderRadius: '8px', 
+                          border: '1px solid var(--gray-200)',
+                          cursor: 'pointer'
+                        }} onClick={() => setShowAddressSelector(true)}>
+                          <span style={{ fontSize: '1.2rem' }}>📍</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Ubicación en el mapa</p>
+                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--gray-800)', fontWeight: 500 }}>
+                              {profileAddress || 'Configurar ubicación...'}
+                            </p>
+                          </div>
+                          <button type="button" className="btn btn-ghost btn-xs" style={{ color: 'var(--blue-600)' }}>Cambiar</button>
+                        </div>
+                        {(!profileLat || !profileLng) && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--amber-600)', fontStyle: 'italic' }}>
+                            ⚠️ Ubicación no configurada en el mapa
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
                     <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
@@ -1608,6 +1666,18 @@ export default function RestaurantDashboard() {
                     )}
                   </div>
                 </div>
+                
+                {showAddressSelector && (
+                  <AddressSelector 
+                    isLoaded={isMapLoaded}
+                    initialAddress={profileAddress}
+                    initialCoords={profileLat && profileLng ? { lat: profileLat, lng: profileLng } : null}
+                    onConfirm={handleAddressConfirm}
+                    onCancel={() => setShowAddressSelector(false)}
+                    title="Ubicación de tu Local"
+                    errorMsg="El local debe estar ubicado en Santo Tomé."
+                  />
+                )}
               </div>
             )}
           </section>

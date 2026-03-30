@@ -61,8 +61,12 @@ export async function registerUsuario(nombre, email, password, direccion, termsA
   return { success: true, userId: id };
 }
 
-export async function updateDireccion(userId, nuevaDireccion) {
-  const { error } = await supabase.from('usuarios').update({ direccion: nuevaDireccion }).eq('id', userId);
+export async function updateDireccion(userId, nuevaDireccion, lat, lng) {
+  const updateData = { direccion: nuevaDireccion };
+  if (lat !== undefined) updateData.lat = lat;
+  if (lng !== undefined) updateData.lng = lng;
+  
+  const { error } = await supabase.from('usuarios').update(updateData).eq('id', userId);
   if (error) throw new Error(error.message);
   return { success: true };
 }
@@ -491,7 +495,7 @@ export async function toggleFavorito(userId, menuItemId) {
 // ═══════════════════════════════════════════════════
 // PEDIDOS
 // ═══════════════════════════════════════════════════
-export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado }) {
+export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng }) {
   const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
   const estado = estadoInicial || 'Pendiente';
 
@@ -505,6 +509,8 @@ export async function crearPedido({ userId, direccion, metodoPago, observaciones
     p_estado: estado,
     p_email_cliente: emailCliente || '',
     p_nombre_cliente: nombreCliente || '',
+    p_lat: lat || 0,
+    p_lng: lng || 0,
     p_cart: items
   });
 
@@ -930,15 +936,16 @@ export async function assignRepartidor(pedidoId) {
 
 export async function getPedidosDisponibles(repartidorId) {
   const { data } = await supabase.from('pedidos_general')
-    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id')
+    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente')
     .eq('repartidor_id', repartidorId)
     .in('estado', ['Pendiente', 'Confirmado', 'Retirado'])
     .order('created_at', { ascending: false });
   return { success: true, data: (data || []).map(p => ({
-    id: p.id, cliente: p.usuario_id, direccion: p.direccion || 'Sin dirección',
+    id: p.id, cliente: p.usuario_id, nombre_cliente: p.nombre_cliente || 'Cliente', 
+    direccion: p.direccion || 'Sin dirección',
     monto: +p.total || 0, pago: p.metodo_pago || 'Efectivo',
     estado: p.estado, observaciones: p.observaciones || '', envio: p.tipo_entrega || 'envio',
-    local_id: p.local_id
+    local_id: p.local_id, lat: p.lat, lng: p.lng
   })) };
 }
 
@@ -1469,8 +1476,20 @@ export function playNotificationSound() {
 }
 
 export async function getLocalDatos(localId) {
-  const { data } = await supabase.from('locales').select('nombre, direccion').eq('id', localId).single();
+  const { data } = await supabase.from('locales').select('nombre, direccion, lat, lng').eq('id', localId).single();
   return data;
+}
+
+export async function updateLocalCoords(localId, lat, lng) {
+  const { error } = await supabase.from('locales').update({ lat, lng }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function updatePedidoCoords(pedidoId, lat, lng) {
+  const { error } = await supabase.from('pedidos_general').update({ lat, lng }).eq('id', pedidoId);
+  if (error) throw new Error(error.message);
+  return { success: true };
 }
 
 export async function getMontoLocalPedido(pedidoId, localId) {

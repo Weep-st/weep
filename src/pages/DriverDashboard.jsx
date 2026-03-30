@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
+import { useJsApiLoader } from '@react-google-maps/api';
 import toast from 'react-hot-toast';
+import MapComponent from '../components/MapComponent';
 import './DriverDashboard.css';
 
 export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
+  const { isLoaded: isMapLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  });
+
   const [authView, setAuthView] = useState('login');
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -20,8 +27,12 @@ export default function DriverDashboard() {
   const [historial, setHistorial] = useState([]); 
 
   const [sessionGanancias, setSessionGanancias] = useState(0);
-  const [localInfo, setLocalInfo] = useState({ nombre: '', direccion: '' });
+  const [localInfo, setLocalInfo] = useState({ nombre: '', direccion: '', lat: null, lng: null });
   const [montoLocal, setMontoLocal] = useState(0);
+
+  // Map state
+  const [deliveryCoords, setDeliveryCoords] = useState({ lat: null, lng: null });
+  const geocoderRef = useRef(null);
 
   // New views state
   const [view, setView] = useState('main'); // 'main', 'cobros', 'perfil'
@@ -32,6 +43,34 @@ export default function DriverDashboard() {
   // Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1);
+  const [driverLocation, setDriverLocation] = useState({ lat: null, lng: null });
+
+  // Geolocation Watcher
+  useEffect(() => {
+    let watchId = null;
+    if (isActive && navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setDriverLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error("Error watching location:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    return () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isActive]);
 
   // Modals state
   const [showEntregaModal, setShowEntregaModal] = useState(false);
@@ -40,6 +79,7 @@ export default function DriverDashboard() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [pinInput, setPinInput] = useState('');
+  const [showMap, setShowMap] = useState(false);
 
   // Realtime Chat Subscription
   useEffect(() => {
@@ -92,20 +132,83 @@ export default function DriverDashboard() {
 
   // Carga de datos del local para viaje en curso
   useEffect(() => {
+    if (!isMapLoaded) return;
+
     const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
-    if (enViaje && enViaje.local_id) {
-      Promise.all([
-        api.getLocalDatos(enViaje.local_id),
-        api.getMontoLocalPedido(enViaje.id, enViaje.local_id)
-      ]).then(([lData, monto]) => {
-        if (lData) setLocalInfo({ nombre: lData.nombre, direccion: lData.direccion });
-        setMontoLocal(monto || 0);
-      }).catch(e => console.error(e));
+    if (enViaje) {
+      // 1. Cargar datos del local
+      if (enViaje.local_id) {
+        Promise.all([
+          api.getLocalDatos(enViaje.local_id),
+          api.getMontoLocalPedido(enViaje.id, enViaje.local_id)
+        ]).then(([lData, monto]) => {
+          if (lData) {
+            setLocalInfo({ 
+              nombre: lData.nombre, 
+              direccion: lData.direccion,
+              lat: lData.lat,
+              lng: lData.lng
+            });
+
+            // Si el local no tiene coordenadas, intentar geocodificar (FALLBACK)
+            if (!lData.lat || !lData.lng) {
+              geocodeAndSave(lData.direccion, 'local', enViaje.local_id);
+            }
+          }
+          setMontoLocal(monto || 0);
+        }).catch(e => console.error(e));
+      }
+
+      // 2. Manejar coordenadas de entrega (estrictamente desde pedidos_general)
+      if (enViaje.lat && enViaje.lng) {
+        setDeliveryCoords({ lat: enViaje.lat, lng: enViaje.lng });
+      } else {
+        // Si no existen, intentar geocodificar (FALLBACK)
+        geocodeAndSave(enViaje.direccion, 'pedido', enViaje.id);
+      }
     } else {
-      setLocalInfo({ nombre: '', direccion: '' });
+      setLocalInfo({ nombre: '', direccion: '', lat: null, lng: null });
+      setDeliveryCoords({ lat: null, lng: null });
       setMontoLocal(0);
     }
-  }, [pedidos]);
+  }, [pedidos, isMapLoaded]);
+
+  const geocodeAndSave = (address, type, id) => {
+    if (!address || !window.google) return;
+    
+    const fullAddress = `${address}, Santo Tomé, Corrientes, Argentina`;
+    
+    if (!geocoderRef.current) {
+      geocoderRef.current = new window.google.maps.Geocoder();
+    }
+
+    geocoderRef.current.geocode({ 
+      address: fullAddress,
+      componentRestrictions: { country: 'AR' }
+    }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const { lat, lng } = results[0].geometry.location;
+        const latVal = lat();
+        const lngVal = lng();
+
+        // VALIDACIÓN: Solo guardar si está en Santo Tomé (aprox)
+        const isSafe = latVal <= -28.4 && latVal >= -28.7 && lngVal <= -55.9 && lngVal >= -56.2;
+        
+        if (isSafe) {
+          if (type === 'local') {
+            setLocalInfo(prev => ({ ...prev, lat: latVal, lng: lngVal }));
+            api.updateLocalCoords(id, latVal, lngVal).catch(console.error);
+          } else {
+            setDeliveryCoords({ lat: latVal, lng: lngVal });
+            api.updatePedidoCoords(id, latVal, lngVal).catch(console.error);
+          }
+        } else {
+          console.warn('Geocoding result outside Santo Tomé bounds, ignoring:', latVal, lngVal);
+        }
+      }
+    });
+  };
+
 
   const loadData = async () => {
     try {
@@ -498,76 +601,112 @@ export default function DriverDashboard() {
 
     if (enViaje) {
       const isRetirado = enViaje.estado === 'Retirado';
+      const mapLink = !isRetirado 
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${localInfo.direccion}, Santo Tomé, Corrientes`)}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enViaje.direccion}, Santo Tomé, Corrientes`)}`;
+
       return (
-        <div className="dd-viaje-card animate-slide-up">
-          <div className="dd-viaje-header">
-            <h4>Viaje en curso</h4>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-sm btn-light" onClick={() => openChat(enViaje.id)}>💬 Chat Cliente</button>
-              <span className="dd-badge bg-light text-dark">{enViaje.estado}</span>
-            </div>
+        <div className="dd-simple-card animate-slide-up">
+          <div className="dd-simple-header">
+            <h4>Pedido #{enViaje.id.split('-').pop()}</h4>
+            <div className="dd-status-badge">{enViaje.estado}</div>
           </div>
-          <div className="dd-viaje-body">
-            <div className="dd-viaje-details">
-              <h5>Pedido #{enViaje.id.split('-').pop()}</h5>
-              <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--red-600)', marginBottom: 5 }}>Monto: ${Number(enViaje.monto).toLocaleString('es-AR')}</p>
+          
+          <div className="dd-simple-body">
+            {!isRetirado ? (
+              <>
+                {/* RETIRO */}
+                <div className="dd-section-title">📍 Punto de Retiro</div>
+                <div className="dd-info-block">
+                  <div className="dd-info-row">
+                    <span className="dd-info-label">Local</span>
+                    <span className="dd-info-value">{localInfo.nombre || 'Cargando...'}</span>
+                  </div>
+                  <div className="dd-info-row">
+                    <span className="dd-info-label">Dirección</span>
+                    <span className="dd-info-value">{localInfo.direccion || 'Cargando...'}</span>
+                  </div>
+                  <div className="dd-info-row">
+                    <span className="dd-info-label">Efectivo a pagar al local</span>
+                    <span className="dd-info-value monto">
+                      {enViaje.pago === 'Efectivo' ? `$${Number(montoLocal).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* ENTREGA */}
+                <div className="dd-section-title">🏁 Punto de Entrega</div>
+                <div className="dd-info-block">
+                  <div className="dd-info-row">
+                    <span className="dd-info-label">Cliente</span>
+                    <span className="dd-info-value">{enViaje.nombre_cliente || 'Cliente'}</span>
+                  </div>
+                  <div className="dd-info-row">
+                    <span className="dd-info-label">Dirección</span>
+                    <span className="dd-info-value">{enViaje.direccion}</span>
+                  </div>
+                  <div className="dd-info-row">
+                    <span className="dd-info-label">Efectivo a cobrar al cliente</span>
+                    <span className="dd-info-value monto cobrar">
+                      {enViaje.pago === 'Efectivo' ? `$${Number(enViaje.monto).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
 
-              <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: 15 }}>
-                <p style={{ margin: '3px 0', fontSize: '1.1rem' }}>
-                  <strong>💵 A Cobrar al Cliente:</strong>
-                  <span style={{ color: '#2e7d32', fontWeight: 'bold' }}> {enViaje.pago === 'Efectivo' ? `$${Number(enViaje.monto).toLocaleString('es-AR')}` : '$0 (Ya Pagó)'}</span>
-                </p>
-                <p style={{ margin: '3px 0', fontSize: '1.1rem' }}>
-                  <strong>🏪 A Pagar al Local:</strong>
-                  <span style={{ color: '#d32f2f', fontWeight: 'bold' }}> {enViaje.pago === 'Efectivo' ? `$${Number(montoLocal).toLocaleString('es-AR')}` : '$0'}</span>
-                </p>
-                {enViaje.pago !== 'Efectivo' && <small style={{ color: 'var(--gray-500)', display: 'block', marginTop: 5 }}>Pago online realizado. No cobres ni pagues efectivo.</small>}
+            <div className="dd-envio-status">
+              Metodo: {enViaje.pago} | Tipo: {enViaje.envio}
+            </div>
+
+            {showMap && (
+              <div className="dd-map-container" style={{ marginTop: '20px' }}>
+                <MapComponent 
+                  isLoaded={isMapLoaded}
+                  localLat={localInfo.lat}
+                  localLng={localInfo.lng}
+                  localName={localInfo.nombre}
+                  deliveryLat={enViaje.lat || deliveryCoords.lat}
+                  deliveryLng={enViaje.lng || deliveryCoords.lng}
+                  deliveryAddress={enViaje.direccion}
+                  driverLat={driverLocation.lat}
+                  driverLng={driverLocation.lng}
+                />
               </div>
+            )}
+          </div>
 
-              <div style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 15 }}>
-                <h5 style={{ color: '#d32f2f', marginBottom: 8 }}>📍 1. RETIRO</h5>
-                <p><strong>Local:</strong> {localInfo.nombre || 'Cargando...'}</p>
-                <p><strong>Dirección:</strong> {localInfo.direccion || 'Cargando...'}</p>
-              </div>
-
-              <div style={{ margin: '15px 0' }}>
+          <div className="dd-simple-actions">
+            <div className="dd-btn-row">
+              <button className="btn btn-light btn-full" onClick={() => openChat(enViaje.id)}>
+                💬 Chat Cliente
+              </button>
+              {!isRetirado ? (
                 <button
-                  className={`dd-btn-rojo dd-btn-large ${isRetirado ? 'bg-success' : ''}`}
+                  className="dd-btn-rojo"
                   onClick={() => retirarPedido(enViaje.id)}
-                  disabled={isRetirado}
-                  style={isRetirado ? { backgroundColor: '#27ae60', border: 'none' } : {}}
                 >
-                  {isRetirado ? '🏍️ Retirado ✓' : '🏍️ Marcar como RETIRADO'}
+                  🏍️ Marcar RETIRADO
                 </button>
-              </div>
-
-              <div style={{ borderTop: '1px solid #eee', paddingTop: 15 }}>
-                <h5 style={{ color: '#27ae60', marginBottom: 8 }}>📍 2. ENTREGA</h5>
-                <p><strong>Cliente UID:</strong> {enViaje.cliente.substring(0, 8)}</p>
-                <p><strong>Dirección:</strong> {enViaje.direccion}</p>
-              </div>
-
-              <div style={{ marginTop: 15 }}>
+              ) : (
                 <button
                   className="dd-btn-verde dd-btn-large"
                   onClick={confirmarEntregaClick}
-                  disabled={!isRetirado}
                 >
-                  🚀 Marcar como ENTREGADO (PIN)
+                  🚀 Marcar ENTREGADO
                 </button>
-              </div>
-            </div>
-
-            <div className="dd-action-grid" style={{ marginTop: 25, borderTop: '1px solid #eee', paddingTop: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enViaje.direccion)}`} target="_blank" rel="noreferrer" className="dd-btn-outline" style={{ textAlign: 'center', textDecoration: 'none' }}>
-                🗺️ GPS Cliente
-              </a>
-              {localInfo.direccion && (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localInfo.direccion)}`} target="_blank" rel="noreferrer" className="dd-btn-outline" style={{ textAlign: 'center', textDecoration: 'none' }}>
-                  🏢 GPS Local
-                </a>
               )}
             </div>
+            
+            <button 
+              onClick={() => setShowMap(!showMap)} 
+              className="dd-btn-outline" 
+              style={{ marginTop: '10px' }}
+            >
+              📍 {showMap ? 'Ocultar mapa' : `Ver mapa del ${!isRetirado ? 'Local' : 'Cliente'}`}
+            </button>
           </div>
 
           {showEntregaModal && (
@@ -625,17 +764,14 @@ export default function DriverDashboard() {
           return (
             <div className="dd-order-card" key={p.id}>
               <div className="dd-order-head">
-                <h5>Pedido #{p.id.substring(4, 12)}</h5>
+                <h5>Pedido #{p.id.split('-').pop()}</h5>
                 <span className="dd-badge bg-warning text-dark">Pendiente</span>
               </div>
               <div className="dd-order-amount">${Number(p.monto).toLocaleString('es-AR')}</div>
               <div className="dd-order-info">
-                <p>👤 Cliente UID: {p.cliente.substring(0, 8)}</p>
-                <p>📍 {p.direccion}</p>
-              </div>
-              <div className="dd-order-pago">
-                <span>Pago:</span>
-                <span className={`dd-badge ${p.pago === 'Efectivo' ? 'bg-success' : 'bg-primary'}`}>{p.pago}</span>
+                <p>👤 <strong>Cliente:</strong> {p.nombre_cliente || 'Cliente'}</p>
+                <p>📍 <strong>Destino:</strong> {p.direccion}</p>
+                <p>💳 <strong>Pago:</strong> {p.pago}</p>
               </div>
               <div className="dd-order-actions">
                 {esFirst ? (

@@ -2,12 +2,20 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useJsApiLoader } from '@react-google-maps/api';
 import * as api from '../services/api';
 import { iniciarPagoMercadoPago } from '../services/mercadopago';
 import toast from 'react-hot-toast';
+import AddressSelector from '../components/AddressSelector';
 import './CustomerApp.css';
 
 export default function CustomerApp() {
+  const { isLoaded: isMapLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+  
   const { user, loginAsUser, logoutUser: doLogout, updateUserAddress } = useAuth();
   const cart = useCart();
   const navigate = useNavigate();
@@ -40,6 +48,30 @@ export default function CustomerApp() {
   const [drinks, setDrinks] = useState([]);
   const [hasRepartidores, setHasRepartidores] = useState(true);
   const [metodoPago, setMetodoPago] = useState('');
+  
+  // States for Address Selector
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
+  const [showProfileAddressSelector, setShowProfileAddressSelector] = useState(false);
+  
+  const [addressData, setAddressData] = useState({
+    address: user?.direccion || '',
+    lat: user?.lat || null,
+    lng: user?.lng || null,
+    reference: ''
+  });
+
+  // Actualizar addressData cuando el usuario carga (login)
+  useEffect(() => {
+    if (user && !addressData.address) {
+      setAddressData(prev => ({
+        ...prev,
+        address: user.direccion || '',
+        lat: user.lat || null,
+        lng: user.lng || null
+      }));
+    }
+  }, [user]);
+
   const searchTimeout = useRef(null);
   
   const isLocalOpen = useCallback((local) => {
@@ -334,8 +366,8 @@ export default function CustomerApp() {
     if (!user) { setModal('login'); return; }
     if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
     const fd = new FormData(e.target);
-    const dir = fd.get('direccion');
     const mp = fd.get('metodo-pago');
+    const dir = addressData.address;
     if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
     if (!mp) { toast.error('Seleccioná un método de pago'); return; }
     
@@ -367,11 +399,13 @@ export default function CustomerApp() {
           userId: user.id,
           direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
           tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
-          metodoPago: mp, observaciones: fd.get('observaciones') || '',
+          metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
           items: orderItems,
           emailCliente: user.email, nombreCliente: user.name,
           estadoInicial: 'Pendiente',
-          totalCalculado: exactTotal
+          totalCalculado: exactTotal,
+          lat: addressData.lat,
+          lng: addressData.lng
         });
 
         toast.success(`¡Pedido #${response.pedidoId} registrado exitosamente!`);
@@ -403,9 +437,11 @@ export default function CustomerApp() {
         const orderInfo = {
           direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
           tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
-          metodoPago: mp, observaciones: fd.get('observaciones') || '',
+          metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
           emailCliente: user.email, nombreCliente: user.name,
-          totalCalculado: exactTotal
+          totalCalculado: exactTotal,
+          lat: addressData.lat,
+          lng: addressData.lng
         };
 
         await api.crearPedidoTemporal({
@@ -789,7 +825,30 @@ export default function CustomerApp() {
 
               <form onSubmit={handleCheckout} className="checkout-form">
                 {cart.deliveryType === 'envio' && (
-                  <input name="direccion" className="form-input" placeholder="Dirección de entrega" defaultValue={user?.address || ''} required />
+                  <div className="address-selector-trigger" style={{ marginBottom: '16px' }}>
+                    <button 
+                      type="button" 
+                      className={`btn ${addressData.address ? 'btn-secondary' : 'btn-primary'} btn-full`}
+                      onClick={() => setShowAddressSelector(true)}
+                    >
+                      {addressData.address ? '📍 ' + addressData.address : 'Seleccionar Dirección de Entrega'}
+                    </button>
+                    {addressData.address && (
+                      <button 
+                        type="button" 
+                        className="btn-text" 
+                        style={{ display: 'block', margin: '4px auto', fontSize: '0.9rem', color: 'var(--red-500)', fontWeight: 'bold' }}
+                        onClick={() => setShowAddressSelector(true)}
+                      >
+                        (Cambiar dirección)
+                      </button>
+                    )}
+                    {addressData.reference && (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '4px', textAlign: 'left' }}>
+                        Ref: {addressData.reference}
+                      </p>
+                    )}
+                  </div>
                 )}
                 <select name="metodo-pago" className="form-select" required defaultValue="" onChange={e => setMetodoPago(e.target.value)}>
                   <option value="" disabled>Método de pago</option>
@@ -911,18 +970,21 @@ export default function CustomerApp() {
             )}
 
             {modal === 'editAddress' && (
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const addr = new FormData(e.target).get('address');
-                updateUserAddress(addr);
-                api.updateDireccion(user.id, addr).catch(() => {});
-                toast.success('Dirección actualizada');
-                setModal('profile');
-              }}>
-                <h2>Cambiar Dirección</h2>
-                <input name="address" className="form-input" placeholder="Nueva dirección" defaultValue={user?.address || ''} required />
-                <button type="submit" className="btn btn-primary btn-full">Guardar</button>
-              </form>
+              <div>
+                <h2>Cambiar Mi Dirección</h2>
+                <p style={{ fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '16px' }}>
+                  Seleccioná tu ubicación predeterminada en el mapa para futuras compras.
+                </p>
+                <button 
+                  className="btn btn-primary btn-full" 
+                  onClick={() => setShowProfileAddressSelector(true)}
+                >
+                  📍 Abrir Mapa de Dirección
+                </button>
+                <p style={{ marginTop: '12px', fontSize: '0.85rem' }}>
+                  <strong>Actual:</strong> {user?.address || 'No configurada'}
+                </p>
+              </div>
             )}
             {modal === 'terms' && (
               <div>
@@ -1200,6 +1262,40 @@ export default function CustomerApp() {
           <a href="mailto:bajoneando.st@gmail.com">Soporte</a>
         </p>
       </footer>
+      {/* ─── Address Selector Modals ─── */}
+      {showAddressSelector && (
+        <AddressSelector
+          isLoaded={isMapLoaded}
+          initialAddress={addressData.address}
+          initialCoords={addressData.lat ? { lat: addressData.lat, lng: addressData.lng } : null}
+          onConfirm={(data) => {
+            setAddressData(data);
+            setShowAddressSelector(false);
+          }}
+          onCancel={() => setShowAddressSelector(false)}
+        />
+      )}
+
+      {showProfileAddressSelector && (
+        <AddressSelector
+          isLoaded={isMapLoaded}
+          initialAddress={user?.direccion || ''}
+          initialCoords={user?.lat ? { lat: user.lat, lng: user.lng } : null}
+          onConfirm={async (data) => {
+            try {
+              await api.updateDireccion(user.id, data.address, data.lat, data.lng);
+              updateUserAddress(data.address);
+              // Podríamos necesitar recargar el usuario localmente o actualizar el context
+              toast.success('Dirección de perfil actualizada');
+              setShowProfileAddressSelector(false);
+              setModal('profile');
+            } catch (e) {
+              toast.error('Error al actualizar perfil');
+            }
+          }}
+          onCancel={() => setShowProfileAddressSelector(false)}
+        />
+      )}
     </div>
   );
 }
