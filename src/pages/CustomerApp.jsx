@@ -197,9 +197,11 @@ export default function CustomerApp() {
     setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
     api.getMenuByLocalId(localId).then(d => {
-      let mapped = (d || []).map(i => ({
-        ...i, local_nombre: local?.nombre || 'Local', local_logo: local?.logo || '',
-      }));
+      let mapped = (d || [])
+        .filter(i => i.disponibilidad !== false)
+        .map(i => ({
+          ...i, local_nombre: local?.nombre || 'Local', local_logo: local?.logo || '',
+        }));
       if (catId) {
         mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
       }
