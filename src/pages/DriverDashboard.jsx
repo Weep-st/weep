@@ -9,10 +9,21 @@ import './DriverDashboard.css';
 
 export default function DriverDashboard() {
   const { driver, loginAsDriver, logoutDriver } = useAuth();
-  const { isLoaded: isMapLoaded } = useJsApiLoader({
+  // Map Loading
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!googleMapsApiKey) {
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+  }
+
+  const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: googleMapsApiKey,
+    libraries: ['places']
   });
+
+  if (loadError) {
+    console.error("❌ Error loading Google Maps in DriverDashboard:", loadError);
+  }
 
   const [authView, setAuthView] = useState('login');
   const [authLoading, setAuthLoading] = useState(false);

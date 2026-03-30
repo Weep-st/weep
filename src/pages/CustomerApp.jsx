@@ -10,11 +10,21 @@ import AddressSelector from '../components/AddressSelector';
 import './CustomerApp.css';
 
 export default function CustomerApp() {
-  const { isLoaded: isMapLoaded } = useJsApiLoader({
+  // Map Loading
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!googleMapsApiKey) {
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+  }
+
+  const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: googleMapsApiKey,
     libraries: ['places']
   });
+
+  if (loadError) {
+    console.error("❌ Error loading Google Maps in CustomerApp:", loadError);
+  }
   
   const { user, loginAsUser, logoutUser: doLogout, updateUserAddress } = useAuth();
   const cart = useCart();

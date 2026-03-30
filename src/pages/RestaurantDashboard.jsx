@@ -39,11 +39,21 @@ export default function RestaurantDashboard() {
   const [adicionales, setAdicionales] = useState([]);
   const [adicionalesLoading, setAdicionalesLoading] = useState(false);
   
-  const { isLoaded: isMapLoaded } = useJsApiLoader({
+  // Map Loading
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!googleMapsApiKey) {
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+  }
+
+  const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: googleMapsApiKey,
     libraries: ['places']
   });
+
+  if (loadError) {
+    console.error("❌ Error loading Google Maps:", loadError);
+  }
 
   // Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);

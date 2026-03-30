@@ -34,6 +34,10 @@ const AddressSelector = ({
   // Geocodificación inicial si solo hay texto
   useEffect(() => {
     if (isLoaded && initialAddress && !initialCoords && !address) {
+      if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
+        console.error("❌ Google Maps Geocoder requested but not available yet.");
+        return;
+      }
       const geocoder = new window.google.maps.Geocoder();
       const fullAddress = `${initialAddress}, Santo Tomé, Corrientes, Argentina`;
       geocoder.geocode({ address: fullAddress, componentRestrictions: { country: 'AR' } }, (results, status) => {
@@ -73,16 +77,18 @@ const AddressSelector = ({
     setPosition(newPos);
 
     // Geocodificación inversa
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: newPos }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        setAddress(results[0].formatted_address);
-      }
-    });
+    if (window.google && window.google.maps && window.google.maps.Geocoder) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ location: newPos }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setAddress(results[0].formatted_address);
+        }
+      });
+    }
   };
 
   const handleManualGeocode = () => {
-    if (!address || !window.google) return;
+    if (!address || !window.google || !window.google.maps || !window.google.maps.Geocoder) return;
     const geocoder = new window.google.maps.Geocoder();
     const fullAddress = address.includes('Santo Tomé') ? address : `${address}, Santo Tomé, Corrientes, Argentina`;
     
