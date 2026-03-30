@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 const CartContext = createContext(null);
-const COSTO_ENVIO = 2500;
+const COSTO_ENVIO = 2000;
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
@@ -34,7 +34,9 @@ export function CartProvider({ children }) {
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
   const hasDrink = items.some(i => i.categoria?.toLowerCase().includes('bebida'));
-  const shippingCost = deliveryType === 'retiro' ? 0 : (hasDrink ? 0 : COSTO_ENVIO);
+  // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente a pedido del usuario.
+  // const shippingCost = deliveryType === 'retiro' ? 0 : (hasDrink ? 0 : COSTO_ENVIO);
+  const shippingCost = deliveryType === 'retiro' ? 0 : COSTO_ENVIO;
   const total = subtotal + shippingCost;
   const totalItems = items.reduce((sum, i) => sum + i.qty, 0);
 

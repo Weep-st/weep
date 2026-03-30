@@ -324,9 +324,53 @@ export default function CustomerApp() {
     setAuthLoading(false);
   };
 
-  // Calculate comisión (Para la UI)
-  const comision = metodoPago === 'transferencia' ? cart.subtotal * 0.04 : 0;
-  const totalConComision = cart.total + comision;
+  // --- Business Logic for Totals ---
+  const PLATFORM_COMMISSION = 0.08;
+  const MP_FEE = 0.0824;
+
+  const calculateCheckoutTotals = (P, E, method) => {
+    if (method === 'transferencia') {
+      const commission = P * PLATFORM_COMMISSION;
+      const mp_base = E + commission;
+      const mp_adjusted = mp_base / (1 - MP_FEE);
+      const mp_fee = mp_adjusted - mp_base;
+      const total = P + E + mp_fee;
+      
+      return {
+        total: Math.round(total),
+        product_total: P,
+        delivery_fee: E,
+        commission: Math.round(commission),
+        mp_fee: Math.round(mp_fee),
+        merchant_payout: Math.round(P - commission),
+        platform_gross: Math.round(mp_adjusted),
+        platform_net: Math.round(E + commission)
+      };
+    }
+    
+    // Default (Efectivo)
+    const commission = P * PLATFORM_COMMISSION;
+    return {
+      total: Math.round(P + E),
+      product_total: P,
+      delivery_fee: E,
+      commission: Math.round(commission),
+      mp_fee: 0,
+      merchant_payout: Math.round(P - commission),
+      platform_gross: 0,
+      platform_net: Math.round(E + commission)
+    };
+  };
+
+  const checkoutTotals = calculateCheckoutTotals(cart.subtotal, cart.shippingCost, metodoPago);
+  const totalConComision = checkoutTotals.total;
+  const mpFeeUI = checkoutTotals.mp_fee;
+
+  // UI-only disguise for "envio"
+  // When shipping is $2,000, we show it as $1,700 and add the $300 to the fee label.
+  const showSurchargeDisguise = cart.shippingCost === 2000;
+  const visibleShipping = showSurchargeDisguise ? 1700 : cart.shippingCost;
+  const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
   const handleAddToCart = async (menu) => {
     // Detect if it's ice cream
@@ -390,7 +434,7 @@ export default function CustomerApp() {
     if (!user) { setModal('login'); return; }
     if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
     const fd = new FormData(e.target);
-    const mp = fd.get('metodo-pago');
+    const mp = metodoPago; // Use state instead of FormData
     const dir = addressData.address;
     if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
     if (!mp) { toast.error('Seleccioná un método de pago'); return; }
@@ -404,12 +448,15 @@ export default function CustomerApp() {
 
     setCheckoutLoading(true);
     try {
-      // 7. Calculate exact prices
+      // 7. Calculate exact prices using new logic
       const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
       const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
-      const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 2500 : 0;
-      const calcComision = (mp === 'transferencia') ? calcSubtotal * 0.04 : 0;
-      const exactTotal = calcSubtotal + shipping + calcComision;
+      // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente.
+      // const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 2000 : 0;
+      const shipping = cart.deliveryType === 'envio' ? 2000 : 0;
+      
+      const finalTotals = calculateCheckoutTotals(calcSubtotal, shipping, mp);
+      const exactTotal = finalTotals.total;
 
       const orderItems = cart.items.map(i => ({
         id: i.menuId || i.id, // Use original menu item ID for database
@@ -759,7 +806,6 @@ export default function CustomerApp() {
           </section>
         )}
       </main>
-
       {/* ─── Cart Sidebar ─── */}
       <div className={`cart-backdrop ${cartOpen ? 'active' : ''}`} onClick={() => setCartOpen(false)} />
       <aside className={`cart-sidebar ${cartOpen ? 'active' : ''}`}>
@@ -807,23 +853,31 @@ export default function CustomerApp() {
                 </div>
               ))}
 
+              <div className="payment-method-selector" style={{ marginTop: '20px', marginBottom: '10px' }}>
+                <label className="form-label">Seleccionar método de pago</label>
+                <select 
+                  className="form-select" 
+                  value={metodoPago} 
+                  onChange={e => setMetodoPago(e.target.value)}
+                  style={{ marginBottom: '10px' }}
+                >
+                  <option value="" disabled>Elegí cómo pagar</option>
+                  <option value="transferencia">Transferencia / Mercado Pago</option>
+                  <option value="efectivo">Efectivo</option>
+                </select>
+              </div>
+
               <div className="cart-summary">
                 <div className="cart-line"><span>Subtotal</span><span>${cart.subtotal.toLocaleString('es-AR')}</span></div>
                 <div className="cart-line">
                   <span>Envío</span>
-                  <span>{cart.shippingCost === 0 ? '¡GRATIS!' : `$${cart.shippingCost.toLocaleString('es-AR')}`}</span>
+                  <span>{visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`}</span>
                 </div>
-                {comision > 0 && (
+                {visibleMpFee > 0 && (
                   <div className="cart-line comision-line">
-                    <span>Comisión 4% (Mercado Pago)</span>
-                    <span>+${comision.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                    <span>Gestión de pago</span>
+                    <span>+${visibleMpFee.toLocaleString('es-AR')}</span>
                   </div>
-                )}
-                {cart.hasDrink && cart.deliveryType === 'envio' && (
-                  <div className="free-shipping-badge">🎉 ¡Envío gratis por agregar bebida!</div>
-                )}
-                {!cart.hasDrink && cart.deliveryType === 'envio' && (
-                  <div className="shipping-tip">💡 Agregá una bebida y el envío es gratis</div>
                 )}
                 <div className="cart-line total-line">
                   <span>Total</span>
@@ -831,47 +885,37 @@ export default function CustomerApp() {
                 </div>
               </div>
 
-              {/* ─── Drinks Carousel ─── */}
-              {showDrinks && (
-                <div className="drinks-section">
-                  <h3 className="drinks-title">🥤 ¡Agregá una bebida y obtené ENVÍO GRATIS!</h3>
-                  <div className="drinks-scroll">
-                    {drinks.map(d => (
-                      <div key={d.id} className="drink-card">
-                        <img
-                          src={d.imagen_url || 'https://placehold.co/100x80?text=Bebida'}
-                          alt={d.nombre}
-                          onError={e => { e.target.src = 'https://placehold.co/100x80?text=Bebida'; }}
-                        />
-                        <div className="drink-info">
-                          <span className="drink-name">{d.nombre}</span>
-                          <span className="drink-price">${Number(d.precio).toLocaleString('es-AR')}</span>
-                        </div>
-                        <button className="btn btn-primary btn-xs" onClick={() => handleAddToCart(d)}>+</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <form onSubmit={handleCheckout} className="checkout-form">
                 {cart.deliveryType === 'envio' && (
-                  <div className="address-selector-trigger" style={{ marginBottom: '16px' }}>
-                    <button 
-                      type="button" 
-                      className={`btn ${addressData.address ? 'btn-secondary' : 'btn-primary'} btn-full`}
+                  <div className="address-selector-input-group" style={{ marginBottom: '16px', position: 'relative' }}>
+                    <label className="form-label" style={{ display: 'block', textAlign: 'left', marginBottom: '8px' }}>
+                      Dirección de entrega
+                    </label>
+                    <div 
+                      className="input-with-icon" 
                       onClick={() => setShowAddressSelector(true)}
+                      style={{ cursor: 'pointer', position: 'relative' }}
                     >
-                      {addressData.address ? '📍 ' + addressData.address : 'Seleccionar Dirección de Entrega'}
-                    </button>
+                      <input 
+                        type="text"
+                        className="form-input"
+                        placeholder="📍 Seleccioná tu dirección en el mapa..."
+                        value={addressData.address || ''}
+                        readOnly
+                        style={{ paddingLeft: '40px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #ddd' }}
+                      />
+                      <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.2rem' }}>
+                        📍
+                      </span>
+                    </div>
                     {addressData.address && (
                       <button 
                         type="button" 
                         className="btn-text" 
-                        style={{ display: 'block', margin: '4px auto', fontSize: '0.9rem', color: 'var(--red-500)', fontWeight: 'bold' }}
+                        style={{ display: 'block', margin: '4px 0', fontSize: '0.8rem', color: 'var(--red-500)', fontWeight: 'bold' }}
                         onClick={() => setShowAddressSelector(true)}
                       >
-                        (Cambiar dirección)
+                        (Cambiar ubicación)
                       </button>
                     )}
                     {addressData.reference && (
@@ -881,11 +925,6 @@ export default function CustomerApp() {
                     )}
                   </div>
                 )}
-                <select name="metodo-pago" className="form-select" required defaultValue="" onChange={e => setMetodoPago(e.target.value)}>
-                  <option value="" disabled>Método de pago</option>
-                  <option value="transferencia">Transferencia / Mercado Pago</option>
-                  <option value="efectivo">Efectivo</option>
-                </select>
                 <textarea name="observaciones" className="form-textarea" placeholder="Observaciones (opcional)" rows={2} />
                 <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading}>
                   {checkoutLoading ? <span className="spinner spinner-white" /> : 'Realizar Pedido'}
