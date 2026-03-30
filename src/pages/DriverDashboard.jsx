@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
@@ -27,39 +27,39 @@ export default function DriverDashboard() {
     console.error("❌ Error loading Google Maps in DriverDashboard:", loadError);
   }
 
-  const [authView, setAuthView] = useState('login');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
+  const [authView, setAuthView] = React.useState('login');
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showTerms, setShowTerms] = React.useState(false);
 
   // Dashboard state
-  const [driverData, setDriverData] = useState(null);
-  const [isActive, setIsActive] = useState(false);
-  const [activeTab, setActiveTab] = useState('disponibles'); // 'disponibles', 'historial'
-  const [pedidos, setPedidos] = useState([]);
-  const [historial, setHistorial] = useState([]); 
+  const [driverData, setDriverData] = React.useState(null);
+  const [isActive, setIsActive] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('disponibles'); // 'disponibles', 'historial'
+  const [pedidos, setPedidos] = React.useState([]);
+  const [historial, setHistorial] = React.useState([]); 
 
-  const [sessionGanancias, setSessionGanancias] = useState(0);
-  const [localInfo, setLocalInfo] = useState({ nombre: '', direccion: '', lat: null, lng: null });
-  const [montoLocal, setMontoLocal] = useState(0);
+  const [sessionGanancias, setSessionGanancias] = React.useState(0);
+  const [localInfo, setLocalInfo] = React.useState({ nombre: '', direccion: '', lat: null, lng: null });
+  const [montoLocal, setMontoLocal] = React.useState(0);
 
   // Map state
-  const [deliveryCoords, setDeliveryCoords] = useState({ lat: null, lng: null });
-  const geocoderRef = useRef(null);
+  const [deliveryCoords, setDeliveryCoords] = React.useState({ lat: null, lng: null });
+  const geocoderRef = React.useRef(null);
 
   // New views state
-  const [view, setView] = useState('main'); // 'main', 'cobros', 'perfil'
-  const [cobrosData, setCobrosData] = useState(null);
-  const [cobrosLoading, setCobrosLoading] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [view, setView] = React.useState('main'); // 'main', 'cobros', 'perfil'
+  const [cobrosData, setCobrosData] = React.useState(null);
+  const [cobrosLoading, setCobrosLoading] = React.useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = React.useState(false);
 
   // Tutorial State
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(1);
-  const [driverLocation, setDriverLocation] = useState({ lat: null, lng: null });
+  const [showTutorial, setShowTutorial] = React.useState(false);
+  const [tutorialStep, setTutorialStep] = React.useState(1);
+  const [driverLocation, setDriverLocation] = React.useState({ lat: null, lng: null });
 
   // Geolocation Watcher
-  useEffect(() => {
+  React.useEffect(() => {
     let watchId = null;
     if (isActive && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
@@ -86,16 +86,16 @@ export default function DriverDashboard() {
   }, [isActive]);
 
   // Modals state
-  const [showEntregaModal, setShowEntregaModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
-  const [activeChatPedidoId, setActiveChatPedidoId] = useState(null);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const [pinInput, setPinInput] = useState('');
-  const [showMap, setShowMap] = useState(false);
+  const [showEntregaModal, setShowEntregaModal] = React.useState(false);
+  const [showChatModal, setShowChatModal] = React.useState(false);
+  const [activeChatPedidoId, setActiveChatPedidoId] = React.useState(null);
+  const [chatMessages, setChatMessages] = React.useState([]);
+  const [chatInput, setChatInput] = React.useState('');
+  const [pinInput, setPinInput] = React.useState('');
+  const [showMap, setShowMap] = React.useState(false);
 
   // Realtime Chat Subscription
-  useEffect(() => {
+  React.useEffect(() => {
     if (!activeChatPedidoId) return;
 
     const channel = api.supabase
@@ -115,7 +115,7 @@ export default function DriverDashboard() {
     };
   }, [activeChatPedidoId]);
 
-  const loadData = useCallback(async () => {
+  const loadData = React.useCallback(async () => {
     try {
       if (!driver) return;
       const d = await api.repartidorGetDatos(driver.id);
@@ -130,7 +130,7 @@ export default function DriverDashboard() {
     } catch { toast.error('Error al cargar datos'); }
   }, [driver, loginAsDriver]);
 
-  const fetchPedidos = useCallback(async (silent = false) => {
+  const fetchPedidos = React.useCallback(async (silent = false) => {
     if (!driver) return;
     try {
       const res = await api.getPedidosDisponibles(driver.id);
@@ -151,7 +151,7 @@ export default function DriverDashboard() {
   }, [driver]);
 
   // On Login/Load
-  useEffect(() => {
+  React.useEffect(() => {
     if (driver) {
       loadData();
       // Check if tutorial was already seen
@@ -165,7 +165,7 @@ export default function DriverDashboard() {
   }, [driver]);
 
   // Polling para pedidos disponibles
-  useEffect(() => {
+  React.useEffect(() => {
     let interval;
     if (driver && isActive) {
       // First fetch
@@ -179,7 +179,7 @@ export default function DriverDashboard() {
   }, [driver, isActive]);
 
   // Carga de datos del local para viaje en curso
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isMapLoaded) return;
 
     const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');

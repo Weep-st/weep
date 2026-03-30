@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -10,28 +10,28 @@ export default function MisPedidos() {
   const { user } = useAuth();
   const cart = useCart();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('curso');
-  const [enCurso, setEnCurso] = useState([]);
-  const [historial, setHistorial] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = React.useState('curso');
+  const [enCurso, setEnCurso] = React.useState([]);
+  const [historial, setHistorial] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
 
   // Seguimiento modal
-  const [seguimiento, setSeguimiento] = useState(null);
-  const [seguimientoLoading, setSeguimientoLoading] = useState(false);
+  const [seguimiento, setSeguimiento] = React.useState(null);
+  const [seguimientoLoading, setSeguimientoLoading] = React.useState(false);
 
   // Calificación modal
-  const [calificar, setCalificar] = useState(null);
-  const [rating, setRating] = useState(0);
-  const [comentario, setComentario] = useState('');
-  const [ratingLoading, setRatingLoading] = useState(false);
+  const [calificar, setCalificar] = React.useState(null);
+  const [rating, setRating] = React.useState(0);
+  const [comentario, setComentario] = React.useState('');
+  const [ratingLoading, setRatingLoading] = React.useState(false);
 
   // Chat state
-  const [activeChatPedidoId, setActiveChatPedidoId] = useState(null);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
+  const [activeChatPedidoId, setActiveChatPedidoId] = React.useState(null);
+  const [chatMessages, setChatMessages] = React.useState([]);
+  const [chatInput, setChatInput] = React.useState('');
 
   // Realtime Chat Subscription for Customer
-  useEffect(() => {
+  React.useEffect(() => {
     if (!activeChatPedidoId) return;
 
     const channel = api.supabase
@@ -51,7 +51,7 @@ export default function MisPedidos() {
     };
   }, [activeChatPedidoId]);
 
-  const loadPedidos = useCallback(async () => {
+  const loadPedidos = React.useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -64,10 +64,10 @@ export default function MisPedidos() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { loadPedidos(); }, [loadPedidos]);
+  React.useEffect(() => { loadPedidos(); }, [loadPedidos]);
   
   // Polling cada 30 segundos
-  useEffect(() => {
+  React.useEffect(() => {
     if (!user) return;
     const interval = setInterval(loadPedidos, 30000);
     return () => clearInterval(interval);

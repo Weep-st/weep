@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -30,41 +30,41 @@ export default function CustomerApp() {
   const cart = useCart();
   const navigate = useNavigate();
 
-  const [locals, setLocals] = useState([]);
-  const [menus, setMenus] = useState([]);
-  const [menuTitle, setMenuTitle] = useState('');
-  const [showMenus, setShowMenus] = useState(false);
-  const [loadingMenus, setLoadingMenus] = useState(false);
-  const [favorites, setFavorites] = useState([]);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [filteredLocals, setFilteredLocals] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [loadingLocals, setLoadingLocals] = useState(false);
-  const [search, setSearch] = useState('');
-  const [modal, setModal] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [iceCreamModal, setIceCreamModal] = useState(null);
-  const [iceCreamFlavors, setIceCreamFlavors] = useState([]);
-  const [iceCreamSauces, setIceCreamSauces] = useState([]);
-  const [iceCreamExtras, setIceCreamExtras] = useState([]);
-  const [selectedSize, setSelectedSize] = useState('1/4kg');
-  const [selectedFlavors, setSelectedFlavors] = useState([]);
-  const [selectedSauces, setSelectedSauces] = useState([]);
-  const [selectedExtras, setSelectedExtras] = useState([]);
-  const [burgerModal, setBurgerModal] = useState(null);
-  const [withFries, setWithFries] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [drinks, setDrinks] = useState([]);
-  const [hasRepartidores, setHasRepartidores] = useState(true);
-  const [metodoPago, setMetodoPago] = useState('');
-  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const [locals, setLocals] = React.useState([]);
+  const [menus, setMenus] = React.useState([]);
+  const [menuTitle, setMenuTitle] = React.useState('');
+  const [showMenus, setShowMenus] = React.useState(false);
+  const [loadingMenus, setLoadingMenus] = React.useState(false);
+  const [favorites, setFavorites] = React.useState([]);
+  const [cartOpen, setCartOpen] = React.useState(false);
+  const [filteredLocals, setFilteredLocals] = React.useState(null);
+  const [selectedCategory, setSelectedCategory] = React.useState(null);
+  const [loadingLocals, setLoadingLocals] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const [modal, setModal] = React.useState(null);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [iceCreamModal, setIceCreamModal] = React.useState(null);
+  const [iceCreamFlavors, setIceCreamFlavors] = React.useState([]);
+  const [iceCreamSauces, setIceCreamSauces] = React.useState([]);
+  const [iceCreamExtras, setIceCreamExtras] = React.useState([]);
+  const [selectedSize, setSelectedSize] = React.useState('1/4kg');
+  const [selectedFlavors, setSelectedFlavors] = React.useState([]);
+  const [selectedSauces, setSelectedSauces] = React.useState([]);
+  const [selectedExtras, setSelectedExtras] = React.useState([]);
+  const [burgerModal, setBurgerModal] = React.useState(null);
+  const [withFries, setWithFries] = React.useState(false);
+  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
+  const [drinks, setDrinks] = React.useState([]);
+  const [hasRepartidores, setHasRepartidores] = React.useState(true);
+  const [metodoPago, setMetodoPago] = React.useState('');
+  const [hasActiveOrder, setHasActiveOrder] = React.useState(false);
   
   // States for Address Selector
-  const [showAddressSelector, setShowAddressSelector] = useState(false);
-  const [showProfileAddressSelector, setShowProfileAddressSelector] = useState(false);
+  const [showAddressSelector, setShowAddressSelector] = React.useState(false);
+  const [showProfileAddressSelector, setShowProfileAddressSelector] = React.useState(false);
   
-  const [addressData, setAddressData] = useState({
+  const [addressData, setAddressData] = React.useState({
     address: user?.direccion || '',
     lat: user?.lat || null,
     lng: user?.lng || null,
@@ -72,7 +72,7 @@ export default function CustomerApp() {
   });
 
   // Actualizar addressData cuando el usuario carga (login)
-  useEffect(() => {
+  React.useEffect(() => {
     if (user && !addressData.address) {
       setAddressData(prev => ({
         ...prev,
@@ -83,9 +83,9 @@ export default function CustomerApp() {
     }
   }, [user]);
 
-  const searchTimeout = useRef(null);
+  const searchTimeout = React.useRef(null);
   
-  const isLocalOpen = useCallback((local) => {
+  const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
     
     // Si no tiene modo automático, dependemos del estado manual
@@ -126,7 +126,7 @@ export default function CustomerApp() {
   }, []);
 
   // Load locals + drinks on mount
-  useEffect(() => {
+  React.useEffect(() => {
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     if (user) {
@@ -146,7 +146,7 @@ export default function CustomerApp() {
   }, [user]);
 
   // MP Return URL Parse
-  useEffect(() => {
+  React.useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const status = query.get('status');
     const payment_id = query.get('payment_id');
@@ -177,7 +177,7 @@ export default function CustomerApp() {
   }, [cart]);
 
   // Search
-  useEffect(() => {
+  React.useEffect(() => {
     clearTimeout(searchTimeout.current);
     if (search.length >= 3) {
       searchTimeout.current = setTimeout(() => {
@@ -193,7 +193,7 @@ export default function CustomerApp() {
     }
   }, [search]);
 
-  const fetchMenusByLocal = useCallback((localId, catId = null) => {
+  const fetchMenusByLocal = React.useCallback((localId, catId = null) => {
     setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
     api.getMenuByLocalId(localId).then(d => {
@@ -209,7 +209,7 @@ export default function CustomerApp() {
     }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
   }, [locals, filteredLocals]);
 
-  const fetchByCategory = useCallback((cat) => {
+  const fetchByCategory = React.useCallback((cat) => {
     if (cat === 'favoritos') {
       if (!user) { setModal('login'); return; }
       setLoadingMenus(true);
@@ -244,7 +244,7 @@ export default function CustomerApp() {
     }).catch(() => toast.error('Error al cargar locales')).finally(() => setLoadingLocals(false));
   }, [user, favorites]);
 
-  const toggleFav = useCallback(async (menuId) => {
+  const toggleFav = React.useCallback(async (menuId) => {
     if (!user) { setModal('login'); return; }
     try {
       const r = await api.toggleFavorito(user.id, menuId);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useJsApiLoader } from '@react-google-maps/api';
@@ -10,34 +10,34 @@ import './RestaurantDashboard.css';
 export default function RestaurantDashboard() {
   const { restaurant, loginAsRestaurant, logoutRestaurant } = useAuth();
 
-  const [view, setView] = useState('orders'); // 'menu','addItem','orders','profile'
-  const [authView, setAuthView] = useState('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [localOpen, setLocalOpen] = useState(false);
-  const [profileData, setProfileData] = useState(null);
-  const [menuItems, setMenuItems] = useState([]);
-  const [menuLoading, setMenuLoading] = useState(false);
-  const [menuFilter, setMenuFilter] = useState('');
-  const [menuCatFilter, setMenuCatFilter] = useState('');
-  const [editItem, setEditItem] = useState(null);
-  const [itemLoading, setItemLoading] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [currentTab, setCurrentTab] = useState('pendientes');
-  const [pendingCount, setPendingCount] = useState(0);
-  const [cobrosData, setCobrosData] = useState(null);
-  const [cobrosLoading, setCobrosLoading] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [sabores, setSabores] = useState([]);
-  const [saboresLoading, setSaboresLoading] = useState(false);
-  const [itemCategory, setItemCategory] = useState('');
-  const [profileSubView, setProfileSubView] = useState('edit'); // 'ventas', 'cobros', 'edit'
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [adicionales, setAdicionales] = useState([]);
-  const [adicionalesLoading, setAdicionalesLoading] = useState(false);
+  const [view, setView] = React.useState('orders'); // 'menu','addItem','orders','profile'
+  const [authView, setAuthView] = React.useState('login');
+  const [authEmail, setAuthEmail] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [localOpen, setLocalOpen] = React.useState(false);
+  const [profileData, setProfileData] = React.useState(null);
+  const [menuItems, setMenuItems] = React.useState([]);
+  const [menuLoading, setMenuLoading] = React.useState(false);
+  const [menuFilter, setMenuFilter] = React.useState('');
+  const [menuCatFilter, setMenuCatFilter] = React.useState('');
+  const [editItem, setEditItem] = React.useState(null);
+  const [itemLoading, setItemLoading] = React.useState(false);
+  const [orders, setOrders] = React.useState([]);
+  const [ordersLoading, setOrdersLoading] = React.useState(false);
+  const [currentTab, setCurrentTab] = React.useState('pendientes');
+  const [pendingCount, setPendingCount] = React.useState(0);
+  const [cobrosData, setCobrosData] = React.useState(null);
+  const [cobrosLoading, setCobrosLoading] = React.useState(false);
+  const [showTerms, setShowTerms] = React.useState(false);
+  const [sabores, setSabores] = React.useState([]);
+  const [saboresLoading, setSaboresLoading] = React.useState(false);
+  const [itemCategory, setItemCategory] = React.useState('');
+  const [profileSubView, setProfileSubView] = React.useState('edit'); // 'ventas', 'cobros', 'edit'
+  const [profileMenuOpen, setProfileMenuOpen] = React.useState(false);
+  const [addMenuOpen, setAddMenuOpen] = React.useState(false);
+  const [adicionales, setAdicionales] = React.useState([]);
+  const [adicionalesLoading, setAdicionalesLoading] = React.useState(false);
   
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -56,20 +56,20 @@ export default function RestaurantDashboard() {
   }
 
   // Tutorial State
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(1);
-  const [tutorialSampleOrderState, setTutorialSampleOrderState] = useState('Pendiente'); // To simulate order states
-  const [itemName, setItemName] = useState('');
+  const [showTutorial, setShowTutorial] = React.useState(false);
+  const [tutorialStep, setTutorialStep] = React.useState(1);
+  const [tutorialSampleOrderState, setTutorialSampleOrderState] = React.useState('Pendiente'); // To simulate order states
+  const [itemName, setItemName] = React.useState('');
 
   // Location State
-  const [showAddressSelector, setShowAddressSelector] = useState(false);
-  const [profileAddress, setProfileAddress] = useState('');
-  const [profileLat, setProfileLat] = useState(null);
-  const [profileLng, setProfileLng] = useState(null);
+  const [showAddressSelector, setShowAddressSelector] = React.useState(false);
+  const [profileAddress, setProfileAddress] = React.useState('');
+  const [profileLat, setProfileLat] = React.useState(null);
+  const [profileLng, setProfileLng] = React.useState(null);
 
-  const pollingRef = useRef(null);
-  const previousOrdersRef = useRef([]);
-  const localOpenRef = useRef(false);
+  const pollingRef = React.useRef(null);
+  const previousOrdersRef = React.useRef([]);
+  const localOpenRef = React.useRef(false);
 
   const playAlertSound = () => {
     try {
@@ -77,7 +77,7 @@ export default function RestaurantDashboard() {
     } catch (e) {}
   };
 
-  const loadEstado = useCallback(async () => {
+  const loadEstado = React.useCallback(async () => {
     if (!restaurant) return;
     try {
       const d = await api.getLocalEstado(restaurant.id);
@@ -89,7 +89,7 @@ export default function RestaurantDashboard() {
     } catch {}
   }, [restaurant]);
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = React.useCallback(async () => {
     if (!restaurant) return;
     try {
       const d = await api.getPerfilLocal(restaurant.id);
@@ -107,7 +107,7 @@ export default function RestaurantDashboard() {
   }, [restaurant]);
 
   /* ─── Modo Automático ─── */
-  const estaDentroDeHorario = useCallback((apertura, cierre, diasApertura) => {
+  const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura) => {
     if (!apertura || !cierre) return false;
     
     // Verificar días de apertura si existen
@@ -139,7 +139,7 @@ export default function RestaurantDashboard() {
     }
   }, []);
 
-  const verificarEstadoAutomatico = useCallback(() => {
+  const verificarEstadoAutomatico = React.useCallback(() => {
     if (!profileData || !profileData.modo_automatico || !profileData.horario_apertura || !profileData.horario_cierre) return;
     
     const shouldBeOpen = estaDentroDeHorario(profileData.horario_apertura, profileData.horario_cierre, profileData.dias_apertura);
@@ -160,7 +160,7 @@ export default function RestaurantDashboard() {
     }
   }, [profileData, restaurant, estaDentroDeHorario]);
 
-  const loadMenu = useCallback(async () => {
+  const loadMenu = React.useCallback(async () => {
     if (!restaurant) return;
     setMenuLoading(true);
     try {
@@ -170,7 +170,7 @@ export default function RestaurantDashboard() {
     setMenuLoading(false);
   }, [restaurant]);
 
-  const loadOrders = useCallback(async (silent = false) => {
+  const loadOrders = React.useCallback(async (silent = false) => {
     if (!restaurant) return;
     if (!silent) setOrdersLoading(true);
     try {
@@ -218,7 +218,7 @@ export default function RestaurantDashboard() {
   }, [restaurant]);
 
   // Load data on login and window focus
-  useEffect(() => {
+  React.useEffect(() => {
     if (!restaurant) return;
     loadEstado();
     loadProfile();
@@ -241,7 +241,7 @@ export default function RestaurantDashboard() {
   }, [restaurant, loadEstado, loadProfile, loadOrders]);
 
   // Polling
-  useEffect(() => {
+  React.useEffect(() => {
     if (!restaurant) return;
     pollingRef.current = setInterval(() => {
       loadOrders(true);
@@ -250,7 +250,7 @@ export default function RestaurantDashboard() {
   }, [restaurant, loadOrders]);
 
   // Modo Automatico Auto-update
-  useEffect(() => {
+  React.useEffect(() => {
     if (!profileData?.modo_automatico) return;
     
     verificarEstadoAutomatico(); // Check immediately
@@ -263,7 +263,7 @@ export default function RestaurantDashboard() {
   }, [profileData?.modo_automatico, profileData?.horario_apertura, profileData?.horario_cierre, verificarEstadoAutomatico]);
 
   // Click outside to close dropdowns
-  useEffect(() => {
+  React.useEffect(() => {
     if (!profileMenuOpen && !addMenuOpen) return;
     const handleClickOutside = () => {
       setProfileMenuOpen(false);
@@ -297,7 +297,7 @@ export default function RestaurantDashboard() {
     setCobrosLoading(false);
   };
 
-  const loadSabores = useCallback(async () => {
+  const loadSabores = React.useCallback(async () => {
     if (!restaurant) return;
     setSaboresLoading(true);
     setAdicionalesLoading(true);
@@ -1705,7 +1705,7 @@ export default function RestaurantDashboard() {
 
 /* ─── Order Card Component ─── */
 function OrderCard({ order: o, onAction, finished }) {
-  const [loading, setLoading] = useState('');
+  const [loading, setLoading] = React.useState('');
   const handleAction = async (action) => {
     setLoading(action);
     await onAction(o, action);
