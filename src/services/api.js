@@ -254,6 +254,7 @@ export async function repartidorGetDatos(driverId) {
       Telefono: data.telefono, Patente: data.patente,
       MarcaModelo: data.marca_modelo, Estado: data.estado,
       PedidosHoy: data.pedidos_hoy,
+      EmailConfirmado: data.email_confirmado,
       FotoUrl: data.foto_url,
       HorarioApertura: data.horario_apertura,
       HorarioCierre: data.horario_cierre,
