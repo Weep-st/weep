@@ -394,10 +394,7 @@ export default function RestaurantDashboard() {
     setAuthLoading(true);
     try {
       const d = await api.loginLocal(fd.get('email'), fd.get('password'));
-      if (d.success && d.localId) { 
-        loginAsRestaurant(d); 
-        toast.success('¡Bienvenido!'); 
-      }
+      if (d.success && d.localId) { loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado }); toast.success('¡Bienvenido!'); }
       else toast.error('Credenciales incorrectas');
     } catch { toast.error('Error de conexión'); }
     setAuthLoading(false);

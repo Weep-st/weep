@@ -55,12 +55,12 @@ export function AuthProvider({ children }) {
   };
 
   const loginAsRestaurant = (data) => {
-    const id = typeof data === 'string' ? data : data.localId;
+    const localId = typeof data === 'string' ? data : data.localId;
     const confirmed = typeof data === 'object' ? !!data.emailConfirmado : (localStorage.getItem('localEmailConfirmado') === 'true');
     
-    localStorage.setItem('localToken', id);
+    localStorage.setItem('localToken', localId);
     localStorage.setItem('localEmailConfirmado', String(confirmed));
-    setRestaurant({ id, emailConfirmado: confirmed });
+    setRestaurant({ id: localId, emailConfirmado: confirmed });
   };
 
   const logoutRestaurant = () => {

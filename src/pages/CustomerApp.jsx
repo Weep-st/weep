@@ -134,9 +134,13 @@ export default function CustomerApp() {
         if (Array.isArray(d)) setFavorites(d);
       }).catch(() => {});
       
-      // Check for active orders
+      // Verificar si hay pedidos activos
       api.getMisPedidos(user.id).then(res => {
-        setHasActiveOrder(res.enCurso && res.enCurso.length > 0);
+        if (res.enCurso && res.enCurso.length > 0) {
+          setHasActiveOrder(true);
+        } else {
+          setHasActiveOrder(false);
+        }
       }).catch(() => {});
     }
   }, [user]);
@@ -261,7 +265,7 @@ export default function CustomerApp() {
     try {
       const d = await api.loginUsuario(fd.get('email').toLowerCase(), fd.get('password'));
       if (d.success) {
-        loginAsUser({ userId: d.userId, name: d.nombre, email: d.email || fd.get('email'), address: d.direccion });
+        loginAsUser({ userId: d.userId, name: d.nombre, email: d.email || fd.get('email'), address: d.direccion, emailConfirmado: d.emailConfirmado });
         setModal(null);
         toast.success('¡Bienvenido!');
       } else toast.error('Credenciales incorrectas');
@@ -592,36 +596,36 @@ export default function CustomerApp() {
         </div>
       )}
 
-      {hasActiveOrder && (
+      {user && hasActiveOrder && (
         <div className="active-order-banner" style={{
-          background: 'var(--red-500)',
-          color: 'white',
-          padding: '12px 20px',
+          background: 'var(--blue-100)',
+          color: 'var(--blue-900)',
+          padding: '10px 20px',
           textAlign: 'center',
-          fontSize: '0.9rem',
+          fontSize: '0.85rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '15px',
-          fontWeight: 600,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          zIndex: 99
+          gap: '10px',
+          borderBottom: '1px solid var(--blue-200)',
+          zIndex: 100
         }}>
-          <span>🛵 Tienes un pedido en proceso</span>
+          <span>🛵 Tienes un pedido en proceso.</span>
           <Link 
-            to="/pedir?view=orders"
+            to="/pedir?view=mis-pedidos"
+            onClick={() => setModal('mis-pedidos')} // In case view is managed by modal
             style={{
-              background: 'white',
-              color: 'var(--red-500)',
+              background: 'var(--blue-600)',
+              color: 'white',
               textDecoration: 'none',
-              padding: '5px 15px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+              padding: '4px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.8rem'
             }}
           >
-            Ver Pedido
+            Ver Mis Pedidos
           </Link>
         </div>
       )}
