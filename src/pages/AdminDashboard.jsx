@@ -5,6 +5,7 @@ import * as api from '../services/api';
 import AdminLocales from './AdminLocales';
 import AdminEmails from './AdminEmails';
 import AdminTasks from './AdminTasks';
+import AdminLogin from './AdminLogin';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -14,7 +15,7 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState({ locales: 0, pendingTasks: 0, users: 0 });
 
     if (!user || user.role !== 'admin') {
-        return <Navigate to="/" replace />;
+        return <AdminLogin />;
     }
 
     useEffect(() => {
