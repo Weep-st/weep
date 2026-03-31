@@ -9,6 +9,7 @@ import './RestaurantDashboard.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
+// V2.2 - Reset Modals Cache Fix
 export default function RestaurantDashboard() {
   const { restaurant, loginAsRestaurant, logoutRestaurant } = useAuth();
 
