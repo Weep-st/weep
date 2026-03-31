@@ -851,6 +851,49 @@ export async function adminUpdateLocalStatus(localId, admin_status) {
 }
 
 // ═══════════════════════════════════════════════════
+// ADMIN — Repartidores
+// ═══════════════════════════════════════════════════
+export async function adminGetRepartidores() {
+  const { data } = await supabase.from('repartidores')
+    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url')
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function adminUpdateRepartidorStatus(repId, admin_status) {
+  const { error } = await supabase.from('repartidores').update({ admin_status }).eq('id', repId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — Gestión de Cobros (Locales y Repartidores)
+// ═══════════════════════════════════════════════════
+export async function adminGetGestionCobros(tipo = 'Local') {
+  let query = supabase.from('gestion_cobros')
+    .select('*, locales(nombre), repartidores(nombre)')
+    .order('created_at', { ascending: false });
+  
+  if (tipo === 'Repartidor') {
+    query = query.not('repartidor_id', 'is', null);
+  } else {
+    query = query.is('repartidor_id', null);
+  }
+
+  const { data } = await query;
+  return data || [];
+}
+
+export async function adminUpdateCobroStatus(id, estado, comprobanteUrl = null) {
+  const updateData = { estado };
+  if (comprobanteUrl) updateData.comprobante_url = comprobanteUrl;
+  
+  const { error } = await supabase.from('gestion_cobros').update(updateData).eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
 // ADMIN — Tareas
 // ═══════════════════════════════════════════════════
 export async function getAdminTasks() {

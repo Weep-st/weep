@@ -6,6 +6,8 @@ import AdminLocales from './AdminLocales';
 import AdminEmails from './AdminEmails';
 import AdminTasks from './AdminTasks';
 import AdminLogin from './AdminLogin';
+import AdminRepartidores from './AdminRepartidores';
+import AdminPagos from './AdminPagos';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -42,6 +44,9 @@ const AdminDashboard = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'locales': return <AdminLocales />;
+            case 'repartidores': return <AdminRepartidores />;
+            case 'pagos-locales': return <AdminPagos tipo="Local" />;
+            case 'pagos-repartidores': return <AdminPagos tipo="Repartidor" />;
             case 'emails': return <AdminEmails />;
             case 'tasks': return <AdminTasks />;
             default: return <AdminLocales />;
@@ -58,6 +63,15 @@ const AdminDashboard = () => {
                 <nav className="sidebar-nav">
                     <button className={activeTab === 'locales' ? 'active' : ''} onClick={() => setActiveTab('locales')}>
                         <span className="icon">🏪</span> Locales Registrados
+                    </button>
+                    <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => setActiveTab('repartidores')}>
+                        <span className="icon">🏍️</span> Repartidores
+                    </button>
+                    <button className={activeTab === 'pagos-locales' ? 'active' : ''} onClick={() => setActiveTab('pagos-locales')}>
+                        <span className="icon">💰</span> Cobros Locales
+                    </button>
+                    <button className={activeTab === 'pagos-repartidores' ? 'active' : ''} onClick={() => setActiveTab('pagos-repartidores')}>
+                        <span className="icon">💸</span> Pagos Repartidores
                     </button>
                     <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => setActiveTab('emails')}>
                         <span className="icon">📧</span> Panel Email
