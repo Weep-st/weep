@@ -14,11 +14,9 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('locales');
     const [stats, setStats] = useState({ locales: 0, pendingTasks: 0, users: 0 });
 
-    if (!user || user.role !== 'admin') {
-        return <AdminLogin />;
-    }
-
     useEffect(() => {
+        if (!user || user.role !== 'admin') return;
+        
         // Load some quick stats
         const loadStats = async () => {
             try {
@@ -35,7 +33,11 @@ const AdminDashboard = () => {
             }
         };
         loadStats();
-    }, []);
+    }, [user]);
+
+    if (!user || user.role !== 'admin') {
+        return <AdminLogin />;
+    }
 
     const renderContent = () => {
         switch (activeTab) {
