@@ -991,7 +991,7 @@ export default function DriverDashboard() {
     <div className="dd-page">
       <header className="dd-header">
         <Link to="/">
-          <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" className="dd-logo" />
+          <img src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" alt="Weep" className="dd-logo" />
         </Link>
         <h1>Panel de Repartidores</h1>
       </header>

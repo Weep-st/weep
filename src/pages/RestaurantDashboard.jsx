@@ -779,7 +779,16 @@ export default function RestaurantDashboard() {
           </div>
         </div>
       </main>
-      <footer className="footer"><p>© 2026 <strong>Weep</strong></p></footer>
+      <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
+        <img src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
+        <button 
+          onClick={() => setShowTerms(true)} 
+          style={{ background: 'none', border: 'none', color: 'var(--red-500)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
+        >
+          Ver Términos y Condiciones
+        </button>
+      </footer>
 
       {showTerms && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowTerms(false)}>
