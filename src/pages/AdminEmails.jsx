@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 
 const AdminEmails = () => {
     const [target, setTarget] = useState('usuarios');
+    const [manualEmails, setManualEmails] = useState('');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [sending, setSending] = useState(false);
@@ -20,19 +21,42 @@ const AdminEmails = () => {
 
         try {
             const htmlBody = `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #ffffff;">
-                    <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" style="width: 100px; display: block; margin: 0 auto 20px;">
-                    <h2 style="color: #6366f1; text-align: center;">${subject}</h2>
-                    <div style="font-size: 16px; color: #333; line-height: 1.6;">
-                        ${message.replace(/\n/g, '<br>')}
+                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" style="width: 120px; height: auto;">
                     </div>
-                    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px;">
-                        © ${new Date().getFullYear()} WEEP. Todos los derechos reservados.
+                    <div style="background-color: #6366f1; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
+                    <h1 style="color: #1e293b; font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 20px;">${subject}</h1>
+                    <div style="font-size: 16px; color: #475569; line-height: 1.8; margin-bottom: 40px; white-space: pre-wrap;">
+${message}
+                    </div>
+                    <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <h3 style="color: #6366f1; margin-bottom: 10px; font-size: 18px;">WEEP — Tu delivery favorito</h3>
+                        <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">Descarga nuestra app y disfruta de los mejores locales de tu zona.</p>
+                    </div>
+                    <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
+                        <p>© ${new Date().getFullYear()} WEEP. Todos los derechos reservados.</p>
+                        <p>Este es un mensaje institucional enviado desde la plataforma oficial de Weep.</p>
                     </div>
                 </div>
             `;
 
-            const res = await api.adminSendBulkEmail({ target, subject, htmlBody });
+            let manualList = null;
+            if (target === 'manual') {
+                manualList = manualEmails.split(/[\s,]+/).filter(e => e.includes('@'));
+                if (manualList.length === 0) {
+                    toast.error('Por favor ingresa al menos un email válido', { id: loading });
+                    setSending(false);
+                    return;
+                }
+            }
+
+            const res = await api.adminSendBulkEmail({ 
+                target, 
+                manualEmails: manualList, 
+                subject, 
+                htmlBody 
+            });
             if (res.success) {
                 toast.success(`Emails enviados a ${res.count} destinatarios!`, { id: loading });
                 setSubject('');
@@ -60,8 +84,22 @@ const AdminEmails = () => {
                         <option value="usuarios">Todos los Usuarios</option>
                         <option value="locales">Todos los Locales</option>
                         <option value="repartidores">Todos los Repartidores</option>
+                        <option value="manual">Manual (Ingresar emails)</option>
                     </select>
                 </div>
+
+                {target === 'manual' && (
+                    <div className="form-group">
+                        <label>Emails (separados por coma o espacio):</label>
+                        <textarea 
+                            value={manualEmails} 
+                            onChange={(e) => setManualEmails(e.target.value)} 
+                            className="form-control" 
+                            placeholder="ejemplo1@mail.com, ejemplo2@mail.com"
+                            rows="3"
+                        />
+                    </div>
+                )}
 
                 <div className="form-group">
                     <label>Asunto:</label>

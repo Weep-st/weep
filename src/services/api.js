@@ -879,19 +879,26 @@ export async function deleteAdminTask(id) {
 // ═══════════════════════════════════════════════════
 // ADMIN — Emails
 // ═══════════════════════════════════════════════════
-export async function adminSendBulkEmail({ target, subject, htmlBody }) {
-  let table = 'usuarios';
-  if (target === 'locales') table = 'locales';
-  if (target === 'repartidores') table = 'repartidores';
+export async function adminSendBulkEmail({ target, manualEmails, subject, htmlBody }) {
+  let emails = [];
+  if (target === 'manual' && manualEmails) {
+    emails = manualEmails;
+  } else {
+    // 1. Get all recipients based on target
+    let table = 'usuarios';
+    if (target === 'locales') table = 'locales';
+    if (target === 'repartidores') table = 'repartidores';
+    
+    const { data: recipients } = await supabase.from(table).select('email');
+    if (!recipients || recipients.length === 0) return { success: false, error: 'No recipients found' };
+    emails = recipients.map(r => r.email);
+  }
   
-  const { data: recipients } = await supabase.from(table).select('email');
-  if (!recipients || recipients.length === 0) return { success: false, error: 'No recipients found' };
-  
-  const emails = recipients.map(r => r.email);
+  if (emails.length === 0) return { success: false, error: 'No recipients found' };
   
   const results = await Promise.all(emails.map(email => 
     supabase.functions.invoke('send-email', {
-      body: { to: email, subject, htmlBody }
+      body: { to: email.trim(), subject, htmlBody }
     })
   ));
   
