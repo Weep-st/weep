@@ -65,6 +65,79 @@ export default function RestaurantDashboard() {
   const [tutorialSampleOrderState, setTutorialSampleOrderState] = React.useState('Pendiente'); // To simulate order states
   const [itemName, setItemName] = React.useState('');
 
+  // ─── Modal Arrepentimiento ───
+  const renderRegretModal = () => (
+    showRegretModal && (
+      <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
+        <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
+          <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
+            ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Weep? <br/>
+            <strong>Esta acción eliminará todos tus productos y datos.</strong>
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button 
+              className="btn btn-primary" 
+              style={{ background: 'var(--red-600)' }} 
+              disabled={deleting}
+              onClick={async () => {
+                if (!restaurant?.id) {
+                  toast.error("Debes iniciar sesión para eliminar tu cuenta.");
+                  setShowRegretModal(false);
+                  return;
+                }
+                setDeleting(true);
+                try {
+                  await api.deleteLocalAccount(restaurant.id);
+                  toast.success("Cuenta de local eliminada.");
+                  logoutRestaurant();
+                  window.location.href = "/";
+                } catch (e) {
+                  toast.error("No se pudo eliminar la cuenta. Verifica que no tengas deudas o pedidos pendientes.");
+                } finally {
+                  setDeleting(false);
+                  setShowRegretModal(false);
+                }
+              }}
+            >
+              {deleting ? 'Eliminando...' : 'Sí, eliminar mi local'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+
+  // ─── Modal Términos y Condiciones ───
+  const renderTermsModal = () => (
+    showTerms && (
+      <div className="modal-overlay" style={{ zIndex: 9999 }} onClick={() => setShowTerms(false)}>
+        <div className="modal-box animate-fade-in" style={{ maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
+          <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Términos y Condiciones para Locales</h4>
+          <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
+            <h5 style={{ color: 'red', marginTop: 0 }}>📄 2. COMERCIOS – TÉRMINOS Y CONDICIONES</h5>
+            <p><strong>1. Relación</strong></p>
+            <p>El comercio utiliza Weep como plataforma de visibilidad y gestión de pedidos. No existe relación societaria ni laboral.</p>
+            <p><strong>2. Calidad</strong></p>
+            <p>El local es el único responsable por el estado, higiene y veracidad de los productos entregados.</p>
+            <p><strong>3. Gestión de Pedidos</strong></p>
+            <p>El comercio debe mantener su menú actualizado y responder a los pedidos en tiempo y forma.</p>
+            <p><strong>4. Comisiones</strong></p>
+            <p>Weep percibirá una comisión acordada sobre las ventas realizadas a través de la plataforma.</p>
+            <p><strong>5. Cancelaciones</strong></p>
+            <p>El comercio debe informar inmediatamente si no puede cumplir con un pedido aceptado.</p>
+            <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+            <h5 style={{ color: 'red' }}>🔒 COMERCIOS – POLÍTICA DE PRIVACIDAD</h5>
+            <p><strong>Uso de Datos:</strong></p>
+            <p>Recolectamos datos del comercio, ventas, productos y métricas de desempeño para mejorar el servicio y facilitar la facturación.</p>
+          </div>
+          <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
+        </div>
+      </div>
+    )
+  );
+
   // Location State
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
   const [profileAddress, setProfileAddress] = React.useState('');
@@ -802,79 +875,6 @@ export default function RestaurantDashboard() {
       {renderTermsModal()}
       {renderRegretModal()}
     </div>
-  );
-
-  // ─── Modal Arrepentimiento ───
-  const renderRegretModal = () => (
-    showRegretModal && (
-      <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
-        <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
-          <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
-          <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
-            ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Weep? <br/>
-            <strong>Esta acción eliminará todos tus productos y datos.</strong>
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button 
-              className="btn btn-primary" 
-              style={{ background: 'var(--red-600)' }} 
-              disabled={deleting}
-              onClick={async () => {
-                if (!restaurant?.id) {
-                  toast.error("Debes iniciar sesión para eliminar tu cuenta.");
-                  setShowRegretModal(false);
-                  return;
-                }
-                setDeleting(true);
-                try {
-                  await api.deleteLocalAccount(restaurant.id);
-                  toast.success("Cuenta de local eliminada.");
-                  logoutRestaurant();
-                  window.location.href = "/";
-                } catch (e) {
-                  toast.error("No se pudo eliminar la cuenta. Verifica que no tengas deudas o pedidos pendientes.");
-                } finally {
-                  setDeleting(false);
-                  setShowRegretModal(false);
-                }
-              }}
-            >
-              {deleting ? 'Eliminando...' : 'Sí, eliminar mi local'}
-            </button>
-            <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
-  // ─── Modal Términos y Condiciones ───
-  const renderTermsModal = () => (
-    showTerms && (
-      <div className="modal-overlay" style={{ zIndex: 9999 }} onClick={() => setShowTerms(false)}>
-        <div className="modal-box animate-fade-in" style={{ maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
-          <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Términos y Condiciones para Locales</h4>
-          <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
-            <h5 style={{ color: 'red', marginTop: 0 }}>📄 2. COMERCIOS – TÉRMINOS Y CONDICIONES</h5>
-            <p><strong>1. Relación</strong></p>
-            <p>El comercio utiliza Weep como plataforma de visibilidad y gestión de pedidos. No existe relación societaria ni laboral.</p>
-            <p><strong>2. Calidad</strong></p>
-            <p>El local es el único responsable por el estado, higiene y veracidad de los productos entregados.</p>
-            <p><strong>3. Gestión de Pedidos</strong></p>
-            <p>El comercio debe mantener su menú actualizado y responder a los pedidos en tiempo y forma.</p>
-            <p><strong>4. Comisiones</strong></p>
-            <p>Weep percibirá una comisión acordada sobre las ventas realizadas a través de la plataforma.</p>
-            <p><strong>5. Cancelaciones</strong></p>
-            <p>El comercio debe informar inmediatamente si no puede cumplir con un pedido aceptado.</p>
-            <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            <h5 style={{ color: 'red' }}>🔒 COMERCIOS – POLÍTICA DE PRIVACIDAD</h5>
-            <p><strong>Uso de Datos:</strong></p>
-            <p>Recolectamos datos del comercio, ventas, productos y métricas de desempeño para mejorar el servicio y facilitar la facturación.</p>
-          </div>
-          <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
-        </div>
-      </div>
-    )
   );
 
   // ─── Tutorial Overlay ───
