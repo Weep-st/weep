@@ -23,7 +23,7 @@ const AdminEmails = () => {
             const htmlBody = `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" style="width: 120px; height: auto;">
+                        <img src="https://i.postimg.cc/65s8mhDZ/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" style="width: 120px; height: auto;">
                     </div>
                     <div style="background-color: #6366f1; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
                     <h1 style="color: #1e293b; font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 20px;">${subject}</h1>
@@ -31,8 +31,7 @@ const AdminEmails = () => {
 ${message}
                     </div>
                     <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <h3 style="color: #6366f1; margin-bottom: 10px; font-size: 18px;">WEEP — Tu delivery favorito</h3>
-                        <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">Descarga nuestra app y disfruta de los mejores locales de tu zona.</p>
+                        <h3 style="color: #6366f1; margin-bottom: 10px; font-size: 18px;">WEEP — Plataforma de pedidos y delivery</h3>
                     </div>
                     <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
                         <p>© ${new Date().getFullYear()} WEEP. Todos los derechos reservados.</p>
