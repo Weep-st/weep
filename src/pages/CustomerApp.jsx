@@ -1324,7 +1324,8 @@ export default function CustomerApp() {
 
 
 
-      <footer className="footer">
+      <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
+        <img src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Weep</strong> — Plataforma de Pedidos y Delivery</p>
         <p>
           <Link to="/locales">Registrá tu local</Link> •{' '}
