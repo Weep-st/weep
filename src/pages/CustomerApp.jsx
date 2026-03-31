@@ -368,8 +368,8 @@ export default function CustomerApp() {
 
   // UI-only disguise for "envio"
   // When shipping is $2,000, we show it as $1,700 and add the $300 to the fee label.
-  const showSurchargeDisguise = cart.shippingCost === 2000;
-  const visibleShipping = showSurchargeDisguise ? 1700 : cart.shippingCost;
+  const showSurchargeDisguise = cart.shippingCost === 1800;
+  const visibleShipping = showSurchargeDisguise ? 1500 : cart.shippingCost;
   const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
   const handleAddToCart = async (menu) => {
@@ -452,8 +452,8 @@ export default function CustomerApp() {
       const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
       const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
       // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente.
-      // const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 2000 : 0;
-      const shipping = cart.deliveryType === 'envio' ? 2000 : 0;
+      // const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 1800 : 0;
+      const shipping = cart.deliveryType === 'envio' ? 1800 : 0;
       
       const finalTotals = calculateCheckoutTotals(calcSubtotal, shipping, mp);
       const exactTotal = finalTotals.total;

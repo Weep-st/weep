@@ -986,8 +986,8 @@ export async function repartidorGetCobros(repartidorId) {
 
   if (pedidos) {
     pedidos.forEach(p => {
-      // El repartidor gana un fijo de $2.000 por pedido (para cobros de transferencias)
-      totalDisponible += 2000;
+      // El repartidor gana un fijo de $1.800 por pedido (para cobros de transferencias)
+      totalDisponible += 1800;
       idsIncluidos.push(p.id);
     });
   }
@@ -1022,7 +1022,7 @@ export async function repartidorSolicitarCobro(repartidorId, monto) {
     id,
     tipo: 'Solicitud-Repartidor',
     repartidor_id: repartidorId,
-    total_ventas: est.totalDisponible, // En este caso total_ventas refleja el acumulado de $2000s
+    total_ventas: est.totalDisponible, // En este caso total_ventas refleja el acumulado de $1800s
     monto_neto: monto,
     estado: 'Pendiente',
     fecha_solicitud: new Date().toISOString(),
