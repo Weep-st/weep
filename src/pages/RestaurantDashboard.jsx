@@ -40,6 +40,8 @@ export default function RestaurantDashboard() {
   const [addMenuOpen, setAddMenuOpen] = React.useState(false);
   const [adicionales, setAdicionales] = React.useState([]);
   const [adicionalesLoading, setAdicionalesLoading] = React.useState(false);
+  const [showRegretModal, setShowRegretModal] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -790,9 +792,60 @@ export default function RestaurantDashboard() {
         >
           Ver Términos y Condiciones
         </button>
+        <button 
+          onClick={() => setShowRegretModal(true)} 
+          style={{ background: 'none', border: 'none', color: 'var(--red-600)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}
+        >
+          Botón de Arrepentimiento
+        </button>
       </footer>
       {renderTermsModal()}
+      {renderRegretModal()}
     </div>
+  );
+
+  // ─── Modal Arrepentimiento ───
+  const renderRegretModal = () => (
+    showRegretModal && (
+      <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
+        <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
+          <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
+            ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Weep? <br/>
+            <strong>Esta acción eliminará todos tus productos y datos.</strong>
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button 
+              className="btn btn-primary" 
+              style={{ background: 'var(--red-600)' }} 
+              disabled={deleting}
+              onClick={async () => {
+                if (!restaurant?.id) {
+                  toast.error("Debes iniciar sesión para eliminar tu cuenta.");
+                  setShowRegretModal(false);
+                  return;
+                }
+                setDeleting(true);
+                try {
+                  await api.deleteLocalAccount(restaurant.id);
+                  toast.success("Cuenta de local eliminada.");
+                  logoutRestaurant();
+                  window.location.href = "/";
+                } catch (e) {
+                  toast.error("No se pudo eliminar la cuenta. Verifica que no tengas deudas o pedidos pendientes.");
+                } finally {
+                  setDeleting(false);
+                  setShowRegretModal(false);
+                }
+              }}
+            >
+              {deleting ? 'Eliminando...' : 'Sí, eliminar mi local'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    )
   );
 
   // ─── Tutorial Overlay ───
@@ -1670,6 +1723,13 @@ export default function RestaurantDashboard() {
           onClick={() => setShowTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'var(--red-500)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
         >
+          Ver Términos y Condiciones
+        </button>
+        <button 
+          onClick={() => setShowRegretModal(true)} 
+          style={{ background: 'none', border: 'none', color: 'var(--red-600)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}
+        >
+          Botón de Arrepentimiento
         </button>
       </footer>
       {renderTermsModal()}

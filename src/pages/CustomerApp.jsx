@@ -59,6 +59,8 @@ export default function CustomerApp() {
   const [hasRepartidores, setHasRepartidores] = React.useState(true);
   const [metodoPago, setMetodoPago] = React.useState('');
   const [hasActiveOrder, setHasActiveOrder] = React.useState(false);
+  const [showRegretModal, setShowRegretModal] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -1330,9 +1332,58 @@ export default function CustomerApp() {
         <p>
           <Link to="/locales">Registrá tu local</Link> •{' '}
           <button className="footer-link" onClick={() => setModal('terms')}>Términos</button> •{' '}
-          <a href="mailto:bajoneando.st@gmail.com">Soporte</a>
+          <a href="mailto:bajoneando.st@gmail.com">Soporte</a> •{' '}
+          <button 
+            className="footer-link" 
+            style={{ color: 'var(--red-600)', fontWeight: 'bold' }} 
+            onClick={() => setShowRegretModal(true)}
+          >
+            Botón de Arrepentimiento
+          </button>
         </p>
       </footer>
+
+      {/* Regret Modal */}
+      {showRegretModal && (
+        <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
+            <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta permanentemente de Weep? <br/>
+              <strong>Esta acción no se puede deshacer.</strong>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button 
+                className="btn btn-primary" 
+                style={{ background: 'var(--red-600)' }} 
+                disabled={deleting}
+                onClick={async () => {
+                  if (!user?.userId) {
+                    toast.error("Debes iniciar sesión para eliminar tu cuenta.");
+                    setShowRegretModal(false);
+                    return;
+                  }
+                  setDeleting(true);
+                  try {
+                    await api.deleteUsuarioAccount(user.userId);
+                    toast.success("Cuenta eliminada correctamente.");
+                    doLogout();
+                    window.location.href = "/";
+                  } catch (e) {
+                    toast.error("No se pudo eliminar la cuenta. Es posible que tengas pedidos activos.");
+                  } finally {
+                    setDeleting(false);
+                    setShowRegretModal(false);
+                  }
+                }}
+              >
+                {deleting ? 'Eliminando...' : 'Sí, eliminar mi registro'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ─── Address Selector Modals ─── */}
       {showAddressSelector && (
         <AddressSelector

@@ -31,6 +31,8 @@ export default function DriverDashboard() {
   const [authLoading, setAuthLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showTerms, setShowTerms] = React.useState(false);
+  const [showRegretModal, setShowRegretModal] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   // Dashboard state
   const [driverData, setDriverData] = React.useState(null);
@@ -1166,7 +1168,56 @@ export default function DriverDashboard() {
         >
           Ver Términos y Condiciones
         </button>
+        <button 
+          onClick={() => setShowRegretModal(true)} 
+          style={{ background: 'none', border: 'none', color: '#ffb3b3', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+        >
+          Botón de Arrepentimiento
+        </button>
       </footer>
+
+      {showRegretModal && (
+        <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowRegretModal(false)}>
+          <div className="dd-modal-content animate-slide-down" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Botón de Arrepentimiento</h4>
+            <p style={{ fontSize: '0.92rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', maxHeight: '400px', marginBottom: '20px' }}>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de repartidor permanentemente de Weep? <br/>
+              <strong>Esta acción no se puede deshacer.</strong>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button 
+                className="dd-btn-rojo dd-btn-large" 
+                style={{ width: '100%' }} 
+                disabled={deleting}
+                onClick={async () => {
+                  if (!driver?.id) {
+                    toast.error("Debes iniciar sesión para eliminar tu cuenta.");
+                    setShowRegretModal(false);
+                    return;
+                  }
+                  setDeleting(true);
+                  try {
+                    await api.deleteRepartidorAccount(driver.id);
+                    toast.success("Cuenta eliminada correctamente.");
+                    logoutDriver();
+                    window.location.href = "/";
+                  } catch (e) {
+                    toast.error("No se pudo eliminar la cuenta. Verifica que no tengas pedidos en curso.");
+                  } finally {
+                    setDeleting(false);
+                    setShowRegretModal(false);
+                  }
+                }}
+              >
+                {deleting ? 'Eliminando...' : 'Sí, eliminar mi registro'}
+              </button>
+              <button className="btn btn-secondary dd-btn-large" style={{ width: '100%', border: '1px solid #ddd' }} onClick={() => setShowRegretModal(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTerms && (
         <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowTerms(false)}>

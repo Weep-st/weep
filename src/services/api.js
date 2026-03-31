@@ -1616,3 +1616,25 @@ export async function getMontoLocalPedido(pedidoId, localId) {
   return data ? Number(data.total) : 0;
 }
 
+// ═══════════════════════════════════════════════════
+// BOTÓN DE ARREPENTIMIENTO (Account Deletion)
+// ═══════════════════════════════════════════════════
+
+export async function deleteUsuarioAccount(userId) {
+  const { error } = await supabase.from('usuarios').delete().eq('id', userId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function deleteLocalAccount(localId) {
+  const { error } = await supabase.from('locales').delete().eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function deleteRepartidorAccount(driverId) {
+  const { error } = await supabase.from('repartidores').delete().eq('id', driverId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
