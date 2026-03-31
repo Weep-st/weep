@@ -772,61 +772,7 @@ export default function RestaurantDashboard() {
         </div>
       </main>
       <footer className="footer"><p>© 2026 <strong>Weep</strong></p></footer>
-
-      {showTerms && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowTerms(false)}>
-          <div className="modal-box animate-fade-in" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.5rem' }}>Términos y Condiciones y Política de Privacidad</h2>
-            <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
-              <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 2. LOCALES – TÉRMINOS Y CONDICIONES</h3>
-              <p><strong>1. Independencia</strong></p>
-              <p>El Local opera de forma independiente, no tiene relación laboral con Weep y opera bajo su propio riesgo.</p>
-              
-              <p><strong>2. Responsabilidad total</strong></p>
-              <p>El Local es responsable de la elaboración, calidad, seguridad alimentaria e información de los productos.</p>
-              
-              <p><strong>3. Exención de Weep</strong></p>
-              <p>Weep no será responsable por productos defectuosos, intoxicaciones o reclamos de usuarios.</p>
-              
-              <p><strong>4. Precios</strong></p>
-              <p>El Local define sus propios precios y promociones. Weep no interviene.</p>
-              
-              <p><strong>5. Pedidos</strong></p>
-              <p>El Local debe cumplir con los pedidos aceptados y mantener su información actualizada (horarios, stock).</p>
-              
-              <p><strong>6. Pagos</strong></p>
-              <p>Procesados mediante Mercado Pago. Weep puede aplicar comisiones por venta.</p>
-              
-              <p><strong>7. Indemnidad</strong></p>
-              <p>El Local mantiene indemne a Weep ante cualquier reclamo de terceros derivado de su actividad.</p>
-
-              <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-
-              <h3 style={{ color: 'var(--red-600)' }}>🔒 LOCALES – POLÍTICA DE PRIVACIDAD</h3>
-              <p><strong>Datos recolectados:</strong></p>
-              <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
-                <li>Datos del comercio y titular</li>
-                <li>Ventas e historial de pedidos</li>
-              </ul>
-              
-              <p><strong>Uso de datos:</strong></p>
-              <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
-                <li>Operar la plataforma y gestionar pedidos</li>
-                <li>Liquidaciones de pagos</li>
-                <li>Soporte técnico</li>
-              </ul>
-              
-              <p><strong>Compartición:</strong></p>
-              <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
-                <li>Usuarios (clientes)</li>
-                <li>Repartidores</li>
-                <li>Proveedores de pago</li>
-              </ul>
-            </div>
-            <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
-          </div>
-        </div>
-      )}
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
     </div>
   );
 
@@ -1698,7 +1644,224 @@ export default function RestaurantDashboard() {
         )}
       </main>
 
-      <footer className="footer"><p>© 2026 <strong>Weep</strong> — Panel de Locales</p></footer>
+      <footer className="footer" style={{ textAlign: 'center', padding: '40px 20px', background: '#f8f9fa', borderTop: '1px solid #eee' }}>
+        <img 
+          src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" 
+          alt="Weep" 
+          style={{ height: '40px', marginBottom: '20px', opacity: 0.8 }} 
+        />
+        <p style={{ color: 'var(--gray-600)', marginBottom: '15px' }}>© 2026 <strong>Weep</strong> — Panel de Locales</p>
+        <button 
+          onClick={() => setShowTerms(true)} 
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: 'var(--red-600)', 
+            textDecoration: 'underline', 
+            fontSize: '0.9rem', 
+            cursor: 'pointer',
+            fontWeight: 500
+          }}
+        >
+          Ver Términos y Condiciones
+        </button>
+      </footer>
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+    </div>
+  );
+}
+
+/* ─── Order Card Component ─── */
+function OrderCard({ order: o, onAction, finished }) {
+  const [loading, setLoading] = React.useState('');
+  const handleAction = async (action) => {
+    setLoading(action);
+    await onAction(o, action);
+    setLoading('');
+  };
+  const subtotal = o.items.reduce((sum, i) => sum + (i[7] || 0), 0);
+  const statusColors = { Pendiente: 'badge-amber', Aceptado: 'badge-info', Listo: 'badge-blue', Entregado: 'badge-green', Rechazado: 'badge-red' };
+  return (
+    <div className="rd-order-card card">
+      <div className="rd-order-header">
+        <div>
+          <strong>Pedido #{o.idPedido}</strong>
+          <span className="rd-order-sub">Local #{o.idPedidoLocal}</span>
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
+          <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
+            {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
+          </span>
+        </div>
+        <span className={`badge ${statusColors[o.estadoActual] || 'badge-gray'}`}>{o.estadoActual}</span>
+      </div>
+      <div className="rd-order-body">
+        <p><strong>Cliente:</strong> {o.nombreCliente}</p>
+        <p><strong>Dirección:</strong> {o.direccion}</p>
+        <p><strong>Pago:</strong> {o.metodoPago}</p>
+        {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
+        <div className="rd-order-items">
+          {o.items.map((item, i) => (
+            <div key={i} className="rd-order-item" style={{ flexDirection: 'column', alignItems: 'flex-start', borderBottom: '1px dashed var(--gray-100)', padding: '10px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontWeight: 600 }}>
+                <span>{item[4]} × {item[6]}</span>
+                <span>${item[7].toFixed(2)}</span>
+              </div>
+              {item[5] && item[5] !== 'null' && item[5] !== '' && (
+                <div style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginTop: 4, fontStyle: 'italic' }}>
+                  {item[5]}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="rd-order-footer">
+          <p><strong>Subtotal (Local):</strong> <span style={{ color: 'var(--red-600)', fontSize: '1.2rem' }}>${o.totalLocal.toFixed(2)}</span></p>
+        </div>
+        {!finished && (
+          <div className="rd-order-actions">
+            {o.estadoActual === 'Pendiente' ? (
+              <>
+                <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
+                  {loading === 'Aceptado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✓ Aceptar'}
+                </button>
+                <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => handleAction('Rechazado')}>
+                  {loading === 'Rechazado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✕ Rechazar'}
+                </button>
+              </>
+            ) : ['Aceptado', 'Listo'].includes(o.estadoActual) ? (
+              <>
+                <button 
+                          cursor: 'pointer'
+                        }} onClick={() => setShowAddressSelector(true)}>
+                          <span style={{ fontSize: '1.2rem' }}>📍</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Ubicación en el mapa</p>
+                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--gray-800)', fontWeight: 500 }}>
+                              {profileAddress || 'Configurar ubicación...'}
+                            </p>
+                          </div>
+                          <button type="button" className="btn btn-ghost btn-xs" style={{ color: 'var(--blue-600)' }}>Cambiar</button>
+                        </div>
+                        {(!profileLat || !profileLng) && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--amber-600)', fontStyle: 'italic' }}>
+                            ⚠️ Ubicación no configurada en el mapa
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
+                    <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
+                    
+                    <h3 style={{ marginTop: '24px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Horarios de Atención</h3>
+                    <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 16 }}>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
+                        <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData.horario_apertura || '09:00'} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
+                        <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData.horario_cierre || '23:00'} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
+                        <select name="modo_automatico" className="form-select" defaultValue={profileData.modo_automatico ? 'true' : 'false'}>
+                          <option value="true">Sí (Abrir/Cerrar auto)</option>
+                          <option value="false">No (Manual)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)', display: 'block', marginBottom: '8px' }}>Días de Apertura</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const dayNorm = normalize(day);
+                        const isSelected = profileData.dias_apertura?.some(d => normalize(d) === dayNorm);
+                        return (
+                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData.dias_apertura} />
+                            {day}
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div className="rd-form-actions" style={{ marginTop: '24px' }}>
+                      <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>
+                      <button type="submit" className="btn btn-success">Guardar Cambios</button>
+                    </div>
+                  </form>
+                )}
+                
+                <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
+                <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                  <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
+                    Cobros con Mercado Pago
+                  </h3>
+                  <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
+                    Conectá tu cuenta de Mercado Pago para que tus clientes puedan abonar sus pedidos por transferencia o tarjeta directamente. El dinero irá a esta cuenta.
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
+                      onClick={() => {
+                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicación de Mercado Pago:");
+                        if (!clientId) return;
+                        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL || 'https://jskxfescamdjesdrcnkf.supabase.co'}/functions/v1/mp-oauth-callback`;
+                        const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                        window.location.href = authUrl;
+                      }}
+                    >
+                      Vincular Cuenta de MercadoPago
+                    </button>
+                    {profileData?.mp_access_token && (
+                      <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Cuenta Vinculada</span>
+                    )}
+                  </div>
+                </div>
+                
+                {showAddressSelector && (
+                  <AddressSelector 
+                    isLoaded={isMapLoaded}
+                    initialAddress={profileAddress}
+                    initialCoords={profileLat && profileLng ? { lat: profileLat, lng: profileLng } : null}
+                    onConfirm={handleAddressConfirm}
+                    onCancel={() => setShowAddressSelector(false)}
+                    title="Ubicación de tu Local"
+                    errorMsg="El local debe estar ubicado en Santo Tomé."
+                  />
+                )}
+              </div>
+            )}
+          </section>
+        )}
+      </main>
+
+      <footer className="footer" style={{ textAlign: 'center', padding: '40px 20px', background: '#f8f9fa', borderTop: '1px solid #eee' }}>
+        <img 
+          src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" 
+          alt="Weep" 
+          style={{ height: '40px', marginBottom: '20px', opacity: 0.8 }} 
+        />
+        <p style={{ color: 'var(--gray-600)', marginBottom: '15px' }}>© 2026 <strong>Weep</strong> — Panel de Locales</p>
+        <button 
+          onClick={() => setShowTerms(true)} 
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: 'var(--red-600)', 
+            textDecoration: 'underline', 
+            fontSize: '0.9rem', 
+            cursor: 'pointer',
+            fontWeight: 500
+          }}
+        >
+          Ver Términos y Condiciones
+        </button>
+      </footer>
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
     </div>
   );
 }
@@ -1786,3 +1949,48 @@ function OrderCard({ order: o, onAction, finished }) {
     </div>
   );
 }
+
+const TermsModal = ({ onClose }) => (
+  <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={onClose}>
+    <div className="modal-box animate-fade-in" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+      <h2 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.5rem' }}>Términos y Condiciones y Política de Privacidad</h2>
+      <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
+        <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 2. LOCALES – TÉRMINOS Y CONDICIONES</h3>
+        <p><strong>1. Independencia</strong></p>
+        <p>El Local opera de forma independiente, no tiene relación laboral con Weep y opera bajo su propio riesgo.</p>
+        <p><strong>2. Responsabilidad total</strong></p>
+        <p>El Local es responsable de la elaboración, calidad, seguridad alimentaria e información de los productos.</p>
+        <p><strong>3. Exención de Weep</strong></p>
+        <p>Weep no será responsable por productos defectuosos, intoxicaciones o reclamos de usuarios.</p>
+        <p><strong>4. Precios</strong></p>
+        <p>El Local define sus propios precios y promociones. Weep no interviene.</p>
+        <p><strong>5. Pedidos</strong></p>
+        <p>El Local debe cumplir con los pedidos aceptados y mantener su información actualizada (horarios, stock).</p>
+        <p><strong>6. Pagos</strong></p>
+        <p>Procesados mediante Mercado Pago. Weep puede aplicar comisiones por venta.</p>
+        <p><strong>7. Indemnidad</strong></p>
+        <p>El Local mantiene indemne a Weep ante cualquier reclamo de terceros.</p>
+        <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+        <h3 style={{ color: 'var(--red-600)' }}>🔒 LOCALES – POLÍTICA DE PRIVACIDAD</h3>
+        <p><strong>Datos recolectados:</strong></p>
+        <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+          <li>Datos de contacto y del establecimiento</li>
+          <li>Información fiscal y bancaria (para pagos)</li>
+          <li>Actividad de ventas</li>
+        </ul>
+        <p><strong>Uso de datos:</strong></p>
+        <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+          <li>Gestión de la cuenta y pagos</li>
+          <li>Optimización de la plataforma</li>
+          <li>Comunicaciones comerciales de Weep</li>
+        </ul>
+        <p><strong>Compartición:</strong></p>
+        <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+          <li>A usuarios (solo datos públicos del local)</li>
+          <li>Asociados de pago (Mercado Pago)</li>
+        </ul>
+      </div>
+      <button className="btn btn-secondary btn-full" onClick={onClose} style={{ marginTop: 16 }}>Cerrar</button>
+    </div>
+  </div>
+);
