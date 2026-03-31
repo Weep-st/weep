@@ -10,7 +10,12 @@ const AdminLocales = () => {
         setLoading(true);
         try {
             const data = await api.adminGetLocales();
-            setLocales(data);
+            // Sort: Aceptado -> Pendiente -> Rechazado
+            const sorted = data.sort((a, b) => {
+                const order = { 'Aceptado': 1, 'Pendiente': 2, 'Rechazado': 3 };
+                return (order[a.admin_status] || 4) - (order[b.admin_status] || 4);
+            });
+            setLocales(sorted);
         } catch (err) {
             toast.error('Error al cargar locales');
         } finally {

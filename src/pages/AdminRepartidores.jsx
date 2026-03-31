@@ -10,7 +10,12 @@ const AdminRepartidores = () => {
         setLoading(true);
         try {
             const data = await api.adminGetRepartidores();
-            setRepartidores(data);
+            // Sort: Aceptado -> Pendiente -> Rechazado
+            const sorted = data.sort((a, b) => {
+                const order = { 'Aceptado': 1, 'Pendiente': 2, 'Rechazado': 3 };
+                return (order[a.admin_status] || 4) - (order[b.admin_status] || 4);
+            });
+            setRepartidores(sorted);
         } catch (err) {
             toast.error('Error al cargar repartidores');
         } finally {
