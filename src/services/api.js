@@ -37,7 +37,8 @@ export async function loginUsuario(email, password) {
     direccion: data.direccion, 
     telefono: data.telefono, 
     email: data.email,
-    emailConfirmado: data.email_confirmado 
+    emailConfirmado: data.email_confirmado,
+    role: data.role || 'user'
   };
 }
 
@@ -296,7 +297,9 @@ export async function repartidorActualizarEstado(driverId, estado) {
 // LOCALES — Get all
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
-  const { data } = await supabase.from('locales').select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura');
+  const { data } = await supabase.from('locales')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura')
+    .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
     estado: l.estado, direccion: l.direccion,
@@ -794,13 +797,10 @@ export async function checkActiveRepartidores() {
   return { hasActive: !!data };
 }
 
-// ═══════════════════════════════════════════════════
-// LOCALES by Categoria
-// ═══════════════════════════════════════════════════
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -808,6 +808,9 @@ export async function getLocalesByCategoria(categoria) {
 
   const groupedMap = {};
   for (const item of data) {
+    // Only include accepted locals
+    if (item.locales?.admin_status !== 'Aceptado') continue;
+
     const lid = item.local_id;
     if (!groupedMap[lid]) {
       groupedMap[lid] = {
@@ -829,6 +832,70 @@ export async function getLocalesByCategoria(categoria) {
   }
 
   return Object.values(groupedMap);
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — Locales
+// ═══════════════════════════════════════════════════
+export async function adminGetLocales() {
+  const { data } = await supabase.from('locales')
+    .select('id, nombre, email, direccion, admin_status, created_at, foto_url')
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function adminUpdateLocalStatus(localId, admin_status) {
+  const { error } = await supabase.from('locales').update({ admin_status }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — Tareas
+// ═══════════════════════════════════════════════════
+export async function getAdminTasks() {
+  const { data } = await supabase.from('admin_tasks').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createAdminTask(tarea) {
+  const { data, error } = await supabase.from('admin_tasks').insert({ tarea }).select().single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updateAdminTaskStatus(id, estado) {
+  const { error } = await supabase.from('admin_tasks').update({ estado }).eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function deleteAdminTask(id) {
+  const { error } = await supabase.from('admin_tasks').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — Emails
+// ═══════════════════════════════════════════════════
+export async function adminSendBulkEmail({ target, subject, htmlBody }) {
+  let table = 'usuarios';
+  if (target === 'locales') table = 'locales';
+  if (target === 'repartidores') table = 'repartidores';
+  
+  const { data: recipients } = await supabase.from(table).select('email');
+  if (!recipients || recipients.length === 0) return { success: false, error: 'No recipients found' };
+  
+  const emails = recipients.map(r => r.email);
+  
+  const results = await Promise.all(emails.map(email => 
+    supabase.functions.invoke('send-email', {
+      body: { to: email, subject, htmlBody }
+    })
+  ));
+  
+  return { success: true, count: results.length };
 }
 
 // ═══════════════════════════════════════════════════

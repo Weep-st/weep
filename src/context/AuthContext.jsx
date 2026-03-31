@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
         email: localStorage.getItem('userEmail') || '',
         address: localStorage.getItem('userAddress') || '',
         emailConfirmado: localStorage.getItem('userEmailConfirmado') === 'true',
+        role: localStorage.getItem('userRole') || 'user',
       });
     }
     const localToken = localStorage.getItem('localToken');
@@ -40,17 +41,19 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userEmail', data.email || '');
     localStorage.setItem('userAddress', data.address || '');
     localStorage.setItem('userEmailConfirmado', String(!!data.emailConfirmado));
+    localStorage.setItem('userRole', data.role || 'user');
     setUser({ 
       id: data.userId, 
       name: data.name, 
       email: data.email, 
       address: data.address,
-      emailConfirmado: !!data.emailConfirmado 
+      emailConfirmado: !!data.emailConfirmado,
+      role: data.role || 'user'
     });
   };
 
   const logoutUser = () => {
-    ['userId', 'userName', 'userEmail', 'userAddress', 'userEmailConfirmado'].forEach(k => localStorage.removeItem(k));
+    ['userId', 'userName', 'userEmail', 'userAddress', 'userEmailConfirmado', 'userRole'].forEach(k => localStorage.removeItem(k));
     setUser(null);
   };
 
