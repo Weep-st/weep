@@ -60,6 +60,7 @@ export default function DriverDashboard() {
   const [showTutorial, setShowTutorial] = React.useState(false);
   const [tutorialStep, setTutorialStep] = React.useState(1);
   const [driverLocation, setDriverLocation] = React.useState({ lat: null, lng: null });
+  const [tutorialOrder, setTutorialOrder] = React.useState(null);
 
   // Geolocation Watcher
   React.useEffect(() => {
@@ -485,12 +486,36 @@ export default function DriverDashboard() {
   };
 
   const handleTutorialNext = () => {
-    if (tutorialStep === 1) setTutorialStep(2);
-    else if (tutorialStep === 2) setTutorialStep(3);
-    else if (tutorialStep === 3) setTutorialStep(4);
-    else if (tutorialStep === 4) setTutorialStep(5);
-    else {
+    if (tutorialStep === 1) {
+      setTutorialOrder({
+        id: 'PEDIDO-PRUEBA-01',
+        estado: 'Pendiente',
+        direccion: 'Calle Falsa 123, Santo Tomé',
+        nombre_cliente: 'Cliente de Prueba',
+        pago: 'Efectivo',
+        monto: 2500,
+        envio: 'Con Envío',
+        local_id: 'local-tutorial',
+        lat: -28.549,
+        lng: -56.032
+      });
+      setTutorialStep(2);
+    }
+    else if (tutorialStep === 2) {
+      if (tutorialOrder?.estado === 'Confirmado') setTutorialStep(3);
+      else toast('Primero debes aceptar el pedido de prueba');
+    }
+    else if (tutorialStep === 3) {
+      if (tutorialOrder?.estado === 'Retirado') setTutorialStep(4);
+      else toast('Primero debes retirar el pedido (Botón Rojo)');
+    }
+    else if (tutorialStep === 4) {
+      if (!tutorialOrder) setTutorialStep(5);
+      else toast('Primero debes completar la entrega (PIN)');
+    }
+    else if (tutorialStep === 5) {
       setShowTutorial(false);
+      setTutorialOrder(null);
       localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
     }
   };
@@ -597,13 +622,25 @@ export default function DriverDashboard() {
 
   const renderDisponibles = () => {
     // Si hay pedidos Confirmado/Retirado, estamos "En Viaje"
-    const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
+    const enViajeReal = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
+    const enViajeTutorial = tutorialOrder && (tutorialOrder.estado === 'Confirmado' || tutorialOrder.estado === 'Retirado');
+    const enViaje = enViajeTutorial ? tutorialOrder : enViajeReal;
 
     if (enViaje) {
+      const isTutorial = enViaje.id.includes('PRUEBA');
       const isRetirado = enViaje.estado === 'Retirado';
-      const mapLink = !isRetirado 
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${localInfo.direccion}, Santo Tomé, Corrientes`)}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enViaje.direccion}, Santo Tomé, Corrientes`)}`;
+      
+      const localNombre = isTutorial ? 'Restaurante Tutorial' : localInfo.nombre;
+      const localDir = isTutorial ? 'Av. San Martín 456' : localInfo.direccion;
+      const localLat = isTutorial ? -28.555 : localInfo.lat;
+      const localLng = isTutorial ? -56.038 : localInfo.lng;
+      const montoMostrar = isTutorial ? 2000 : montoLocal;
+
+      const mapLink = isTutorial 
+        ? '#' 
+        : (!isRetirado 
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${localInfo.direccion}, Santo Tomé, Corrientes`)}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enViaje.direccion}, Santo Tomé, Corrientes`)}`);
 
       return (
         <div className="dd-simple-card animate-slide-up">
@@ -620,16 +657,16 @@ export default function DriverDashboard() {
                 <div className="dd-info-block">
                   <div className="dd-info-row">
                     <span className="dd-info-label">Local</span>
-                    <span className="dd-info-value">{localInfo.nombre || 'Cargando...'}</span>
+                    <span className="dd-info-value">{localNombre || 'Cargando...'}</span>
                   </div>
                   <div className="dd-info-row">
                     <span className="dd-info-label">Dirección</span>
-                    <span className="dd-info-value">{localInfo.direccion || 'Cargando...'}</span>
+                    <span className="dd-info-value">{localDir || 'Cargando...'}</span>
                   </div>
                   <div className="dd-info-row">
                     <span className="dd-info-label">Efectivo a pagar al local</span>
                     <span className="dd-info-value monto">
-                      {enViaje.pago === 'Efectivo' ? `$${Number(montoLocal).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
+                      {enViaje.pago === 'Efectivo' ? `$${Number(montoMostrar).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
                     </span>
                   </div>
                 </div>
@@ -665,9 +702,9 @@ export default function DriverDashboard() {
               <div className="dd-map-container" style={{ marginTop: '20px' }}>
                 <MapComponent 
                   isLoaded={isMapLoaded}
-                  localLat={localInfo.lat}
-                  localLng={localInfo.lng}
-                  localName={localInfo.nombre}
+                  localLat={isTutorial ? localLat : localInfo.lat}
+                  localLng={isTutorial ? localLng : localInfo.lng}
+                  localName={localNombre}
                   deliveryLat={enViaje.lat || deliveryCoords.lat}
                   deliveryLng={enViaje.lng || deliveryCoords.lng}
                   deliveryAddress={enViaje.direccion}
@@ -680,20 +717,27 @@ export default function DriverDashboard() {
 
           <div className="dd-simple-actions">
             <div className="dd-btn-row">
-              <button className="btn btn-light btn-full" onClick={() => openChat(enViaje.id)}>
+              <button className="btn btn-light btn-full" onClick={() => isTutorial ? toast('Chat de simulación') : openChat(enViaje.id)}>
                 💬 Chat Cliente
               </button>
               {!isRetirado ? (
                 <button
                   className="dd-btn-rojo"
-                  onClick={() => retirarPedido(enViaje.id)}
+                  onClick={() => {
+                    if (isTutorial) {
+                      setTutorialOrder({ ...tutorialOrder, estado: 'Retirado' });
+                      if (tutorialStep === 3) setTutorialStep(4);
+                    } else {
+                      retirarPedido(enViaje.id);
+                    }
+                  }}
                 >
                   🏍️ Marcar RETIRADO
                 </button>
               ) : (
                 <button
                   className="dd-btn-verde dd-btn-large"
-                  onClick={confirmarEntregaClick}
+                  onClick={() => isTutorial ? setShowEntregaModal(true) : confirmarEntregaClick()}
                 >
                   🚀 Marcar ENTREGADO
                 </button>
@@ -734,7 +778,19 @@ export default function DriverDashboard() {
                   </div>
                 </div>
                 <div className="dd-modal-footer">
-                  <button className="dd-btn-verde dd-btn-large" onClick={() => finalizarEntrega(enViaje)}>Confirmar Entrega</button>
+                  <button className="dd-btn-verde dd-btn-large" onClick={() => {
+                    if (isTutorial) {
+                      if (pinInput.length === 4) {
+                        toast.success('¡Excelente! Entrega de prueba completada.');
+                        setTutorialOrder(null);
+                        setShowEntregaModal(false);
+                        setPinInput('');
+                        if (tutorialStep < 5) setTutorialStep(5);
+                      } else toast.error('Ingresa un PIN de 4 dígitos');
+                    } else {
+                      finalizarEntrega(enViaje);
+                    }
+                  }}>Confirmar Entrega</button>
                 </div>
               </div>
             </div>
@@ -744,7 +800,9 @@ export default function DriverDashboard() {
     }
 
     // List of pending orders (Disponibles)
-    const pendientes = pedidos.filter(p => p.estado === 'Pendiente');
+    const pendientesReales = pedidos.filter(p => p.estado === 'Pendiente');
+    const pendientesTutorial = tutorialOrder && tutorialOrder.estado === 'Pendiente' ? [tutorialOrder] : [];
+    const pendientes = [...pendientesTutorial, ...pendientesReales];
     if (pendientes.length === 0) {
       return (
         <div className="empty-state">
@@ -776,16 +834,33 @@ export default function DriverDashboard() {
               <div className="dd-order-actions">
                 {esFirst ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                    <button className="dd-btn-rojo" onClick={() => aceptarPedido(p.id)}>Aceptar pedido →</button>
                     <button 
-                      className="dd-btn-outline" 
-                      onClick={() => rechazarPedido(p.id)}
-                      disabled={availableDriversCount < 1}
-                      title={availableDriversCount < 1 ? "No hay otros repartidores disponibles para tomar este pedido" : ""}
+                      className="dd-btn-rojo" 
+                      onClick={() => {
+                        if (p.id.includes('PRUEBA')) {
+                          setTutorialOrder({ ...tutorialOrder, estado: 'Confirmado' });
+                          toast.success('¡Pedido aceptado! Ahora búscalo en el local.');
+                          if (tutorialStep === 2) setTutorialStep(3);
+                        } else {
+                          aceptarPedido(p.id);
+                        }
+                      }}
                     >
-                      ✖ Rechazar Pedido
+                      Aceptar pedido →
                     </button>
-                    {availableDriversCount < 1 && (
+                    {p.id.includes('PRUEBA') ? (
+                      <button className="dd-btn-outline" onClick={() => toast('No se puede rechazar en el tutorial')}>✖ Rechazar Pedido</button>
+                    ) : (
+                      <button 
+                        className="dd-btn-outline" 
+                        onClick={() => rechazarPedido(p.id)}
+                        disabled={availableDriversCount < 1}
+                        title={availableDriversCount < 1 ? "No hay otros repartidores disponibles para tomar este pedido" : ""}
+                      >
+                        ✖ Rechazar Pedido
+                      </button>
+                    )}
+                    {!p.id.includes('PRUEBA') && availableDriversCount < 1 && (
                       <small style={{ fontSize: '0.75rem', color: 'var(--red-500)', textAlign: 'center' }}>
                         No hay otros repartidores disponibles.
                       </small>
@@ -1066,13 +1141,36 @@ export default function DriverDashboard() {
 
       {/* Tutorial Overlay */}
       {showTutorial && (
-        <div className="dd-tutorial-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="dd-tutorial-content animate-slide-up" style={{ background: 'white', borderRadius: '20px', maxWidth: '450px', width: '100%', overflow: 'hidden' }}>
-            <div className="dd-tutorial-header" style={{ background: 'var(--red-600)', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" style={{ height: '30px' }} />
-              <button className="close-btn" style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }} onClick={() => { setShowTutorial(false); localStorage.setItem(`tutorial_seen_driver_${driver?.id}`, 'true'); }}>×</button>
-            </div>
-            <div className="dd-tutorial-body" style={{ padding: '30px', textAlign: 'center' }}>
+        <div 
+          className={(tutorialStep >= 2 && tutorialStep <= 4) ? "dd-tutorial-step-wrapper" : "dd-modal-overlay"} 
+          style={(tutorialStep >= 2 && tutorialStep <= 4) ? {
+            position: 'fixed',
+            top: 0, left: 0, width: '100%', height: '100%',
+            pointerEvents: 'none',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: '20px'
+          } : {}}
+        >
+          <div 
+            className={(tutorialStep >= 2 && tutorialStep <= 4) ? "dd-tutorial-card-floating animate-slide-up" : "dd-modal-content animate-slide-down"} 
+            style={
+              (tutorialStep >= 2 && tutorialStep <= 4) ? {
+                pointerEvents: 'auto',
+                width: '100%',
+                maxWidth: '450px',
+                background: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 -4px 30px rgba(0,0,0,0.2)',
+                border: '3px solid var(--red-600)',
+                overflow: 'hidden'
+              } : {}
+            } 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="dd-tutorial-body" style={{ padding: (tutorialStep >= 2 && tutorialStep <= 4) ? '20px' : '30px', textAlign: 'center' }}>
               {tutorialStep === 1 && (
                 <>
                   <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>¡Bienvenido al Panel de Repartidores! 🏍️</h3>
@@ -1081,20 +1179,20 @@ export default function DriverDashboard() {
               )}
               {tutorialStep === 2 && (
                 <>
-                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Pedidos en Tiempo Real</h3>
-                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>Activa el modo <strong>"Activo"</strong> arriba a la izquierda para empezar a recibir pedidos asignados por el sistema.</p>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '10px', color: 'var(--red-600)', fontWeight: 800 }}>PASO 2: ACEPTAR PEDIDO</h3>
+                  <p style={{ color: 'var(--gray-700)', fontSize: '0.95rem', lineHeight: '1.4' }}>He generado un pedido de prueba abajo. 👋 Presiona el botón rojo <strong>"Aceptar pedido →"</strong> para comenzar.</p>
                 </>
               )}
               {tutorialStep === 3 && (
                 <>
-                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Cobros Online</h3>
-                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>En el menú <strong>"Gestión de Cobros"</strong> podrás ver lo acumulado por pedidos con transferencia y solicitar tu pago a Weep.</p>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '10px', color: 'var(--red-600)', fontWeight: 800 }}>PASO 3: RETIRAR DEL LOCAL</h3>
+                  <p style={{ color: 'var(--gray-700)', fontSize: '0.95rem', lineHeight: '1.4' }}>¡Confirmado! Ahora dirígete al local y una vez tengas el paquete presiona <strong>"🏍️ Marcar RETIRADO"</strong>.</p>
                 </>
               )}
               {tutorialStep === 4 && (
                 <>
-                  <h3 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Configura tus Horarios</h3>
-                  <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>En <strong>"Editar Perfil"</strong> carga tus días y horarios de disponibilidad para que el sistema sepa cuándo asignarte viajes automáticamente.</p>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '10px', color: 'var(--red-600)', fontWeight: 800 }}>PASO 4: ENTREGAR AL CLIENTE</h3>
+                  <p style={{ color: 'var(--gray-700)', fontSize: '0.95rem', lineHeight: '1.4' }}>Ve a la dirección del cliente, presiona <strong>"🚀 Marcar ENTREGADO"</strong> e ingresa el PIN de 4 dígitos.</p>
                 </>
               )}
               {tutorialStep === 5 && (
@@ -1104,10 +1202,25 @@ export default function DriverDashboard() {
                 </>
               )}
             </div>
-            <div className="dd-tutorial-footer" style={{ padding: '0 30px 30px' }}>
-              <button className="dd-btn-rojo dd-btn-large" onClick={handleTutorialNext}>
+            <div className="dd-tutorial-footer" style={{ padding: (tutorialStep >= 2 && tutorialStep <= 4) ? '0 20px 20px' : '0 30px 30px' }}>
+              <button 
+                className="dd-btn-rojo dd-btn-large" 
+                onClick={handleTutorialNext}
+                disabled={tutorialStep >= 2 && tutorialStep <= 4}
+                style={{ 
+                  opacity: (tutorialStep >= 2 && tutorialStep <= 4) ? 0.3 : 1,
+                  fontSize: (tutorialStep >= 2 && tutorialStep <= 4) ? '0.8rem' : '1rem',
+                  height: (tutorialStep >= 2 && tutorialStep <= 4) ? '40px' : 'auto',
+                  display: (tutorialStep >= 2 && tutorialStep <= 4) ? 'none' : 'block'
+                }}
+              >
                 {tutorialStep === 5 ? '¡Entendido!' : 'Siguiente'}
               </button>
+              {(tutorialStep >= 2 && tutorialStep <= 4) && (
+                <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--gray-500)', fontWeight: 600 }}>
+                  ⚡ Realiza la acción en el pedido para continuar
+                </div>
+              )}
             </div>
           </div>
         </div>
