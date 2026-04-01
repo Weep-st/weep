@@ -174,6 +174,21 @@ export default function CustomerApp() {
               });
             }
 
+            // Google Analytics: purchase
+            if (window.gtag) {
+              window.gtag('event', 'purchase', {
+                transaction_id: pendingData.pedidoId,
+                value: pendingData.total,
+                currency: 'ARS',
+                items: pendingData.cart.map(i => ({
+                  item_id: i.id,
+                  item_name: i.nombre,
+                  quantity: i.qty,
+                  price: i.precio
+                }))
+              });
+            }
+
             cart.clearCart();
           } else if (status === 'pending') {
             toast.error('El pago está pendiente de aprobación');
@@ -448,6 +463,20 @@ export default function CustomerApp() {
       });
     }
 
+    // Google Analytics: add_to_cart
+    if (window.gtag) {
+      window.gtag('event', 'add_to_cart', {
+        currency: 'ARS',
+        value: menu.precio,
+        items: [{
+          item_id: menu.id,
+          item_name: menu.nombre,
+          price: menu.precio,
+          quantity: 1
+        }]
+      });
+    }
+
     // Default addition for other items
     cart.addItem(menu);
     toast((t) => (
@@ -473,6 +502,20 @@ export default function CustomerApp() {
     // Facebook Pixel: InitiateCheckout
     if (window.fbq) {
       window.fbq('track', 'InitiateCheckout');
+    }
+
+    // Google Analytics: begin_checkout
+    if (window.gtag) {
+      window.gtag('event', 'begin_checkout', {
+        currency: 'ARS',
+        value: cart.subtotal,
+        items: cart.items.map(i => ({
+          item_id: i.id,
+          item_name: i.nombre,
+          price: i.precio,
+          quantity: i.qty
+        }))
+      });
     }
 
     // Check repartidores active strictly before proceeding if envio is selected
@@ -524,6 +567,21 @@ export default function CustomerApp() {
             currency: 'ARS',
             content_ids: [response.pedidoId],
             content_type: 'product_group'
+          });
+        }
+
+        // Google Analytics: purchase (Cash)
+        if (window.gtag) {
+          window.gtag('event', 'purchase', {
+            transaction_id: response.pedidoId,
+            value: exactTotal,
+            currency: 'ARS',
+            items: cart.items.map(i => ({
+              item_id: i.id,
+              item_name: i.nombre,
+              quantity: i.qty,
+              price: i.precio
+            }))
           });
         }
 
@@ -1290,6 +1348,20 @@ export default function CustomerApp() {
                       });
                     }
 
+                    // Google Analytics: add_to_cart (Ice Cream)
+                    if (window.gtag) {
+                      window.gtag('event', 'add_to_cart', {
+                        currency: 'ARS',
+                        value: finalItem.precio,
+                        items: [{
+                          item_id: finalItem.menuId,
+                          item_name: finalItem.nombre,
+                          price: finalItem.precio,
+                          quantity: 1
+                        }]
+                      });
+                    }
+
                     cart.addItem(finalItem);
                     setIceCreamModal(null);
                     toast.success('¡Helado agregado!');
@@ -1413,6 +1485,20 @@ export default function CustomerApp() {
                             content_type: 'product',
                             value: finalItem.precio,
                             currency: 'ARS'
+                          });
+                        }
+
+                        // Google Analytics: add_to_cart (Burger/Combo)
+                        if (window.gtag) {
+                          window.gtag('event', 'add_to_cart', {
+                            currency: 'ARS',
+                            value: finalItem.precio,
+                            items: [{
+                              item_id: finalItem.menuId,
+                              item_name: finalItem.nombre,
+                              price: finalItem.precio,
+                              quantity: 1
+                            }]
                           });
                         }
 
