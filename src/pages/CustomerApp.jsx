@@ -75,6 +75,8 @@ export default function CustomerApp() {
     reference: ''
   });
 
+  const [unavailableLocal, setUnavailableLocal] = React.useState(null);
+
   // Actualizar addressData cuando el usuario carga (login)
   React.useEffect(() => {
     if (user && !addressData.address) {
@@ -839,9 +841,16 @@ export default function CustomerApp() {
                     key={local.id}
                     className={`suggestion-categoria ${open ? 'open' : 'closed'} ${isFutureOpening ? 'future-opening' : ''}`}
                     onClick={() => {
-                      if (isFutureOpening) toast(availabilityMsg, { icon: '📅' });
-                      else if (open) fetchMenusByLocal(local.id, selectedCategory);
-                      else toast('Este local está cerrado', { icon: '🔒' });
+                      if (isFutureOpening) {
+                        setUnavailableLocal(local);
+                        // No toast for future locals as requested
+                      } else if (open) {
+                        setUnavailableLocal(null);
+                        fetchMenusByLocal(local.id, selectedCategory);
+                      } else {
+                        toast('Este local está cerrado', { icon: '🔒' });
+                        setUnavailableLocal(null);
+                      }
                     }}
                     style={{ flex: '0 0 auto', border: 'none' }}
                   >
@@ -873,9 +882,16 @@ export default function CustomerApp() {
                   key={local.id}
                   className={`local-circle ${open ? 'open' : 'closed'} ${isFutureOpening ? 'future-opening' : ''}`}
                   onClick={() => {
-                    if (isFutureOpening) toast(availabilityMsg, { icon: '📅' });
-                    else if (open) fetchMenusByLocal(local.id, selectedCategory);
-                    else toast('Este local está cerrado', { icon: '🔒' });
+                    if (isFutureOpening) {
+                      setUnavailableLocal(local);
+                      // No toast for future locals as requested
+                    } else if (open) {
+                      setUnavailableLocal(null);
+                      fetchMenusByLocal(local.id, selectedCategory);
+                    } else {
+                      toast('Este local está cerrado', { icon: '🔒' });
+                      setUnavailableLocal(null);
+                    }
                   }}
                   title={isFutureOpening ? availabilityMsg : local.nombre}
                 >
@@ -905,6 +921,33 @@ export default function CustomerApp() {
               );
             })}
           </div>
+
+          {unavailableLocal && (
+            <div className="unavailable-local-info animate-fade-in" style={{
+              marginTop: '16px',
+              padding: '12px 20px',
+              background: '#fef2f2',
+              border: '1px solid #fee2e2',
+              borderRadius: '12px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span style={{ fontSize: '1.2rem' }}>📅</span>
+              <p style={{ margin: 0, fontWeight: 600, color: 'var(--red-600)' }}>
+                <strong>{unavailableLocal.nombre}</strong> estará disponible a partir del {new Date(unavailableLocal.disponible_desde.split('-')[0], unavailableLocal.disponible_desde.split('-')[1]-1, unavailableLocal.disponible_desde.split('-')[2]).toLocaleDateString('es-AR')}
+              </p>
+              <button 
+                className="btn btn-ghost btn-xs" 
+                onClick={() => setUnavailableLocal(null)}
+                style={{ fontSize: '0.75rem', marginTop: '4px' }}
+              >
+                Cerrar aviso
+              </button>
+            </div>
+          )}
         </section>
 
         {/* ─── Menu Display ─── */}
