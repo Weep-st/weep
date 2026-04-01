@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Landing from './pages/Landing';
@@ -17,6 +18,16 @@ function AdminRoute({ children }) {
 }
 
 export default function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag('config', 'G-5QRZYRMZH2', {
+        page_path: location.pathname + location.search
+      });
+    }
+  }, [location]);
+
   return (
     <AuthProvider>
       <CartProvider>
