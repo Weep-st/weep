@@ -163,6 +163,17 @@ export default function CustomerApp() {
           const pendingData = JSON.parse(pendingRaw);
           if (status === 'approved') {
             toast.success(`¡Pago confirmado! Tu pedido #${pendingData.pedidoId} está siendo procesado.`);
+            
+            // Facebook Pixel: Purchase
+            if (window.fbq) {
+              window.fbq('track', 'Purchase', {
+                value: pendingData.total,
+                currency: 'ARS',
+                content_ids: [pendingData.pedidoId],
+                content_type: 'product_group'
+              });
+            }
+
             cart.clearCart();
           } else if (status === 'pending') {
             toast.error('El pago está pendiente de aprobación');
@@ -426,6 +437,17 @@ export default function CustomerApp() {
       return; 
     }
 
+    // Facebook Pixel: AddToCart
+    if (window.fbq) {
+      window.fbq('track', 'AddToCart', {
+        content_name: menu.nombre,
+        content_ids: [menu.id],
+        content_type: 'product',
+        value: menu.precio,
+        currency: 'ARS'
+      });
+    }
+
     // Default addition for other items
     cart.addItem(menu);
     toast((t) => (
@@ -448,6 +470,11 @@ export default function CustomerApp() {
     if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
     if (!mp) { toast.error('Seleccioná un método de pago'); return; }
     
+    // Facebook Pixel: InitiateCheckout
+    if (window.fbq) {
+      window.fbq('track', 'InitiateCheckout');
+    }
+
     // Check repartidores active strictly before proceeding if envio is selected
     if (cart.deliveryType === 'envio' && !hasRepartidores) {
       toast.error('No hay repartidores disponibles. Debes retirar en local.');
@@ -489,6 +516,17 @@ export default function CustomerApp() {
         });
 
         toast.success(`¡Pedido #${response.pedidoId} registrado exitosamente!`);
+        
+        // Facebook Pixel: Purchase (Cash)
+        if (window.fbq) {
+          window.fbq('track', 'Purchase', {
+            value: exactTotal,
+            currency: 'ARS',
+            content_ids: [response.pedidoId],
+            content_type: 'product_group'
+          });
+        }
+
         api.notifyLocalsAboutNewOrder(
           response.pedidoId, cart.items, 
           cart.deliveryType === 'envio' ? dir : 'Retiro en local', 
@@ -1241,6 +1279,17 @@ export default function CustomerApp() {
                       extras: selectedExtras,
                       descripcion: details.join(' | ')
                     };
+                    // Facebook Pixel: AddToCart (Ice Cream)
+                    if (window.fbq) {
+                      window.fbq('track', 'AddToCart', {
+                        content_name: finalItem.nombre,
+                        content_ids: [finalItem.menuId],
+                        content_type: 'product',
+                        value: finalItem.precio,
+                        currency: 'ARS'
+                      });
+                    }
+
                     cart.addItem(finalItem);
                     setIceCreamModal(null);
                     toast.success('¡Helado agregado!');
@@ -1356,6 +1405,17 @@ export default function CustomerApp() {
                           burgerExtras: selectedBurgerExtras,
                           withFries: withFries
                         };
+                        // Facebook Pixel: AddToCart (Burger/Combo)
+                        if (window.fbq) {
+                          window.fbq('track', 'AddToCart', {
+                            content_name: finalItem.nombre,
+                            content_ids: [finalItem.menuId],
+                            content_type: 'product',
+                            value: finalItem.precio,
+                            currency: 'ARS'
+                          });
+                        }
+
                         cart.addItem(finalItem);
                         setBurgerModal(null);
                         toast.success(`¡${cfg.es_combo ? 'Combo agregado' : 'Hamburguesa agregada'}!`);
