@@ -71,6 +71,16 @@ const AdminLocales = () => {
         return matchesSearch && matchesLocal;
     });
 
+    const handleUpdateAvailability = async (id, date) => {
+        try {
+            await api.adminUpdateLocalAvailability(id, date);
+            toast.success('Fecha de disponibilidad actualizada');
+            loadLocales();
+        } catch (err) {
+            toast.error('Error al actualizar fecha');
+        }
+    };
+
     if (loading && activeTab === 'gestion') return <div className="loading-state">Cargando locales...</div>;
 
     return (
@@ -101,13 +111,14 @@ const AdminLocales = () => {
                                 <th>Nombre</th>
                                 <th>Email</th>
                                 <th>Dirección</th>
+                                <th>Disponible desde</th>
                                 <th>Estado Admin</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {locales.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No hay locales registrados.</td></tr>
+                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No hay locales registrados.</td></tr>
                             ) : (
                                 locales.map(local => (
                                     <tr key={local.id}>
@@ -123,6 +134,20 @@ const AdminLocales = () => {
                                         </td>
                                         <td>{local.email}</td>
                                         <td>{local.direccion}</td>
+                                        <td>
+                                            <input 
+                                                type="date" 
+                                                className="admin-date-input"
+                                                value={local.disponible_desde || ''}
+                                                onChange={(e) => handleUpdateAvailability(local.id, e.target.value)}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid #e2e8f0',
+                                                    fontSize: '0.875rem'
+                                                }}
+                                            />
+                                        </td>
                                         <td>
                                             <span className={`badge ${local.admin_status?.toLowerCase()}`}>
                                                 {local.admin_status || 'Pendiente'}

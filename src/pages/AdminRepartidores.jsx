@@ -52,13 +52,14 @@ const AdminRepartidores = () => {
                             <th>Nombre</th>
                             <th>Contacto</th>
                             <th>Vehículo</th>
+                            <th>Disponibilidad</th>
                             <th>Estado Admin</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {repartidores.length === 0 ? (
-                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No hay repartidores registrados.</td></tr>
+                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No hay repartidores registrados.</td></tr>
                         ) : (
                             repartidores.map(rep => (
                                 <tr key={rep.id}>
@@ -79,6 +80,20 @@ const AdminRepartidores = () => {
                                     <td>
                                         <div>{rep.patente}</div>
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rep.marca_modelo}</div>
+                                    </td>
+                                    <td>
+                                        <div style={{ fontSize: '0.85rem' }}>
+                                            <div style={{ fontWeight: 600, color: 'var(--red-600)' }}>
+                                                {rep.horario_apertura && rep.horario_cierre 
+                                                    ? `${rep.horario_apertura} - ${rep.horario_cierre}` 
+                                                    : 'Sin horario'}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                {rep.dias_apertura && Array.isArray(rep.dias_apertura) 
+                                                    ? rep.dias_apertura.join(', ') 
+                                                    : 'Sin días asignados'}
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>
                                         <span className={`badge ${rep.admin_status?.toLowerCase()}`}>

@@ -298,13 +298,14 @@ export async function repartidorActualizarEstado(driverId, estado) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde')
     .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
     estado: l.estado, direccion: l.direccion,
     horario_apertura: l.horario_apertura, horario_cierre: l.horario_cierre,
-    modo_automatico: l.modo_automatico, dias_apertura: l.dias_apertura
+    modo_automatico: l.modo_automatico, dias_apertura: l.dias_apertura,
+    disponible_desde: l.disponible_desde
   }));
 }
 
@@ -851,7 +852,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, admin_status, created_at, foto_url')
+    .select('id, nombre, email, direccion, admin_status, created_at, foto_url, disponible_desde')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -862,12 +863,18 @@ export async function adminUpdateLocalStatus(localId, admin_status) {
   return { success: true };
 }
 
+export async function adminUpdateLocalAvailability(localId, disponibleDesde) {
+  const { error } = await supabase.from('locales').update({ disponible_desde: disponibleDesde }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
 // ═══════════════════════════════════════════════════
 // ADMIN — Repartidores
 // ═══════════════════════════════════════════════════
 export async function adminGetRepartidores() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url')
+    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura')
     .order('created_at', { ascending: false });
   return data || [];
 }

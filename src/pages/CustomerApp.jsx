@@ -91,6 +91,15 @@ export default function CustomerApp() {
   
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
+
+    // Verificar si ya pasó la fecha de disponibilidad
+    if (local.disponible_desde) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = local.disponible_desde.split('-');
+      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (today < availableDate) return false;
+    }
     
     // Si no tiene modo automático, dependemos del estado manual
     if (!local.modo_automatico) {
@@ -810,12 +819,30 @@ export default function CustomerApp() {
             {!loadingLocals && (filteredLocals || locals).map(local => {
               const open = isLocalOpen(local);
               
+              // Verificar si es una apertura futura
+              let isFutureOpening = false;
+              let availabilityMsg = "";
+              if (local.disponible_desde) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const parts = local.disponible_desde.split('-');
+                const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                if (today < availableDate) {
+                  isFutureOpening = true;
+                  availabilityMsg = `Disponible desde ${availableDate.toLocaleDateString('es-AR')}`;
+                }
+              }
+
               if (filteredLocals) {
                 return (
                   <button
                     key={local.id}
-                    className={`suggestion-categoria ${open ? 'open' : 'closed'}`}
-                    onClick={() => open ? fetchMenusByLocal(local.id, selectedCategory) : toast('Este local está cerrado', { icon: '🔒' })}
+                    className={`suggestion-categoria ${open ? 'open' : 'closed'} ${isFutureOpening ? 'future-opening' : ''}`}
+                    onClick={() => {
+                      if (isFutureOpening) toast(availabilityMsg, { icon: '📅' });
+                      else if (open) fetchMenusByLocal(local.id, selectedCategory);
+                      else toast('Este local está cerrado', { icon: '🔒' });
+                    }}
                     style={{ flex: '0 0 auto', border: 'none' }}
                   >
                     <img
@@ -825,10 +852,16 @@ export default function CustomerApp() {
                     />
                     <div className="suggestion-info">
                       <div className="local-name">{local.nombre}</div>
-                      <div className="categoria-precio">
-                        <span className="cat">{selectedCategory}</span>
-                        <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
-                      </div>
+                      {isFutureOpening ? (
+                        <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                          {availabilityMsg}
+                        </div>
+                      ) : (
+                        <div className="categoria-precio">
+                          <span className="cat">{selectedCategory}</span>
+                          <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
+                        </div>
+                      )}
                     </div>
                     {open && <span className="open-dot" style={{ position: 'absolute', top: 5, right: 5, width: 12, height: 12, borderWidth: 2 }} />}
                   </button>
@@ -838,15 +871,36 @@ export default function CustomerApp() {
               return (
                 <button
                   key={local.id}
-                  className={`local-circle ${open ? 'open' : 'closed'}`}
-                  onClick={() => open ? fetchMenusByLocal(local.id, selectedCategory) : toast('Este local está cerrado', { icon: '🔒' })}
+                  className={`local-circle ${open ? 'open' : 'closed'} ${isFutureOpening ? 'future-opening' : ''}`}
+                  onClick={() => {
+                    if (isFutureOpening) toast(availabilityMsg, { icon: '📅' });
+                    else if (open) fetchMenusByLocal(local.id, selectedCategory);
+                    else toast('Este local está cerrado', { icon: '🔒' });
+                  }}
+                  title={isFutureOpening ? availabilityMsg : local.nombre}
                 >
                   <img
                     src={local.logo || `https://placehold.co/200x200?text=${encodeURIComponent(local.nombre)}`}
                     alt={local.nombre}
                     onError={(e) => { e.target.src = 'https://placehold.co/200x200?text=Local'; }}
+                    style={isFutureOpening ? { filter: 'grayscale(0.5)' } : {}}
                   />
                   {open && <span className="open-dot" />}
+                  {isFutureOpening && (
+                    <div className="future-badge" style={{
+                      position: 'absolute',
+                      bottom: -10,
+                      background: 'black',
+                      color: 'white',
+                      fontSize: '0.6rem',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      whiteSpace: 'nowrap',
+                      border: '1px solid white'
+                    }}>
+                      Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short'})}
+                    </div>
+                  )}
                 </button>
               );
             })}
