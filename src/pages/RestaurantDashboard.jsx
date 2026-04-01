@@ -28,6 +28,7 @@ export default function RestaurantDashboard() {
   const [itemLoading, setItemLoading] = React.useState(false);
   const [orders, setOrders] = React.useState([]);
   const [ordersLoading, setOrdersLoading] = React.useState(false);
+  const [orderSearch, setOrderSearch] = React.useState('');
   const [currentTab, setCurrentTab] = React.useState('pendientes');
   const [pendingCount, setPendingCount] = React.useState(0);
   const [cobrosData, setCobrosData] = React.useState(null);
@@ -43,6 +44,10 @@ export default function RestaurantDashboard() {
   const [adicionalesLoading, setAdicionalesLoading] = React.useState(false);
   const [showRegretModal, setShowRegretModal] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  
+  // Advanced Burger State
+  const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
+  const [burgerExtras, setBurgerExtras] = React.useState([{ nombre: '', precio: '' }]);
   
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -302,6 +307,26 @@ export default function RestaurantDashboard() {
     loadProfile();
     loadOrders();
 
+    // Sync Edit Item to Burger States
+    if (editItem && view === 'addItem') {
+      if (editItem.categoria === 'Hamburguesas' || editItem.categoria === 'Combos') {
+        try {
+          const cfg = JSON.parse(editItem.variantes);
+          if (cfg.variants) setBurgerVariants(cfg.variants.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
+          if (cfg.extras) setBurgerExtras(cfg.extras.length > 0 ? cfg.extras : [{ nombre: '', precio: '' }]);
+        } catch (e) {
+          setBurgerVariants([{ nombre: '', precio: '' }]);
+          setBurgerExtras([{ nombre: '', precio: '' }]);
+        }
+      } else {
+        setBurgerVariants([{ nombre: '', precio: '' }]);
+        setBurgerExtras([{ nombre: '', precio: '' }]);
+      }
+    } else if (view === 'addItem' && !editItem) {
+        setBurgerVariants([{ nombre: '', precio: '' }]);
+        setBurgerExtras([{ nombre: '', precio: '' }]);
+    }
+
     // Check if tutorial was already seen
     const hasSeenTutorial = localStorage.getItem(`tutorial_seen_${restaurant.id}`);
     if (!hasSeenTutorial) {
@@ -535,12 +560,16 @@ export default function RestaurantDashboard() {
         };
         variantesVal = JSON.stringify(iceCreamConfig);
         precioVal = fd.get('p_14');
-      } else if (fd.get('categoria') === 'Hamburguesas' && fd.get('ofrecer_papas') === 'on') {
-        const burgerConfig = {
-          con_papas: true,
+      } else if (fd.get('categoria') === 'Hamburguesas' || fd.get('categoria') === 'Combos') {
+        const advancedConfig = {
+          es_hamburguesa: fd.get('categoria') === 'Hamburguesas',
+          es_combo: fd.get('categoria') === 'Combos',
+          variants: burgerVariants.filter(v => v.nombre.trim() !== ''),
+          extras: burgerExtras.filter(e => e.nombre.trim() !== ''),
+          con_papas: fd.get('ofrecer_papas') === 'on',
           precio_papas: parseFloat(fd.get('precio_papas')) || 0
         };
-        variantesVal = JSON.stringify(burgerConfig);
+        variantesVal = JSON.stringify(advancedConfig);
       }
 
       const data = {
@@ -626,7 +655,14 @@ export default function RestaurantDashboard() {
         console.error('Error enviando email:', e);
       }
 
-      toast.success(`Pedido marcado como ${action}`);
+      const statusMap = {
+        'Aceptado': 'En preparación',
+        'Listo': 'Listos',
+        'Entregado': 'Ventas',
+        'Rechazado': 'Rechazados'
+      };
+      const nextTab = statusMap[action] || action;
+      toast.success(`Pedido marcado como ${action}. El pedido se movió a ${nextTab}`);
       loadOrders();
     } catch { toast.error('Error al actualizar'); }
   };
@@ -753,9 +789,11 @@ export default function RestaurantDashboard() {
   const preparacionOrders = processOrders.filter(o => o.estadoActual === 'Aceptado');
   const listosOrders = processOrders.filter(o => o.estadoActual === 'Listo');
 
-  const currentTabOrders = currentTab === 'pendientes' ? pendientesOrders :
-                           currentTab === 'preparacion' ? preparacionOrders :
-                           listosOrders;
+  const currentTabOrders = (currentTab === 'pendientes' ? pendientesOrders :
+                            currentTab === 'preparacion' ? preparacionOrders :
+                            listosOrders).filter(o => 
+                              !orderSearch || o.idPedido.toLowerCase().includes(orderSearch.toLowerCase())
+                            );
 
   const finalOrders = (() => {
     if (!showTutorial || view !== 'orders') return currentTabOrders;
@@ -1109,6 +1147,15 @@ export default function RestaurantDashboard() {
         {/* ─── Orders View ─── */}
         {view === 'orders' && (
           <section className="animate-fade-in">
+            <div style={{ marginBottom: '16px' }}>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="🔍 Buscar por ID de pedido (#...)" 
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+              />
+            </div>
             <div className="rd-tabs" style={{ gap: 8 }}>
               <button className={currentTab === 'pendientes' ? 'active' : ''} onClick={() => setCurrentTab('pendientes')} style={{ position: 'relative' }}>
                 Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}</span>
@@ -1133,14 +1180,14 @@ export default function RestaurantDashboard() {
                     if (action === 'Aceptado') {
                        setTutorialSampleOrderState('Aceptado');
                        setCurrentTab('preparacion');
-                       toast.success('¡Pedido aceptado! (Muestra)');
+                       toast.success('¡Pedido aceptado! El pedido se movió a En preparación (Muestra)');
                     } else if (action === 'Listo') {
                        setTutorialSampleOrderState('Listo');
                        setCurrentTab('listos');
-                       toast.success('¡Pedido listo! (Muestra)');
+                       toast.success('¡Pedido listo! El pedido se movió a Listos (Muestra)');
                     } else if (action === 'Entregado') {
                        setTutorialSampleOrderState('Entregado');
-                       toast.success('¡Pedido entregado! (Muestra)');
+                       toast.success('¡Pedido entregado! El pedido se movió a Ventas (Muestra)');
                        setTutorialStep(5); // Move to next step if in tutorial
                     }
                   } else {
@@ -1302,25 +1349,97 @@ export default function RestaurantDashboard() {
                     </select>
                   </div>
                 )}
-                <div className="rd-form-row">
-                  <input name="variantes" className="form-input" placeholder="Variantes (ej: con cheddar)" defaultValue={editItem?.variantes || ''} />
-                  <input name="tiempo_preparacion" type="number" className="form-input" placeholder="Tiempo prep. (min)" defaultValue={editItem?.tiempo_preparacion || ''} />
-                </div>
 
-                {(itemCategory === 'Hamburguesas' || editItem?.categoria === 'Hamburguesas') && (
-                  <div className="card" style={{ padding: 12, marginBottom: 16, background: '#f1f1f1', display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {(() => {
-                        let burgerConfig = null;
-                        try { if (editItem?.variantes) burgerConfig = JSON.parse(editItem.variantes); } catch(e){}
-                        return (
-                          <>
-                            <input type="checkbox" name="ofrecer_papas" id="ofrecer_papas" defaultChecked={burgerConfig?.con_papas} style={{ width: 'auto' }} />
-                            <label htmlFor="ofrecer_papas" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ofrecer con papas (+ $)</label>
-                            <input name="precio_papas" type="number" className="form-input" style={{ width: 100, marginBottom: 0 }} placeholder="Extra $" defaultValue={burgerConfig?.precio_papas || ''} />
-                          </>
-                        );
-                      })()}
+                {(itemCategory === 'Hamburguesas' || editItem?.categoria === 'Hamburguesas' || itemCategory === 'Combos' || editItem?.categoria === 'Combos') && (
+                  <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de {itemCategory === 'Combos' || editItem?.categoria === 'Combos' ? 'Combo' : 'Hamburguesa'}</h3>
+                    
+                    {/* Variantes */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
+                      {burgerVariants.map((v, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <input 
+                            placeholder="Nombre (ej: Doble)" 
+                            className="form-input" 
+                            style={{ flex: 2, marginBottom: 0 }}
+                            value={v.nombre}
+                            onChange={(e) => {
+                              const newV = [...burgerVariants];
+                              newV[idx].nombre = e.target.value;
+                              setBurgerVariants(newV);
+                            }}
+                          />
+                          <input 
+                            placeholder="Precio $" 
+                            type="number"
+                            className="form-input" 
+                            style={{ flex: 1, marginBottom: 0 }}
+                            value={v.precio}
+                            onChange={(e) => {
+                              const newV = [...burgerVariants];
+                              newV[idx].precio = e.target.value;
+                              setBurgerVariants(newV);
+                            }}
+                          />
+                          <button type="button" className="btn btn-ghost" style={{ padding: '4px 8px', color: 'var(--red-500)' }} onClick={() => {
+                            if (burgerVariants.length > 1) setBurgerVariants(burgerVariants.filter((_, i) => i !== idx));
+                          }}>✕</button>
+                        </div>
+                      ))}
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
+                    </div>
+
+                    {/* Adicionales */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Adicionales (Cheddar, Bacon, etc.)</p>
+                      {burgerExtras.map((ex, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <input 
+                            placeholder="Extra (ej: Bacon)" 
+                            className="form-input" 
+                            style={{ flex: 2, marginBottom: 0 }}
+                            value={ex.nombre}
+                            onChange={(e) => {
+                              const newE = [...burgerExtras];
+                              newE[idx].nombre = e.target.value;
+                              setBurgerExtras(newE);
+                            }}
+                          />
+                          <input 
+                            placeholder="Precio $" 
+                            type="number"
+                            className="form-input" 
+                            style={{ flex: 1, marginBottom: 0 }}
+                            value={ex.precio}
+                            onChange={(e) => {
+                              const newE = [...burgerExtras];
+                              newE[idx].precio = e.target.value;
+                              setBurgerExtras(newE);
+                            }}
+                          />
+                          <button type="button" className="btn btn-ghost" style={{ padding: '4px 8px', color: 'var(--red-500)' }} onClick={() => {
+                            if (burgerExtras.length > 1) setBurgerExtras(burgerExtras.filter((_, i) => i !== idx));
+                          }}>✕</button>
+                        </div>
+                      ))}
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Añadir Adicional</button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {(() => {
+                          let burgerCfg = null;
+                          try { if (editItem?.variantes) burgerCfg = JSON.parse(editItem.variantes); } catch(e){}
+                          return (
+                            <>
+                              <input type="checkbox" name="ofrecer_papas" id="ofrecer_papas" defaultChecked={burgerCfg?.con_papas} style={{ width: 'auto' }} />
+                              <label htmlFor="ofrecer_papas" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ofrecer con papas (+ $)</label>
+                              <input name="precio_papas" type="number" className="form-input" style={{ width: 100, marginBottom: 0 }} placeholder="Extra $" defaultValue={burgerCfg?.precio_papas || ''} />
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -226,7 +226,13 @@
 .dd-btn-verde:disabled { background-color: #a5d6a7; cursor: not-allowed; }
 
 .dd-btn-outline { background-color: transparent; border: 2px solid var(--blue-500); color: var(--blue-500); border-radius: var(--radius-md); padding: 12px; font-weight: 600; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
-.dd-btn-outline:hover { background: var(--blue-50); }
+.dd-btn-outline:hover:not(:disabled) { background: var(--blue-50); }
+.dd-btn-outline:disabled {
+  border-color: var(--gray-300);
+  color: var(--gray-400);
+  cursor: not-allowed;
+  background: var(--gray-50);
+}
 
 /* Viaje En Curso */
 .dd-viaje-card {

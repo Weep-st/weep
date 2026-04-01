@@ -83,6 +83,7 @@ ${message}
                         <option value="usuarios">Todos los Usuarios</option>
                         <option value="locales">Todos los Locales</option>
                         <option value="repartidores">Todos los Repartidores</option>
+                        <option value="lanzamiento">Hoja de Lanzamiento (Supabase)</option>
                         <option value="manual">Manual (Ingresar emails)</option>
                     </select>
                 </div>

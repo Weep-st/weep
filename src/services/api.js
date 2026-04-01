@@ -797,6 +797,18 @@ export async function checkActiveRepartidores() {
   return { hasActive: !!data };
 }
 
+export async function getRepartidoresActivosCount(excludeDriverId) {
+  const { data, count, error } = await supabase
+    .from('repartidores')
+    .select('id', { count: 'exact', head: true })
+    .eq('estado', 'Activo')
+    .eq('admin_status', 'Aceptado')
+    .neq('id', excludeDriverId);
+  
+  if (error) return 0;
+  return count || 0;
+}
+
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
@@ -931,10 +943,11 @@ export async function adminSendBulkEmail({ target, manualEmails, subject, htmlBo
     let table = 'usuarios';
     if (target === 'locales') table = 'locales';
     if (target === 'repartidores') table = 'repartidores';
+    if (target === 'lanzamiento') table = 'lanzamiento';
     
     const { data: recipients } = await supabase.from(table).select('email');
     if (!recipients || recipients.length === 0) return { success: false, error: 'No recipients found' };
-    emails = recipients.map(r => r.email);
+    emails = [...new Set(recipients.map(r => r.email.trim()))];
   }
   
   if (emails.length === 0) return { success: false, error: 'No recipients found' };
@@ -1157,6 +1170,42 @@ export async function repartidorSolicitarCobro(repartidorId, monto) {
   }
 
   return { success: true, idSolicitud: id };
+}
+
+export async function repartidorRechazarPedido(pedidoId, currentDriverId) {
+  try {
+    // 1. Ejecutar RPC de reasignación
+    const { data, error } = await supabase.rpc('reasignar_pedido_repartidor', {
+      p_pedido_id: pedidoId,
+      p_repartidor_actual_id: currentDriverId
+    });
+
+    if (error) throw new Error(error.message);
+    if (!data || !data.id) throw new Error('No se pudo reasignar el pedido.');
+
+    // 2. Obtener datos del pedido para el email (dirección, total, etc.)
+    const { data: pedData } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
+    if (!pedData) return { success: true }; // Si no hay datos, al menos se reasignó
+
+    // 3. Obtener items para el email
+    const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
+
+    // 4. Notificar al nuevo repartidor
+    await notifyDriverAboutNewOrder(
+      pedidoId,
+      items || [],
+      pedData.direccion,
+      pedData.observaciones,
+      pedData.total,
+      pedData.metodo_pago,
+      data.email
+    );
+
+    return { success: true, nuevoRepartidor: data.nombre };
+  } catch (err) {
+    console.error('Error in repartidorRechazarPedido:', err);
+    return { success: false, error: err.message };
+  }
 }
 
 export async function getChatMessages(pedidoId) {

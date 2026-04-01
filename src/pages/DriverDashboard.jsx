@@ -40,6 +40,7 @@ export default function DriverDashboard() {
   const [activeTab, setActiveTab] = React.useState('disponibles'); // 'disponibles', 'historial'
   const [pedidos, setPedidos] = React.useState([]);
   const [historial, setHistorial] = React.useState([]); 
+  const [availableDriversCount, setAvailableDriversCount] = React.useState(0);
 
   const [sessionGanancias, setSessionGanancias] = React.useState(0);
   const [localInfo, setLocalInfo] = React.useState({ nombre: '', direccion: '', lat: null, lng: null });
@@ -152,6 +153,16 @@ export default function DriverDashboard() {
     }
   }, [driver]);
 
+  const checkAvailability = React.useCallback(async () => {
+    if (!driver) return;
+    try {
+      const count = await api.getRepartidoresActivosCount(driver.id);
+      setAvailableDriversCount(count);
+    } catch (err) {
+      console.error("Error checking availability:", err);
+    }
+  }, [driver]);
+
   // On Login/Load
   React.useEffect(() => {
     if (driver) {
@@ -172,8 +183,12 @@ export default function DriverDashboard() {
     if (driver && isActive) {
       // First fetch
       fetchPedidos();
+      checkAvailability();
       // Polling cada 30 segundos
-      interval = setInterval(fetchPedidos, 30000);
+      interval = setInterval(() => {
+        fetchPedidos();
+        checkAvailability();
+      }, 30000);
     } else {
       setPedidos([]);
     }
@@ -449,6 +464,24 @@ export default function DriverDashboard() {
         toast.error(res.error || 'Error', { id: 'ent' });
       }
     } catch { toast.error('Error de conexión', { id: 'ent' }); }
+  };
+
+  const rechazarPedido = async (pedidoId) => {
+    if (!window.confirm('¿Estás seguro de que quieres RECHAZAR este pedido? Se buscará otro repartidor disponible.')) return;
+    
+    const tid = toast.loading('Reasignando pedido...');
+    try {
+      const res = await api.repartidorRechazarPedido(pedidoId, driver.id);
+      if (res.success) {
+        toast.success(`Pedido rechazado. Reasignado a: ${res.nuevoRepartidor || 'otro repartidor'}`, { id: tid });
+        fetchPedidos();
+        checkAvailability();
+      } else {
+        toast.error(res.error || 'No se pudo rechazar el pedido', { id: tid });
+      }
+    } catch (err) {
+      toast.error('Error de conexión', { id: tid });
+    }
   };
 
   const handleTutorialNext = () => {
@@ -742,7 +775,22 @@ export default function DriverDashboard() {
               </div>
               <div className="dd-order-actions">
                 {esFirst ? (
-                  <button className="dd-btn-rojo" onClick={() => aceptarPedido(p.id)}>Aceptar pedido →</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                    <button className="dd-btn-rojo" onClick={() => aceptarPedido(p.id)}>Aceptar pedido →</button>
+                    <button 
+                      className="dd-btn-outline" 
+                      onClick={() => rechazarPedido(p.id)}
+                      disabled={availableDriversCount < 1}
+                      title={availableDriversCount < 1 ? "No hay otros repartidores disponibles para tomar este pedido" : ""}
+                    >
+                      ✖ Rechazar Pedido
+                    </button>
+                    {availableDriversCount < 1 && (
+                      <small style={{ fontSize: '0.75rem', color: 'var(--red-500)', textAlign: 'center' }}>
+                        No hay otros repartidores disponibles.
+                      </small>
+                    )}
+                  </div>
                 ) : (
                   <small style={{ color: 'var(--gray-500)', textAlign: 'center', display: 'block' }}>Debes aceptar el pedido más antiguo primero.</small>
                 )}

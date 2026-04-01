@@ -53,6 +53,8 @@ export default function CustomerApp() {
   const [selectedSauces, setSelectedSauces] = React.useState([]);
   const [selectedExtras, setSelectedExtras] = React.useState([]);
   const [burgerModal, setBurgerModal] = React.useState(null);
+  const [selectedVariant, setSelectedVariant] = React.useState(null);
+  const [selectedBurgerExtras, setSelectedBurgerExtras] = React.useState([]);
   const [withFries, setWithFries] = React.useState(false);
   const [checkoutLoading, setCheckoutLoading] = React.useState(false);
   const [drinks, setDrinks] = React.useState([]);
@@ -405,18 +407,23 @@ export default function CustomerApp() {
       }
     }
 
-    // Detect if it's a Burger with Fries option
-    let burgerConfig = null;
+    // Detect if it's a Burger or Combo
+    let burgerCfg = null;
     try {
-      if ((menu.categoria || '').toLowerCase() === 'hamburguesas' && menu.variantes && menu.variantes.includes('con_papas')) {
-        burgerConfig = JSON.parse(menu.variantes);
+      if (menu.variantes) {
+        const parsed = JSON.parse(menu.variantes);
+        if (parsed.es_hamburguesa || parsed.es_combo || parsed.con_papas) {
+          burgerCfg = parsed;
+        }
       }
     } catch(e){}
-
-    if (burgerConfig && burgerConfig.con_papas) {
+    
+    if (burgerCfg) {
       setBurgerModal(menu);
+      setSelectedVariant(burgerCfg.variants?.[0] || null);
+      setSelectedBurgerExtras([]);
       setWithFries(false);
-      return; // Stop flow, burger modal handles it
+      return; 
     }
 
     // Default addition for other items
@@ -1249,77 +1256,175 @@ export default function CustomerApp() {
 
       {burgerModal && (
         <div className="modal-overlay" onClick={() => setBurgerModal(null)}>
-          <div className="modal-box animate-scale-in" style={{ maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setBurgerModal(null)}>✕</button>
-            <div style={{ fontSize: '3rem', marginBottom: 15 }}>{withFries ? '🍟' : '🍔'}</div>
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 10 }}>¿Lo hacemos COMBO?</h2>
-            <p style={{ color: 'var(--gray-600)', marginBottom: 20 }}>
-              ¿Querés sumar <strong>papas fritas</strong> a tu {burgerModal.nombre}?
-            </p>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>{burgerModal.nombre}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 20 }}>{burgerModal.descripcion}</p>
+            
+            {(() => {
+              const cfg = JSON.parse(burgerModal.variantes);
+              
+              if (cfg.es_hamburguesa || cfg.es_combo) {
+                const baseVariantPrice = Number(selectedVariant?.precio || burgerModal.precio);
+                const extrasPriceTotal = selectedBurgerExtras.reduce((sum, e) => sum + Number(e.precio || 0), 0);
+                const friesPrice = withFries ? Number(cfg.precio_papas || 0) : 0;
+                const totalCalculated = baseVariantPrice + extrasPriceTotal + friesPrice;
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-              <div 
-                className={`selection-card ${withFries ? 'active' : ''}`}
-                onClick={() => setWithFries(true)}
-                style={{ 
-                  padding: '20px 10px', 
-                  borderRadius: '12px', 
-                  border: withFries ? '2px solid var(--red-500)' : '2px solid #eee',
-                  backgroundColor: withFries ? '#fff5f5' : '#fff',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8
-                }}
-              >
-                <div style={{ fontSize: '2rem' }}>🍟</div>
-                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>¡Si, con papas!</div>
-                <div style={{ color: 'var(--red-600)', fontWeight: 600 }}>+ ${JSON.parse(burgerModal.variantes).precio_papas}</div>
-              </div>
+                return (
+                  <>
+                    {cfg.variants?.length > 0 && (
+                      <div style={{ marginBottom: 20 }}>
+                        <h3 style={{ fontSize: '0.95rem', marginBottom: 12 }}>Seleccioná la opción:</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                          {cfg.variants.map((v, i) => (
+                            <button 
+                              key={i}
+                              className={`btn ${selectedVariant?.nombre === v.nombre ? 'btn-primary' : 'btn-outline'}`}
+                              onClick={() => setSelectedVariant(v)}
+                              style={{ fontSize: '0.85rem' }}
+                            >
+                              {v.nombre}<br/>
+                              <small>${v.precio}</small>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-              <div 
-                className={`selection-card ${!withFries ? 'active' : ''}`}
-                onClick={() => setWithFries(false)}
-                style={{ 
-                  padding: '20px 10px', 
-                  borderRadius: '12px', 
-                  border: !withFries ? '2px solid var(--gray-600)' : '2px solid #eee',
-                  backgroundColor: !withFries ? '#f9f9f9' : '#fff',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8
-                }}
-              >
-                <div style={{ fontSize: '2rem' }}>🍔</div>
-                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>No, solo la burguer</div>
-                <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem' }}>Sin adicionales</div>
-              </div>
-            </div>
+                    {cfg.extras?.length > 0 && (
+                      <div style={{ marginBottom: 20 }}>
+                        <h3 style={{ fontSize: '0.95rem', marginBottom: 12 }}>Adicionales (Precio extra):</h3>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {cfg.extras.map((ex, i) => {
+                            const isIncluded = selectedBurgerExtras.some(e => e.nombre === ex.nombre);
+                            return (
+                              <button 
+                                key={i}
+                                className={`btn btn-xs ${isIncluded ? 'btn-primary' : 'btn-outline'}`}
+                                onClick={() => {
+                                  if (isIncluded) setSelectedBurgerExtras(prev => prev.filter(e => e.nombre !== ex.nombre));
+                                  else setSelectedBurgerExtras(prev => [...prev, ex]);
+                                }}
+                              >
+                                {ex.nombre} (+${ex.precio})
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
-            <button 
-              className="btn btn-primary btn-full btn-lg"
-              onClick={() => {
-                const config = JSON.parse(burgerModal.variantes);
-                const extra = withFries ? Number(config.precio_papas) : 0;
-                const finalItem = {
-                  ...burgerModal,
-                  menuId: burgerModal.id, // CRITICAL FIX: Store original menu item ID
-                  nombre: withFries ? `${burgerModal.nombre} + PAPAS` : burgerModal.nombre,
-                  precio: Number(burgerModal.precio) + extra,
-                  id: withFries ? `${burgerModal.id}-conpapas` : burgerModal.id // Unique ID for cart
-                };
-                cart.addItem(finalItem);
-                setBurgerModal(null);
-                toast.success('¡Agregado!');
-              }}
-            >
-              Agregar • ${Number(burgerModal.precio) + (withFries ? Number(JSON.parse(burgerModal.variantes).precio_papas) : 0)}
-            </button>
+                    {cfg.con_papas && (
+                      <div style={{ marginBottom: 24, padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: '1.5rem' }}>🍟</span>
+                            <div style={{ textAlign: 'left' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Combo con Papas Fritas</div>
+                              <div style={{ color: 'var(--red-600)', fontSize: '0.8rem', fontWeight: 600 }}>+ ${cfg.precio_papas}</div>
+                            </div>
+                          </div>
+                          <button 
+                            className={`btn btn-sm ${withFries ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setWithFries(!withFries)}
+                          >
+                            {withFries ? 'Agregado ✓' : 'Agregar'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <button 
+                      className="btn btn-primary btn-full btn-lg"
+                      onClick={() => {
+                        const variantText = selectedVariant ? `${selectedVariant.nombre}` : '';
+                        const extrasText = selectedBurgerExtras.map(e => e.nombre).join(' + ');
+                        const friesText = withFries ? ' + PAPAS' : '';
+                        
+                        let finalName = burgerModal.nombre;
+                        if (variantText) finalName += ` ${variantText}`;
+                        if (extrasText) finalName += ` c/ ${extrasText}`;
+                        finalName += friesText;
+
+                        const finalItem = {
+                          ...burgerModal,
+                          menuId: burgerModal.id,
+                          id: `${burgerModal.id}-${Date.now()}`,
+                          nombre: finalName,
+                          precio: totalCalculated,
+                          variant: selectedVariant,
+                          burgerExtras: selectedBurgerExtras,
+                          withFries: withFries
+                        };
+                        cart.addItem(finalItem);
+                        setBurgerModal(null);
+                        toast.success(`¡${cfg.es_combo ? 'Combo agregado' : 'Hamburguesa agregada'}!`);
+                      }}
+                    >
+                      Agregar al carrito • ${totalCalculated}
+                    </button>
+                  </>
+                );
+              } else {
+                // Backward compatibility for old "con_papas" only logic
+                return (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 15 }}>{withFries ? '🍟' : '🍔'}</div>
+                    <h2 style={{ color: 'var(--red-600)', marginBottom: 10 }}>¿Lo hacemos COMBO?</h2>
+                    <p style={{ color: 'var(--gray-600)', marginBottom: 20 }}>
+                      ¿Querés sumar <strong>papas fritas</strong> a tu {burgerModal.nombre}?
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                      <div 
+                        className={`selection-card ${withFries ? 'active' : ''}`}
+                        onClick={() => setWithFries(true)}
+                        style={{ 
+                          padding: '20px 10px', borderRadius: '12px', border: withFries ? '2px solid var(--red-500)' : '2px solid #eee',
+                          backgroundColor: withFries ? '#fff5f5' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8
+                        }}
+                      >
+                        <div style={{ fontSize: '2rem' }}>🍟</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>¡Si, con papas!</div>
+                        <div style={{ color: 'var(--red-600)', fontWeight: 600 }}>+ ${cfg.precio_papas}</div>
+                      </div>
+
+                      <div 
+                        className={`selection-card ${!withFries ? 'active' : ''}`}
+                        onClick={() => setWithFries(false)}
+                        style={{ 
+                          padding: '20px 10px', borderRadius: '12px', border: !withFries ? '2px solid var(--gray-600)' : '2px solid #eee',
+                          backgroundColor: !withFries ? '#f9f9f9' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8
+                        }}
+                      >
+                        <div style={{ fontSize: '2rem' }}>🍔</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>No, solo la burguer</div>
+                        <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem' }}>Sin adicionales</div>
+                      </div>
+                    </div>
+
+                    <button 
+                      className="btn btn-primary btn-full btn-lg"
+                      onClick={() => {
+                        const extra = withFries ? Number(cfg.precio_papas) : 0;
+                        const finalItem = {
+                          ...burgerModal,
+                          menuId: burgerModal.id,
+                          nombre: withFries ? `${burgerModal.nombre} + PAPAS` : burgerModal.nombre,
+                          precio: Number(burgerModal.precio) + extra,
+                          id: withFries ? `${burgerModal.id}-conpapas` : burgerModal.id
+                        };
+                        cart.addItem(finalItem);
+                        setBurgerModal(null);
+                        toast.success('¡Agregado!');
+                      }}
+                    >
+                      Agregar • ${Number(burgerModal.precio) + (withFries ? Number(cfg.precio_papas) : 0)}
+                    </button>
+                  </div>
+                );
+              }
+            })()}
           </div>
         </div>
       )}
