@@ -96,6 +96,8 @@ const MapComponent = ({
         streetViewControl: false,
         clickableIcons: false,
         fullscreenControl: true,
+        draggableCursor: 'grab',
+        draggingCursor: 'grabbing',
         restriction: {
           latLngBounds: {
             north: -28.3,
