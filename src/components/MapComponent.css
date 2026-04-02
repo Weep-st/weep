@@ -6,6 +6,7 @@
   align-items: center;
   cursor: pointer;
   pointer-events: auto;
+  z-index: 1000;
 }
 
 /* Center driver icon since it's circular */

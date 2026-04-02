@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { GoogleMap, useJsApiLoader, MarkerF, InfoWindowF, OverlayViewF } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF, InfoWindowF, OverlayView, OverlayViewF } from '@react-google-maps/api';
 import './MapComponent.css';
 
 const containerStyle = {
@@ -111,7 +111,8 @@ const MapComponent = ({
         <OverlayViewF
           key={marker.id}
           position={marker.position}
-          mapPaneName={OverlayViewF.OVERLAY_MOUSE_TARGET}
+          mapPaneName="overlayMouseTarget"
+          getPixelPositionOffset={(x, y) => ({ x: 0, y: 0 })}
         >
           <div 
             className={`marker-container ${marker.id}`} 
