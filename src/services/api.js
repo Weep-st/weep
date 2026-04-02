@@ -1557,33 +1557,6 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
       }
     });
 
-    // ─── Enviar Notificacion Push ───
-    try {
-      // Re-fetch to be absolutely sure we have the latest ID
-      const { data: rep } = await supabase.from('repartidores')
-        .select('onesignal_id')
-        .eq('email', repartidorEmail)
-        .single();
-        
-      if (rep?.onesignal_id) {
-        console.log("🔔 Triggering Push for:", rep.onesignal_id);
-        const { data: pushResult, error: pushErr } = await supabase.functions.invoke('send-push', {
-          body: {
-            subscriptionIds: [rep.onesignal_id],
-            title: '¡Tienes un nuevo pedido! 🛵',
-            message: 'Nuevo pedido, aceptalo o rechazalo en el panel de repartidores',
-            data: { pedidoId, type: 'new_order' }
-          }
-        });
-        if (pushErr) console.error('Error invoking send-push:', pushErr);
-        else console.log('✅ Push sent result:', pushResult);
-      } else {
-        console.warn("⚠️ No OneSignal ID found for driver email:", repartidorEmail);
-      }
-    } catch (e) {
-      console.error('Error in push notification flow:', e);
-    }
-
   } catch (error) {
     console.error("Error enviando email al repartidor:", error);
   }

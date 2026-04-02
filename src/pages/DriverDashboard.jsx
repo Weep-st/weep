@@ -179,22 +179,19 @@ export default function DriverDashboard() {
             const updateStatus = () => {
               const perm = OneSignal.Notifications.permission;
               setNotificationStatus(perm ? 'granted' : (OneSignal.Notifications.permissionNative === 'denied' ? 'denied' : 'default'));
-              if (perm) setNotificationStatus('granted');
-              else if (window.Notification && Notification.permission === 'denied') setNotificationStatus('denied');
-              else setNotificationStatus('default');
             };
 
             updateStatus();
 
-            // 1. Initial Check
-            const currentId = OneSignal.User.PushSubscription.id;
-            console.log("🔔 OneSignal Current ID:", currentId);
-            if (currentId) {
-              await api.repartidorUpdateOneSignalId(driver.id, currentId);
+            // 1. Initial Sync
+            const currentSubscription = OneSignal.User.PushSubscription;
+            if (currentSubscription.id) {
+              console.log("🔔 OneSignal Current ID:", currentSubscription.id);
+              await api.repartidorUpdateOneSignalId(driver.id, currentSubscription.id);
               console.log("✅ OneSignal ID synced to database.");
             }
 
-            // 2. Listeners
+            // 2. Listeners for changes (e.g. user clears cache/re-registers)
             OneSignal.Notifications.addEventListener("permissionChange", (permission) => {
               console.log("🔔 OneSignal Permission changed:", permission);
               updateStatus();
@@ -202,16 +199,20 @@ export default function DriverDashboard() {
 
             OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
               const newId = event.current.id;
-              console.log("🔔 OneSignal ID changed:", newId);
               if (newId) {
+                console.log("🔔 OneSignal ID changed:", newId);
                 await api.repartidorUpdateOneSignalId(driver.id, newId);
-                console.log("✅ OneSignal ID updated in database.");
               }
             });
 
+            // 3. Prompt if default (only if driver is active for best UX)
+            if (OneSignal.Notifications.permissionNative === 'default' && isActive) {
+              console.log("🔔 OneSignal: Prompting for notifications...");
+              await OneSignal.Notifications.requestPermission();
+            }
+
           } catch (err) {
             console.error("❌ OneSignal Sync Error:", err);
-            setNotificationStatus('denied');
           }
         });
       }
@@ -1147,15 +1148,29 @@ export default function DriverDashboard() {
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: '0.9rem',
-            color: notificationStatus === 'denied' ? '#cf1322' : '#0050b3'
+            color: notificationStatus === 'denied' ? '#cf1322' : '#0050b3',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
           }}>
-            <span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {notificationStatus === 'denied' ? (
-                <>🚫 <strong>Notificaciones bloqueadas:</strong> No recibirás alertas de nuevos pedidos. Haz clic en el candado 🔒 de la barra de direcciones y selecciona "Permitir".</>
+                <>🚫 <strong>Notificaciones bloqueadas:</strong> No recibirás alertas de nuevos pedidos. Haz clic en el 🔒 de la barra de direcciones y selecciona "Permitir".</>
               ) : (
-                <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos en tiempo real, presiona la campana roja de la esquina.</>
+                <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos en tiempo real, presiona el botón de la derecha.</>
               )}
             </span>
+            {notificationStatus !== 'denied' && (
+              <button 
+                className="btn btn-primary btn-sm" 
+                style={{ whiteSpace: 'nowrap', padding: '6px 12px' }}
+                onClick={() => {
+                  if (window.OneSignal) {
+                    window.OneSignal.Notifications.requestPermission();
+                  }
+                }}
+              >
+                Activar 🛎️
+              </button>
+            )}
           </div>
         )}
         {!driver ? renderAuth() : (
