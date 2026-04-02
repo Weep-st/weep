@@ -142,6 +142,16 @@
   margin: 16px 0 24px;
 }
 
+.antojo-text {
+  text-align: center;
+  color: var(--gray-500);
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin: -12px 0 28px;
+  font-style: italic;
+  opacity: 0.9;
+}
+
 /* ─── Categories ─── */
 .categories-scroll {
   display: flex;

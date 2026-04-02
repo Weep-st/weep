@@ -800,6 +800,8 @@ export default function CustomerApp() {
           ))}
         </div>
 
+        <p className="antojo-text animate-fade-in" style={{ animationDelay: '0.2s' }}>Prepará tu antojo para hoy...</p>
+
         {/* ─── Locals Carousel ─── */}
         <section className="locals-section animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
