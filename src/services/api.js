@@ -510,6 +510,30 @@ export async function toggleFavorito(userId, menuItemId) {
 }
 
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// VALIDACIÓN DE DISPONIBILIDAD (NUEVO)
+// ═══════════════════════════════════════════════════
+export async function validateOrderAvailability(localIds, itemIds) {
+  // Consulta locales y platos en paralelo
+  const [localsRes, itemsRes] = await Promise.all([
+    supabase.from('locales')
+      .select('id, nombre, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde')
+      .in('id', localIds),
+    supabase.from('menu')
+      .select('id, nombre, disponibilidad')
+      .in('id', itemIds)
+  ]);
+
+  if (localsRes.error) throw new Error(localsRes.error.message);
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
+
+  return {
+    locales: localsRes.data || [],
+    items: itemsRes.data || []
+  };
+}
+
+// ═══════════════════════════════════════════════════
 // PEDIDOS
 // ═══════════════════════════════════════════════════
 export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng }) {

@@ -76,6 +76,7 @@ export default function CustomerApp() {
   });
 
   const [unavailableLocal, setUnavailableLocal] = React.useState(null);
+  const [selectedLocal, setSelectedLocal] = React.useState(null);
 
   // Actualizar addressData cuando el usuario carga (login)
   React.useEffect(() => {
@@ -237,6 +238,7 @@ export default function CustomerApp() {
   const fetchMenusByLocal = React.useCallback((localId, catId = null) => {
     setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
+    setSelectedLocal(local);
     api.getMenuByLocalId(localId).then(d => {
       let mapped = (d || [])
         .filter(i => i.disponibilidad !== false)
@@ -538,6 +540,38 @@ export default function CustomerApp() {
 
     setCheckoutLoading(true);
     try {
+      // --- NUEVA VALIDACIÓN DE DISPONIBILIDAD EN TIEMPO REAL ---
+      const uniqueLocalIds = [...new Set(cart.items.map(i => i.local_id).filter(Boolean))];
+      const uniqueItemIds = [...new Set(cart.items.map(i => i.menuId || i.id))];
+
+      const availability = await api.validateOrderAvailability(uniqueLocalIds, uniqueItemIds);
+
+      // 1. Validar Locales
+      for (const localId of uniqueLocalIds) {
+        const freshLocal = availability.locales.find(l => l.id === localId);
+        if (!freshLocal) {
+          toast.error("Uno de los locales ya no está disponible.");
+          setCheckoutLoading(false);
+          return;
+        }
+        if (!isLocalOpen(freshLocal)) {
+          toast.error(`El local "${freshLocal.nombre}" acaba de cerrar o no está aceptando pedidos en este momento.`);
+          setCheckoutLoading(false);
+          return;
+        }
+      }
+
+      // 2. Validar Platos
+      for (const item of cart.items) {
+        const freshItem = availability.items.find(i => i.id === (item.menuId || item.id));
+        if (!freshItem || !freshItem.disponibilidad) {
+          toast.error(`El plato "${item.nombre}" ya no está disponible.`);
+          setCheckoutLoading(false);
+          return;
+        }
+      }
+      // --- FIN VALIDACIÓN ---
+
       // 7. Calculate exact prices using new logic
       const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
       const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
@@ -857,7 +891,7 @@ export default function CustomerApp() {
                     onClick={() => {
                       if (isFutureOpening) {
                         setUnavailableLocal(local);
-                        // No toast for future locals as requested
+                        fetchMenusByLocal(local.id, selectedCategory);
                       } else if (open) {
                         setUnavailableLocal(null);
                         fetchMenusByLocal(local.id, selectedCategory);
@@ -898,7 +932,7 @@ export default function CustomerApp() {
                   onClick={() => {
                     if (isFutureOpening) {
                       setUnavailableLocal(local);
-                      // No toast for future locals as requested
+                      fetchMenusByLocal(local.id, selectedCategory);
                     } else if (open) {
                       setUnavailableLocal(null);
                       fetchMenusByLocal(local.id, selectedCategory);
@@ -1002,7 +1036,22 @@ export default function CustomerApp() {
                       <div className="menu-card-footer">
                         <span className="menu-card-price">${Number(menu.precio).toLocaleString('es-AR')}</span>
                         <div className="menu-card-actions">
-                          <button className="btn btn-primary btn-sm" onClick={() => handleAddToCart(menu)}>Agregar</button>
+                          {(() => {
+                            if (selectedLocal && selectedLocal.disponible_desde) {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              const parts = selectedLocal.disponible_desde.split('-');
+                              const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                              if (today < availableDate) {
+                                return (
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold', textAlign: 'right' }}>
+                                    Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                  </span>
+                                );
+                              }
+                            }
+                            return <button className="btn btn-primary btn-sm" onClick={() => handleAddToCart(menu)}>Agregar</button>;
+                          })()}
                           <button className={`fav-btn ${favorites.includes(menu.id) ? 'active' : ''}`} onClick={() => toggleFav(menu.id)}>
                             <img 
                               src={favorites.includes(menu.id) 
@@ -1427,6 +1476,20 @@ export default function CustomerApp() {
               const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
               const currentTotal = basePrice + extrasPrice;
 
+              if (selectedLocal && selectedLocal.disponible_desde) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const parts = selectedLocal.disponible_desde.split('-');
+                const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                if (today < availableDate) {
+                  return (
+                    <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
+                      Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                    </button>
+                  );
+                }
+              }
+
               return (
                 <button 
                   className="btn btn-primary btn-full btn-lg"
@@ -1566,60 +1629,77 @@ export default function CustomerApp() {
                       </div>
                     )}
 
-                    <button 
-                      className="btn btn-primary btn-full btn-lg"
-                      onClick={() => {
-                        const variantText = selectedVariant ? `${selectedVariant.nombre}` : '';
-                        const extrasText = selectedBurgerExtras.map(e => e.nombre).join(' + ');
-                        const friesText = withFries ? ' + PAPAS' : '';
-                        
-                        let finalName = burgerModal.nombre;
-                        if (variantText) finalName += ` ${variantText}`;
-                        if (extrasText) finalName += ` c/ ${extrasText}`;
-                        finalName += friesText;
-
-                        const finalItem = {
-                          ...burgerModal,
-                          menuId: burgerModal.id,
-                          id: `${burgerModal.id}-${Date.now()}`,
-                          nombre: finalName,
-                          precio: totalCalculated,
-                          variant: selectedVariant,
-                          burgerExtras: selectedBurgerExtras,
-                          withFries: withFries
-                        };
-                        // Facebook Pixel: AddToCart (Burger/Combo)
-                        if (window.fbq) {
-                          window.fbq('track', 'AddToCart', {
-                            content_name: finalItem.nombre,
-                            content_ids: [finalItem.menuId],
-                            content_type: 'product',
-                            value: finalItem.precio,
-                            currency: 'ARS'
-                          });
+                    {(() => {
+                      if (selectedLocal && selectedLocal.disponible_desde) {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const parts = selectedLocal.disponible_desde.split('-');
+                        const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                        if (today < availableDate) {
+                          return (
+                            <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
+                              Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                            </button>
+                          );
                         }
-
-                        // Google Analytics: add_to_cart (Burger/Combo)
-                        if (window.gtag) {
-                          window.gtag('event', 'add_to_cart', {
-                            currency: 'ARS',
-                            value: finalItem.precio,
-                            items: [{
-                              item_id: finalItem.menuId,
-                              item_name: finalItem.nombre,
-                              price: finalItem.precio,
-                              quantity: 1
-                            }]
-                          });
-                        }
-
-                        cart.addItem(finalItem);
-                        setBurgerModal(null);
-                        toast.success(`¡${cfg.es_combo ? 'Combo agregado' : 'Hamburguesa agregada'}!`);
-                      }}
-                    >
-                      Agregar al carrito • ${totalCalculated}
-                    </button>
+                      }
+                      return (
+                        <button 
+                          className="btn btn-primary btn-full btn-lg"
+                          onClick={() => {
+                            const variantText = selectedVariant ? `${selectedVariant.nombre}` : '';
+                            const extrasText = selectedBurgerExtras.map(e => e.nombre).join(' + ');
+                            const friesText = withFries ? ' + PAPAS' : '';
+                            
+                            let finalName = burgerModal.nombre;
+                            if (variantText) finalName += ` ${variantText}`;
+                            if (extrasText) finalName += ` c/ ${extrasText}`;
+                            finalName += friesText;
+    
+                            const finalItem = {
+                              ...burgerModal,
+                              menuId: burgerModal.id,
+                              id: `${burgerModal.id}-${Date.now()}`,
+                              nombre: finalName,
+                              precio: totalCalculated,
+                              variant: selectedVariant,
+                              burgerExtras: selectedBurgerExtras,
+                              withFries: withFries
+                            };
+                            // Facebook Pixel: AddToCart (Burger/Combo)
+                            if (window.fbq) {
+                              window.fbq('track', 'AddToCart', {
+                                content_name: finalItem.nombre,
+                                content_ids: [finalItem.menuId],
+                                content_type: 'product',
+                                value: finalItem.precio,
+                                currency: 'ARS'
+                              });
+                            }
+    
+                            // Google Analytics: add_to_cart (Burger/Combo)
+                            if (window.gtag) {
+                              window.gtag('event', 'add_to_cart', {
+                                currency: 'ARS',
+                                value: finalItem.precio,
+                                items: [{
+                                  item_id: finalItem.menuId,
+                                  item_name: finalItem.nombre,
+                                  price: finalItem.precio,
+                                  quantity: 1
+                                }]
+                              });
+                            }
+    
+                            cart.addItem(finalItem);
+                            setBurgerModal(null);
+                            toast.success(`¡${cfg.es_combo ? 'Combo agregado' : 'Hamburguesa agregada'}!`);
+                          }}
+                        >
+                          Agregar al carrito • ${totalCalculated}
+                        </button>
+                      );
+                    })()}
                   </>
                 );
               } else {
@@ -1660,24 +1740,41 @@ export default function CustomerApp() {
                       </div>
                     </div>
 
-                    <button 
-                      className="btn btn-primary btn-full btn-lg"
-                      onClick={() => {
-                        const extra = withFries ? Number(cfg.precio_papas) : 0;
-                        const finalItem = {
-                          ...burgerModal,
-                          menuId: burgerModal.id,
-                          nombre: withFries ? `${burgerModal.nombre} + PAPAS` : burgerModal.nombre,
-                          precio: Number(burgerModal.precio) + extra,
-                          id: withFries ? `${burgerModal.id}-conpapas` : burgerModal.id
-                        };
-                        cart.addItem(finalItem);
-                        setBurgerModal(null);
-                        toast.success('¡Agregado!');
-                      }}
-                    >
-                      Agregar • ${Number(burgerModal.precio) + (withFries ? Number(cfg.precio_papas) : 0)}
-                    </button>
+                    {(() => {
+                      if (selectedLocal && selectedLocal.disponible_desde) {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const parts = selectedLocal.disponible_desde.split('-');
+                        const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                        if (today < availableDate) {
+                          return (
+                            <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
+                              Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                            </button>
+                          );
+                        }
+                      }
+                      return (
+                        <button 
+                          className="btn btn-primary btn-full btn-lg"
+                          onClick={() => {
+                            const extra = withFries ? Number(cfg.precio_papas) : 0;
+                            const finalItem = {
+                              ...burgerModal,
+                              menuId: burgerModal.id,
+                              nombre: withFries ? `${burgerModal.nombre} + PAPAS` : burgerModal.nombre,
+                              precio: Number(burgerModal.precio) + extra,
+                              id: withFries ? `${burgerModal.id}-conpapas` : burgerModal.id
+                            };
+                            cart.addItem(finalItem);
+                            setBurgerModal(null);
+                            toast.success('¡Agregado!');
+                          }}
+                        >
+                          Agregar • ${Number(burgerModal.precio) + (withFries ? Number(cfg.precio_papas) : 0)}
+                        </button>
+                      );
+                    })()}
                   </div>
                 );
               }

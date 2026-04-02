@@ -63,13 +63,27 @@ export default function DriverDashboard() {
   const [tutorialOrder, setTutorialOrder] = React.useState(null);
   const [notificationStatus, setNotificationStatus] = React.useState('loading'); // 'loading', 'granted', 'denied', 'default'
   const [isIOS, setIsIOS] = React.useState(false);
+  const [isAndroid, setIsAndroid] = React.useState(false);
   const [isStandalone, setIsStandalone] = React.useState(false);
+  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+  const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
 
   React.useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroidDevice = /Android/.test(navigator.userAgent);
     const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    
     setIsIOS(isIOSDevice);
+    setIsAndroid(isAndroidDevice);
     setIsStandalone(isStandaloneMode);
+
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   // Geolocation Watcher
@@ -1127,6 +1141,71 @@ export default function DriverDashboard() {
       </div>
     );
   };
+  const renderPWAInstructionsModal = () => {
+    if (!showPWAInstructions) return null;
+
+    return (
+      <div className="dd-modal-overlay" onClick={() => setShowPWAInstructions(false)}>
+        <div className="dd-modal-content animate-slide-down" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+          <div className="dd-modal-header" style={{ background: 'var(--red-600)' }}>
+            <h5 style={{ color: 'white', margin: 0 }}>
+              {isIOS ? '📱 Instrucciones para iPhone' : '📲 Instalar en Android'}
+            </h5>
+            <button className="dd-modal-close" onClick={() => setShowPWAInstructions(false)}>×</button>
+          </div>
+          <div className="dd-modal-body" style={{ textAlign: 'center', padding: '24px' }}>
+            {isIOS ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ fontSize: '1rem', color: 'var(--gray-700)', lineHeight: '1.5' }}>
+                  Para recibir <strong>ubicación y notificaciones</strong> correctamente en iOS, debes añadir Weep a tu inicio:
+                </p>
+                <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '12px', textAlign: 'left', border: '1px solid #eee' }}>
+                  <p style={{ margin: '0 0 8px 0' }}>1. Presiona el botón <strong>Compartir</strong> <img src="https://i.postimg.cc/85zPzCH7/ios-share.png" alt="share" style={{ height: '20px', verticalAlign: 'middle' }} /> abajo en Safari.</p>
+                  <p style={{ margin: '0 0 8px 0' }}>2. Desliza hacia abajo y selecciona <strong>"Añadir a la pantalla de inicio"</strong>.</p>
+                  <p style={{ margin: 0 }}>3. Abre la aplicación desde el nuevo icono en tu pantalla.</p>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                  * Esto habilitará los permisos nativos requeridos por el sistema.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ fontSize: '1rem', color: 'var(--gray-700)', lineHeight: '1.5' }}>
+                  Habilita la <strong>App de Repartidores</strong> para asegurar el seguimiento GPS y alertas en tiempo real.
+                </p>
+                
+                {deferredPrompt ? (
+                  <button 
+                    className="dd-btn-rojo dd-btn-large" 
+                    onClick={async () => {
+                      deferredPrompt.prompt();
+                      const { outcome } = await deferredPrompt.userChoice;
+                      if (outcome === 'accepted') setDeferredPrompt(null);
+                      setShowPWAInstructions(false);
+                    }}
+                  >
+                    🚀 Descargar / Instalar Ahora
+                  </button>
+                ) : (
+                  <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '12px', textAlign: 'left', border: '1px solid #eee' }}>
+                    <p style={{ fontWeight: 'bold', marginBottom: '8px', color: 'var(--red-600)' }}>Si no ves el botón de instalar:</p>
+                    <p style={{ margin: '0 0 8px 0' }}>1. Toca los <strong>tres puntos</strong> (⋮) arriba a la derecha en Chrome.</p>
+                    <p style={{ margin: 0 }}>2. Selecciona <strong>"Instalar aplicación"</strong> o "Añadir a pantalla de inicio".</p>
+                  </div>
+                )}
+                <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                  Al usar la App dedicada, Android prioriza la ubicación y evita que el sistema cierre la aplicación.
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="dd-modal-footer">
+            <button className="btn btn-secondary btn-full" onClick={() => setShowPWAInstructions(false)}>Entendido</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ─── MAIN RENDER ───
   return (
@@ -1195,8 +1274,7 @@ export default function DriverDashboard() {
         )}
 
         {/* ─── Banner de Notificaciones ─── */}
-        {/* Solo mostramos si YA están en modo standalone (si es iOS) o si no es iOS */}
-        {driver && notificationStatus !== 'granted' && (!isIOS || isStandalone) && (
+        {driver && notificationStatus !== 'granted' && (
           <div className="notification-status-banner" style={{
             background: notificationStatus === 'denied' ? '#fff1f0' : '#e6f7ff',
             border: `1px solid ${notificationStatus === 'denied' ? '#ffa39e' : '#91d5ff'}`,
@@ -1215,24 +1293,42 @@ export default function DriverDashboard() {
               {notificationStatus === 'denied' ? (
                 <>🚫 <strong>Notificaciones bloqueadas:</strong> No recibirás alertas de nuevos pedidos. Revisa los permisos de tu navegador.</>
               ) : (
-                <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos al instante presiona el botón.</>
+                <>
+                  {isIOS && !isStandalone ? (
+                    <>🔔 <strong>Activa la App:</strong> Añade Weep al inicio para habilitar el GPS y alertas.</>
+                  ) : (
+                    <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos al instante presiona el botón.</>
+                  )}
+                </>
               )}
             </span>
-            {notificationStatus !== 'denied' && (
-              <button 
-                className="btn btn-primary btn-sm" 
-                style={{ whiteSpace: 'nowrap', padding: '6px 12px' }}
-                onClick={() => {
-                  if (window.OneSignal) {
-                    window.OneSignal.Notifications.requestPermission();
-                  }
-                }}
-              >
-                Activar 🛎️
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {(isIOS || isAndroid) && !isStandalone ? (
+                <button 
+                  className="btn btn-outline btn-sm" 
+                  style={{ whiteSpace: 'nowrap', padding: '6px 12px', background: 'white', borderColor: '#91d5ff', color: '#0050b3' }}
+                  onClick={() => setShowPWAInstructions(true)}
+                >
+                  {isIOS ? '¿Cómo activar? 📱' : (deferredPrompt ? 'Descargar App 📲' : 'Instrucciones 📱')}
+                </button>
+              ) : null}
+              {notificationStatus !== 'denied' && (!isIOS || isStandalone) && (
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  style={{ whiteSpace: 'nowrap', padding: '6px 12px' }}
+                  onClick={() => {
+                    if (window.OneSignal) {
+                      window.OneSignal.Notifications.requestPermission();
+                    }
+                  }}
+                >
+                  Activar 🛎️
+                </button>
+              )}
+            </div>
           </div>
         )}
+        {renderPWAInstructionsModal()}
         {!driver ? renderAuth() : (
           <>
             <div className="dd-topbar animate-fade-in">
