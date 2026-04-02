@@ -85,32 +85,21 @@
             appId: "a97550a5-7c54-4c92-a672-e5781f25d22c",
             safari_web_id: "web.onesignal.auto.1cd53ad7-1124-4d48-8712-0a155e6245f9",
             allowLocalhostAsSecureOrigin: true,
+            serviceWorkerParam: { scope: "/" },
+            serviceWorkerPath: "OneSignalSDKWorker.js",
             notifyButton: {
-              enable: true,
-              size: 'medium',
-              position: 'bottom-right',
-              colors: {
-                'circle.background': '#c62828',
-                'pulse.color': '#ffffff',
-                'icon.color': '#ffffff'
-              }
+              enable: false, // Ocultamos el botón nativo para usar nuestro banner personalizado
             }
           });
           console.log("🔔 OneSignal: Success!");
         } catch (e) {
           console.error("🔔 OneSignal Init Error:", e);
           const errorStr = e.toString();
-          const isDomainError = errorStr.includes("Can only be used on:");
-          
-          if (isDomainError) {
-            console.warn("⚠️ Error de dominio detectado (Caché corrupta). Intentando limpiar...");
+          if (errorStr.includes("Can only be used on:")) {
+            console.warn("⚠️ Error de dominio detectado. Limpiando...");
             if (window.indexedDB) {
-              // Borrar base de datos de OneSignal para forzar descarga de nueva config
               const req = window.indexedDB.deleteDatabase("OneSignalSDK");
-              req.onsuccess = () => {
-                console.log("✅ Caché de OneSignal eliminada con éxito.");
-                console.log("🔄 Por favor, CIERRA ESTA PESTAÑA y vuelve a entrar a weep.com.ar para activar las notificaciones.");
-              };
+              req.onsuccess = () => console.log("✅ Caché de OneSignal eliminada.");
             }
           }
         }

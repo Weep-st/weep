@@ -607,3 +607,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Map Marker Labels */
+.map-marker-label {
+  color: #E11D48 !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #E11D48;
+  white-space: nowrap;
+}

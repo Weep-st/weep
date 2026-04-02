@@ -214,9 +214,11 @@ export default function DriverDashboard() {
               }
             });
 
-            // 3. Prompt if default (only if driver is active for best UX)
-            if (OneSignal.Notifications.permissionNative === 'default' && isActive) {
-              console.log("🔔 OneSignal: Prompting for notifications...");
+            // 3. Prompt logic (Refined for Safari)
+            // On iOS/Safari, autoprompting is blocked. We rely on the UI banner.
+            // On other platforms, we can try to prompt if active.
+            if (!isIOS && OneSignal.Notifications.permissionNative === 'default' && isActive) {
+              console.log("🔔 OneSignal: Autoprompting (Non-iOS)...");
               await OneSignal.Notifications.requestPermission();
             }
 
@@ -1179,11 +1181,13 @@ export default function DriverDashboard() {
                 📱 Instala Weep en tu iPhone
               </h4>
               <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
-                Para <strong>recibir pedidos</strong> y que el <strong>GPS funcione</strong> bien:
+                Para <strong>recibir pedidos</strong> en tiempo real, debes anclar la app al inicio:
                 <br />
                 1. Presiona el botón <img src="https://i.postimg.cc/85zPzCH7/ios-share.png" alt="compartir" style={{ height: '18px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>Compartir</strong> abajo.
                 <br />
-                2. Baja y elige <strong>"Añadir a la pantalla de inicio"</strong>.
+                2. Busca y elige <strong>"Añadir a la pantalla de inicio"</strong>.
+                <br />
+                3. Abre la app desde el icono creado.
               </p>
             </div>
             <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', fontSize: '80px', opacity: 0.1 }}>🔔</div>
@@ -1191,7 +1195,8 @@ export default function DriverDashboard() {
         )}
 
         {/* ─── Banner de Notificaciones ─── */}
-        {driver && notificationStatus !== 'granted' && (
+        {/* Solo mostramos si YA están en modo standalone (si es iOS) o si no es iOS */}
+        {driver && notificationStatus !== 'granted' && (!isIOS || isStandalone) && (
           <div className="notification-status-banner" style={{
             background: notificationStatus === 'denied' ? '#fff1f0' : '#e6f7ff',
             border: `1px solid ${notificationStatus === 'denied' ? '#ffa39e' : '#91d5ff'}`,
@@ -1208,9 +1213,9 @@ export default function DriverDashboard() {
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {notificationStatus === 'denied' ? (
-                <>🚫 <strong>Notificaciones bloqueadas:</strong> No recibirás alertas de nuevos pedidos. Haz clic en el 🔒 de la barra de direcciones y selecciona "Permitir".</>
+                <>🚫 <strong>Notificaciones bloqueadas:</strong> No recibirás alertas de nuevos pedidos. Revisa los permisos de tu navegador.</>
               ) : (
-                <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos en tiempo real, presiona el botón de la derecha.</>
+                <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos al instante presiona el botón.</>
               )}
             </span>
             {notificationStatus !== 'denied' && (

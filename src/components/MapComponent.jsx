@@ -43,16 +43,30 @@ const MapComponent = ({
       m.push({
         id: 'local',
         position: { lat: Number(localLat), lng: Number(localLng) },
-        title: localName,
-        icon: 'https://i.postimg.cc/ZKHbrvdP/Home-free-icons-designed-by-nawicon-(1).png'
+        title: 'Retirar en: ' + localName,
+        icon: 'https://i.postimg.cc/Tw1SSvzk/buscamos-repartidores-(25).png',
+        label: {
+          text: 'Dirección de Retiro',
+          color: '#E11D48',
+          fontWeight: 'bold',
+          fontSize: '14px',
+          className: 'map-marker-label'
+        }
       });
     }
     if (deliveryLat && deliveryLng && isWithinSantoTome(deliveryLat, deliveryLng)) {
       m.push({
         id: 'delivery',
         position: { lat: Number(deliveryLat), lng: Number(deliveryLng) },
-        title: deliveryAddress,
-        icon: 'https://i.postimg.cc/zfbqZdPs/Home-free-icons-designed-by-nawicon.png'
+        title: 'Entregar en: ' + deliveryAddress,
+        icon: 'https://i.postimg.cc/0y1TN3SN/buscamos-repartidores-(26).png',
+        label: {
+          text: 'Dirección de Entrega',
+          color: '#E11D48',
+          fontWeight: 'bold',
+          fontSize: '14px',
+          className: 'map-marker-label'
+        }
       });
     }
     if (driverLat && driverLng && isWithinSantoTome(driverLat, driverLng)) {
@@ -60,7 +74,7 @@ const MapComponent = ({
         id: 'driver',
         position: { lat: Number(driverLat), lng: Number(driverLng) },
         title: 'Tu ubicación',
-        icon: 'https://img.icons8.com/color/48/motorcycle.png'
+        icon: 'https://i.postimg.cc/qRrchsLY/buscamos-repartidores-(27).png'
       });
     }
     return m;
@@ -113,8 +127,10 @@ const MapComponent = ({
           onClick={() => setSelectedMarker(marker)}
           icon={{
             url: marker.icon,
-            scaledSize: marker.id === 'driver' ? new window.google.maps.Size(46, 46) : new window.google.maps.Size(40, 40)
+            scaledSize: new window.google.maps.Size(50, 50),
+            labelOrigin: new window.google.maps.Point(25, -15)
           }}
+          label={marker.label}
         />
       ))}
 
