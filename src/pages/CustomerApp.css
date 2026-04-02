@@ -349,6 +349,47 @@
 
 .menu-list { display: flex; flex-direction: column; gap: 12px; }
 
+/* ─── Striking Empty State ─── */
+.empty-locals-striking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 40px 20px;
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--gray-200);
+  margin: 10px 0;
+  text-align: center;
+}
+
+.empty-locals-striking .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  animation: bounce-gentle 2.5s infinite ease-in-out;
+}
+
+.empty-locals-striking p {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--red-600);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.empty-locals-striking span {
+  font-size: 0.9rem;
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+
 .menu-card {
   display: flex;
   animation: fadeIn 0.4s var(--ease-out) both;

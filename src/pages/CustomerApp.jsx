@@ -818,8 +818,20 @@ export default function CustomerApp() {
           </div>
           <div className="locals-scroll">
             {loadingLocals && <p className="empty-text">Buscando locales...</p>}
-            {!loadingLocals && !filteredLocals && locals.length === 0 && <p className="empty-text">Cargando locales...</p>}
-            {!loadingLocals && filteredLocals && filteredLocals.length === 0 && <p className="empty-text">No hay locales para esta categoría.</p>}
+            {!loadingLocals && !filteredLocals && locals.length === 0 && (
+              <div className="empty-locals-striking animate-fade-in">
+                <div className="empty-icon">🛵</div>
+                <p>No hay locales activos en este momento</p>
+                <span>¡Volvé pronto para pedir tu antojo!</span>
+              </div>
+            )}
+            {!loadingLocals && filteredLocals && filteredLocals.length === 0 && (
+              <div className="empty-locals-striking animate-fade-in">
+                <div className="empty-icon">🍳</div>
+                <p>No hay {selectedCategory} hoy</p>
+                <span>Probá con otra categoría o buscá más abajo</span>
+              </div>
+            )}
             {!loadingLocals && (filteredLocals || locals).map(local => {
               const open = isLocalOpen(local);
               
