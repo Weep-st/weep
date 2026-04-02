@@ -103,12 +103,18 @@
           console.log("🔔 OneSignal: Success!");
         } catch (e) {
           console.error("🔔 OneSignal Init Error:", e);
-          if (e.toString().includes("weep.com.ar") && window.location.hostname === "localhost") {
-            console.warn("⚠️ Detectado error de dominio en localhost. Limpiando caché de OneSignal...");
-            // Intentar limpiar IndexedDB de OneSignal
+          const errorStr = e.toString();
+          const isDomainError = errorStr.includes("Can only be used on:");
+          
+          if (isDomainError) {
+            console.warn("⚠️ Error de dominio detectado (Caché corrupta). Intentando limpiar...");
             if (window.indexedDB) {
-              window.indexedDB.deleteDatabase("OneSignalSDK");
-              console.log("⚠️ Caché OneSignal eliminada. Por favor, refresca la página (F5).");
+              // Borrar base de datos de OneSignal para forzar descarga de nueva config
+              const req = window.indexedDB.deleteDatabase("OneSignalSDK");
+              req.onsuccess = () => {
+                console.log("✅ Caché de OneSignal eliminada con éxito.");
+                console.log("🔄 Por favor, CIERRA ESTA PESTAÑA y vuelve a entrar a weep.com.ar para activar las notificaciones.");
+              };
             }
           }
         }
