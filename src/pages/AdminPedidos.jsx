@@ -39,7 +39,7 @@ const AdminPedidos = () => {
     return (
         <div className="panel-card animate-fade-in">
             <header className="panel-header">
-                <h2>Historial de Pedidos General</h2>
+                <h2>Pedidos</h2>
                 <button className="btn btn-primary" onClick={loadPedidos}>Refrescar</button>
             </header>
             <div className="table-responsive">

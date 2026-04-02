@@ -82,7 +82,7 @@ const AdminDashboard = () => {
                         <span className="icon">📋</span> Tareas Pendientes
                     </button>
                     <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => setActiveTab('pedidos')}>
-                        <span className="icon">📦</span> Historial Pedidos
+                        <span className="icon">📦</span> Pedidos
                     </button>
                 </nav>
                 <div className="sidebar-footer">
