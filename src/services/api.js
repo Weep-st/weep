@@ -330,7 +330,7 @@ export async function getLocales() {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url)')
+    .select('*, locales(nombre, foto_url, disponible_desde)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
@@ -339,13 +339,14 @@ export async function getMenuCompleto() {
     disponibilidad: i.disponibilidad, imagen_url: i.imagen_url,
     local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
   }));
 }
 
 export async function getMenuByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url)')
+    .select('*, locales(nombre, foto_url, disponible_desde)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true)
     .order('nombre');
@@ -354,6 +355,7 @@ export async function getMenuByCategoria(categoria) {
     descripcion: i.descripcion, precio: i.precio,
     imagen_url: i.imagen_url, local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
   }));
 }
 
@@ -645,7 +647,7 @@ export async function registrarEmailLanzamiento(email) {
 export async function buscarMenu(query) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url)')
+    .select('*, locales(nombre, foto_url, disponible_desde)')
     .eq('disponibilidad', true)
     .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%,categoria.ilike.%${query}%`)
     .order('nombre')
@@ -655,6 +657,7 @@ export async function buscarMenu(query) {
     descripcion: i.descripcion, precio: i.precio,
     imagen_url: i.imagen_url, local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
   }));
 }
 
@@ -852,7 +855,7 @@ export async function getRepartidoresActivosCount(excludeDriverId) {
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -874,7 +877,8 @@ export async function getLocalesByCategoria(categoria) {
         horario_apertura: item.locales?.horario_apertura,
         horario_cierre: item.locales?.horario_cierre,
         modo_automatico: item.locales?.modo_automatico,
-        dias_apertura: item.locales?.dias_apertura
+        dias_apertura: item.locales?.dias_apertura,
+        disponible_desde: item.locales?.disponible_desde
       };
     } else {
       if (item.precio < groupedMap[lid].precio_min_categoria) {

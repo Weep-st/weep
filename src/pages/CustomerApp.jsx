@@ -243,7 +243,10 @@ export default function CustomerApp() {
       let mapped = (d || [])
         .filter(i => i.disponibilidad !== false)
         .map(i => ({
-          ...i, local_nombre: local?.nombre || 'Local', local_logo: local?.logo || '',
+          ...i, 
+          local_nombre: local?.nombre || 'Local', 
+          local_logo: local?.logo || '',
+          local_disponible_desde: local?.disponible_desde || null,
         }));
       if (catId) {
         mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
@@ -278,7 +281,8 @@ export default function CustomerApp() {
         horario_apertura: l.horario_apertura,
         horario_cierre: l.horario_cierre,
         modo_automatico: l.modo_automatico,
-        dias_apertura: l.dias_apertura
+        dias_apertura: l.dias_apertura,
+        disponible_desde: l.disponible_desde
       }));
       setFilteredLocals(mapped);
       setSelectedCategory(cat);
@@ -416,6 +420,19 @@ export default function CustomerApp() {
   const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
   const handleAddToCart = async (menu) => {
+    // Red de seguridad: Verificar disponibilidad antes de cualquier acción
+    const availabilityDate = menu.local_disponible_desde;
+    if (availabilityDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = availabilityDate.split('-');
+      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (today < availableDate) {
+        toast.error(`Este local abrirá el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}`);
+        return;
+      }
+    }
+
     // Detect if it's ice cream
     let isIceCream = false;
     let iceConfig = null;
@@ -1037,14 +1054,15 @@ export default function CustomerApp() {
                         <span className="menu-card-price">${Number(menu.precio).toLocaleString('es-AR')}</span>
                         <div className="menu-card-actions">
                           {(() => {
-                            if (selectedLocal && selectedLocal.disponible_desde) {
+                            const availabilityDate = (selectedLocal?.disponible_desde) || (menu.local_disponible_desde);
+                            if (availabilityDate) {
                               const today = new Date();
                               today.setHours(0, 0, 0, 0);
-                              const parts = selectedLocal.disponible_desde.split('-');
+                              const parts = availabilityDate.split('-');
                               const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
                               if (today < availableDate) {
                                 return (
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold', textAlign: 'right' }}>
+                                  <span style={{ fontSize: '0.85rem', color: 'var(--primary-600)', fontWeight: '600' }}>
                                     Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                                   </span>
                                 );
