@@ -195,7 +195,7 @@ const AdminLocales = () => {
                             onChange={(e) => setSelectedLocal(e.target.value)}
                         >
                             <option value="">Todos los locales</option>
-                            {locales.filter(l => l.admin_status === 'Aceptado').map(local => (
+                            {locales.filter(l => l.admin_status !== 'Rechazado').map(local => (
                                 <option key={local.id} value={local.id}>{local.nombre}</option>
                             ))}
                         </select>

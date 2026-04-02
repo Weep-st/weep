@@ -330,8 +330,9 @@ export async function getLocales() {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde)')
+    .select('*, locales!inner(nombre, foto_url, disponible_desde, admin_status)')
     .eq('disponibilidad', true)
+    .neq('locales.admin_status', 'Rechazado')
     .order('nombre');
   return (data || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
