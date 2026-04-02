@@ -53,6 +53,7 @@ const AdminRepartidores = () => {
                             <th>Contacto</th>
                             <th>Vehículo</th>
                             <th>Disponibilidad</th>
+                            <th>Activo</th>
                             <th>Estado Admin</th>
                             <th>Acciones</th>
                         </tr>
@@ -94,6 +95,11 @@ const AdminRepartidores = () => {
                                                     : 'Sin días asignados'}
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <span className={`badge ${rep.estado?.toLowerCase() === 'activo' ? 'success' : 'secondary'}`}>
+                                            {rep.estado || 'Inactivo'}
+                                        </span>
                                     </td>
                                     <td>
                                         <span className={`badge ${rep.admin_status?.toLowerCase()}`}>

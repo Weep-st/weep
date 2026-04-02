@@ -8,6 +8,7 @@ import AdminTasks from './AdminTasks';
 import AdminLogin from './AdminLogin';
 import AdminRepartidores from './AdminRepartidores';
 import AdminPagos from './AdminPagos';
+import AdminPedidos from './AdminPedidos';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -49,6 +50,7 @@ const AdminDashboard = () => {
             case 'pagos-repartidores': return <AdminPagos tipo="Repartidor" />;
             case 'emails': return <AdminEmails />;
             case 'tasks': return <AdminTasks />;
+            case 'pedidos': return <AdminPedidos />;
             default: return <AdminLocales />;
         }
     };
@@ -78,6 +80,9 @@ const AdminDashboard = () => {
                     </button>
                     <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>
                         <span className="icon">📋</span> Tareas Pendientes
+                    </button>
+                    <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => setActiveTab('pedidos')}>
+                        <span className="icon">📦</span> Historial Pedidos
                     </button>
                 </nav>
                 <div className="sidebar-footer">

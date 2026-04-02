@@ -917,7 +917,7 @@ export async function adminUpdateLocalAvailability(localId, disponibleDesde) {
 // ═══════════════════════════════════════════════════
 export async function adminGetRepartidores() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura')
+    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -926,6 +926,17 @@ export async function adminUpdateRepartidorStatus(repId, admin_status) {
   const { error } = await supabase.from('repartidores').update({ admin_status }).eq('id', repId);
   if (error) throw new Error(error.message);
   return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — Pedidos General
+// ═══════════════════════════════════════════════════
+export async function adminGetPedidosGeneral() {
+  const { data, error } = await supabase.from('pedidos_general')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
 }
 
 // ═══════════════════════════════════════════════════
