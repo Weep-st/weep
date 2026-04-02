@@ -164,6 +164,20 @@ export default function DriverDashboard() {
     }
   }, [driver]);
 
+  // OneSignal Integration
+  React.useEffect(() => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "a97550a5-7c54-4c92-a672-e5781f25d22c",
+        safari_web_id: "web.onesignal.auto.1cd53ad7-1124-4d48-8712-0a155e6245f9",
+        notifyButton: {
+          enable: true,
+        },
+      });
+    });
+  }, []);
+
   // On Login/Load
   React.useEffect(() => {
     if (driver) {
