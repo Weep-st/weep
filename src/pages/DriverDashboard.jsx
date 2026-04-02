@@ -62,6 +62,15 @@ export default function DriverDashboard() {
   const [driverLocation, setDriverLocation] = React.useState({ lat: null, lng: null });
   const [tutorialOrder, setTutorialOrder] = React.useState(null);
   const [notificationStatus, setNotificationStatus] = React.useState('loading'); // 'loading', 'granted', 'denied', 'default'
+  const [isIOS, setIsIOS] = React.useState(false);
+  const [isStandalone, setIsStandalone] = React.useState(false);
+
+  React.useEffect(() => {
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    setIsIOS(isIOSDevice);
+    setIsStandalone(isStandaloneMode);
+  }, []);
 
   // Geolocation Watcher
   React.useEffect(() => {
@@ -456,10 +465,27 @@ export default function DriverDashboard() {
 
   const iniciarGPS = () => {
     if ('geolocation' in navigator) {
+      toast.loading('Iniciando GPS...', { id: 'gps-init' });
       navigator.geolocation.getCurrentPosition(
-        () => toast.success('GPS activado (Demostración)'),
-        () => toast.error('No se pudo activar GPS')
+        (pos) => {
+          setDriverLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          });
+          toast.success('GPS activado correctamente', { id: 'gps-init' });
+        },
+        (err) => {
+          console.error("GPS Error:", err);
+          let msg = 'No se pudo activar GPS';
+          if (err.code === 1) msg = 'Permiso de ubicación denegado';
+          else if (err.code === 2) msg = 'Ubicación no disponible';
+          else if (err.code === 3) msg = 'Tiempo de espera agotado';
+          toast.error(msg, { id: 'gps-init' });
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
+    } else {
+      toast.error('Tu navegador no soporta GPS');
     }
   };
 
@@ -1132,6 +1158,35 @@ export default function DriverDashboard() {
             >
               Reenviar
             </button>
+          </div>
+        )}
+
+        {/* ─── Banner PWA para iPhone ─── */}
+        {isIOS && !isStandalone && (
+          <div className="pwa-install-banner" style={{
+            background: 'linear-gradient(135deg, #c62828 0%, #b71c1c 100%)',
+            color: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '20px',
+            margin: '0 16px 20px',
+            boxShadow: '0 8px 24px rgba(198, 40, 40, 0.25)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📱 Instala Weep en tu iPhone
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
+                Para <strong>recibir pedidos</strong> y que el <strong>GPS funcione</strong> bien:
+                <br />
+                1. Presiona el botón <img src="https://i.postimg.cc/85zPzCH7/ios-share.png" alt="compartir" style={{ height: '18px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>Compartir</strong> abajo.
+                <br />
+                2. Baja y elige <strong>"Añadir a la pantalla de inicio"</strong>.
+              </p>
+            </div>
+            <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', fontSize: '80px', opacity: 0.1 }}>🔔</div>
           </div>
         )}
 

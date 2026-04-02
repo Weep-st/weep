@@ -1,0 +1,22 @@
+{
+  "name": "Weep - Repartidores",
+  "short_name": "Weep",
+  "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
+  "start_url": "/repartidores",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c62828",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
