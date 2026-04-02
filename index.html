@@ -73,6 +73,47 @@
     </noscript>
     <!-- End Facebook Pixel Code -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        // Solo inicializar si estamos en la ruta de repartidores
+        if (!window.location.pathname.includes('/repartidores')) {
+          console.log("🔔 OneSignal: Not on /repartidores, skipping.");
+          return;
+        }
+
+        console.log("🔔 OneSignal: Initializing on /repartidores...");
+        
+        try {
+          await OneSignal.init({
+            appId: "a97550a5-7c54-4c92-a672-e5781f25d22c",
+            safari_web_id: "web.onesignal.auto.1cd53ad7-1124-4d48-8712-0a155e6245f9",
+            allowLocalhostAsSecureOrigin: true,
+            notifyButton: {
+              enable: true,
+              size: 'medium',
+              position: 'bottom-right',
+              colors: {
+                'circle.background': '#c62828',
+                'pulse.color': '#ffffff',
+                'icon.color': '#ffffff'
+              }
+            }
+          });
+          console.log("🔔 OneSignal: Success!");
+        } catch (e) {
+          console.error("🔔 OneSignal Init Error:", e);
+          if (e.toString().includes("weep.com.ar") && window.location.hostname === "localhost") {
+            console.warn("⚠️ Detectado error de dominio en localhost. Limpiando caché de OneSignal...");
+            // Intentar limpiar IndexedDB de OneSignal
+            if (window.indexedDB) {
+              window.indexedDB.deleteDatabase("OneSignalSDK");
+              console.log("⚠️ Caché OneSignal eliminada. Por favor, refresca la página (F5).");
+            }
+          }
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
