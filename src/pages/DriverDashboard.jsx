@@ -61,6 +61,7 @@ export default function DriverDashboard() {
   const [tutorialStep, setTutorialStep] = React.useState(1);
   const [driverLocation, setDriverLocation] = React.useState({ lat: null, lng: null });
   const [tutorialOrder, setTutorialOrder] = React.useState(null);
+  const [notificationStatus, setNotificationStatus] = React.useState('loading'); // 'loading', 'granted', 'denied', 'default'
 
   // Geolocation Watcher
   React.useEffect(() => {
@@ -175,6 +176,16 @@ export default function DriverDashboard() {
           try {
             console.log("🔔 OneSignal: Checking subscription for driver...");
             
+            const updateStatus = () => {
+              const perm = OneSignal.Notifications.permission;
+              setNotificationStatus(perm ? 'granted' : (OneSignal.Notifications.permissionNative === 'denied' ? 'denied' : 'default'));
+              if (perm) setNotificationStatus('granted');
+              else if (window.Notification && Notification.permission === 'denied') setNotificationStatus('denied');
+              else setNotificationStatus('default');
+            };
+
+            updateStatus();
+
             // 1. Initial Check
             const currentId = OneSignal.User.PushSubscription.id;
             console.log("🔔 OneSignal Current ID:", currentId);
@@ -183,7 +194,12 @@ export default function DriverDashboard() {
               console.log("✅ OneSignal ID synced to database.");
             }
 
-            // 2. Listener for changes (if they subscribe now)
+            // 2. Listeners
+            OneSignal.Notifications.addEventListener("permissionChange", (permission) => {
+              console.log("🔔 OneSignal Permission changed:", permission);
+              updateStatus();
+            });
+
             OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
               const newId = event.current.id;
               console.log("🔔 OneSignal ID changed:", newId);
@@ -195,6 +211,7 @@ export default function DriverDashboard() {
 
           } catch (err) {
             console.error("❌ OneSignal Sync Error:", err);
+            setNotificationStatus('denied');
           }
         });
       }
@@ -1114,6 +1131,31 @@ export default function DriverDashboard() {
             >
               Reenviar
             </button>
+          </div>
+        )}
+
+        {/* ─── Banner de Notificaciones ─── */}
+        {driver && notificationStatus !== 'granted' && (
+          <div className="notification-status-banner" style={{
+            background: notificationStatus === 'denied' ? '#fff1f0' : '#e6f7ff',
+            border: `1px solid ${notificationStatus === 'denied' ? '#ffa39e' : '#91d5ff'}`,
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            margin: '0 16px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.9rem',
+            color: notificationStatus === 'denied' ? '#cf1322' : '#0050b3'
+          }}>
+            <span>
+              {notificationStatus === 'denied' ? (
+                <>🚫 <strong>Notificaciones bloqueadas:</strong> No recibirás alertas de nuevos pedidos. Haz clic en el candado 🔒 de la barra de direcciones y selecciona "Permitir".</>
+              ) : (
+                <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos en tiempo real, presiona la campana roja de la esquina.</>
+              )}
+            </span>
           </div>
         )}
         {!driver ? renderAuth() : (

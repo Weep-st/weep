@@ -293,8 +293,17 @@ export async function repartidorActualizarEstado(driverId, estado) {
 }
 
 export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
-  const { error } = await supabase.from('repartidores').update({ onesignal_id: onesignalId }).eq('id', driverId);
-  if (error) throw new Error(error.message);
+  if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
+  
+  // Update in database
+  const { error } = await supabase.from('repartidores')
+    .update({ onesignal_id: onesignalId })
+    .eq('id', driverId);
+    
+  if (error) {
+    console.error("Error updating OneSignal ID:", error);
+    throw new Error(error.message);
+  }
   return { success: true };
 }
 
@@ -1550,9 +1559,15 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
 
     // ─── Enviar Notificacion Push ───
     try {
-      const { data: rep } = await supabase.from('repartidores').select('onesignal_id').eq('email', repartidorEmail).single();
+      // Re-fetch to be absolutely sure we have the latest ID
+      const { data: rep } = await supabase.from('repartidores')
+        .select('onesignal_id')
+        .eq('email', repartidorEmail)
+        .single();
+        
       if (rep?.onesignal_id) {
-        await supabase.functions.invoke('send-push', {
+        console.log("🔔 Triggering Push for:", rep.onesignal_id);
+        const { data: pushResult, error: pushErr } = await supabase.functions.invoke('send-push', {
           body: {
             subscriptionIds: [rep.onesignal_id],
             title: '¡Tienes un nuevo pedido! 🛵',
@@ -1560,9 +1575,13 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
             data: { pedidoId, type: 'new_order' }
           }
         });
+        if (pushErr) console.error('Error invoking send-push:', pushErr);
+        else console.log('✅ Push sent result:', pushResult);
+      } else {
+        console.warn("⚠️ No OneSignal ID found for driver email:", repartidorEmail);
       }
     } catch (e) {
-      console.error('Error enviando push:', e);
+      console.error('Error in push notification flow:', e);
     }
 
   } catch (error) {

@@ -642,6 +642,9 @@ export default function RestaurantDashboard() {
                 ).catch(e => console.error("Error notificando driver desde dashboard:", e));
               }
             }).catch(e => console.error(e));
+          } else if (pedido.tipoEntrega?.toLowerCase().includes('envío') || pedido.tipoEntrega?.toLowerCase().includes('delivery')) {
+            // Auto-asignar primer repartidor disponible si es delivery y no tiene uno
+            api.assignRepartidor(pedido.idPedido).catch(e => console.error("Error auto-assigning driver:", e));
           }
         } else if (action === 'Listo') {
           const direccionLocal = profileData?.direccion || 'Dirección del local';
