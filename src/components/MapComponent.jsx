@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { GoogleMap, useJsApiLoader, MarkerF, InfoWindowF } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF, InfoWindowF, OverlayViewF } from '@react-google-maps/api';
+import './MapComponent.css';
 
 const containerStyle = {
   width: '100%',
@@ -43,30 +44,16 @@ const MapComponent = ({
       m.push({
         id: 'local',
         position: { lat: Number(localLat), lng: Number(localLng) },
-        title: 'Retirar en: ' + localName,
-        icon: 'https://i.postimg.cc/Tw1SSvzk/buscamos-repartidores-(25).png',
-        label: {
-          text: 'Dirección de Retiro',
-          color: '#E11D48',
-          fontWeight: 'bold',
-          fontSize: '14px',
-          className: 'map-marker-label'
-        }
+        title: localName,
+        icon: 'https://i.postimg.cc/ZKHbrvdP/Home-free-icons-designed-by-nawicon-(1).png'
       });
     }
     if (deliveryLat && deliveryLng && isWithinSantoTome(deliveryLat, deliveryLng)) {
       m.push({
         id: 'delivery',
         position: { lat: Number(deliveryLat), lng: Number(deliveryLng) },
-        title: 'Entregar en: ' + deliveryAddress,
-        icon: 'https://i.postimg.cc/0y1TN3SN/buscamos-repartidores-(26).png',
-        label: {
-          text: 'Dirección de Entrega',
-          color: '#E11D48',
-          fontWeight: 'bold',
-          fontSize: '14px',
-          className: 'map-marker-label'
-        }
+        title: deliveryAddress,
+        icon: 'https://i.postimg.cc/zfbqZdPs/Home-free-icons-designed-by-nawicon.png'
       });
     }
     if (driverLat && driverLng && isWithinSantoTome(driverLat, driverLng)) {
@@ -121,17 +108,29 @@ const MapComponent = ({
       }}
     >
       {markers.map((marker) => (
-        <MarkerF
+        <OverlayViewF
           key={marker.id}
           position={marker.position}
-          onClick={() => setSelectedMarker(marker)}
-          icon={{
-            url: marker.icon,
-            scaledSize: new window.google.maps.Size(50, 50),
-            labelOrigin: new window.google.maps.Point(25, -15)
-          }}
-          label={marker.label}
-        />
+          mapPaneName={OverlayViewF.OVERLAY_MOUSE_TARGET}
+        >
+          <div 
+            className={`marker-container ${marker.id}`} 
+            onClick={() => setSelectedMarker(marker)}
+          >
+            <div className={`marker-image-wrapper ${marker.id}`}>
+              <img 
+                src={marker.icon} 
+                alt={marker.title} 
+                className="marker-image"
+              />
+            </div>
+            {marker.id !== 'driver' && (
+              <div className="marker-label">
+                {marker.id === 'local' ? 'RETIRO' : 'ENTREGA'}
+              </div>
+            )}
+          </div>
+        </OverlayViewF>
       ))}
 
       {selectedMarker && (
