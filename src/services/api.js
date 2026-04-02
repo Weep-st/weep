@@ -292,6 +292,12 @@ export async function repartidorActualizarEstado(driverId, estado) {
   return { success: true };
 }
 
+export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
+  const { error } = await supabase.from('repartidores').update({ onesignal_id: onesignalId }).eq('id', driverId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
 
 // ═══════════════════════════════════════════════════
 // LOCALES — Get all
@@ -1066,6 +1072,25 @@ export async function assignRepartidor(pedidoId) {
   // Marcar como ocupado al ser asignado manualmente o por sistema
   await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', elegido.id);
 
+  // Notificar al repartidor
+  try {
+    const { data: pedData } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
+    const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
+    if (pedData && items) {
+      await notifyDriverAboutNewOrder(
+        pedidoId,
+        items,
+        pedData.direccion,
+        pedData.observaciones,
+        pedData.total,
+        pedData.metodo_pago,
+        elegido.email
+      );
+    }
+  } catch (e) {
+    console.error('Error notificando al repartidor en asignacion manual:', e);
+  }
+
   return { success: true, repartidor: elegido };
 }
 
@@ -1522,6 +1547,24 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
         htmlBody
       }
     });
+
+    // ─── Enviar Notificacion Push ───
+    try {
+      const { data: rep } = await supabase.from('repartidores').select('onesignal_id').eq('email', repartidorEmail).single();
+      if (rep?.onesignal_id) {
+        await supabase.functions.invoke('send-push', {
+          body: {
+            subscriptionIds: [rep.onesignal_id],
+            title: '¡Tienes un nuevo pedido! 🛵',
+            message: 'Nuevo pedido, aceptalo o rechazalo en el panel de repartidores',
+            data: { pedidoId, type: 'new_order' }
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Error enviando push:', e);
+    }
+
   } catch (error) {
     console.error("Error enviando email al repartidor:", error);
   }

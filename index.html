@@ -76,13 +76,7 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        // Solo inicializar si estamos en la ruta de repartidores
-        if (!window.location.pathname.includes('/repartidores')) {
-          console.log("🔔 OneSignal: Not on /repartidores, skipping.");
-          return;
-        }
-
-        console.log("🔔 OneSignal: Initializing on /repartidores...");
+        console.log("🔔 OneSignal: Initializing...");
         
         try {
           await OneSignal.init({

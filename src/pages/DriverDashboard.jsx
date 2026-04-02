@@ -168,6 +168,37 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     if (driver) {
       loadData();
+      
+      // ─── Sync OneSignal ID ───
+      if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async (OneSignal) => {
+          try {
+            console.log("🔔 OneSignal: Checking subscription for driver...");
+            
+            // 1. Initial Check
+            const currentId = OneSignal.User.PushSubscription.id;
+            console.log("🔔 OneSignal Current ID:", currentId);
+            if (currentId) {
+              await api.repartidorUpdateOneSignalId(driver.id, currentId);
+              console.log("✅ OneSignal ID synced to database.");
+            }
+
+            // 2. Listener for changes (if they subscribe now)
+            OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+              const newId = event.current.id;
+              console.log("🔔 OneSignal ID changed:", newId);
+              if (newId) {
+                await api.repartidorUpdateOneSignalId(driver.id, newId);
+                console.log("✅ OneSignal ID updated in database.");
+              }
+            });
+
+          } catch (err) {
+            console.error("❌ OneSignal Sync Error:", err);
+          }
+        });
+      }
+
       // Check if tutorial was already seen
       const hasSeenTutorial = localStorage.getItem(`tutorial_seen_driver_${driver.id}`);
       if (!hasSeenTutorial) {
