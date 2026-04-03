@@ -10,8 +10,39 @@
     <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
     <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
     <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="apple-mobile-web-app-title" content="Weep" />
+    <script>
+      (function() {
+        var path = window.location.pathname;
+        var manifest = "/manifest.json"; // Default
+        var title = "Weep";
+
+        if (path.startsWith("/admin")) {
+          manifest = "/manifest-admin.json";
+          title = "Weep Admin";
+        } else if (path.startsWith("/locales")) {
+          manifest = "/manifest-locales.json";
+          title = "Weep Locales";
+        } else if (path.startsWith("/pedir")) {
+          manifest = "/manifest-pedir.json";
+          title = "Weep";
+        } else if (path.startsWith("/repartidores")) {
+          manifest = "/manifest.json";
+          title = "Weep Repartidores";
+        }
+
+        // Inyectar manifest
+        var link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifest;
+        document.head.appendChild(link);
+
+        // Actualizar título de app para iOS
+        var metaTitle = document.createElement('meta');
+        metaTitle.name = 'apple-mobile-web-app-title';
+        metaTitle.content = title;
+        document.head.appendChild(metaTitle);
+      })();
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

@@ -1,8 +1,8 @@
 {
-  "name": "Weep Repartidores",
+  "name": "Weep Pedir",
   "short_name": "Weep",
-  "description": "Plataforma de Repartidores Weep",
-  "start_url": "/repartidores",
+  "description": "Pedí tu comida favorita en Weep",
+  "start_url": "/pedir",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#c62828",

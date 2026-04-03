@@ -1,8 +1,8 @@
 {
-  "name": "Weep Repartidores",
-  "short_name": "Weep",
-  "description": "Plataforma de Repartidores Weep",
-  "start_url": "/repartidores",
+  "name": "Weep Locales",
+  "short_name": "Weep Locales",
+  "description": "Panel de Gestión de Negocios Weep",
+  "start_url": "/locales",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#c62828",
