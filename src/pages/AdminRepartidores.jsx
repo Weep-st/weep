@@ -25,6 +25,9 @@ const AdminRepartidores = () => {
 
     useEffect(() => {
         loadRepartidores();
+        // Polling cada 30 segundos para actualizar actividad en tiempo real
+        const interval = setInterval(loadRepartidores, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleUpdateStatus = async (id, status) => {

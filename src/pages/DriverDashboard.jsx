@@ -290,16 +290,30 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     const handleUnload = () => {
       if (isActive && driver) {
-        // Intentamos marcar como inactivo. 
-        // Nota: Las llamadas async en beforeunload no siempre terminan, 
-        // pero es la mejor opción sin usar beacon/servidor dedicado.
-        api.repartidorActualizarEstado(driver.id, 'Inactivo');
+        // Usar fetch con keepalive para asegurar que la petición se complete
+        // incluso si la pestaña se cierra.
+        const url = `${api.SUPABASE_URL}/rest/v1/repartidores?id=eq.${driver.id}`;
+        const now = new Date().toISOString();
+        fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'apikey': api.SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ 
+            estado: 'Inactivo', 
+            ultima_actividad: now,
+            ultima_conexion: now
+          }),
+          keepalive: true
+        });
       }
     };
 
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [isActive, driver]);
+  }, [driver, isActive]);
 
   // Carga de datos del local para viaje en curso
   React.useEffect(() => {

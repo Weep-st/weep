@@ -286,9 +286,11 @@ export async function repartidorUpdatePerfil(params) {
 }
 
 export async function repartidorActualizarEstado(driverId, estado) {
+  const now = new Date().toISOString();
   const updates = { 
     estado,
-    ultima_actividad: new Date().toISOString()
+    ultima_actividad: now,
+    ultima_conexion: now
   };
   const { error } = await supabase.from('repartidores').update(updates).eq('id', driverId);
   if (error) return { success: false, error: error.message };
@@ -296,9 +298,13 @@ export async function repartidorActualizarEstado(driverId, estado) {
 }
 
 export async function repartidorUpdateHeartbeat(driverId) {
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from('repartidores')
-    .update({ ultima_actividad: new Date().toISOString() })
+    .update({ 
+      ultima_actividad: now,
+      ultima_conexion: now
+    })
     .eq('id', driverId);
   if (error) return { success: false };
   return { success: true };
