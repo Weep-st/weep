@@ -34,7 +34,7 @@ const AdminLocales = () => {
     const loadMenuCompleto = async () => {
         setMenuLoading(true);
         try {
-            const data = await api.getMenuCompleto();
+            const data = await api.adminGetMenuCompleto();
             setMenuItems(data || []);
         } catch (err) {
             toast.error('Error al cargar catálogo de menús');

@@ -940,6 +940,24 @@ export async function adminGetPedidosGeneral() {
 }
 
 // ═══════════════════════════════════════════════════
+// ADMIN — Menú Completo (Sin filtros)
+// ═══════════════════════════════════════════════════
+export async function adminGetMenuCompleto() {
+  const { data } = await supabase
+    .from('menu')
+    .select('*, locales(nombre, foto_url, disponible_desde)')
+    .order('nombre');
+  return (data || []).map(i => ({
+    id: i.id, nombre: i.nombre, categoria: i.categoria,
+    descripcion: i.descripcion, precio: i.precio,
+    disponibilidad: i.disponibilidad, imagen_url: i.imagen_url,
+    local_id: i.local_id,
+    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
+  }));
+}
+
+// ═══════════════════════════════════════════════════
 // ADMIN — Gestión de Cobros (Locales y Repartidores)
 // ═══════════════════════════════════════════════════
 export async function adminGetGestionCobros(tipo = 'Local') {
