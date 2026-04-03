@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useJsApiLoader } from '@react-google-maps/api';
 import * as api from '../services/api';
 import { iniciarPagoMercadoPago } from '../services/mercadopago';
+import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
 import './CustomerApp.css';
@@ -314,7 +315,14 @@ export default function CustomerApp() {
     try {
       const d = await api.loginUsuario(fd.get('email').toLowerCase(), fd.get('password'));
       if (d.success) {
-        loginAsUser({ userId: d.userId, name: d.nombre, email: d.email || fd.get('email'), address: d.direccion, emailConfirmado: d.emailConfirmado });
+        loginAsUser({ 
+          userId: d.userId, 
+          name: d.nombre, 
+          email: d.email || fd.get('email'), 
+          address: d.direccion, 
+          telefono: d.telefono, 
+          emailConfirmado: d.emailConfirmado 
+        });
         setModal(null);
         toast.success('¡Bienvenido!');
       } else toast.error('Credenciales incorrectas');
@@ -335,16 +343,24 @@ export default function CustomerApp() {
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
     if (fd.get('password').length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!fd.get('telefono')) { toast.error('El teléfono es obligatorio'); return; }
     setAuthLoading(true);
     try {
       const d = await api.registerUsuario(
-        fd.get('nombre'), fd.get('email').toLowerCase(), fd.get('password'), fd.get('direccion'),
+        fd.get('nombre'), fd.get('email').toLowerCase(), fd.get('password'), fd.get('direccion'), fd.get('telefono'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
       );
       if (d.success) {
-        loginAsUser({ userId: d.userId, name: fd.get('nombre'), email: fd.get('email'), address: fd.get('direccion') });
+        loginAsUser({ 
+          userId: d.userId, 
+          name: fd.get('nombre'), 
+          email: fd.get('email'), 
+          address: fd.get('direccion'),
+          telefono: fd.get('telefono')
+        });
         setModal(null);
         toast.success('¡Registro exitoso!');
       } else toast.error('Error al registrar');
@@ -357,14 +373,16 @@ export default function CustomerApp() {
     const fd = new FormData(e.target);
     const nombre = fd.get('nombre');
     const email = fd.get('email');
+    const telefono = fd.get('telefono');
     const newPass = fd.get('newPassword');
-    if (!nombre || !email) { toast.error('Nombre y email son obligatorios'); return; }
+    if (!nombre || !email || !telefono) { toast.error('Nombre, email y teléfono son obligatorios'); return; }
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
     if (newPass && newPass.length < 6) { toast.error('La nueva contraseña debe tener 6+ caracteres'); return; }
     setAuthLoading(true);
     try {
-      await api.updateProfile(user.id, nombre, email, newPass || null);
+      await api.updateProfile(user.id, nombre, email, telefono, newPass || null);
       // Update local state
-      loginAsUser({ userId: user.id, name: nombre, email, address: user.address });
+      loginAsUser({ userId: user.id, name: nombre, email, address: user.address, telefono });
       toast.success('Perfil actualizado');
       setModal('profile');
     } catch { toast.error('Error al actualizar perfil'); }
@@ -1280,6 +1298,7 @@ export default function CustomerApp() {
                   </button>
                 </div>
                 <input name="direccion" className="form-input" placeholder="Dirección (opcional)" autoComplete="street-address" />
+                <input name="telefono" type="tel" className="form-input" placeholder="Teléfono / WhatsApp" required autoComplete="tel" />
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
                   <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
@@ -1301,6 +1320,7 @@ export default function CustomerApp() {
                 <div className="profile-info">
                   <p><strong>Nombre:</strong> {user.name}</p>
                   <p><strong>Email:</strong> {user.email}</p>
+                  <p><strong>Teléfono:</strong> {user.telefono || 'No configurado'}</p>
                   <p><strong>Dirección:</strong> {user.address || 'No configurada'}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
@@ -1321,6 +1341,8 @@ export default function CustomerApp() {
                 <input name="nombre" className="form-input" defaultValue={user.name} required />
                 <label className="form-label">Email</label>
                 <input name="email" type="email" className="form-input" defaultValue={user.email} required />
+                <label className="form-label">Teléfono</label>
+                <input name="telefono" type="tel" className="form-input" defaultValue={user.telefono} required />
                 <label className="form-label">Nueva contraseña (opcional)</label>
                 <input name="newPassword" type="password" className="form-input" placeholder="Dejar en blanco si no deseas cambiarla" />
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>

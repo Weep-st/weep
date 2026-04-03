@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
 import { useJsApiLoader } from '@react-google-maps/api';
+import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import MapComponent from '../components/MapComponent';
 import './DriverDashboard.css';
@@ -377,6 +378,7 @@ export default function DriverDashboard() {
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
     setAuthLoading(true);
     try {
       const d = await api.repartidorRegister({
@@ -421,6 +423,8 @@ export default function DriverDashboard() {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
+    
     const file = fd.get('foto');
     const selectedDays = [];
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {

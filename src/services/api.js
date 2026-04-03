@@ -42,11 +42,11 @@ export async function loginUsuario(email, password) {
   };
 }
 
-export async function registerUsuario(nombre, email, password, direccion, termsAccepted = true, privacyAccepted = true) {
+export async function registerUsuario(nombre, email, password, direccion, telefono, termsAccepted = true, privacyAccepted = true) {
   const id = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('usuarios').insert({ 
-    id, nombre, email, password, direccion,
+    id, nombre, email, password, direccion, telefono,
     terms_accepted: termsAccepted,
     privacy_accepted: privacyAccepted,
     terms_accepted_at: new Date().toISOString(),
@@ -805,8 +805,8 @@ export async function reOrderItems(userId, pedidoId) {
 // ═══════════════════════════════════════════════════
 // PROFILE UPDATE
 // ═══════════════════════════════════════════════════
-export async function updateProfile(userId, nombre, email, newPassword) {
-  const updates = { nombre, email };
+export async function updateProfile(userId, nombre, email, telefono, newPassword) {
+  const updates = { nombre, email, telefono };
   if (newPassword) updates.password = newPassword;
   const { error } = await supabase.from('usuarios').update(updates).eq('id', userId);
   if (error) throw new Error(error.message);

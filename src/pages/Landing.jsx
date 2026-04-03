@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { registrarEmailLanzamiento } from '../services/api';
+import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import './Landing.css';
 
@@ -32,7 +33,7 @@ export default function Landing() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!isValidEmail(email)) {
       toast.error('Ingresá un email válido');
       return;
     }

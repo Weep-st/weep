@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useJsApiLoader } from '@react-google-maps/api';
 import AddressSelector from '../components/AddressSelector';
 import * as api from '../services/api';
+import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import './RestaurantDashboard.css';
 
@@ -511,6 +512,7 @@ export default function RestaurantDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     const email = fd.get('email');
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
     setAuthLoading(true);
     try {
       await api.registerLocal(
@@ -676,6 +678,9 @@ export default function RestaurantDashboard() {
     const file = fd.get('foto');
     const direccion = fd.get('direccion');
     const selectedDays = [];
+    const email = fd.get('email');
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
       if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
     });

@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
         name: localStorage.getItem('userName') || '',
         email: localStorage.getItem('userEmail') || '',
         address: localStorage.getItem('userAddress') || '',
+        telefono: localStorage.getItem('userTelefono') || '',
         emailConfirmado: localStorage.getItem('userEmailConfirmado') === 'true',
         role: localStorage.getItem('userRole') || 'user',
       });
@@ -40,6 +41,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userName', data.name || '');
     localStorage.setItem('userEmail', data.email || '');
     localStorage.setItem('userAddress', data.address || '');
+    localStorage.setItem('userTelefono', data.telefono || '');
     localStorage.setItem('userEmailConfirmado', String(!!data.emailConfirmado));
     localStorage.setItem('userRole', data.role || 'user');
     setUser({ 
@@ -47,13 +49,14 @@ export function AuthProvider({ children }) {
       name: data.name, 
       email: data.email, 
       address: data.address,
+      telefono: data.telefono,
       emailConfirmado: !!data.emailConfirmado,
       role: data.role || 'user'
     });
   };
 
   const logoutUser = () => {
-    ['userId', 'userName', 'userEmail', 'userAddress', 'userEmailConfirmado', 'userRole'].forEach(k => localStorage.removeItem(k));
+    ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole'].forEach(k => localStorage.removeItem(k));
     setUser(null);
   };
 
