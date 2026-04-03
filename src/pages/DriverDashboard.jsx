@@ -253,23 +253,53 @@ export default function DriverDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driver]);
 
-  // Polling para pedidos disponibles
+  // Polling para pedidos disponibles y Heartbeat
   React.useEffect(() => {
     let interval;
+    let heartbeatInterval;
+
     if (driver && isActive) {
       // First fetch
       fetchPedidos();
       checkAvailability();
-      // Polling cada 30 segundos
+      
+      // Polling de pedidos cada 30 segundos
       interval = setInterval(() => {
         fetchPedidos();
         checkAvailability();
       }, 30000);
+
+      // Heartbeat cada 60 segundos
+      heartbeatInterval = setInterval(() => {
+        api.repartidorUpdateHeartbeat(driver.id);
+      }, 60000);
+      
+      // Actualización inmediata al activar
+      api.repartidorUpdateHeartbeat(driver.id);
     } else {
       setPedidos([]);
     }
-    return () => clearInterval(interval);
-  }, [driver, isActive]);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(heartbeatInterval);
+    };
+  }, [driver, isActive, fetchPedidos, checkAvailability]);
+
+  // Manejo de cierre de pestaña / Navegación fuera
+  React.useEffect(() => {
+    const handleUnload = () => {
+      if (isActive && driver) {
+        // Intentamos marcar como inactivo. 
+        // Nota: Las llamadas async en beforeunload no siempre terminan, 
+        // pero es la mejor opción sin usar beacon/servidor dedicado.
+        api.repartidorActualizarEstado(driver.id, 'Inactivo');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [isActive, driver]);
 
   // Carga de datos del local para viaje en curso
   React.useEffect(() => {

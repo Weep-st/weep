@@ -37,6 +37,30 @@ const AdminRepartidores = () => {
         }
     };
 
+    const handleForceDisconnect = async (id) => {
+        if (!window.confirm('¿Forzar desconexión de este repartidor?')) return;
+        try {
+            await api.repartidorActualizarEstado(id, 'Inactivo');
+            toast.success('Repartidor desconectado');
+            loadRepartidores();
+        } catch (err) {
+            toast.error('Error al desconectar');
+        }
+    };
+
+    const isOnline = (rep) => {
+        if (!rep.ultima_actividad) return false;
+        const diff = (new Date() - new Date(rep.ultima_actividad)) / 1000 / 60;
+        // Consideramos online si reportó actividad en los últimos 5 min y su estado es Activo/Ocupado
+        return diff < 5 && (rep.estado === 'Activo' || rep.estado === 'Ocupado');
+    };
+
+    const formatLastActive = (date) => {
+        if (!date) return 'Nunca';
+        const d = new Date(date);
+        return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    };
+
     if (loading) return <div className="loading-state">Cargando repartidores...</div>;
 
     return (
@@ -97,9 +121,14 @@ const AdminRepartidores = () => {
                                         </div>
                                     </td>
                                     <td>
-                                        <span className={`badge ${rep.estado?.toLowerCase() === 'activo' ? 'success' : 'secondary'}`}>
-                                            {rep.estado || 'Inactivo'}
-                                        </span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span className={`badge ${isOnline(rep) ? 'success' : (rep.estado === 'Ocupado' ? 'warning' : 'secondary')}`}>
+                                                {isOnline(rep) ? (rep.estado === 'Ocupado' ? 'Ocupado' : 'Online') : 'Offline'}
+                                            </span>
+                                            <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                                Visto: {formatLastActive(rep.ultima_actividad)}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td>
                                         <span className={`badge ${rep.admin_status?.toLowerCase()}`}>
@@ -107,21 +136,32 @@ const AdminRepartidores = () => {
                                         </span>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button 
-                                                className="btn btn-success btn-sm" 
-                                                onClick={() => handleUpdateStatus(rep.id, 'Aceptado')}
-                                                disabled={rep.admin_status === 'Aceptado'}
-                                            >
-                                                Aceptar
-                                            </button>
-                                            <button 
-                                                className="btn btn-danger btn-sm" 
-                                                onClick={() => handleUpdateStatus(rep.id, 'Rechazado')}
-                                                disabled={rep.admin_status === 'Rechazado'}
-                                            >
-                                                Rechazar
-                                            </button>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button 
+                                                    className="btn btn-success btn-sm" 
+                                                    onClick={() => handleUpdateStatus(rep.id, 'Aceptado')}
+                                                    disabled={rep.admin_status === 'Aceptado'}
+                                                >
+                                                    Aceptar
+                                                </button>
+                                                <button 
+                                                    className="btn btn-danger btn-sm" 
+                                                    onClick={() => handleUpdateStatus(rep.id, 'Rechazado')}
+                                                    disabled={rep.admin_status === 'Rechazado'}
+                                                >
+                                                    Rechazar
+                                                </button>
+                                            </div>
+                                            {rep.estado !== 'Inactivo' && (
+                                                <button 
+                                                    className="btn btn-secondary btn-sm" 
+                                                    style={{ fontSize: '0.7rem', padding: '4px' }}
+                                                    onClick={() => handleForceDisconnect(rep.id)}
+                                                >
+                                                    Forzar Desconexión
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

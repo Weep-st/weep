@@ -286,8 +286,20 @@ export async function repartidorUpdatePerfil(params) {
 }
 
 export async function repartidorActualizarEstado(driverId, estado) {
-  const updates = { estado };
+  const updates = { 
+    estado,
+    ultima_actividad: new Date().toISOString()
+  };
   const { error } = await supabase.from('repartidores').update(updates).eq('id', driverId);
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function repartidorUpdateHeartbeat(driverId) {
+  const { error } = await supabase
+    .from('repartidores')
+    .update({ ultima_actividad: new Date().toISOString() })
+    .eq('id', driverId);
   if (error) return { success: false };
   return { success: true };
 }
@@ -917,7 +929,7 @@ export async function adminUpdateLocalAvailability(localId, disponibleDesde) {
 // ═══════════════════════════════════════════════════
 export async function adminGetRepartidores() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado')
+    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado, ultima_actividad')
     .order('created_at', { ascending: false });
   return data || [];
 }
