@@ -739,7 +739,8 @@ export default function CustomerApp() {
               currency_id: "ARS",
               unit_price: Number(exactTotal)
             }],
-            local_id: cart.items[0]?.local_id
+            local_id: cart.items[0]?.local_id,
+            marketplace_fee: finalTotals.platform_gross
           };
 
           const paymentResponse = await iniciarPagoMercadoPago(paymentData);

@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { items, external_reference, back_urls, local_id } = await req.json()
+    const { items, external_reference, back_urls, local_id, marketplace_fee } = await req.json()
 
     if (!items || !external_reference || !local_id) {
       throw new Error("Missing required parameters: items, external_reference, or local_id")
@@ -52,8 +52,9 @@ Deno.serve(async (req) => {
 
     // Calcula el total del pedido
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
-    // Extraemos 5% para Weep (Asegurarse de redondear a máximo 2 decimales para MP)
-    const weepFee = Number((totalAmount * 0.05).toFixed(2));
+    // Usamos el marketplace_fee indicado por el frontend (Comisión + Envío + Comisiones MP)
+    // O fallback al 5% por compatibilidad con versiones anteriores si no se envía.
+    const weepFee = marketplace_fee !== undefined ? Number(marketplace_fee) : Number((totalAmount * 0.05).toFixed(2));
 
     // Si se usó el token del local y está configurado, le aplicamos la comisión del Marketplace
     if (localData?.mp_access_token && accessToken === localData.mp_access_token) {
