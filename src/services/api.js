@@ -1473,6 +1473,9 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
 
         const htmlBody = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <div style="text-align: center; margin: 20px 0;">
+              <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
+            </div>
             <h2 style="color: #9b1913;">¡Nuevo Pedido para ${localData.nombre}!</h2>
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
               <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
@@ -1560,6 +1563,9 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
 
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="text-align: center; margin: 20px 0;">
+          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
+        </div>
         <h2 style="color: #9b1913;">¡Hola ${nombreCliente || 'Cliente'}! Tu pedido está confirmado. 🍔</h2>
         <div style="background: #eef2f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="margin-top: 0; color: #2e7d32; text-align: center;">PIN DE CONFIRMACIÓN: <span style="font-size: 24px;">${numConfirmacion}</span></h3>
@@ -1636,7 +1642,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="text-align:center; margin: 20px 0;">
-          <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" width="120" style="border-radius:12px;">
+          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
         </div>
         <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
         <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>
@@ -1679,7 +1685,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
 
 const LOGO_HTML = `
   <div style="text-align: center; margin: 20px 0 30px 0;">
-      <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png"
+      <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png"
             alt="Weep" width="120" style="border-radius:12px;">
   </div>
   <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
@@ -1886,7 +1892,7 @@ async function sendInactivityEmail(email, nombre) {
   const htmlBody = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
         <div style="text-align: center; margin-bottom: 30px;">
-            <img src="https://i.postimg.cc/65s8mhDZ/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" style="width: 120px; height: auto;">
+            <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" style="width: 120px; height: auto;">
         </div>
         <div style="background-color: #f59e0b; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
         <h1 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px;">Aviso de Desconexión Automática</h1>
