@@ -1798,6 +1798,7 @@ export async function getMontoLocalPedido(pedidoId, localId) {
   return data ? Number(data.total) : 0;
 }
 
+
 // ═══════════════════════════════════════════════════
 // BOTÓN DE ARREPENTIMIENTO (Account Deletion)
 // ═══════════════════════════════════════════════════
@@ -1818,5 +1819,79 @@ export async function deleteRepartidorAccount(driverId) {
   const { error } = await supabase.from('repartidores').delete().eq('id', driverId);
   if (error) throw new Error(error.message);
   return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// INACTIVACIÓN AUTOMÁTICA POR INACTIVIDAD (Lazy Cleanup)
+// ═══════════════════════════════════════════════════
+
+export async function adminCleanupInactiveDrivers() {
+  try {
+    const threshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    // 1. Buscar repartidores que deberían estar inactivos
+    const { data: inactiveDrivers, error: searchError } = await supabase
+      .from('repartidores')
+      .select('id, nombre, email')
+      .eq('estado', 'Activo')
+      .lt('ultima_actividad', threshold);
+
+    if (searchError) throw searchError;
+    if (!inactiveDrivers || inactiveDrivers.length === 0) return { success: true, count: 0 };
+
+    const ids = inactiveDrivers.map(d => d.id);
+
+    // 2. Actualizar estado en la BD
+    const { error: updateError } = await supabase
+      .from('repartidores')
+      .update({ estado: 'Inactivo' })
+      .in('id', ids);
+
+    if (updateError) throw updateError;
+
+    // 3. Enviar correos de aviso (paralelo)
+    const emailPromises = inactiveDrivers.map(driver => 
+      sendInactivityEmail(driver.email, driver.nombre)
+    );
+    await Promise.all(emailPromises);
+
+    return { success: true, count: inactiveDrivers.length };
+  } catch (err) {
+    console.error("❌ Error en cleanupInactiveDrivers:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+async function sendInactivityEmail(email, nombre) {
+  const htmlBody = `
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="https://i.postimg.cc/65s8mhDZ/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep" style="width: 120px; height: auto;">
+        </div>
+        <div style="background-color: #f59e0b; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
+        <h1 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px;">Aviso de Desconexión Automática</h1>
+        <p style="font-size: 16px; color: #475569; line-height: 1.8; margin-bottom: 20px;">
+            Hola <strong>${nombre}</strong>,
+        </p>
+        <p style="font-size: 16px; color: #475569; line-height: 1.8; margin-bottom: 20px;">
+            Detectamos que tu cuenta ha estado inactiva por más de 5 minutos mientras estabas en modo "Activo". Por seguridad y para optimizar el servicio, hemos cambiado tu estado a <strong>Inactivo</strong>.
+        </p>
+        <div style="background-color: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fef3c7; margin-bottom: 30px; text-align: center;">
+            <p style="color: #92400e; margin: 0; font-weight: 600;">Deberás volver a conectarte desde la app para recibir nuevos pedidos.</p>
+        </div>
+        <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
+            <p>© ${new Date().getFullYear()} WEEP. Todos los derechos reservados.</p>
+            <p>Este es un mensaje institucional automático.</p>
+        </div>
+    </div>
+  `;
+
+  return supabase.functions.invoke('send-email', {
+    body: {
+      to: email,
+      subject: "⚠️ Tu cuenta de Repartidor se ha puesto en espera - Weep",
+      htmlBody
+    }
+  });
 }
 

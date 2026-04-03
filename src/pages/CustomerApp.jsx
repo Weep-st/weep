@@ -144,6 +144,9 @@ export default function CustomerApp() {
 
   // Load locals + drinks on mount
   React.useEffect(() => {
+    // Limpieza pasiva de repartidores inactivos
+    api.adminCleanupInactiveDrivers().catch(() => {});
+
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     if (user) {
