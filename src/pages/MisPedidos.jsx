@@ -110,6 +110,42 @@ export default function MisPedidos() {
     }
   };
 
+  const handleCancel = async (pedidoId) => {
+    if (!window.confirm('¿Seguro que deseas cancelar este pedido?')) return;
+    try {
+      const res = await api.cancelarPedidoUsuario(user.id, pedidoId);
+      if (res.success) {
+        toast.success('Pedido cancelado correctamente');
+        loadPedidos();
+      }
+    } catch {
+      toast.error('Error al cancelar el pedido');
+    }
+  };
+
+  const handleEdit = async (pedidoId) => {
+    if (!window.confirm('Para editar, cancelaremos el pedido actual y devolveremos los productos al carrito. ¿Continuar?')) return;
+    try {
+      // 1. Re-add items to cart
+      const data = await api.reOrderItems(user.id, pedidoId);
+      if (data.success && data.items.length > 0) {
+        data.items.forEach(item => {
+          for (let i = 0; i < (item.qty || 1); i++) {
+            cart.addItem(item);
+          }
+        });
+        // 2. Cancel order
+        await api.cancelarPedidoUsuario(user.id, pedidoId);
+        toast.success('Pedido listo para editar en el carrito.');
+        navigate('/pedir');
+      } else {
+        toast.error('No se pudieron recuperar los productos');
+      }
+    } catch {
+      toast.error('Error al intentar editar el pedido');
+    }
+  };
+
   const handleCalificar = async () => {
     if (rating < 1) { toast.error('Selecciona una calificación'); return; }
     setRatingLoading(true);
@@ -270,6 +306,27 @@ export default function MisPedidos() {
                       </button>
                     )}
                   </div>
+                  {p.estado === 'Pendiente' ? (
+                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                      <p style={{ color: '#e6a23c', fontSize: '0.9rem', marginBottom: '8px', fontWeight: 'bold' }}>
+                        ⏳ El local debe aceptar tu pedido
+                      </p>
+                      <div className="pedido-card-actions-row" style={{ gap: 8 }}>
+                        <button className="btn btn-secondary btn-sm btn-full" onClick={() => handleEdit(p.idPedido)}>
+                          ✏️ Editar
+                        </button>
+                        <button className="btn btn-secondary btn-sm btn-full" style={{ color: '#d32f2f', borderColor: '#d32f2f' }} onClick={() => handleCancel(p.idPedido)}>
+                          ❌ Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                      <p style={{ color: '#4caf50', fontSize: '0.9rem', marginBottom: '0', fontWeight: 'bold' }}>
+                        ✅ El local ya aceptó tu pedido
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

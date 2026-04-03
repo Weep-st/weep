@@ -824,6 +824,26 @@ export async function reOrderItems(userId, pedidoId) {
 }
 
 // ═══════════════════════════════════════════════════
+// CANCEL ORDER BY USER
+// ═══════════════════════════════════════════════════
+export async function cancelarPedidoUsuario(userId, pedidoId) {
+  // Update general
+  const { error: e1 } = await supabase.from('pedidos_general')
+    .update({ estado: 'Cancelado' })
+    .eq('id', pedidoId)
+    .eq('usuario_id', userId);
+  if (e1) throw new Error(e1.message);
+
+  // Update locales
+  const { error: e2 } = await supabase.from('pedidos_locales')
+    .update({ estado: 'Cancelado' })
+    .eq('pedido_id', pedidoId);
+  if (e2) throw new Error(e2.message);
+
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
 // PROFILE UPDATE
 // ═══════════════════════════════════════════════════
 export async function updateProfile(userId, nombre, email, telefono, newPassword) {
