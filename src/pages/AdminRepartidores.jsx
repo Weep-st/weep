@@ -58,7 +58,11 @@ const AdminRepartidores = () => {
     const formatLastActive = (date) => {
         if (!date) return 'Nunca';
         const d = new Date(date);
-        return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleTimeString('es-AR', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/Argentina/Buenos_Aires'
+        });
     };
 
     if (loading) return <div className="loading-state">Cargando repartidores...</div>;

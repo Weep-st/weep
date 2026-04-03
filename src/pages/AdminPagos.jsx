@@ -79,7 +79,7 @@ const AdminPagos = ({ tipo = 'Local' }) => {
                                         <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Ventas: ${Number(sol.total_ventas).toLocaleString('es-AR')}</div>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '0.85rem' }}>Solicitado: {new Date(sol.fecha_solicitud || sol.created_at).toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '0.85rem' }}>Solicitado: {new Date(sol.fecha_solicitud || sol.created_at).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</div>
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             Pedidos: {sol.pedidos_incluidos || '—'}
                                         </div>

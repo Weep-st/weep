@@ -459,7 +459,7 @@ export default function CustomerApp() {
       const parts = availabilityDate.split('-');
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
       if (today < availableDate) {
-        toast.error(`Este local abrirá el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}`);
+        toast.error(`Este local abrirá el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}`);
         return;
       }
     }
@@ -746,7 +746,7 @@ export default function CustomerApp() {
             const pendingData = {
               pedidoId: pregeneratedId,
               userId: user.id,
-              fecha: new Date().toLocaleString('es-AR'),
+              fecha: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
               direccion: orderInfo.direccion,
               metodoPago: 'Transferencia / Mercado Pago',
               observaciones: orderInfo.observaciones,
@@ -944,7 +944,7 @@ export default function CustomerApp() {
                 const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
                 if (today < availableDate) {
                   isFutureOpening = true;
-                  availabilityMsg = `Disponible desde ${availableDate.toLocaleDateString('es-AR')}`;
+                  availabilityMsg = `Disponible desde ${availableDate.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`;
                 }
               }
 
@@ -1027,7 +1027,7 @@ export default function CustomerApp() {
                       whiteSpace: 'nowrap',
                       border: '1px solid white'
                     }}>
-                      Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short'})}
+                      Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}
                     </div>
                   )}
                 </button>
@@ -1050,7 +1050,7 @@ export default function CustomerApp() {
             }}>
               <span style={{ fontSize: '1.2rem' }}>📅</span>
               <p style={{ margin: 0, fontWeight: 600, color: 'var(--red-600)' }}>
-                <strong>{unavailableLocal.nombre}</strong> estará disponible a partir del {new Date(unavailableLocal.disponible_desde.split('-')[0], unavailableLocal.disponible_desde.split('-')[1]-1, unavailableLocal.disponible_desde.split('-')[2]).toLocaleDateString('es-AR')}
+                <strong>{unavailableLocal.nombre}</strong> estará disponible a partir del {new Date(unavailableLocal.disponible_desde.split('-')[0], unavailableLocal.disponible_desde.split('-')[1]-1, unavailableLocal.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
               </p>
               <button 
                 className="btn btn-ghost btn-xs" 
@@ -1111,7 +1111,7 @@ export default function CustomerApp() {
                               if (today < availableDate) {
                                 return (
                                   <span style={{ fontSize: '0.85rem', color: 'var(--primary-600)', fontWeight: '600' }}>
-                                    Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                    Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })}
                                   </span>
                                 );
                               }
@@ -1733,7 +1733,7 @@ export default function CustomerApp() {
                         if (today < availableDate) {
                           return (
                             <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
-                              Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                              Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}
                             </button>
                           );
                         }

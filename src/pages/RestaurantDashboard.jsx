@@ -1586,7 +1586,7 @@ export default function RestaurantDashboard() {
                       {finishedOrders.map(o => (
                         <tr key={o.idPedidoLocal} style={{ borderBottom: '1px solid var(--gray-100)' }}>
                           <td style={{ padding: '12px 8px' }}>#{o.idPedido.substring(0, 8)}</td>
-                          <td style={{ padding: '12px 8px' }}>{o.fecha ? new Date(o.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' }) : '---'}</td>
+                          <td style={{ padding: '12px 8px' }}>{o.fecha ? new Date(o.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires' }) : '---'}</td>
                           <td style={{ padding: '12px 8px' }}>{o.nombreCliente}</td>
                           <td style={{ padding: '12px 8px', textTransform: 'capitalize' }}>{o.metodoPago}</td>
                           <td style={{ padding: '12px 8px', fontWeight: '600', color: 'var(--red-600)' }}>
@@ -1721,7 +1721,7 @@ export default function RestaurantDashboard() {
                           <tbody>
                             {cobrosData.historial.map((h, i) => (
                               <tr key={i} style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                                <td style={{ padding: '12px 8px' }}>{new Date(h.fechaSolicitud).toLocaleDateString()}</td>
+                                <td style={{ padding: '12px 8px' }}>{new Date(h.fechaSolicitud).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</td>
                                 <td style={{ padding: '12px 8px', fontWeight: '600' }}>${h.montoNeto}</td>
                                 <td style={{ padding: '12px 8px' }}>
                                   <span className={`badge ${h.estado === 'Pendiente' ? 'badge-amber' : h.estado === 'Completado' ? 'badge-green' : 'badge-gray'}`}>
@@ -1911,7 +1911,7 @@ function OrderCard({ order: o, onAction, finished }) {
         <div>
           <strong>Pedido #{o.idPedido}</strong>
           <span className="rd-order-sub">Local #{o.idPedidoLocal}</span>
-          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
           <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
             {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
           </span>

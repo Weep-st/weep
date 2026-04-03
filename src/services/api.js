@@ -646,8 +646,11 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
 // ═══════════════════════════════════════════════════
 export async function registrarEmailLanzamiento(email) {
   const now = new Date();
+  const options = { timeZone: 'America/Argentina/Buenos_Aires' };
   const { error } = await supabase.from('lanzamiento').insert({
-    email, dia: now.toLocaleDateString('es-AR'), hora: now.toLocaleTimeString('es-AR'),
+    email, 
+    dia: now.toLocaleDateString('es-AR', options), 
+    hora: now.toLocaleTimeString('es-AR', options),
   });
   if (error) throw new Error(error.message);
   return { success: true };

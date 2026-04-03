@@ -580,7 +580,7 @@ export default function DriverDashboard() {
         toast.success('¡Entrega confirmada!', { id: 'ent' });
         // Modificar stats locales y cerrar modal
         setSessionGanancias(prev => prev + 1800);
-        setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString() }, ...historial]);
+        setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) }, ...historial]);
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);
         setPinInput('');
@@ -1060,7 +1060,7 @@ export default function DriverDashboard() {
               {cobrosData?.historial?.map((h, i) => (
                 <div className="dd-history-item" key={i} style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div className="dd-history-info">
-                    <span className="dd-date" style={{ display: 'block', fontSize: '0.85rem', color: 'var(--gray-500)' }}>{new Date(h.fechaSolicitud).toLocaleDateString()}</span>
+                    <span className="dd-date" style={{ display: 'block', fontSize: '0.85rem', color: 'var(--gray-500)' }}>{new Date(h.fechaSolicitud).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</span>
                     <span className="dd-amount" style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>${Number(h.montoNeto).toLocaleString('es-AR')}</span>
                   </div>
                   <span className={`dd-badge status-${h.estado.toLowerCase()}`} style={{ 
@@ -1577,7 +1577,7 @@ export default function DriverDashboard() {
                       {msg.message}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '2px' }}>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(msg.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
                     </div>
                   </div>
                 ))
