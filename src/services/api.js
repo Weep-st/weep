@@ -1216,7 +1216,7 @@ export async function solicitarCobro(localId, monto, comprobanteUrl = '') {
 // ═══════════════════════════════════════════════════
 export async function assignRepartidor(pedidoId) {
   const { data: activos } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono').eq('estado', 'Activo');
+    .select('id, nombre, email, telefono').eq('estado', 'Activo').eq('admin_status', 'Aceptado');
   if (!activos?.length) return { success: false, message: 'No hay repartidores activos' };
   const elegido = activos[0];
   const { error } = await supabase.from('pedidos_general')
@@ -1739,6 +1739,8 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     console.error("Error enviando email al repartidor:", error);
   }
 }
+// Función deprecada de limpieza. Ahora la desconexión por inactividad ocurre 
+// nativamente en la Base de Datos a través del CRON job `check_inactive_drivers_job`.
 
 // ═══════════════════════════════════════════════════
 // NOTIFICACIONES DE ESTADO (Panel Locales)
