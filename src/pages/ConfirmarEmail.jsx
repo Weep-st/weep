@@ -128,7 +128,7 @@ export default function ConfirmarEmail() {
         boxShadow: '0 20px 50px rgba(0,0,0,0.08)'
       }}>
         <img 
-          src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" 
+          src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" 
           alt="Weep" 
           style={{ width: '100px', marginBottom: '30px' }} 
         />

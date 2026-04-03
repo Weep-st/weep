@@ -59,7 +59,7 @@ export default function Landing() {
     <div className="landing">
       <header className="landing-header">
         <img
-          src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
+          src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png"
           alt="Weep"
           className="landing-logo"
         />

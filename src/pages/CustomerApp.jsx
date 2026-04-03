@@ -818,7 +818,7 @@ export default function CustomerApp() {
     <div className="customer-app">
       <header className="app-header">
         <Link to="/" className="app-logo-link">
-          <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" className="app-logo" />
+          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="app-logo" />
         </Link>
         <div className="search-wrapper">
           <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
@@ -1885,7 +1885,7 @@ export default function CustomerApp() {
 
 
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Weep</strong> — Plataforma de Pedidos y Delivery</p>
         <p>
           <Link to="/locales">Registrá tu local</Link> •{' '}

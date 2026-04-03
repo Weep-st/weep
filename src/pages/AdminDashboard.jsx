@@ -59,7 +59,7 @@ const AdminDashboard = () => {
         <div className="admin-container">
             <aside className="admin-sidebar">
                 <div className="sidebar-header">
-                    <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep Admin" className="admin-logo" />
+                    <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep Admin" className="admin-logo" />
                     <h2>Admin Panel</h2>
                 </div>
                 <nav className="sidebar-nav">

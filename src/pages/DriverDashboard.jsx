@@ -1260,7 +1260,7 @@ export default function DriverDashboard() {
     <div className="dd-page">
       <header className="dd-header">
         <Link to="/">
-          <img src="https://i.postimg.cc/5tKhqD4z/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(5).png" alt="Weep" className="dd-logo" />
+          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="dd-logo" />
         </Link>
         <h1>Panel de Repartidores</h1>
       </header>
@@ -1612,7 +1612,7 @@ export default function DriverDashboard() {
       )}
 
       <footer className="footer" style={{ background: 'var(--red-800)', color: 'white', borderTop: 'none', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <img src="https://i.postimg.cc/2jKK6G3g/buscamos-repartidores-(21)-(2).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p style={{ margin: 0 }}>© 2026 Weep - Todos los derechos reservados</p>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>PWA optimizada para uso en moto • GPS en tiempo real</p>
         <button 
