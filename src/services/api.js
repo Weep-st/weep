@@ -1277,6 +1277,20 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
   const { error } = await supabase.from('pedidos_general').update({ estado: nuevoEstado }).eq('id', pedidoId);
   if (error) return { success: false, error: error.message };
   
+  if (nuevoEstado === 'Confirmado') {
+    // Al aceptar el pedido, ponerlo Ocupado
+    await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', repartidorId);
+    
+    // Incrementar su buena reputacin (aceptados)
+    const { data: dRep } = await supabase.from('repartidores').select('pedidos_aceptados_count').eq('id', repartidorId).single();
+    if (dRep) {
+      await supabase.from('repartidores').update({ 
+        pedidos_aceptados_count: (dRep.pedidos_aceptados_count || 0) + 1,
+        rachas_ignoradas: 0 // Reset racha for good behavior
+      }).eq('id', repartidorId);
+    }
+  }
+  
   if (nuevoEstado === 'Entregado') {
     // Liberar repartidor al terminar
     await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', repartidorId);
