@@ -289,15 +289,23 @@ export async function repartidorUpdatePerfil(params) {
   return { success: true };
 }
 
+export function getArgTimeISO(date = new Date()) {
+  // Argentina is UTC-3. We take the current date, subtract 3 hours, and append the -03:00 zone.
+  // This sends "19:48...-03:00" to Supabase. Supabase parses it correctly, protecting CRON jobs, 
+  // but explicitly sets the origin timezone.
+  const argTime = new Date(date.getTime() - 3 * 3600 * 1000);
+  return argTime.toISOString().replace('Z', '-03:00');
+}
+
 export async function repartidorActualizarEstado(driverId, estado, extendMinutes = 30) {
   const now = new Date();
   const validUntil = new Date(now.getTime() + extendMinutes * 60000);
   
   const updates = { 
     estado,
-    ultima_actividad: now.toISOString(),
-    ultima_conexion: now.toISOString(),
-    ultima_interaccion_ui: now.toISOString(),
+    ultima_actividad: getArgTimeISO(now),
+    ultima_conexion: getArgTimeISO(now),
+    ultima_interaccion_ui: getArgTimeISO(now),
   };
   
   if (estado === 'Activo') {
@@ -312,14 +320,14 @@ export async function repartidorActualizarEstado(driverId, estado, extendMinutes
 }
 
 export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false) {
-  const now = new Date().toISOString();
+  const now = new Date();
   const updates = { 
-    ultima_actividad: now,
-    ultima_conexion: now
+    ultima_actividad: getArgTimeISO(now),
+    ultima_conexion: getArgTimeISO(now)
   };
   
   if (hadInteraction) {
-    updates.ultima_interaccion_ui = now;
+    updates.ultima_interaccion_ui = getArgTimeISO(now);
   }
 
   const { error } = await supabase
@@ -331,10 +339,10 @@ export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false
 }
 
 export async function repartidorRenovarSesion(driverId, mins = 30) {
-  const validUntil = new Date(Date.now() + mins * 60000).toISOString();
+  const validUntil = new Date(Date.now() + mins * 60000);
   const { error } = await supabase
     .from('repartidores')
-    .update({ sesion_vence_en: validUntil })
+    .update({ sesion_vence_en: getArgTimeISO(validUntil) })
     .eq('id', driverId);
   return { success: !error };
 }
