@@ -248,6 +248,7 @@ export default function DriverDashboard() {
       if (!hasSeenTutorial) {
         setShowTutorial(true);
         setTutorialStep(1);
+        localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -639,6 +640,10 @@ export default function DriverDashboard() {
         lng: -56.032
       });
       setTutorialStep(2);
+      // Mark as seen as soon as they start step 1
+      if (driver?.id) {
+        localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
+      }
     }
     else if (tutorialStep === 2) {
       if (tutorialOrder?.estado === 'Confirmado') setTutorialStep(3);
@@ -1508,6 +1513,20 @@ export default function DriverDashboard() {
               >
                 {tutorialStep === 5 ? '¡Entendido!' : 'Siguiente'}
               </button>
+              {tutorialStep === 1 && (
+                <button 
+                  className="dd-btn-outline dd-btn-large" 
+                  style={{ marginTop: '10px' }}
+                  onClick={() => {
+                    setShowTutorial(false);
+                    if (driver?.id) {
+                      localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
+                    }
+                  }}
+                >
+                  Saltar Tutorial
+                </button>
+              )}
               {(tutorialStep >= 2 && tutorialStep <= 4) && (
                 <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--gray-500)', fontWeight: 600 }}>
                   ⚡ Realiza la acción en el pedido para continuar
