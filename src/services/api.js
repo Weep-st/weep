@@ -290,11 +290,12 @@ export async function repartidorUpdatePerfil(params) {
 }
 
 export function getArgTimeISO(date = new Date()) {
-  // Argentina is UTC-3. We take the current date, subtract 3 hours, and append the -03:00 zone.
-  // This sends "19:48...-03:00" to Supabase. Supabase parses it correctly, protecting CRON jobs, 
-  // but explicitly sets the origin timezone.
+  // Argentina is UTC-3.
+  // The user specifically requested that Supabase explicitly shows standard local time 
+  // under the '+00' UTC label in the Database dashboard view.
+  // To do this, we shift the date physically -3 hours and send it as Z (UTC).
   const argTime = new Date(date.getTime() - 3 * 3600 * 1000);
-  return argTime.toISOString().replace('Z', '-03:00');
+  return argTime.toISOString();
 }
 
 export async function repartidorActualizarEstado(driverId, estado, extendMinutes = 30) {
