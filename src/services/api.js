@@ -259,7 +259,11 @@ export async function repartidorGetDatos(driverId) {
       FotoUrl: data.foto_url,
       HorarioApertura: data.horario_apertura,
       HorarioCierre: data.horario_cierre,
-      DiasApertura: data.dias_apertura
+      DiasApertura: data.dias_apertura,
+      SesionVenceEn: data.sesion_vence_en,
+      PedidosAceptados: data.pedidos_aceptados_count || 0,
+      PedidosRechazados: data.pedidos_rechazados_count || 0,
+      PedidosIgnorados: data.pedidos_ignorados_count || 0,
     },
   };
 }
@@ -285,29 +289,54 @@ export async function repartidorUpdatePerfil(params) {
   return { success: true };
 }
 
-export async function repartidorActualizarEstado(driverId, estado) {
-  const now = new Date().toISOString();
+export async function repartidorActualizarEstado(driverId, estado, extendMinutes = 30) {
+  const now = new Date();
+  const validUntil = new Date(now.getTime() + extendMinutes * 60000);
+  
   const updates = { 
     estado,
-    ultima_actividad: now,
-    ultima_conexion: now
+    ultima_actividad: now.toISOString(),
+    ultima_conexion: now.toISOString(),
+    ultima_interaccion_ui: now.toISOString(),
   };
+  
+  if (estado === 'Activo') {
+    updates.sesion_vence_en = validUntil.toISOString();
+  } else {
+    updates.sesion_vence_en = null;
+  }
+
   const { error } = await supabase.from('repartidores').update(updates).eq('id', driverId);
   if (error) return { success: false, error: error.message };
   return { success: true };
 }
 
-export async function repartidorUpdateHeartbeat(driverId) {
+export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false) {
   const now = new Date().toISOString();
+  const updates = { 
+    ultima_actividad: now,
+    ultima_conexion: now
+  };
+  
+  if (hadInteraction) {
+    updates.ultima_interaccion_ui = now;
+  }
+
   const { error } = await supabase
     .from('repartidores')
-    .update({ 
-      ultima_actividad: now,
-      ultima_conexion: now
-    })
+    .update(updates)
     .eq('id', driverId);
   if (error) return { success: false };
   return { success: true };
+}
+
+export async function repartidorRenovarSesion(driverId, mins = 30) {
+  const validUntil = new Date(Date.now() + mins * 60000).toISOString();
+  const { error } = await supabase
+    .from('repartidores')
+    .update({ sesion_vence_en: validUntil })
+    .eq('id', driverId);
+  return { success: !error };
 }
 
 export async function repartidorUpdateOneSignalId(driverId, onesignalId) {

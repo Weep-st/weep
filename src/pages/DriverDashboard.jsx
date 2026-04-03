@@ -62,6 +62,7 @@ export default function DriverDashboard() {
   const [tutorialStep, setTutorialStep] = React.useState(1);
   const [driverLocation, setDriverLocation] = React.useState({ lat: null, lng: null });
   const [tutorialOrder, setTutorialOrder] = React.useState(null);
+  const [timeLeftStr, setTimeLeftStr] = React.useState('');
   const [notificationStatus, setNotificationStatus] = React.useState('loading'); // 'loading', 'granted', 'denied', 'default'
   const [isIOS, setIsIOS] = React.useState(false);
   const [isAndroid, setIsAndroid] = React.useState(false);
@@ -122,6 +123,30 @@ export default function DriverDashboard() {
   const [chatInput, setChatInput] = React.useState('');
   const [pinInput, setPinInput] = React.useState('');
   const [showMap, setShowMap] = React.useState(false);
+
+  // Sesion Timer Effect
+  React.useEffect(() => {
+    let timerId;
+    if (isActive && driverData?.SesionVenceEn) {
+      const updateTimer = () => {
+        const diff = new Date(driverData.SesionVenceEn).getTime() - Date.now();
+        if (diff <= 0) {
+          setTimeLeftStr('Expirada');
+          setIsActive(false);
+          setDriverData(prev => ({...prev, Estado: 'Inactivo'}));
+        } else {
+          const mins = Math.floor(diff / 60000);
+          const secs = Math.floor((diff % 60000) / 1000);
+          setTimeLeftStr(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+        }
+      };
+      updateTimer();
+      timerId = setInterval(updateTimer, 1000);
+    } else {
+      setTimeLeftStr('');
+    }
+    return () => clearInterval(timerId);
+  }, [isActive, driverData?.SesionVenceEn]);
 
   // Realtime Chat Subscription
   React.useEffect(() => {
@@ -258,8 +283,17 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     let interval;
     let heartbeatInterval;
+    let hadInteraction = true; // assume true initially
+
+    const handleInteraction = () => {
+      hadInteraction = true;
+    };
 
     if (driver && isActive) {
+      window.addEventListener('mousemove', handleInteraction);
+      window.addEventListener('touchstart', handleInteraction);
+      window.addEventListener('scroll', handleInteraction);
+
       // First fetch
       fetchPedidos();
       checkAvailability();
@@ -272,11 +306,12 @@ export default function DriverDashboard() {
 
       // Heartbeat cada 60 segundos
       heartbeatInterval = setInterval(() => {
-        api.repartidorUpdateHeartbeat(driver.id);
+        api.repartidorUpdateHeartbeat(driver.id, hadInteraction);
+        hadInteraction = false; // Reset for next minute
       }, 60000);
       
       // Actualización inmediata al activar
-      api.repartidorUpdateHeartbeat(driver.id);
+      api.repartidorUpdateHeartbeat(driver.id, true);
     } else {
       setPedidos([]);
     }
@@ -284,6 +319,9 @@ export default function DriverDashboard() {
     return () => {
       clearInterval(interval);
       clearInterval(heartbeatInterval);
+      window.removeEventListener('mousemove', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+      window.removeEventListener('scroll', handleInteraction);
     };
   }, [driver, isActive, fetchPedidos, checkAvailability]);
 
@@ -516,9 +554,25 @@ export default function DriverDashboard() {
       if (!d.success) { setIsActive(isActive); toast.error('No se pudo actualizar'); }
       else {
         toast.success(`Modo ${newState}`);
-        if (newState === 'Activo') iniciarGPS();
+        if (newState === 'Activo') {
+          iniciarGPS();
+        }
+        loadData(); // To fetch new SesionVenceEn
       }
     } catch { setIsActive(isActive); toast.error('Error de conexión'); }
+  };
+
+  const extenderSesion = async () => {
+    const loading = toast.loading('Extendiendo sesión...');
+    try {
+      const res = await api.repartidorRenovarSesion(driver.id, 30);
+      if (res.success) {
+        toast.success('Sesión extendida 30 min', { id: loading });
+        loadData();
+      } else {
+        toast.error('Error al extender', { id: loading });
+      }
+    } catch { toast.error('Error de red', { id: loading }); }
   };
 
   const handleLogout = () => {
@@ -1392,8 +1446,13 @@ export default function DriverDashboard() {
                   <span className="toggle-thumb" />
                 </div>
                 <span className={`dd-status ${isActive ? 'active' : ''}`}>
-                  {isActive ? 'Activo' : 'Inactivo'}
+                  {isActive ? 'Activo (30 min)' : 'Inactivo'}
                 </span>
+                {isActive && timeLeftStr && (
+                  <button className="btn btn-secondary btn-sm" style={{marginLeft:8, fontSize:'0.75rem', padding:'2px 6px'}} onClick={extenderSesion}>
+                    ⏳ {timeLeftStr} (Extender)
+                  </button>
+                )}
               </div>
               <div className="dd-topbar-actions">
                 <button className="btn btn-secondary btn-sm" onClick={iniciarGPS}>📍 GPS</button>
@@ -1414,6 +1473,21 @@ export default function DriverDashboard() {
                       <div className="dd-stat-item">
                         <small>Ganancias sesión</small>
                         <strong>${sessionGanancias}</strong>
+                      </div>
+                      <div className="dd-stat-item" style={{ gridColumn: 'span 2' }}>
+                        <small>Tasa de Aceptación</small>
+                        <strong>
+                          {driverData ? (
+                            (() => {
+                              const a = driverData.PedidosAceptados || 0;
+                              const r = driverData.PedidosRechazados || 0;
+                              const i = driverData.PedidosIgnorados || 0;
+                              const total = a + r + i;
+                              if (total === 0) return '100% ⭐';
+                              return Math.round((a / total) * 100) + '% ⭐';
+                            })()
+                          ) : '...'}
+                        </strong>
                       </div>
                     </div>
                   </div>
