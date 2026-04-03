@@ -109,8 +109,14 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 5. Programar el CRON JOB (se ejecuta cada 1 minuto)
--- Asegurar de limpiar cualquier iteración vieja de este trabajo
-SELECT cron.unschedule('check_unaccepted_orders_job');
+-- Asegurar de limpiar cualquier iteración vieja de este trabajo (ignorando si no existe)
+DO $$
+  BEGIN
+    PERFORM cron.unschedule('check_unaccepted_orders_job');
+  EXCEPTION WHEN OTHERS THEN
+    -- El job no existía, ignoramos el error
+  END;
+$$;
 
 SELECT cron.schedule(
   'check_unaccepted_orders_job',
