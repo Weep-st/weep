@@ -304,10 +304,23 @@ export default function DriverDashboard() {
         checkAvailability();
       }, 30000);
 
-      // Heartbeat cada 60 segundos
-      heartbeatInterval = setInterval(() => {
+      heartbeatInterval = setInterval(async () => {
         api.repartidorUpdateHeartbeat(driver.id, hadInteraction);
         hadInteraction = false; // Reset for next minute
+        
+        // Sincronizar estado real con la BD. Si el CRON lo apagó, se actualizará el estado
+        try {
+          const d = await api.repartidorGetDatos(driver.id);
+          if (d?.success && d.data) {
+            if (d.data.Estado === 'Inactivo') {
+              toast.error('Fuiste desconectado del sistema automáticamente por inactividad o métricas.');
+              setIsActive(false);
+              setDriverData(d.data);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
       }, 60000);
       
       // Actualización inmediata al activar
