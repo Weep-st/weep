@@ -936,7 +936,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, admin_status, created_at, foto_url, disponible_desde')
+    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -953,6 +953,12 @@ export async function adminUpdateLocalAvailability(localId, disponibleDesde) {
   return { success: true };
 }
 
+export async function adminUpdateLocalEstado(localId, estado) {
+  const { error } = await supabase.from('locales').update({ estado: estado }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
 // ═══════════════════════════════════════════════════
 // ADMIN — Repartidores
 // ═══════════════════════════════════════════════════
@@ -965,6 +971,12 @@ export async function adminGetRepartidores() {
 
 export async function adminUpdateRepartidorStatus(repId, admin_status) {
   const { error } = await supabase.from('repartidores').update({ admin_status }).eq('id', repId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminUpdateRepartidorEstado(repId, estado) {
+  const { error } = await supabase.from('repartidores').update({ estado: estado }).eq('id', repId);
   if (error) throw new Error(error.message);
   return { success: true };
 }

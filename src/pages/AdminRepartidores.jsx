@@ -43,14 +43,15 @@ const AdminRepartidores = () => {
         }
     };
 
-    const handleForceDisconnect = async (id) => {
-        if (!window.confirm('¿Forzar desconexión de este repartidor?')) return;
+    const handleToggleEstado = async (id, currentState) => {
+        const newState = currentState === 'Inactivo' ? 'Activo' : 'Inactivo';
+        if (!window.confirm(`¿Seguro que deseas cambiar el estado a ${newState}?`)) return;
         try {
-            await api.repartidorActualizarEstado(id, 'Inactivo');
-            toast.success('Repartidor desconectado');
+            await api.adminUpdateRepartidorEstado(id, newState);
+            toast.success(`Repartidor marcado como ${newState}`);
             loadRepartidores();
         } catch (err) {
-            toast.error('Error al desconectar');
+            toast.error('Error al actualizar disponibilidad');
         }
     };
 
@@ -163,15 +164,13 @@ const AdminRepartidores = () => {
                                                     Rechazar
                                                 </button>
                                             </div>
-                                            {rep.estado !== 'Inactivo' && (
-                                                <button 
-                                                    className="btn btn-secondary btn-sm" 
-                                                    style={{ fontSize: '0.7rem', padding: '4px' }}
-                                                    onClick={() => handleForceDisconnect(rep.id)}
-                                                >
-                                                    Forzar Desconexión
-                                                </button>
-                                            )}
+                                            <button 
+                                                className={`btn btn-sm ${rep.estado === 'Inactivo' ? 'btn-success' : 'btn-danger'}`}
+                                                style={{ fontSize: '0.75rem', padding: '6px', width: '100%', marginTop: '4px' }}
+                                                onClick={() => handleToggleEstado(rep.id, rep.estado || 'Inactivo')}
+                                            >
+                                                {rep.estado === 'Inactivo' ? 'Marcar Activo' : 'Forzar Inactivo'}
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>

@@ -59,7 +59,18 @@ const AdminLocales = () => {
             toast.success(`Local ${status}`);
             loadLocales();
         } catch (err) {
-            toast.error('Error al actualizar estado');
+            toast.error('Error al actualizar estado admin');
+        }
+    };
+
+    const handleToggleEstado = async (id, currentState) => {
+        const newState = currentState === 'Activo' ? 'Inactivo' : 'Activo';
+        try {
+            await api.adminUpdateLocalEstado(id, newState);
+            toast.success(`Local marcado como ${newState === 'Activo' ? 'Abierto' : 'Cerrado'}`);
+            loadLocales();
+        } catch (err) {
+            toast.error('Error al actualizar disponibilidad');
         }
     };
 
@@ -112,6 +123,7 @@ const AdminLocales = () => {
                                 <th>Email</th>
                                 <th>Dirección</th>
                                 <th>Disponible desde</th>
+                                <th>Disponibilidad</th>
                                 <th>Estado Admin</th>
                                 <th>Acciones</th>
                             </tr>
@@ -147,6 +159,20 @@ const AdminLocales = () => {
                                                     fontSize: '0.875rem'
                                                 }}
                                             />
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                                <span className={`badge ${local.estado === 'Activo' ? 'badge-success' : 'badge-danger'}`} style={{ color: local.estado === 'Activo' ? '#4caf50' : '#d32f2f' }}>
+                                                    {local.estado === 'Activo' ? 'Abierto' : 'Cerrado'}
+                                                </span>
+                                                <button 
+                                                    className={`btn btn-sm ${local.estado === 'Activo' ? 'btn-danger' : 'btn-success'}`}
+                                                    onClick={() => handleToggleEstado(local.id, local.estado || 'Inactivo')}
+                                                    style={{ width: '100%' }}
+                                                >
+                                                    {local.estado === 'Activo' ? 'Cerrar Local' : 'Abrir Local'}
+                                                </button>
+                                            </div>
                                         </td>
                                         <td>
                                             <span className={`badge ${local.admin_status?.toLowerCase()}`}>
