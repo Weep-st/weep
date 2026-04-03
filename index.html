@@ -13,30 +13,37 @@
     <script>
       (function() {
         var path = window.location.pathname;
-        var manifest = "/manifest.json"; // Default
+        var manifest = "/manifest.json?v=" + Date.now();
         var title = "Weep";
+        var canonical = window.location.origin + path;
 
         if (path.startsWith("/admin")) {
-          manifest = "/manifest-admin.json";
+          manifest = "/manifest-admin.json?v=" + Date.now();
           title = "Weep Admin";
         } else if (path.startsWith("/locales")) {
-          manifest = "/manifest-locales.json";
+          manifest = "/manifest-locales.json?v=" + Date.now();
           title = "Weep Locales";
         } else if (path.startsWith("/pedir")) {
-          manifest = "/manifest-pedir.json";
+          manifest = "/manifest-pedir.json?v=" + Date.now();
           title = "Weep";
         } else if (path.startsWith("/repartidores")) {
-          manifest = "/manifest.json";
+          manifest = "/manifest.json?v=" + Date.now();
           title = "Weep Repartidores";
         }
 
-        // Inyectar manifest
+        // 1. Inyectar manifest con cache-busting
         var link = document.createElement('link');
         link.rel = 'manifest';
         link.href = manifest;
         document.head.appendChild(link);
 
-        // Actualizar título de app para iOS
+        // 2. Inyectar Canonical (Vital para iOS/Safari)
+        var linkCan = document.createElement('link');
+        linkCan.rel = 'canonical';
+        linkCan.href = canonical;
+        document.head.appendChild(linkCan);
+
+        // 3. Actualizar título de app para iOS
         var metaTitle = document.createElement('meta');
         metaTitle.name = 'apple-mobile-web-app-title';
         metaTitle.content = title;
