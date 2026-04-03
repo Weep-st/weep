@@ -1925,11 +1925,7 @@ function OrderCard({ order: o, onAction, finished }) {
                 <span>{item[4]} × {item[6]}</span>
                 <span>${item[7].toFixed(2)}</span>
               </div>
-              {item[5] && item[5] !== 'null' && item[5] !== '' && (
-                <div style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginTop: 4, fontStyle: 'italic' }}>
-                  {item[5]}
-                </div>
-              )}
+              {/* El detalle ahora viene incluido en el nombre del producto (item[4]) */}
             </div>
           ))}
         </div>

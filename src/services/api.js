@@ -1367,7 +1367,14 @@ export async function createPendingMercadoPagoOrder({ userId, direccion, total, 
     const plId = `PL-${pedidoId}-${localId}`;
     const sub = localItems.reduce((s, i) => s + (i.precio * i.cantidad), 0);
     await supabase.from('pedidos_locales').insert({ id: plId, pedido_id: pedidoId, local_id: localId, total: sub, estado: 'Pendiente de Pago', metodo_pago: 'Mercado Pago' });
-    await supabase.from('pedidos_items').insert(localItems.map(i => ({ pedido_id: pedidoId, menu_item_id: i.id, nombre_item: i.nombre, precio_unitario: i.precio, cantidad: i.cantidad, subtotal: i.precio * i.cantidad })));
+    await supabase.from('pedidos_items').insert(localItems.map(i => ({ 
+      pedido_id: pedidoId, 
+      menu_item_id: i.id, 
+      nombre_item: i.descripcion ? `${i.nombre} (${i.descripcion})` : i.nombre, 
+      precio_unitario: i.precio, 
+      cantidad: i.cantidad || i.qty || 1, 
+      subtotal: i.precio * (i.cantidad || i.qty || 1) 
+    })));
   }
   return { success: true, pedidoId };
 }
@@ -1414,7 +1421,10 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
         let itemsHtml = group.items.map(i => 
           `<tr>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.cantidad || i.qty || 1}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.nombre}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+              ${i.nombre}
+              ${i.descripcion ? `<br/><small style="color: #666; font-style: italic;">${i.descripcion}</small>` : ''}
+            </td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">$${Number(i.precio).toLocaleString('es-AR')}</td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">$${(Number(i.precio) * (i.cantidad || i.qty || 1)).toLocaleString('es-AR')}</td>
           </tr>`
@@ -1492,7 +1502,10 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     let itemsHtml = cart.map(i =>
       `<tr>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.cantidad || i.qty || 1}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.nombre}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+          ${i.nombre}
+          ${i.descripcion ? `<br/><small style="color: #666; font-style: italic;">${i.descripcion}</small>` : ''}
+        </td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">$${Number(i.precio).toLocaleString('es-AR')}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">$${(Number(i.precio) * (i.cantidad || i.qty || 1)).toLocaleString('es-AR')}</td>
       </tr>`

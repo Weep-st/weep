@@ -601,7 +601,8 @@ export default function CustomerApp() {
 
       const orderItems = cart.items.map(i => ({
         id: i.menuId || i.id, // Use original menu item ID for database
-        nombre: i.nombre, precio: Number(i.precio),
+        nombre: i.descripcion ? `${i.nombre} (${i.descripcion})` : i.nombre,
+        precio: Number(i.precio),
         cantidad: i.qty, local_id: i.local_id || '',
       }));
 
@@ -1213,7 +1214,8 @@ export default function CustomerApp() {
                     )}
                   </div>
                 )}
-                <textarea name="observaciones" className="form-textarea" placeholder="Observaciones (opcional)" rows={2} />
+                {/* Observaciones removidas por solicitud */}
+                <input type="hidden" name="observaciones" value="" />
                 <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading}>
                   {checkoutLoading ? <span className="spinner spinner-white" /> : 'Realizar Pedido'}
                 </button>
