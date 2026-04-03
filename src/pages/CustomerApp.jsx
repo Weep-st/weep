@@ -1151,11 +1151,16 @@ export default function CustomerApp() {
               </div>
 
               <div className="cart-summary">
-                <div className="cart-line"><span>Subtotal</span><span>${cart.subtotal.toLocaleString('es-AR')}</span></div>
                 <div className="cart-line">
-                  <span>Envío</span>
-                  <span>{visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`}</span>
+                  <span>{cart.deliveryType === 'retiro' ? 'Subtotal valor pedido' : 'Subtotal'}</span>
+                  <span>${cart.subtotal.toLocaleString('es-AR')}</span>
                 </div>
+                {cart.deliveryType !== 'retiro' && (
+                  <div className="cart-line">
+                    <span>Envío</span>
+                    <span>{visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`}</span>
+                  </div>
+                )}
                 {visibleMpFee > 0 && (
                   <div className="cart-line comision-line">
                     <span>Gestión de pago</span>
