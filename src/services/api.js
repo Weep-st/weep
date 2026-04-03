@@ -289,14 +289,7 @@ export async function repartidorUpdatePerfil(params) {
   return { success: true };
 }
 
-export function getArgTimeISO(date = new Date()) {
-  // Argentina is UTC-3.
-  // The user specifically requested that Supabase explicitly shows standard local time 
-  // under the '+00' UTC label in the Database dashboard view.
-  // To do this, we shift the date physically -3 hours and send it as Z (UTC).
-  const argTime = new Date(date.getTime() - 3 * 3600 * 1000);
-  return argTime.toISOString();
-}
+// Removido getArgTimeISO por conflicto cronologico
 
 export async function repartidorActualizarEstado(driverId, estado, extendMinutes = 30) {
   const now = new Date();
@@ -304,9 +297,9 @@ export async function repartidorActualizarEstado(driverId, estado, extendMinutes
   
   const updates = { 
     estado,
-    ultima_actividad: getArgTimeISO(now),
-    ultima_conexion: getArgTimeISO(now),
-    ultima_interaccion_ui: getArgTimeISO(now),
+    ultima_actividad: now.toISOString(),
+    ultima_conexion: now.toISOString(),
+    ultima_interaccion_ui: now.toISOString(),
   };
   
   if (estado === 'Activo') {
@@ -321,14 +314,14 @@ export async function repartidorActualizarEstado(driverId, estado, extendMinutes
 }
 
 export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false) {
-  const now = new Date();
+  const now = new Date().toISOString();
   const updates = { 
-    ultima_actividad: getArgTimeISO(now),
-    ultima_conexion: getArgTimeISO(now)
+    ultima_actividad: now,
+    ultima_conexion: now
   };
   
   if (hadInteraction) {
-    updates.ultima_interaccion_ui = getArgTimeISO(now);
+    updates.ultima_interaccion_ui = now;
   }
 
   const { error } = await supabase
@@ -340,10 +333,10 @@ export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false
 }
 
 export async function repartidorRenovarSesion(driverId, mins = 30) {
-  const validUntil = new Date(Date.now() + mins * 60000);
+  const validUntil = new Date(Date.now() + mins * 60000).toISOString();
   const { error } = await supabase
     .from('repartidores')
-    .update({ sesion_vence_en: getArgTimeISO(validUntil) })
+    .update({ sesion_vence_en: validUntil })
     .eq('id', driverId);
   return { success: !error };
 }
