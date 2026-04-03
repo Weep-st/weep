@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
+import AdminPagos from './AdminPagos';
 import './AdminLocales.css';
 
 const AdminLocales = () => {
@@ -111,6 +112,12 @@ const AdminLocales = () => {
                     >
                         Catálogo de Menús
                     </button>
+                    <button 
+                        className={`tab-btn ${activeTab === 'cobros' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('cobros')}
+                    >
+                        Cobros
+                    </button>
                 </div>
             </header>
 
@@ -203,7 +210,7 @@ const AdminLocales = () => {
                         </tbody>
                     </table>
                 </div>
-            ) : (
+            ) : activeTab === 'menus' ? (
                 <div className="menu-catalog-container">
                     <div className="catalog-filters">
                         <div className="search-wrapper">
@@ -266,6 +273,8 @@ const AdminLocales = () => {
                         </div>
                     )}
                 </div>
+            ) : (
+                <AdminPagos tipo="Local" />
             )}
         </div>
     );

@@ -976,7 +976,11 @@ export async function adminUpdateRepartidorStatus(repId, admin_status) {
 }
 
 export async function adminUpdateRepartidorEstado(repId, estado) {
-  const { error } = await supabase.from('repartidores').update({ estado: estado }).eq('id', repId);
+  const updateData = { estado: estado };
+  if (estado === 'Activo') {
+    updateData.ultima_actividad = new Date().toISOString();
+  }
+  const { error } = await supabase.from('repartidores').update(updateData).eq('id', repId);
   if (error) throw new Error(error.message);
   return { success: true };
 }

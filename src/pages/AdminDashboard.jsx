@@ -46,8 +46,6 @@ const AdminDashboard = () => {
         switch (activeTab) {
             case 'locales': return <AdminLocales />;
             case 'repartidores': return <AdminRepartidores />;
-            case 'pagos-locales': return <AdminPagos tipo="Local" />;
-            case 'pagos-repartidores': return <AdminPagos tipo="Repartidor" />;
             case 'emails': return <AdminEmails />;
             case 'tasks': return <AdminTasks />;
             case 'pedidos': return <AdminPedidos />;
@@ -68,12 +66,6 @@ const AdminDashboard = () => {
                     </button>
                     <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => setActiveTab('repartidores')}>
                         <span className="icon">🏍️</span> Repartidores
-                    </button>
-                    <button className={activeTab === 'pagos-locales' ? 'active' : ''} onClick={() => setActiveTab('pagos-locales')}>
-                        <span className="icon">💰</span> Cobros Locales
-                    </button>
-                    <button className={activeTab === 'pagos-repartidores' ? 'active' : ''} onClick={() => setActiveTab('pagos-repartidores')}>
-                        <span className="icon">💸</span> Pagos Repartidores
                     </button>
                     <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => setActiveTab('emails')}>
                         <span className="icon">📧</span> Panel Email

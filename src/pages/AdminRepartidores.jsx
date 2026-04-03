@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
+import AdminPagos from './AdminPagos';
 
 const AdminRepartidores = () => {
     const [repartidores, setRepartidores] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('gestion');
 
     const loadRepartidores = async () => {
         setLoading(true);
@@ -78,9 +80,27 @@ const AdminRepartidores = () => {
         <div className="panel-card animate-fade-in">
             <header className="panel-header">
                 <h2>Gestión de Repartidores</h2>
+                <div className="admin-locales-tabs" style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                        className={`tab-btn ${activeTab === 'gestion' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('gestion')}
+                        style={{ padding: '8px 16px', background: activeTab === 'gestion' ? '#e2e8f0' : 'transparent', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                        Gestión de Registros
+                    </button>
+                    <button 
+                        className={`tab-btn ${activeTab === 'pagos' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('pagos')}
+                        style={{ padding: '8px 16px', background: activeTab === 'pagos' ? '#e2e8f0' : 'transparent', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                        Pagos
+                    </button>
+                </div>
                 <button className="btn btn-primary" onClick={loadRepartidores}>Refrescar</button>
             </header>
-            <div className="table-responsive">
+            
+            {activeTab === 'gestion' ? (
+                <div className="table-responsive">
                 <table className="admin-table">
                     <thead>
                         <tr>
@@ -179,6 +199,9 @@ const AdminRepartidores = () => {
                     </tbody>
                 </table>
             </div>
+            ) : (
+                <AdminPagos tipo="Repartidor" />
+            )}
         </div>
     );
 };
