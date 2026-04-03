@@ -343,23 +343,32 @@ export default function CustomerApp() {
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
-    if (fd.get('password').length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
-    if (!fd.get('telefono')) { toast.error('El teléfono es obligatorio'); return; }
+    const email = fd.get('email').toLowerCase();
+    const nombre = fd.get('nombre');
+    const password = fd.get('password');
+    const direccion = fd.get('direccion');
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
+
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
+    
     setAuthLoading(true);
     try {
       const d = await api.registerUsuario(
-        fd.get('nombre'), fd.get('email').toLowerCase(), fd.get('password'), fd.get('direccion'), fd.get('telefono'),
+        nombre, email, password, direccion, telefono,
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
       );
       if (d.success) {
         loginAsUser({ 
           userId: d.userId, 
-          name: fd.get('nombre'), 
-          email: fd.get('email'), 
-          address: fd.get('direccion'),
-          telefono: fd.get('telefono')
+          name: nombre, 
+          email: email, 
+          address: direccion,
+          telefono: telefono
         });
         setModal(null);
         toast.success('¡Registro exitoso!');
@@ -373,11 +382,15 @@ export default function CustomerApp() {
     const fd = new FormData(e.target);
     const nombre = fd.get('nombre');
     const email = fd.get('email');
-    const telefono = fd.get('telefono');
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
     const newPass = fd.get('newPassword');
-    if (!nombre || !email || !telefono) { toast.error('Nombre, email y teléfono son obligatorios'); return; }
+
+    if (!nombre || !email || !localNumber) { toast.error('Nombre, email y teléfono son obligatorios'); return; }
     if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
     if (newPass && newPass.length < 6) { toast.error('La nueva contraseña debe tener 6+ caracteres'); return; }
+    
     setAuthLoading(true);
     try {
       await api.updateProfile(user.id, nombre, email, telefono, newPass || null);
@@ -858,7 +871,23 @@ export default function CustomerApp() {
             </div>
           )}
         </div>
-        <h1 className="app-greeting animate-fade-in">¿Qué se te antoja?</h1>
+        <div className="app-greeting-container">
+          {user && !user.telefono && (
+            <div className="missing-phone-banner">
+              <div className="missing-phone-content">
+                <span className="missing-phone-icon">📞</span>
+                <div>
+                  <p style={{ margin: 0 }}>¡Completá tu cuenta!</p>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Agregá tu teléfono para que el repartidor pueda contactarte.</span>
+                </div>
+              </div>
+              <button className="btn btn-sm" onClick={() => setModal('editProfile')}>
+                Agregar ahora
+              </button>
+            </div>
+          )}
+          <h1 className="app-greeting animate-fade-in">¿Qué se te antoja?</h1>
+        </div>
 
         {/* ─── Categories ─── */}
         <div className="categories-scroll animate-slide-up">
@@ -1298,7 +1327,13 @@ export default function CustomerApp() {
                   </button>
                 </div>
                 <input name="direccion" className="form-input" placeholder="Dirección (opcional)" autoComplete="street-address" />
-                <input name="telefono" type="tel" className="form-input" placeholder="Teléfono / WhatsApp" required autoComplete="tel" />
+                <div className="phone-input-group">
+                  <select name="prefix" className="phone-prefix-select">
+                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+55">🇧🇷 +55</option>
+                  </select>
+                  <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Número (ej: 1123456789)" required autoComplete="tel-national" />
+                </div>
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
                   <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
@@ -1342,7 +1377,20 @@ export default function CustomerApp() {
                 <label className="form-label">Email</label>
                 <input name="email" type="email" className="form-input" defaultValue={user.email} required />
                 <label className="form-label">Teléfono</label>
-                <input name="telefono" type="tel" className="form-input" defaultValue={user.telefono} required />
+                <div className="phone-input-group">
+                  <select name="prefix" className="phone-prefix-select" defaultValue={user.telefono?.startsWith('+55') ? '+55' : '+54'}>
+                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+55">🇧🇷 +55</option>
+                  </select>
+                  <input 
+                    name="telefono" 
+                    type="tel" 
+                    className="form-input phone-number-input" 
+                    defaultValue={user.telefono ? user.telefono.replace(/^\+54|^\+55/, '') : ''} 
+                    placeholder="Número (ej: 1123456789)" 
+                    required 
+                  />
+                </div>
                 <label className="form-label">Nueva contraseña (opcional)</label>
                 <input name="newPassword" type="password" className="form-input" placeholder="Dejar en blanco si no deseas cambiarla" />
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
