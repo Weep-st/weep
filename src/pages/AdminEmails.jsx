@@ -7,6 +7,8 @@ const AdminEmails = () => {
     const [manualEmails, setManualEmails] = useState('');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
+    const [buttonText, setButtonText] = useState('');
+    const [buttonUrl, setButtonUrl] = useState('');
     const [sending, setSending] = useState(false);
 
     const handleSend = async (e) => {
@@ -30,6 +32,13 @@ const AdminEmails = () => {
                     <div style="font-size: 16px; color: #475569; line-height: 1.8; margin-bottom: 40px; white-space: pre-wrap;">
 ${message}
                     </div>
+                    ${buttonText && buttonUrl ? `
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <a href="${buttonUrl}" style="display: inline-block; padding: 14px 28px; background-color: #6366f1; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                            ${buttonText}
+                        </a>
+                    </div>
+                    ` : ''}
                     <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
                         <h3 style="color: #6366f1; margin-bottom: 10px; font-size: 18px;">WEEP — Plataforma de pedidos y delivery</h3>
                     </div>
@@ -60,6 +69,8 @@ ${message}
                 toast.success(`Emails enviados a ${res.count} destinatarios!`, { id: loading });
                 setSubject('');
                 setMessage('');
+                setButtonText('');
+                setButtonUrl('');
             } else {
                 toast.error(res.error || 'Error al enviar emails', { id: loading });
             }
@@ -121,6 +132,33 @@ ${message}
                         placeholder="Escribe el contenido del email aquí..."
                         rows="10"
                     />
+                </div>
+
+                    <button type="button" className="btn btn-secondary" onClick={() => { setSubject(''); setMessage(''); setButtonText(''); setButtonUrl(''); }} style={{ marginTop: '0.5rem', marginBottom: '1rem', fontSize: '0.8rem', padding: '4px 8px', width: 'auto', background: 'transparent', border: '1px solid #475569' }}>
+                        Limpiar campos
+                    </button>
+
+                <div className="form-group" style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ flex: 1 }}>
+                        <label>Texto del Botón (Opcional):</label>
+                        <input 
+                            type="text" 
+                            value={buttonText} 
+                            onChange={(e) => setButtonText(e.target.value)} 
+                            className="form-control" 
+                            placeholder="Ej: Ver promoción"
+                        />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <label>URL del Botón (Opcional):</label>
+                        <input 
+                            type="url" 
+                            value={buttonUrl} 
+                            onChange={(e) => setButtonUrl(e.target.value)} 
+                            className="form-control" 
+                            placeholder="https://weep.com.ar/..."
+                        />
+                    </div>
                 </div>
 
                 <button type="submit" className="btn btn-primary" disabled={sending} style={{ width: '100%', marginTop: '1rem' }}>
