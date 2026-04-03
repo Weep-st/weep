@@ -128,10 +128,124 @@
   flex-grow: 1;
   padding: 2rem 3rem;
   overflow-y: auto;
+  transition: all 0.3s ease;
 }
 
 .main-header {
   margin-bottom: 2.5rem;
+}
+
+.mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+}
+
+@media (max-width: 1024px) {
+  .admin-main {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    width: 260px;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .admin-sidebar.open {
+    left: 0;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .admin-main {
+    padding: 5rem 1rem 2rem 1rem;
+  }
+
+  .header-stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .panel-card {
+    padding: 1.25rem;
+    border-radius: 1rem;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .panel-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    margin: 0 -1.25rem;
+    padding: 0 1.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table th, .admin-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  /* Responsive tabs for locales */
+  .admin-locales-tabs {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .admin-locales-tabs .tab-btn {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
 }
 
 .header-stats {

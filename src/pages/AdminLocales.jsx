@@ -111,6 +111,7 @@ const AdminLocales = () => {
                                 <th>Nombre</th>
                                 <th>Email</th>
                                 <th>Dirección</th>
+                                <th>Status</th>
                                 <th>Disponible desde</th>
                                 <th>Estado Admin</th>
                                 <th>Acciones</th>
@@ -118,7 +119,7 @@ const AdminLocales = () => {
                         </thead>
                         <tbody>
                             {locales.length === 0 ? (
-                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No hay locales registrados.</td></tr>
+                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No hay locales registrados.</td></tr>
                             ) : (
                                 locales.map(local => (
                                     <tr key={local.id}>
@@ -129,11 +130,19 @@ const AdminLocales = () => {
                                                     alt="" 
                                                     style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
                                                 />
-                                                {local.nombre}
+                                                <div>
+                                                    <div style={{ fontWeight: 600 }}>{local.nombre}</div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ID: {local.id}</div>
+                                                </div>
                                             </div>
                                         </td>
                                         <td>{local.email}</td>
                                         <td>{local.direccion}</td>
+                                        <td>
+                                            <div className={`status-badge ${local.estado?.toLowerCase() === 'abierto' ? 'open' : 'closed'}`}>
+                                                {local.estado || 'Cerrado'}
+                                            </div>
+                                        </td>
                                         <td>
                                             <input 
                                                 type="date" 
@@ -154,7 +163,28 @@ const AdminLocales = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                {local.admin_status === 'Aceptado' && (
+                                                    <button 
+                                                        className={`btn ${local.estado === 'Abierto' ? 'btn-danger' : 'btn-success'} btn-sm`}
+                                                        style={{ minWidth: '80px' }}
+                                                        onClick={async () => {
+                                                            const newStatus = local.estado === 'Abierto' ? 'Cerrado' : 'Abierto';
+                                                            try {
+                                                                await api.updateLocalEstado(local.id, newStatus);
+                                                                toast.success(`Local ${newStatus}`);
+                                                                loadLocales();
+                                                            } catch (err) {
+                                                                toast.error('Error al cambiar disponibilidad');
+                                                            }
+                                                        }}
+                                                    >
+                                                        {local.estado === 'Abierto' ? 'Cerrar' : 'Abrir'}
+                                                    </button>
+                                                )}
+                                                
+                                                <div style={{ borderLeft: '1px solid #334155', height: '24px', margin: '0 4px' }}></div>
+
                                                 <button 
                                                     className="btn btn-success btn-sm" 
                                                     onClick={() => handleUpdateStatus(local.id, 'Aceptado')}

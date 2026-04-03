@@ -163,13 +163,27 @@ const AdminRepartidores = () => {
                                                     Rechazar
                                                 </button>
                                             </div>
-                                            {rep.estado !== 'Inactivo' && (
+                                            {rep.estado === 'Inactivo' ? (
+                                                <button 
+                                                    className="btn btn-success btn-sm" 
+                                                    style={{ fontSize: '0.7rem', padding: '4px' }}
+                                                    onClick={() => {
+                                                        if (window.confirm('¿Activar este repartidor manualmente?')) {
+                                                            api.repartidorActualizarEstado(rep.id, 'Activo')
+                                                                .then(() => { toast.success('Repartidor activo'); loadRepartidores(); })
+                                                                .catch(() => toast.error('Error al activar'));
+                                                        }
+                                                    }}
+                                                >
+                                                    Activar
+                                                </button>
+                                            ) : (
                                                 <button 
                                                     className="btn btn-secondary btn-sm" 
                                                     style={{ fontSize: '0.7rem', padding: '4px' }}
                                                     onClick={() => handleForceDisconnect(rep.id)}
                                                 >
-                                                    Forzar Desconexión
+                                                    Desactivar
                                                 </button>
                                             )}
                                         </div>
