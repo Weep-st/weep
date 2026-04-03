@@ -1,7 +1,7 @@
 {
-  "name": "Weep Repartidores",
+  "name": "Weep - Repartidores",
   "short_name": "Weep",
-  "description": "Plataforma de Repartidores Weep",
+  "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
   "start_url": "/repartidores",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -916,7 +916,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, admin_status, created_at, foto_url, disponible_desde, estado')
+    .select('id, nombre, email, direccion, admin_status, created_at, foto_url, disponible_desde')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -1371,6 +1371,7 @@ export async function getMenuItemById(itemId) {
 export async function createPendingMercadoPagoOrder({ userId, direccion, total, observaciones, cart, emailCliente, nombreCliente }) {
   const pedidoId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
   const now = new Date();
+  now.setHours(now.getHours() - 3);
   const fechaArg = now.toISOString();
 
   const { error } = await supabase.from('pedidos_general').insert({

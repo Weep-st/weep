@@ -17,8 +17,6 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('locales');
     const [stats, setStats] = useState({ locales: 0, pendingTasks: 0, users: 0 });
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
     useEffect(() => {
         if (!user || user.role !== 'admin') return;
         
@@ -57,46 +55,33 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleTabChange = (tab) => {
-        setActiveTab(tab);
-        setIsSidebarOpen(false); // Close sidebar on mobile after selection
-    };
-
     return (
-        <div className={`admin-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-            {/* Mobile Toggle */}
-            <button className="mobile-toggle" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                {isSidebarOpen ? '✕' : '☰'}
-            </button>
-
-            {/* Overlay for mobile */}
-            {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>}
-
-            <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="admin-container">
+            <aside className="admin-sidebar">
                 <div className="sidebar-header">
                     <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep Admin" className="admin-logo" />
                     <h2>Admin Panel</h2>
                 </div>
                 <nav className="sidebar-nav">
-                    <button className={activeTab === 'locales' ? 'active' : ''} onClick={() => handleTabChange('locales')}>
-                        <span className="icon">🏪</span> {window.innerWidth < 768 ? 'Locales' : 'Locales Registrados'}
+                    <button className={activeTab === 'locales' ? 'active' : ''} onClick={() => setActiveTab('locales')}>
+                        <span className="icon">🏪</span> Locales Registrados
                     </button>
-                    <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => handleTabChange('repartidores')}>
+                    <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => setActiveTab('repartidores')}>
                         <span className="icon">🏍️</span> Repartidores
                     </button>
-                    <button className={activeTab === 'pagos-locales' ? 'active' : ''} onClick={() => handleTabChange('pagos-locales')}>
-                        <span className="icon">💰</span> {window.innerWidth < 768 ? 'Cobros' : 'Cobros Locales'}
+                    <button className={activeTab === 'pagos-locales' ? 'active' : ''} onClick={() => setActiveTab('pagos-locales')}>
+                        <span className="icon">💰</span> Cobros Locales
                     </button>
-                    <button className={activeTab === 'pagos-repartidores' ? 'active' : ''} onClick={() => handleTabChange('pagos-repartidores')}>
-                        <span className="icon">💸</span> {window.innerWidth < 768 ? 'Pagos Rep' : 'Pagos Repartidores'}
+                    <button className={activeTab === 'pagos-repartidores' ? 'active' : ''} onClick={() => setActiveTab('pagos-repartidores')}>
+                        <span className="icon">💸</span> Pagos Repartidores
                     </button>
-                    <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => handleTabChange('emails')}>
+                    <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => setActiveTab('emails')}>
                         <span className="icon">📧</span> Panel Email
                     </button>
-                    <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => handleTabChange('tasks')}>
-                        <span className="icon">📋</span> Tareas
+                    <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>
+                        <span className="icon">📋</span> Tareas Pendientes
                     </button>
-                    <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => handleTabChange('pedidos')}>
+                    <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => setActiveTab('pedidos')}>
                         <span className="icon">📦</span> Pedidos
                     </button>
                 </nav>

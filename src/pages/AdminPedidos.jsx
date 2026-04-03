@@ -24,6 +24,19 @@ const AdminPedidos = () => {
 
     const formatFecha = (fechaStr) => {
         if (!fechaStr) return 'N/A';
+        // Extraemos la fecha y hora original como viene de la base de datos
+        // Ej: "2024-04-03T16:35:00+00:00" -> Tomamos el "16:35" ignorando el extra tz.
+        try {
+            const regex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
+            const match = fechaStr.match(regex);
+            if (match) {
+                const [_, year, month, day, hour, minute] = match;
+                return `${day}/${month}/${year}, ${hour}:${minute}`;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+
         const date = new Date(fechaStr);
         return date.toLocaleString('es-AR', {
             day: '2-digit',
