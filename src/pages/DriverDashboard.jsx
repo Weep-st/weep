@@ -355,8 +355,7 @@ export default function DriverDashboard() {
           },
           body: JSON.stringify({ 
             estado: 'Inactivo', 
-            ultima_actividad: now,
-            ultima_conexion: now
+            ultima_actividad: now
           }),
           keepalive: true
         });
