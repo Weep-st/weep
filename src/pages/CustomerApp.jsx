@@ -406,39 +406,43 @@ export default function CustomerApp() {
 
   // --- Business Logic for Totals ---
   const PLATFORM_COMMISSION = 0.08;
-  const MP_FEE = 0.0824;
+  const MP_FEE_RATE = 0.0824;
 
   const calculateCheckoutTotals = (P, E, method) => {
+    const net_commission = P * PLATFORM_COMMISSION;
+    const net_local = P - net_commission;
+    const total_net = P + E;
+
     if (method === 'transferencia') {
-      const commission = P * PLATFORM_COMMISSION;
-      const mp_base = E + commission;
-      const mp_adjusted = mp_base / (1 - MP_FEE);
-      const mp_fee = mp_adjusted - mp_base;
-      const total = P + E + mp_fee;
+      const total_paid = total_net / (1 - MP_FEE_RATE);
+      const total_mp_fee = total_paid * MP_FEE_RATE;
       
+      // Marketplace Fee (lo que Weep recibe) será solo tu comisión neta y envío.
+      // El local se queda con el resto (que incluye el recargo de MP para pagar su propia factura a MP).
+      const marketplace_fee = net_commission + E;
+
       return {
-        total: Math.round(total),
+        total: Math.round(total_paid),
         product_total: P,
         delivery_fee: E,
-        commission: Math.round(commission),
-        mp_fee: Math.round(mp_fee),
-        merchant_payout: Math.round(P - commission),
-        platform_gross: Math.round(mp_adjusted),
-        platform_net: Math.round(E + commission)
+        commission: Math.round(net_commission),
+        mp_fee: Math.round(total_mp_fee),
+        merchant_payout: Math.round(net_local),
+        platform_gross: Math.round(marketplace_fee),
+        platform_net: Math.round(net_commission + E)
       };
     }
-    
+
     // Default (Efectivo)
-    const commission = P * PLATFORM_COMMISSION;
     return {
       total: Math.round(P + E),
       product_total: P,
       delivery_fee: E,
-      commission: Math.round(commission),
+      commission: Math.round(net_commission),
       mp_fee: 0,
-      merchant_payout: Math.round(P - commission),
+      merchant_payout: Math.round(net_local),
       platform_gross: 0,
-      platform_net: Math.round(E + commission)
+      platform_net: Math.round(net_commission + E)
     };
   };
 
@@ -448,7 +452,7 @@ export default function CustomerApp() {
 
   // UI-only disguise for "envio"
   // When shipping is $2,000, we show it as $1,700 and add the $300 to the fee label.
-  const showSurchargeDisguise = cart.shippingCost === 1800;
+  const showSurchargeDisguise = false;
   const visibleShipping = showSurchargeDisguise ? 1500 : cart.shippingCost;
   const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
@@ -627,7 +631,7 @@ export default function CustomerApp() {
       const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
       // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente.
       // const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 1800 : 0;
-      const shipping = cart.deliveryType === 'envio' ? 1800 : 0;
+      const shipping = cart.deliveryType === 'envio' ? 10 : 0;
       
       const finalTotals = calculateCheckoutTotals(calcSubtotal, shipping, mp);
       const exactTotal = finalTotals.total;
@@ -1196,7 +1200,7 @@ export default function CustomerApp() {
                   style={{ marginBottom: '10px' }}
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
-                  {/* <option value="transferencia">Transferencia / Mercado Pago</option> */}
+                  <option value="transferencia">Transferencia / Mercado Pago</option>
                   <option value="efectivo">Efectivo</option>
                 </select>
               </div>

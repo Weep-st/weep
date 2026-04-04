@@ -637,7 +637,7 @@ export default function DriverDashboard() {
       if (res.success) {
         toast.success('¡Entrega confirmada!', { id: 'ent' });
         // Modificar stats locales y cerrar modal
-        setSessionGanancias(prev => prev + 1800);
+        setSessionGanancias(prev => prev + 10);
         setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) }, ...historial]);
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);

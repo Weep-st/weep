@@ -24,52 +24,72 @@ Deno.serve(async (req) => {
     // O { "type": "payment", "data": { "id": "123456" } }
     
     const id = payload?.data?.id || payload?.id
-    const type = payload?.type || payload?.action
+    const type = payload?.type || payload?.action || 'payment'
+    const localId = new URL(req.url).searchParams.get('local_id')
+
+    console.log(`[Webhook MP] Recibida notificación: tipo=${type}, id=${id}, local=${localId}`)
 
     if (!id) {
       return new Response(JSON.stringify({ message: "No id found in payload" }), { status: 200 })
     }
 
-    // 2. Consultar el pago en Mercado Pago para verificar el estado real
-    const localId = new URL(req.url).searchParams.get('local_id')
-    if (!localId) {
-      console.error('Falta local_id en el webhook URL')
-      return new Response(JSON.stringify({ error: "Missing local_id" }), { status: 400 })
+    // 2. Obtener Tokens
+    const { data: localData } = await supabase.from('locales').select('mp_access_token').eq('id', localId).single()
+    const MP_GLOBAL = Deno.env.get('MP_ACCESS_TOKEN_GLOBAL')
+    const masterToken = 'APP_USR-595288641172928-010710-d915bce4137b3ee26e0c6e04873f1ac1-695835795';
+    
+    // Intentaremos con el del local primero, luego el global, luego el master
+    const tokenList = [localData?.mp_access_token, MP_GLOBAL, masterToken].filter(Boolean)
+    
+    let paymentId = id
+    let paymentData = null
+    let usedTokenIndex = -1
+
+    // 2. Intentar recuperar el pago (probando todos los tokens)
+    for (let i = 0; i < tokenList.length; i++) {
+        try {
+            const token = tokenList[i]
+            
+            // Si es merchant_order, primero lo traducimos a payment
+            let targetId = id
+            if (type.includes('merchant_order')) {
+                const moReq = await fetch(`https://api.mercadopago.com/merchant_orders/${id}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                })
+                if (moReq.ok) {
+                    const moData = await moReq.json()
+                    targetId = moData.payments?.[0]?.id || id
+                    console.log(`[Webhook MP] Traducido MO ${id} a Pago ${targetId}`)
+                }
+            }
+
+            const response = await fetch(`https://api.mercadopago.com/v1/payments/${targetId}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+
+            if (response.ok) {
+                paymentData = await response.json()
+                usedTokenIndex = i
+                console.log(`[Webhook MP] Pago ${targetId} recuperado con éxito (token ${i})`)
+                break
+            }
+        } catch (e) {
+            console.error(`[Webhook MP] Error con token ${i}:`, e)
+        }
     }
 
-    const { data: localData, error: localError } = await supabase
-      .from('locales')
-      .select('mp_access_token')
-      .eq('id', localId)
-      .single()
-
-    if (localError || !localData?.mp_access_token) {
-      console.error('Local no tiene MP configurado')
-      return new Response(JSON.stringify({ error: "Local MP config not found" }), { status: 400 })
+    if (!paymentData) {
+      console.error(`[Webhook MP] No se pudo recuperar información del pago ${id}`)
+      return new Response(JSON.stringify({ error: "Unauthorized or not found" }), { status: 200 })
     }
 
-    const accessToken = localData.mp_access_token
-    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`
-      }
-    })
+    const status = paymentData.status
+    const externalReference = paymentData.external_reference
 
-    if (!mpResponse.ok) {
-      console.error('Error consultando pago en MP:', await mpResponse.text())
-      return new Response(JSON.stringify({ error: "Error fetching payment from MP" }), { status: 200 })
-    }
-
-    const paymentData = await mpResponse.json()
-    console.log('Payment Data MP:', paymentData)
-
-    const status = paymentData.status // 'approved', 'pending', 'rejected', etc.
-    const externalReference = paymentData.external_reference // Tu ID de pedido
+    console.log(`[Webhook MP] Estado del pago: ${status}, Referencia: ${externalReference}`)
 
     if (status === 'approved' && externalReference) {
-      console.log(`Pago aprobado para pedido temporal: ${externalReference}`)
-
-      // 3. Obtener datos del pedido temporal
+      // 3. Buscar Pedido Temporal
       const { data: tempOrder, error: tempError } = await supabase
         .from('pedidos_temporales')
         .select('*')
@@ -77,40 +97,37 @@ Deno.serve(async (req) => {
         .single();
 
       if (tempError || !tempOrder) {
-        console.error('No se encontró el pedido temporal o ya fue procesado:', tempError);
-        return new Response(JSON.stringify({ message: "Temporal order not found" }), { status: 200 })
+        console.error(`[Webhook MP] Pedido temporal ${externalReference} no encontrado.`, tempError);
+        return new Response(JSON.stringify({ message: "Temp order not found" }), { status: 200 })
       }
 
-      console.log('Datos del pedido temporal encontrados. Creando pedido real...');
       const { cart_data, order_info, usuario_id } = tempOrder;
 
-      // 4. Llamar al RPC para crear el pedido completo
+      // 4. Crear pedido real
+      console.log(`[Webhook MP] Llamando RPC create_pedido_completo para ${externalReference}...`)
       const { data: rpcResult, error: rpcError } = await supabase.rpc('create_pedido_completo', {
         p_user_id: usuario_id,
-        p_direccion: order_info.direccion,
-        p_metodo_pago: order_info.metodoPago,
+        p_direccion: order_info.direccion || 'Sin dirección',
+        p_metodo_pago: order_info.metodoPago || 'transferencia',
         p_observaciones: order_info.observaciones || '',
-        p_tipo_entrega: order_info.tipoEntrega,
-        p_total: order_info.totalCalculado,
+        p_tipo_entrega: order_info.tipoEntrega || 'Para Entregar',
+        p_total: parseFloat(order_info.totalCalculado || '0'),
         p_estado: 'Pendiente',
         p_email_cliente: order_info.emailCliente || '',
         p_nombre_cliente: order_info.nombreCliente || '',
-        p_lat: order_info.lat || 0,
-        p_lng: order_info.lng || 0,
+        p_lat: parseFloat(order_info.lat || '0'),
+        p_lng: parseFloat(order_info.lng || '0'),
         p_cart: cart_data
       });
 
       if (rpcError) {
-        console.error('Error al ejecutar create_pedido_completo:', rpcError);
+        console.error(`[Webhook MP] ERROR EN RPC para ${externalReference}:`, rpcError);
         return new Response(JSON.stringify({ error: rpcError.message }), { status: 200 })
       }
 
-      console.log(`Pedido real creado exitosamente. ID: ${rpcResult.pedido_id}`);
+      console.log(`[Webhook MP] Pedido creado con éxito. ID: ${rpcResult.pedido_id}`)
 
-      // 5. Eliminar de pedidos_temporales
-      await supabase.from('pedidos_temporales').delete().eq('id', externalReference);
-
-      // 6. Enviar Notificaciones
+      // 5. Notificar y Limpiar
       try {
         await notifyLocalsAndCustomer({
           pedidoId: rpcResult.pedido_id,
@@ -121,18 +138,27 @@ Deno.serve(async (req) => {
           supabase
         });
       } catch (e) {
-        console.error('Error enviando notificaciones:', e);
+        console.error(`[Webhook MP] Error en notificaciones:`, e)
       }
+
+      await supabase.from('pedidos_temporales').delete().eq('id', externalReference);
+      console.log(`[Webhook MP] Flujo completado para ${externalReference}`)
+
+      return new Response(JSON.stringify({ success: true, pedido_id: rpcResult.pedido_id }), { 
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      })
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ status, ref: externalReference }), { 
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
 
   } catch (error) {
-    console.error('Error en webhook-mp:', error)
+    console.error('[Webhook MP] Error fatal:', error)
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { 'Access-Control-Allow-Origin': '*', "Content-Type": "application/json" },
       status: 200 
     })
   }
