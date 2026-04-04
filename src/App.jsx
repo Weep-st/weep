@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import Landing from './pages/Landing';
+import Maintenance from './pages/Maintenance';
 import CustomerApp from './pages/CustomerApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import DriverDashboard from './pages/DriverDashboard';
@@ -45,7 +45,7 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<Maintenance />} />
           <Route path="/pedir" element={<CustomerApp />} />
           <Route path="/mis-pedidos" element={<MisPedidos />} />
           <Route path="/locales" element={<RestaurantDashboard />} />
