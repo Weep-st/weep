@@ -144,8 +144,7 @@ export default function CustomerApp() {
 
   // Load locals + drinks on mount
   React.useEffect(() => {
-    // Limpieza pasiva de repartidores inactivos
-    api.adminCleanupInactiveDrivers().catch(() => {});
+    // La limpieza de inactividad ahora es manejada por el CRON de la BD.
 
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});

@@ -746,6 +746,201 @@ export async function getMisPedidos(userId) {
     const estadoLocal = globalStates.includes(p_est) ? p_est : (locales?.[0]?.estado || p_est);
     const nombreLocal = locales?.[0]?.locales?.nombre || 'Local';
 
+  if (existing) {
+    await supabase.from('favoritos').delete().eq('id', existing.id);
+    return { added: false };
+  } else {
+    await supabase.from('favoritos').insert({ usuario_id: userId, item_id: menuItemId });
+    return { added: true };
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// VALIDACIÓN DE DISPONIBILIDAD (NUEVO)
+// ═══════════════════════════════════════════════════
+export async function validateOrderAvailability(localIds, itemIds) {
+  // Consulta locales y platos en paralelo
+  const [localsRes, itemsRes] = await Promise.all([
+    supabase.from('locales')
+      .select('id, nombre, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde')
+      .in('id', localIds),
+    supabase.from('menu')
+      .select('id, nombre, disponibilidad')
+      .in('id', itemIds)
+  ]);
+
+  if (localsRes.error) throw new Error(localsRes.error.message);
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
+
+  return {
+    locales: localsRes.data || [],
+    items: itemsRes.data || []
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// PEDIDOS
+// ═══════════════════════════════════════════════════
+export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng }) {
+  const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
+  const estado = estadoInicial || 'Pendiente';
+
+  const { data, error } = await supabase.rpc('create_pedido_completo', {
+    p_user_id: userId,
+    p_direccion: direccion,
+    p_metodo_pago: metodoPago,
+    p_observaciones: observaciones || '',
+    p_tipo_entrega: tipoEntrega,
+    p_total: total,
+    p_estado: estado,
+    p_email_cliente: emailCliente || '',
+    p_nombre_cliente: nombreCliente || '',
+    p_lat: lat || 0,
+    p_lng: lng || 0,
+    p_cart: items
+  });
+
+  if (error) {
+    console.error("🚨 RPC ERROR DETALLADO:", error);
+    throw new Error(error.message + " | Detalles: " + (error.details || ''));
+  }
+
+  // Actualizar el "total" (subtotal del local) en pedidos_locales
+  try {
+    const localTotals = {};
+    for (const i of items) {
+      const lid = i.local_id || 'unknown';
+      if (!localTotals[lid]) localTotals[lid] = 0;
+      localTotals[lid] += Number(i.precio) * Number(i.cantidad || i.qty || 1);
+    }
+    for (const [lid, totalLocal] of Object.entries(localTotals)) {
+      await supabase.from('pedidos_locales')
+        .update({ total: totalLocal })
+        .eq('pedido_id', data.pedido_id)
+        .eq('local_id', lid);
+    }
+  } catch (err) {
+    console.error("Error actualizando totales en pedidos_locales:", err);
+  }
+
+  return { success: true, pedidoId: data.pedido_id, repartidorId: data.repartidor_id, numConfirmacion: data.num_confirmacion };
+}
+
+export async function getPedidosLocalesByLocal(localId) {
+  const { data } = await supabase
+    .from('pedidos_locales')
+    .select('id, pedido_id, local_id, total, estado')
+    .eq('local_id', localId)
+    .order('created_at', { ascending: false });
+  return (data || []).map(p => [p.id, p.pedido_id, p.local_id, p.total, p.estado]);
+}
+
+export async function getItemsByPedidoLocal(pedidoId, localId) {
+  const { data } = await supabase.from('pedidos_items')
+    .select('*')
+    .eq('pedido_id', pedidoId)
+    .eq('local_id', localId);
+  return (data || []).map(i => [i.id, i.pedido_id, i.item_id, '', i.nombre, i.precio_unitario, i.cantidad, i.subtotal]);
+}
+
+export async function getPedidoGeneral(pedidoId) {
+  const { data } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
+  if (!data) return {};
+  return {
+    direccion: data.direccion, observaciones: data.observaciones,
+    metodoPago: data.metodo_pago, tipoEntrega: data.tipo_entrega,
+    emailCliente: data.email_cliente, nombreCliente: data.nombre_cliente,
+    fecha: data.created_at, numConfirmacion: data.num_confirmacion,
+    repartidorId: data.repartidor_id,
+  };
+}
+
+export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
+  const { error } = await supabase.from('pedidos_locales').update({ estado }).eq('id', pedidoLocalId);
+  if (error) throw new Error(error.message);
+
+  if (estado === 'Rechazado') {
+    const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).single();
+    if (pl) {
+      const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pl.pedido_id).single();
+      if (pg && pg.repartidor_id) {
+        await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
+      }
+      await supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', pl.pedido_id);
+    }
+  }
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// LANZAMIENTO
+// ═══════════════════════════════════════════════════
+export async function registrarEmailLanzamiento(email) {
+  const now = new Date();
+  const options = { timeZone: 'America/Argentina/Buenos_Aires' };
+  const { error } = await supabase.from('lanzamiento').insert({
+    email, 
+    dia: now.toLocaleDateString('es-AR', options), 
+    hora: now.toLocaleTimeString('es-AR', options),
+  });
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════
+export async function buscarMenu(query) {
+  const { data } = await supabase
+    .from('menu')
+    .select('*, locales(nombre, foto_url, disponible_desde)')
+    .eq('disponibilidad', true)
+    .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%,categoria.ilike.%${query}%`)
+    .order('nombre')
+    .limit(50);
+  return (data || []).map(i => ({
+    id: i.id, nombre: i.nombre, categoria: i.categoria,
+    descripcion: i.descripcion, precio: i.precio,
+    imagen_url: i.imagen_url, local_id: i.local_id,
+    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
+  }));
+}
+
+// ═══════════════════════════════════════════════════
+// MIS PEDIDOS
+// ═══════════════════════════════════════════════════
+export async function getMisPedidos(userId) {
+  const { data: pedidos } = await supabase
+    .from('pedidos_general')
+    .select('*')
+    .eq('usuario_id', userId)
+    .order('created_at', { ascending: false });
+  if (!pedidos || pedidos.length === 0) return { enCurso: [], historial: [] };
+
+  const enCurso = [];
+  const historial = [];
+
+  for (const p of pedidos) {
+    const { data: locales } = await supabase
+      .from('pedidos_locales')
+      .select('*, locales(nombre)')
+      .eq('pedido_id', p.id);
+
+    const localIds = (locales || []).map(l => l.id);
+    let items = [];
+    const { data: allItems } = await supabase
+      .from('pedidos_items')
+      .select('*')
+      .eq('pedido_id', p.id);
+    items = allItems || [];
+
+    const p_est = p.estado || 'Pendiente';
+    const globalStates = ['Retirado', 'En camino', 'Entregado', 'Cancelado'];
+    const estadoLocal = globalStates.includes(p_est) ? p_est : (locales?.[0]?.estado || p_est);
+    const nombreLocal = locales?.[0]?.locales?.nombre || 'Local';
+
     const pedidoObj = {
       idPedido: p.id, nombreLocal, estado: estadoLocal,
       total: p.total, fecha: p.fecha || p.created_at, direccion: p.direccion,
@@ -1910,77 +2105,7 @@ export async function deleteRepartidorAccount(driverId) {
   return { success: true };
 }
 
-// ═══════════════════════════════════════════════════
-// INACTIVACIÓN AUTOMÁTICA POR INACTIVIDAD (Lazy Cleanup)
-// ═══════════════════════════════════════════════════
-
 export async function adminCleanupInactiveDrivers() {
-  try {
-    const threshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    
-    // 1. Buscar repartidores que deberían estar inactivos
-    const { data: inactiveDrivers, error: searchError } = await supabase
-      .from('repartidores')
-      .select('id, nombre, email')
-      .eq('estado', 'Activo')
-      .lt('ultima_actividad', threshold);
-
-    if (searchError) throw searchError;
-    if (!inactiveDrivers || inactiveDrivers.length === 0) return { success: true, count: 0 };
-
-    const ids = inactiveDrivers.map(d => d.id);
-
-    // 2. Actualizar estado en la BD
-    const { error: updateError } = await supabase
-      .from('repartidores')
-      .update({ estado: 'Inactivo' })
-      .in('id', ids);
-
-    if (updateError) throw updateError;
-
-    // 3. Enviar correos de aviso (paralelo)
-    const emailPromises = inactiveDrivers.map(driver => 
-      sendInactivityEmail(driver.email, driver.nombre)
-    );
-    await Promise.all(emailPromises);
-
-    return { success: true, count: inactiveDrivers.length };
-  } catch (err) {
-    console.error("❌ Error en cleanupInactiveDrivers:", err);
-    return { success: false, error: err.message };
-  }
+  // Función desactivada. El sistema ahora usa el CRON nativo de Supabase.
+  return { success: true, count: 0 };
 }
-
-async function sendInactivityEmail(email, nombre) {
-  const htmlBody = `
-    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
-        <div style="text-align: center; margin-bottom: 30px;">
-            <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" style="width: 120px; height: auto;">
-        </div>
-        <div style="background-color: #f59e0b; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
-        <h1 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px;">Aviso de Desconexión Automática</h1>
-        <p style="font-size: 16px; color: #475569; line-height: 1.8; margin-bottom: 20px;">
-            Hola <strong>${nombre}</strong>,
-        </p>
-        <p style="font-size: 16px; color: #475569; line-height: 1.8; margin-bottom: 20px;">
-            Detectamos que tu cuenta ha estado inactiva por más de 5 minutos mientras estabas en modo "Activo". Por seguridad y para optimizar el servicio, hemos cambiado tu estado a <strong>Inactivo</strong>.
-        </p>
-        <div style="background-color: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fef3c7; margin-bottom: 30px; text-align: center;">
-            <p style="color: #92400e; margin: 0; font-weight: 600;">Deberás volver a conectarte desde la app para recibir nuevos pedidos.</p>
-        </div>
-        <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
-            <p>© ${new Date().getFullYear()} WEEP. Todos los derechos reservados.</p>
-            <p>Este es un mensaje institucional automático.</p>
-        </div>
-    </div>
-  `;
-
-  return supabase.functions.invoke('send-email', {
-    body: {
-      to: email,
-      subject: "⚠️ Tu cuenta de Repartidor se ha puesto en espera - Weep",
-      htmlBody
-    }
-  });
-}
-

@@ -11,9 +11,6 @@ const AdminRepartidores = () => {
     const loadRepartidores = async () => {
         setLoading(true);
         try {
-            // Limpieza proactiva de inactivos
-            await api.adminCleanupInactiveDrivers();
-            
             const data = await api.adminGetRepartidores();
             // Sort: Aceptado -> Pendiente -> Rechazado
             const sorted = data.sort((a, b) => {
