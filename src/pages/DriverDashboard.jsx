@@ -338,33 +338,10 @@ export default function DriverDashboard() {
     };
   }, [driver, isActive, fetchPedidos, checkAvailability]);
 
-  // Manejo de cierre de pestaña / Navegación fuera
-  React.useEffect(() => {
-    const handleUnload = () => {
-      if (isActive && driver) {
-        // Usar fetch con keepalive para asegurar que la petición se complete
-        // incluso si la pestaña se cierra.
-        const url = `${api.SUPABASE_URL}/rest/v1/repartidores?id=eq.${driver.id}`;
-        const now = new Date().toISOString();
-        fetch(url, {
-          method: 'PATCH',
-          headers: {
-            'apikey': api.SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({ 
-            estado: 'Inactivo', 
-            ultima_actividad: now
-          }),
-          keepalive: true
-        });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [driver, isActive]);
+  // React.useEffect(() => {
+  //   const handleUnload = () => { ... } 
+  //   Evitamos desconectar al refrescar. El CRON de inactividad se encarga si cierran la página.
+  // }, [driver, isActive]);
 
   // Carga de datos del local para viaje en curso
   React.useEffect(() => {
