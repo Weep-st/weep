@@ -424,22 +424,27 @@ export default function CustomerApp() {
     const total_net = P + E;
 
     if (method === 'transferencia') {
-      const total_paid = total_net / (1 - MP_FEE_RATE);
-      const total_mp_fee = total_paid * MP_FEE_RATE;
+      const weep_income = E + net_commission;
+      // La tasa de MP que paga el cliente solo cubre el ingreso de Weep (Envío + Comisión 8%)
+      // El excedente del total (lo que MP cobra sobre el 92% del local) lo absorbe el local.
+      const fee_on_weep_portion = weep_income * MP_FEE_RATE / (1 - MP_FEE_RATE);
       
-      // Marketplace Fee (lo que Weep recibe) incluye la comisión neta, el envío y la tasa de MP (que pagó el cliente).
-      // El local se queda con el 92% del subtotal líquido.
-      const marketplace_fee = net_commission + E + total_mp_fee;
-      
+      const total_paid = P + E + fee_on_weep_portion;
+      const total_mp_fee = total_paid * MP_FEE_RATE; // La comisión real que MP descontará del pozo total
+
+      // Marketplace Fee (lo que Weep recibe) debe cubrir su ingreso neto + la comisión total de MP
+      // de este modo Weep se queda con su neto limpio y el local absorbe su parte del costo de MP.
+      const marketplace_fee = weep_income + total_mp_fee;
+
       return {
         total: Math.round(total_paid),
         product_total: P,
         delivery_fee: E,
         commission: Math.round(net_commission),
-        mp_fee: Math.round(total_mp_fee),
-        merchant_payout: Math.round(net_local),
+        mp_fee: Math.round(fee_on_weep_portion),
+        merchant_payout: Math.round(total_paid - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(net_commission + E)
+        platform_net: Math.round(weep_income)
       };
     }
 
