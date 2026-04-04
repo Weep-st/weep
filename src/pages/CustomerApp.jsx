@@ -1196,7 +1196,7 @@ export default function CustomerApp() {
                   style={{ marginBottom: '10px' }}
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
-                  <option value="transferencia">Transferencia / Mercado Pago</option>
+                  {/* <option value="transferencia">Transferencia / Mercado Pago</option> */}
                   <option value="efectivo">Efectivo</option>
                 </select>
               </div>
