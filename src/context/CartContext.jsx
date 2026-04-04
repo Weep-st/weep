@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 const CartContext = createContext(null);
-const COSTO_ENVIO = 10;
+const COSTO_ENVIO = 1800;
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
