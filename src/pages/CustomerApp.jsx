@@ -427,10 +427,10 @@ export default function CustomerApp() {
       const total_paid = total_net / (1 - MP_FEE_RATE);
       const total_mp_fee = total_paid * MP_FEE_RATE;
       
-      // Marketplace Fee (lo que Weep recibe) será solo tu comisión neta y envío.
-      // El local se queda con el resto (que incluye el recargo de MP para pagar su propia factura a MP).
-      const marketplace_fee = net_commission + E;
-
+      // Marketplace Fee (lo que Weep recibe) incluye la comisión neta, el envío y la tasa de MP (que pagó el cliente).
+      // El local se queda con el 92% del subtotal líquido.
+      const marketplace_fee = net_commission + E + total_mp_fee;
+      
       return {
         total: Math.round(total_paid),
         product_total: P,
