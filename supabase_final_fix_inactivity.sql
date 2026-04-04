@@ -39,7 +39,7 @@ BEGIN
             'title', 'Sesión en Espera ⚠️',
             'message', 'Tu sesión ha expirado por inactividad. Vuelve a conectarte para recibir pedidos.',
             'data', jsonb_build_object('type', 'desconexion')
-          )::text
+          )
         );
     END IF;
   END IF;
