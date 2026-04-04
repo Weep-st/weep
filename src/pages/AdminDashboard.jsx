@@ -15,6 +15,7 @@ const AdminDashboard = () => {
     const { user, logoutUser } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('locales');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [stats, setStats] = useState({ locales: 0, pendingTasks: 0, users: 0 });
 
     useEffect(() => {
@@ -42,6 +43,15 @@ const AdminDashboard = () => {
         return <AdminLogin />;
     }
 
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+    const handleTabClick = (tab) => {
+        setActiveTab(tab);
+        if (window.innerWidth <= 768) {
+            setIsSidebarOpen(false);
+        }
+    };
+
     const renderContent = () => {
         switch (activeTab) {
             case 'locales': return <AdminLocales />;
@@ -55,25 +65,28 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-container">
-            <aside className="admin-sidebar">
+            {isSidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+            
+            <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <button className="sidebar-close" onClick={toggleSidebar}>×</button>
                 <div className="sidebar-header">
                     <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep Admin" className="admin-logo" />
                     <h2>Admin Panel</h2>
                 </div>
                 <nav className="sidebar-nav">
-                    <button className={activeTab === 'locales' ? 'active' : ''} onClick={() => setActiveTab('locales')}>
+                    <button className={activeTab === 'locales' ? 'active' : ''} onClick={() => handleTabClick('locales')}>
                         <span className="icon">🏪</span> Locales Registrados
                     </button>
-                    <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => setActiveTab('repartidores')}>
+                    <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => handleTabClick('repartidores')}>
                         <span className="icon">🏍️</span> Repartidores
                     </button>
-                    <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => setActiveTab('emails')}>
+                    <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => handleTabClick('emails')}>
                         <span className="icon">📧</span> Panel Email
                     </button>
-                    <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>
+                    <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => handleTabClick('tasks')}>
                         <span className="icon">📋</span> Tareas Pendientes
                     </button>
-                    <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => setActiveTab('pedidos')}>
+                    <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => handleTabClick('pedidos')}>
                         <span className="icon">📦</span> Pedidos
                     </button>
                 </nav>
@@ -88,6 +101,9 @@ const AdminDashboard = () => {
 
             <main className="admin-main">
                 <header className="main-header">
+                    <button className="menu-toggle" onClick={toggleSidebar}>
+                        ☰
+                    </button>
                     <div className="header-stats">
                         <div className="stat-card">
                             <h3>{stats.locales}</h3>
