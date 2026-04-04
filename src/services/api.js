@@ -359,14 +359,15 @@ export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio')
     .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
     estado: l.estado, direccion: l.direccion,
     horario_apertura: l.horario_apertura, horario_cierre: l.horario_cierre,
     modo_automatico: l.modo_automatico, dias_apertura: l.dias_apertura,
-    disponible_desde: l.disponible_desde
+    disponible_desde: l.disponible_desde,
+    acepta_retiro: l.acepta_retiro, acepta_envio: l.acepta_envio
   }));
 }
 
@@ -376,7 +377,7 @@ export async function getLocales() {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
@@ -386,13 +387,15 @@ export async function getMenuCompleto() {
     local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
+    local_acepta_retiro: i.locales?.acepta_retiro,
+    local_acepta_envio: i.locales?.acepta_envio,
   }));
 }
 
 export async function getMenuByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true)
     .order('nombre');
@@ -565,7 +568,7 @@ export async function validateOrderAvailability(localIds, itemIds) {
   // Consulta locales y platos en paralelo
   const [localsRes, itemsRes] = await Promise.all([
     supabase.from('locales')
-      .select('id, nombre, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde')
+      .select('id, nombre, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio')
       .in('id', localIds),
     supabase.from('menu')
       .select('id, nombre, disponibilidad')
@@ -696,7 +699,7 @@ export async function registrarEmailLanzamiento(email) {
 export async function buscarMenu(query) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio)')
     .eq('disponibilidad', true)
     .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%,categoria.ilike.%${query}%`)
     .order('nombre')
@@ -707,6 +710,8 @@ export async function buscarMenu(query) {
     imagen_url: i.imagen_url, local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
+    local_acepta_retiro: i.locales?.acepta_retiro,
+    local_acepta_envio: i.locales?.acepta_envio,
   }));
 }
 
@@ -924,7 +929,7 @@ export async function getRepartidoresActivosCount(excludeDriverId) {
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -947,7 +952,9 @@ export async function getLocalesByCategoria(categoria) {
         horario_cierre: item.locales?.horario_cierre,
         modo_automatico: item.locales?.modo_automatico,
         dias_apertura: item.locales?.dias_apertura,
-        disponible_desde: item.locales?.disponible_desde
+        disponible_desde: item.locales?.disponible_desde,
+        acepta_retiro: item.locales?.acepta_retiro,
+        acepta_envio: item.locales?.acepta_envio
       };
     } else {
       if (item.precio < groupedMap[lid].precio_min_categoria) {
@@ -1039,6 +1046,8 @@ export async function adminGetMenuCompleto() {
     local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
+    local_acepta_retiro: i.locales?.acepta_retiro,
+    local_acepta_envio: i.locales?.acepta_envio,
   }));
 }
 

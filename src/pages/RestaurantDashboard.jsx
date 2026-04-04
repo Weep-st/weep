@@ -699,7 +699,9 @@ export default function RestaurantDashboard() {
         horario_apertura: fd.get('horario_apertura'),
         horario_cierre: fd.get('horario_cierre'),
         modo_automatico: fd.get('modo_automatico') === 'true',
-        dias_apertura: selectedDays
+        dias_apertura: selectedDays,
+        acepta_retiro: fd.get('acepta_retiro') === 'on',
+        acepta_envio: fd.get('acepta_envio') === 'on'
       };
 
       const pass = fd.get('password');
@@ -1818,6 +1820,18 @@ export default function RestaurantDashboard() {
                           </label>
                         );
                       })}
+                    </div>
+
+                    <h3 style={{ marginTop: '12px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Métodos de Entrega Disponibles</h3>
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                        <input type="checkbox" name="acepta_retiro" defaultChecked={profileData.acepta_retiro !== false} />
+                        🏪 Ofrecer Retiro en Local
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                        <input type="checkbox" name="acepta_envio" defaultChecked={profileData.acepta_envio !== false} />
+                        🛵 Ofrecer Envío a Domicilio
+                      </label>
                     </div>
 
                     <div className="rd-form-actions" style={{ marginTop: '24px' }}>

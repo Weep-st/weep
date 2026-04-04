@@ -242,6 +242,16 @@ export default function CustomerApp() {
     setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
     setSelectedLocal(local);
+    
+    // Auto-select delivery type if only one is available
+    if (local) {
+      if (local.acepta_envio === false && cart.deliveryType === 'envio') {
+        cart.setDeliveryType('retiro');
+      } else if (local.acepta_retiro === false && cart.deliveryType === 'retiro') {
+        cart.setDeliveryType('envio');
+      }
+    }
+
     api.getMenuByLocalId(localId).then(d => {
       let mapped = (d || [])
         .filter(i => i.disponibilidad !== false)
@@ -1161,10 +1171,14 @@ export default function CustomerApp() {
               }
               cart.setDeliveryType(e.target.value);
             }}>
-              <option value="envio" disabled={!hasRepartidores}>
-                {hasRepartidores ? 'Con envío a domicilio' : 'Con envío (no disponible)'}
-              </option>
-              <option value="retiro">Retirar en local</option>
+              {(selectedLocal?.acepta_envio !== false) && (
+                <option value="envio" disabled={!hasRepartidores}>
+                  {hasRepartidores ? 'Con envío a domicilio' : 'Con envío (no disponible)'}
+                </option>
+              )}
+              {(selectedLocal?.acepta_retiro !== false) && (
+                <option value="retiro">Retirar en local</option>
+              )}
             </select>
           </div>
 
@@ -1218,7 +1232,7 @@ export default function CustomerApp() {
                 )}
                 {visibleMpFee > 0 && (
                   <div className="cart-line comision-line">
-                    <span>Gestión de pago</span>
+                    <span>{metodoPago === 'transferencia' ? 'Gestión (Envío + Operación)' : 'Gestión de pago'}</span>
                     <span>+${visibleMpFee.toLocaleString('es-AR')}</span>
                   </div>
                 )}
