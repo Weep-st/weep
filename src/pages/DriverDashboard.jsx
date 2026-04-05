@@ -851,9 +851,8 @@ export default function DriverDashboard() {
                     <span className="dd-info-value">{localDir || 'Cargando...'}</span>
                   </div>
                   <div className="dd-info-row">
-                    <span className="dd-info-label">Efectivo a pagar al local</span>
                     <span className="dd-info-value monto">
-                      {enViaje.pago === 'Efectivo' ? `$${Number(montoMostrar).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
+                      {enViaje.pago?.toLowerCase() === 'efectivo' ? `$${Number(montoMostrar).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
                     </span>
                   </div>
                 </div>
@@ -872,9 +871,8 @@ export default function DriverDashboard() {
                     <span className="dd-info-value">{enViaje.direccion}</span>
                   </div>
                   <div className="dd-info-row">
-                    <span className="dd-info-label">Efectivo a cobrar al cliente</span>
                     <span className="dd-info-value monto cobrar">
-                      {enViaje.pago === 'Efectivo' ? `$${Number(enViaje.monto).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
+                      {enViaje.pago?.toLowerCase() === 'efectivo' ? `$${Number(enViaje.monto).toLocaleString('es-AR')}` : '$0 (Ya Pago)'}
                     </span>
                   </div>
                 </div>
