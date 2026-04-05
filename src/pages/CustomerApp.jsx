@@ -744,11 +744,11 @@ export default function CustomerApp() {
         const loadingToast = toast.loading('Redirigiendo a Mercado Pago...');
         try {
           const extRef = pregeneratedId; 
-          const currentUrl = window.location.href; 
+          const successUrl = window.location.origin + "/pedir";
           
           const paymentData = {
             external_reference: extRef,
-            back_urls: { success: currentUrl, failure: currentUrl, pending: currentUrl },
+            back_urls: { success: successUrl, failure: successUrl, pending: successUrl },
             auto_return: "approved",
             items: [{
               title: `Pedido Weep #${pregeneratedId}`,
