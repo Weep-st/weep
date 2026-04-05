@@ -19,7 +19,9 @@ const AddressSelector = ({
   const [address, setAddress] = useState(initialAddress);
   const [reference, setReference] = useState('');
   const [isValidArea, setIsValidArea] = useState(true);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const autocompleteRef = useRef(null);
+  const lastResolvedAddress = useRef(initialAddress);
 
   // Validación de área (Santo Tomé)
   const checkArea = useCallback((lat, lng) => {
@@ -42,10 +44,10 @@ const AddressSelector = ({
       const fullAddress = `${initialAddress}, Santo Tomé, Corrientes, Argentina`;
       geocoder.geocode({ address: fullAddress, componentRestrictions: { country: 'AR' } }, (results, status) => {
         if (status === 'OK' && results[0]) {
-          const { lat, lng } = results[0].geometry.location;
           const newPos = { lat: lat(), lng: lng() };
           setPosition(newPos);
           setAddress(results[0].formatted_address);
+          lastResolvedAddress.current = results[0].formatted_address;
         }
       });
     }
@@ -60,7 +62,9 @@ const AddressSelector = ({
           lng: place.geometry.location.lng()
         };
         setPosition(newPos);
-        setAddress(place.formatted_address || '');
+        const fmtAddr = place.formatted_address || '';
+        setAddress(fmtAddr);
+        lastResolvedAddress.current = fmtAddr;
         if (map) {
           map.panTo(newPos);
           map.setZoom(17);
@@ -81,37 +85,73 @@ const AddressSelector = ({
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ location: newPos }, (results, status) => {
         if (status === 'OK' && results[0]) {
-          setAddress(results[0].formatted_address);
+          const fmtAddr = results[0].formatted_address;
+          setAddress(fmtAddr);
+          lastResolvedAddress.current = fmtAddr;
         }
       });
     }
   };
 
   const handleManualGeocode = () => {
-    if (!address || !window.google || !window.google.maps || !window.google.maps.Geocoder) return;
-    const geocoder = new window.google.maps.Geocoder();
-    const fullAddress = address.includes('Santo Tomé') ? address : `${address}, Santo Tomé, Corrientes, Argentina`;
-    
-    geocoder.geocode({ 
-      address: fullAddress, 
-      componentRestrictions: { country: 'AR' } 
-    }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        const { lat, lng } = results[0].geometry.location;
-        const newPos = { lat: lat(), lng: lng() };
-        setPosition(newPos);
-        setAddress(results[0].formatted_address);
-        if (map) map.panTo(newPos);
+    return new Promise((resolve) => {
+      if (!address || !window.google || !window.google.maps || !window.google.maps.Geocoder) {
+        resolve(null);
+        return;
       }
+      
+      setIsGeocoding(true);
+      const geocoder = new window.google.maps.Geocoder();
+      const fullAddress = address.includes('Santo Tomé') ? address : `${address}, Santo Tomé, Corrientes, Argentina`;
+      
+      geocoder.geocode({ 
+        address: fullAddress, 
+        componentRestrictions: { country: 'AR' } 
+      }, (results, status) => {
+        setIsGeocoding(false);
+        if (status === 'OK' && results[0]) {
+          const { lat, lng } = results[0].geometry.location;
+          const newPos = { lat: lat(), lng: lng() };
+          const fmtAddr = results[0].formatted_address;
+          
+          setPosition(newPos);
+          setAddress(fmtAddr);
+          lastResolvedAddress.current = fmtAddr;
+          
+          if (map) map.panTo(newPos);
+          resolve({ address: fmtAddr, lat: newPos.lat, lng: newPos.lng });
+        } else {
+          resolve(null);
+        }
+      });
     });
   };
 
-  const handleConfirm = () => {
-    if (!isValidArea) return;
+  const handleConfirm = async () => {
+    if (!isValidArea || isGeocoding) return;
+
+    let finalAddress = address;
+    let finalLat = position.lat;
+    let finalLng = position.lng;
+
+    // Si el texto cambió y no fue geocodificado aún, forzar geocodificación
+    if (address !== lastResolvedAddress.current) {
+      const result = await handleManualGeocode();
+      if (result) {
+        finalAddress = result.address;
+        finalLat = result.lat;
+        finalLng = result.lng;
+      } else {
+        // Si falla la geocodificación de lo que escribió, no dejamos avanzar o avisamos?
+        // El requerimiento dice: "asegurate que siempre se realice la carga con la api"
+        // Si no se encuentra nada, quizás es mejor no dejar confirmar si es algo inválido.
+      }
+    }
+
     onConfirm({
-      address,
-      lat: position.lat,
-      lng: position.lng,
+      address: finalAddress,
+      lat: finalLat,
+      lng: finalLng,
       reference
     });
   };
@@ -193,9 +233,9 @@ const AddressSelector = ({
           <button 
             className={`btn btn-primary btn-full ${!isValidArea ? 'disabled' : ''}`} 
             onClick={handleConfirm}
-            disabled={!isValidArea || !address}
+            disabled={!isValidArea || !address || isGeocoding}
           >
-            Confirmar Ubicación
+            {isGeocoding ? 'Cargando...' : 'Confirmar Ubicación'}
           </button>
         </div>
       </div>

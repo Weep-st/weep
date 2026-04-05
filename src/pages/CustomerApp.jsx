@@ -645,7 +645,7 @@ export default function CustomerApp() {
       const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
       // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente.
       // const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 1800 : 0;
-      const shipping = cart.deliveryType === 'envio' ? 1800 : 0;
+      const shipping = cart.deliveryType === 'envio' ? cart.COSTO_ENVIO : 0;
       
       const finalTotals = calculateCheckoutTotals(calcSubtotal, shipping, mp);
       const exactTotal = finalTotals.total;
