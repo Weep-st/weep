@@ -52,9 +52,12 @@ Deno.serve(async (req) => {
 
     // Calcula el total del pedido
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
-    // Usamos el marketplace_fee indicado por el frontend (Comisión + Envío + Comisiones MP)
-    // O fallback al 5% por compatibilidad con versiones anteriores si no se envía.
-    const weepFee = marketplace_fee !== undefined ? Number(marketplace_fee) : Number((totalAmount * 0.05).toFixed(2));
+    // Usamos el marketplace_fee indicado por el frontend (Comisión + Envío + Ajuste)
+    // El fallback ahora es más coherente al modelo de negocio que el 5% inicial.
+    const FEE_ADJUSTMENT_FACTOR = 0.85;
+    const weepFee = marketplace_fee !== undefined 
+      ? Number(marketplace_fee) 
+      : Number((totalAmount * 0.20 * FEE_ADJUSTMENT_FACTOR).toFixed(2)); // Estimado ~20% (envío+comisión) x factor
 
     // Si se usó el token del local y está configurado, le aplicamos la comisión del Marketplace
     if (localData?.mp_access_token && accessToken === localData.mp_access_token) {
