@@ -30,6 +30,11 @@ export async function loginUsuario(email, password) {
     .eq('password', password)
     .single();
   if (error || !data) return { success: false };
+  
+  if (data.bloqueado) {
+    return { success: false, error: 'Usuario bloqueado' };
+  }
+
   return { 
     success: true, 
     userId: data.id, 
@@ -1031,6 +1036,53 @@ export async function adminGetPedidosGeneral() {
   return data || [];
 }
 
+export async function adminGetPedidoDetalle(pedidoId) {
+  const { data: pedido, error: errPedido } = await supabase
+    .from('pedidos_general')
+    .select('*')
+    .eq('id', pedidoId)
+    .single();
+  
+  if (errPedido) throw new Error(errPedido.message);
+
+  const { data: items, error: errItems } = await supabase
+    .from('pedidos_items')
+    .select('*')
+    .eq('pedido_id', pedidoId);
+
+  const { data: locales, error: errLocales } = await supabase
+    .from('pedidos_locales')
+    .select('*, locales(nombre)')
+    .eq('pedido_id', pedidoId);
+
+  return {
+    ...pedido,
+    items: items || [],
+    locales_info: locales || []
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — Usuarios
+// ═══════════════════════════════════════════════════
+export async function adminGetUsuarios() {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function adminToggleBloqueoUsuario(userId, bloqueado) {
+  const { error } = await supabase
+    .from('usuarios')
+    .update({ bloqueado })
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
 // ═══════════════════════════════════════════════════
 // ADMIN — Menú Completo (Sin filtros)
 // ═══════════════════════════════════════════════════
@@ -1086,8 +1138,8 @@ export async function getAdminTasks() {
   return data || [];
 }
 
-export async function createAdminTask(tarea) {
-  const { data, error } = await supabase.from('admin_tasks').insert({ tarea }).select().single();
+export async function createAdminTask(tarea, tipo = 'GENERAL') {
+  const { data, error } = await supabase.from('admin_tasks').insert({ tarea, tipo }).select().single();
   if (error) throw new Error(error.message);
   return data;
 }

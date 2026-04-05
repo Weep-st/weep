@@ -9,6 +9,7 @@ import AdminLogin from './AdminLogin';
 import AdminRepartidores from './AdminRepartidores';
 import AdminPagos from './AdminPagos';
 import AdminPedidos from './AdminPedidos';
+import AdminUsuarios from './AdminUsuarios';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -27,10 +28,11 @@ const AdminDashboard = () => {
                 const locales = await api.adminGetLocales();
                 const tasks = await api.getAdminTasks();
                 const pendingTasks = tasks.filter(t => t.estado === 'Pendiente').length;
+                const totalUsers = await api.adminGetUsuarios();
                 setStats({
                     locales: locales.length,
                     pendingTasks: pendingTasks,
-                    users: '?' // We don't have a direct "get all users" in api yet, but we could add it
+                    users: totalUsers.length
                 });
             } catch (err) {
                 console.error(err);
@@ -59,6 +61,7 @@ const AdminDashboard = () => {
             case 'emails': return <AdminEmails />;
             case 'tasks': return <AdminTasks />;
             case 'pedidos': return <AdminPedidos />;
+            case 'usuarios': return <AdminUsuarios />;
             default: return <AdminLocales />;
         }
     };
@@ -89,6 +92,9 @@ const AdminDashboard = () => {
                     <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => handleTabClick('pedidos')}>
                         <span className="icon">📦</span> Pedidos
                     </button>
+                    <button className={activeTab === 'usuarios' ? 'active' : ''} onClick={() => handleTabClick('usuarios')}>
+                        <span className="icon">👥</span> Usuarios
+                    </button>
                 </nav>
                 <div className="sidebar-footer">
                     <div className="admin-user-info">
@@ -112,6 +118,10 @@ const AdminDashboard = () => {
                         <div className="stat-card">
                             <h3>{stats.pendingTasks}</h3>
                             <p>Tareas</p>
+                        </div>
+                        <div className="stat-card">
+                            <h3>{stats.users}</h3>
+                            <p>Usuarios</p>
                         </div>
                         <div className="stat-card">
                             <h3>ACT</h3>

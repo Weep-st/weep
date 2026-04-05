@@ -5,7 +5,10 @@ import toast from 'react-hot-toast';
 const AdminTasks = () => {
     const [tasks, setTasks] = useState([]);
     const [newTask, setNewTask] = useState('');
+    const [taskType, setTaskType] = useState('GENERAL');
     const [loading, setLoading] = useState(true);
+
+    const taskTypes = ['GENERAL', 'MARKETING', 'LOGISTICA', 'SOPORTE', 'URGENTE', 'SISTEMA'];
 
     const loadTasks = async () => {
         try {
@@ -26,7 +29,7 @@ const AdminTasks = () => {
         e.preventDefault();
         if (!newTask.trim()) return;
         try {
-            const added = await api.createAdminTask(newTask);
+            const added = await api.createAdminTask(newTask, taskType);
             setTasks([added, ...tasks]);
             setNewTask('');
             toast.success('Tarea agregada');
@@ -58,20 +61,40 @@ const AdminTasks = () => {
 
     if (loading) return <div className="loading-state">Cargando tareas...</div>;
 
+    const getBadgeColor = (type) => {
+        switch (type) {
+            case 'MARKETING': return '#ec4899';
+            case 'LOGISTICA': return '#f59e0b';
+            case 'SOPORTE': return '#06b6d4';
+            case 'URGENTE': return '#ef4444';
+            case 'SISTEMA': return '#8b5cf6';
+            default: return '#64748b';
+        }
+    };
+
     return (
         <div className="panel-card animate-fade-in" style={{ maxWidth: '800px' }}>
             <header className="panel-header">
                 <h2>Tareas Pendientes</h2>
             </header>
 
-            <form onSubmit={handleAddTask} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                <input 
-                    type="text" 
-                    value={newTask} 
-                    onChange={(e) => setNewTask(e.target.value)} 
-                    placeholder="Escribir una nueva tarea..." 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15,23,42,0.5)', color: 'white' }}
-                />
+            <form onSubmit={handleAddTask} className="task-form">
+                <div className="form-group">
+                    <input 
+                        type="text" 
+                        value={newTask} 
+                        onChange={(e) => setNewTask(e.target.value)} 
+                        placeholder="Escribir una nueva tarea..." 
+                        className="task-input"
+                    />
+                    <select 
+                        className="task-type-select" 
+                        value={taskType} 
+                        onChange={(e) => setTaskType(e.target.value)}
+                    >
+                        {taskTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
                 <button type="submit" className="btn btn-primary">Agregar</button>
             </form>
 
@@ -81,19 +104,53 @@ const AdminTasks = () => {
                 ) : (
                     tasks.map(task => (
                         <div key={task.id} className={`task-item ${task.estado === 'Completado' ? 'completed' : ''}`}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} onClick={() => handleToggleStatus(task)}>
+                            <div className="task-content" onClick={() => handleToggleStatus(task)}>
                                 <div className="checkbox">
                                     {task.estado === 'Completado' && '✓'}
                                 </div>
-                                <span>{task.tarea}</span>
+                                <div className="task-info">
+                                    <span 
+                                        className="task-type-badge" 
+                                        style={{ backgroundColor: getBadgeColor(task.tipo) }}
+                                    >
+                                        {task.tipo || 'GENERAL'}
+                                    </span>
+                                    <span className="task-text">{task.tarea}</span>
+                                </div>
                             </div>
-                            <button className="delete-task" onClick={() => handleDeleteTask(task.id)}>✕</button>
+                            <button className="delete-task" onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}>✕</button>
                         </div>
                     ))
                 )}
             </div>
 
             <style>{`
+                .task-form {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+                }
+                .form-group {
+                    display: flex;
+                    gap: 10px;
+                }
+                .task-input {
+                    flex: 1;
+                    padding: 0.75rem;
+                    border-radius: 0.75rem;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(15,23,42,0.5);
+                    color: white;
+                }
+                .task-type-select {
+                    padding: 0.75rem;
+                    border-radius: 0.75rem;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(30,41,59,0.8);
+                    color: white;
+                    cursor: pointer;
+                }
                 .task-item {
                     display: flex;
                     justify-content: space-between;
@@ -108,7 +165,31 @@ const AdminTasks = () => {
                 }
                 .task-item:hover { background: rgba(255, 255, 255, 0.05); }
                 .task-item.completed { opacity: 0.5; }
-                .task-item.completed span { text-decoration: line-through; }
+                
+                .task-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    flex: 1;
+                }
+                .task-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                .task-type-badge {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    width: fit-content;
+                    color: white;
+                }
+                .task-text {
+                    font-size: 0.95rem;
+                    color: #e2e8f0;
+                }
+                .task-item.completed .task-text { text-decoration: line-through; }
                 
                 .checkbox {
                     width: 24px;
@@ -120,6 +201,7 @@ const AdminTasks = () => {
                     justify-content: center;
                     font-size: 1rem;
                     color: #6366f1;
+                    flex-shrink: 0;
                 }
                 .task-item.completed .checkbox { background: #6366f1; color: white; }
                 
@@ -129,10 +211,10 @@ const AdminTasks = () => {
                     color: #ef4444;
                     font-size: 1.2rem;
                     cursor: pointer;
-                    opacity: 0;
+                    opacity: 0.5;
                     margin-left: 1rem;
                 }
-                .task-item:hover .delete-task { opacity: 1; }
+                .delete-task:hover { opacity: 1; }
             `}</style>
         </div>
     );
