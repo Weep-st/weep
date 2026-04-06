@@ -1233,12 +1233,22 @@ export default function CustomerApp() {
               <div className="menu-list">
                 {menus.map((menu, i) => (
                   <div key={menu.id || i} className="menu-card card card-hover" style={{ animationDelay: `${i * 0.05}s` }}>
-                    <img
-                      src={menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'}
-                      alt={menu.nombre}
-                      className="menu-card-img"
-                      onError={(e) => { e.target.src = 'https://placehold.co/120x120?text=Sin+Imagen'; }}
-                    />
+                    <div className="menu-card-img-container">
+                      <img
+                        src={menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'}
+                        alt={menu.nombre}
+                        className="menu-card-img"
+                        onError={(e) => { e.target.src = 'https://placehold.co/120x120?text=Sin+Imagen'; }}
+                      />
+                      {(() => {
+                        const discountedPrice = calculateDiscountedPrice(menu);
+                        if (discountedPrice < Number(menu.precio)) {
+                          const percent = Math.round((1 - discountedPrice / Number(menu.precio)) * 100);
+                          return <div className="menu-discount-badge">{percent}% OFF</div>;
+                        }
+                        return null;
+                      })()}
+                    </div>
                     <div className="menu-card-body">
                       <div className="menu-card-local">
                         {menu.local_logo && <img src={menu.local_logo} alt="" className="menu-local-logo" />}
