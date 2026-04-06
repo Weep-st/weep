@@ -62,6 +62,7 @@ export default function CustomerApp() {
   const [hasRepartidores, setHasRepartidores] = React.useState(true);
   const [metodoPago, setMetodoPago] = React.useState('');
   const [hasActiveOrder, setHasActiveOrder] = React.useState(false);
+  const [orderCount, setOrderCount] = React.useState(null);
   const [showRegretModal, setShowRegretModal] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   
@@ -161,6 +162,13 @@ export default function CustomerApp() {
           setHasActiveOrder(false);
         }
       }).catch(() => {});
+
+      // Obtener el conteo total de pedidos del usuario
+      api.getUserOrderCount(user.id).then(c => {
+        setOrderCount(c);
+      }).catch(() => {});
+    } else {
+      setOrderCount(null);
     }
   }, [user]);
 
@@ -612,6 +620,18 @@ export default function CustomerApp() {
       const uniqueLocalIds = [...new Set(cart.items.map(i => i.local_id).filter(Boolean))];
       const uniqueItemIds = [...new Set(cart.items.map(i => i.menuId || i.id))];
 
+      // Verificar repartidores de nuevo por si se desactivaron justo antes de confirmar
+      if (cart.deliveryType === 'envio') {
+        const freshRiders = await api.checkActiveRepartidores();
+        if (!freshRiders.hasActive) {
+          setHasRepartidores(false);
+          toast.error('Lo sentimos, ya no hay repartidores disponibles. El pedido debe ser para retirar.');
+          cart.setDeliveryType('retiro');
+          setCheckoutLoading(false);
+          return;
+        }
+      }
+
       const availability = await api.validateOrderAvailability(uniqueLocalIds, uniqueItemIds);
 
       // 1. Validar Locales
@@ -852,6 +872,24 @@ export default function CustomerApp() {
           </button>
         </div>
       </header>
+
+      {!hasRepartidores && (
+          <div className="no-drivers-alert animate-fade-in" style={{
+            backgroundColor: '#fffbeb',
+            borderBottom: '1px solid #fef3c7',
+            padding: '10px 20px',
+            textAlign: 'center',
+            color: '#92400e',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <span>⚠️</span> No hay repartidores activos en este momento. Solo retiro en local disponible.
+          </div>
+        )}
 
       <main className="app-main">
         <div className="banners-container" style={{ marginBottom: '20px' }}>
@@ -1215,12 +1253,19 @@ export default function CustomerApp() {
                   className="form-select" 
                   value={metodoPago} 
                   onChange={e => setMetodoPago(e.target.value)}
-                  style={{ marginBottom: '10px' }}
+                  style={{ marginBottom: '5px' }}
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
                   <option value="transferencia">Transferencia / Mercado Pago</option>
-                  <option value="efectivo">Efectivo</option>
+                  <option value="efectivo" disabled={orderCount === 0}>
+                    Efectivo {orderCount === 0 ? '(No disponible en 1er pedido)' : ''}
+                  </option>
                 </select>
+                {orderCount === 0 && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: '600', margin: '0 0 10px 4px' }}>
+                    * Por seguridad, tu primer pedido debe ser por transferencia.
+                  </p>
+                )}
               </div>
 
               <div className="cart-summary">

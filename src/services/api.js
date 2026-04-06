@@ -720,6 +720,16 @@ export async function buscarMenu(query) {
   }));
 }
 
+export async function getUserOrderCount(userId) {
+  if (!userId) return 0;
+  const { count, error } = await supabase
+    .from('pedidos_general')
+    .select('id', { count: 'exact', head: true })
+    .eq('usuario_id', userId);
+  if (error) return 0;
+  return count || 0;
+}
+
 // ═══════════════════════════════════════════════════
 // MIS PEDIDOS
 // ═══════════════════════════════════════════════════
