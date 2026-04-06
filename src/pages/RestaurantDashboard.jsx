@@ -578,6 +578,7 @@ export default function RestaurantDashboard() {
         localId: restaurant.id,
         nombre: fd.get('nombre'), categoria: fd.get('categoria'),
         descripcion: fd.get('descripcion'), precio: precioVal,
+        descuento: fd.get('descuento') ? parseFloat(fd.get('descuento')) : 0,
         disponibilidad: fd.get('disponibilidad') === 'true',
         tamano_porcion: fd.get('tamano_porcion'), variantes: variantesVal,
         tiempo_preparacion: fd.get('tiempo_preparacion'),
@@ -607,9 +608,19 @@ export default function RestaurantDashboard() {
   };
 
   const handleToggleDisp = async (id, current) => {
-    const newDisp = !current;
-    try { await api.updateDisponibilidad(id, newDisp); loadMenu(); }
-    catch { toast.error('Error'); }
+    try {
+      await api.updateMenuItemAvailability(id, !current);
+      setMenuItems(menuItems.map(m => m.id === id ? { ...m, disponibilidad: !current } : m));
+    } catch (e) { toast.error('Error al actualizar disponibilidad'); }
+  };
+
+  const handleQuickDiscount = async (id, val) => {
+    try {
+      const discount = parseFloat(val) || 0;
+      await api.updateMenuItemDiscount(id, discount);
+      setMenuItems(menuItems.map(m => m.id === id ? { ...m, descuento: discount } : m));
+      toast.success('Descuento actualizado', { id: `quick-disc-${id}` });
+    } catch (e) { toast.error('Error al actualizar descuento'); }
   };
 
   const handleOrderAction = async (pedido, action) => {
@@ -689,6 +700,11 @@ export default function RestaurantDashboard() {
       let fotoUrl = '';
       if (file && file.size > 0) fotoUrl = await api.uploadImage(file);
       
+      const discountDays = [];
+      ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+        if (fd.get(`desc_${day}`) === 'on') discountDays.push(day);
+      });
+
       const params = {
         localId: restaurant.id, 
         nombre: fd.get('nombre'),
@@ -700,6 +716,8 @@ export default function RestaurantDashboard() {
         horario_cierre: fd.get('horario_cierre'),
         modo_automatico: fd.get('modo_automatico') === 'true',
         dias_apertura: selectedDays,
+        dias_descuento: discountDays,
+        descuento_general: parseInt(fd.get('descuento_general')) || 0,
         acepta_retiro: fd.get('acepta_retiro') === 'on',
         acepta_envio: fd.get('acepta_envio') === 'on'
       };
@@ -707,11 +725,12 @@ export default function RestaurantDashboard() {
       const pass = fd.get('password');
       if (pass) params.password = pass;
       if (fotoUrl) params.foto_url = fotoUrl;
-      await api.updatePerfilLocal(params);
-      toast.success('Perfil actualizado');
-      setProfileData(prev => ({ ...prev, ...params }));
-      loadProfile();
-      setView('orders');
+      const success = await api.updatePerfilLocal(params);
+      if (success) {
+        toast.success('Perfil actualizado correctamente');
+        setProfileData(prev => ({ ...prev, ...params }));
+        if (view !== 'profile') setView('orders'); // Don't jump if we are in profile
+      }
     } catch { toast.error('Error al guardar perfil'); }
   };
 
@@ -1212,6 +1231,71 @@ export default function RestaurantDashboard() {
         {/* ─── Menu View ─── */}
         {view === 'menu' && (
           <section className="animate-fade-in">
+            <div className="card card-body" style={{ marginBottom: 24, border: '1px solid #feb2b2', background: '#fff5f5' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20 }}>
+                <div style={{ flex: 1, minWidth: '300px' }}>
+                  <h3 style={{ color: 'var(--red-600)', marginBottom: 12, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>🎁 Descuento General del Local</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#742a2a', marginBottom: 12 }}>Este descuento se aplica automáticamente a todos tus platos los días seleccionados (excepto a los platos que ya tengan un descuento propio).</p>
+                  
+                  <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <input 
+                          name="descuento_general" 
+                          type="number" 
+                          className="form-input" 
+                          style={{ width: '80px', marginBottom: 0 }} 
+                          defaultValue={profileData?.descuento_general || 0} 
+                        />
+                        <span style={{ fontWeight: 700, color: 'var(--red-600)' }}>% OFF</span>
+                        <button type="submit" className="btn btn-success btn-sm">Guardar %</button>
+                     </div>
+                     
+                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                          const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                          const isSelected = profileData?.dias_descuento?.some(d => normalize(d) === normalize(day));
+                          return (
+                            <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, backgroundColor: 'white', padding: '4px 10px', borderRadius: '8px', border: '1px solid #feb2b2', fontSize: '0.8rem', cursor: 'pointer' }}>
+                              <input type="checkbox" name={`desc_${day}`} defaultChecked={isSelected} onChange={() => {
+                                  // We trigger form submit on checkbox change for convenience
+                                  // but keep the hidden inputs for other profile fields
+                              }} />
+                              {day}
+                            </label>
+                          );
+                        })}
+                        <button type="submit" className="btn btn-ghost btn-xs" style={{ color: 'var(--red-600)', textDecoration: 'underline' }}>Guardar Días</button>
+                     </div>
+
+                     {/* Hidden profile fields for handleSaveProfile compatibility */}
+                     <div style={{ display: 'none' }}>
+                        <input name="nombre" defaultValue={profileData?.nombre} />
+                        <input name="email" defaultValue={profileData?.email} />
+                        <input name="horario_apertura" defaultValue={profileData?.horario_apertura} />
+                        <input name="horario_cierre" defaultValue={profileData?.horario_cierre} />
+                        <input name="modo_automatico" defaultValue={profileData?.modo_automatico ? 'true' : 'false'} />
+                        <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
+                        <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
+                        {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                          <input key={day} type="checkbox" name={`day_${day}`} defaultChecked={profileData?.dias_apertura?.some(d => d.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === day.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())} />
+                        ))}
+                     </div>
+                  </form>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+                   <button className="btn btn-success" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); }}>+ Nuevo Plato</button>
+                   <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 600 }}>
+                      Estado hoy: {(() => {
+                        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const isPromo = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
+                        return isPromo ? <span style={{ color: 'var(--red-600)' }}>🔥 PROMO {profileData?.descuento_general}% OFF</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
+                      })()}
+                   </div>
+                </div>
+              </div>
+            </div>
             <div className="rd-menu-filters">
               <input className="form-input" placeholder="🔍 Buscar plato..." value={menuFilter} onChange={e => setMenuFilter(e.target.value)} />
               <select className="form-select" value={menuCatFilter} onChange={e => setMenuCatFilter(e.target.value)}>
@@ -1228,13 +1312,70 @@ export default function RestaurantDashboard() {
                 {item.imagen_url ? <img src={item.imagen_url} alt={item.nombre} className="rd-menu-img" /> :
                   <div className="rd-menu-img-placeholder">Sin foto</div>}
                 <div className="rd-menu-info">
-                  <div className="rd-menu-top">
-                    <div>
+                  <div className="rd-menu-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
                       <h3>{item.nombre}</h3>
                       <p>{item.descripcion || ''}</p>
                       <span className="badge badge-gray">{item.categoria || 'Sin categoría'}</span>
                     </div>
-                    <span className="rd-menu-price">${parseFloat(item.precio).toFixed(0)}</span>
+                    
+                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                      {(() => {
+                         const basePrice = Number(item.precio);
+                         const itemDiscountPercent = Number(item.descuento || 0);
+                         
+                         const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                         const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+                         const isPromoDay = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
+                         const generalDiscountPercent = isPromoDay ? Number(profileData?.descuento_general || 0) : 0;
+                         
+                         // EXCLUSIVE LOGIC: Item discount OR General discount
+                         let finalPrice = basePrice;
+                         let hasAnyDiscount = false;
+
+                         if (itemDiscountPercent > 0) {
+                           finalPrice = Math.round(basePrice * (1 - itemDiscountPercent / 100));
+                           hasAnyDiscount = true;
+                         } else if (generalDiscountPercent > 0) {
+                           finalPrice = Math.round(basePrice * (1 - generalDiscountPercent / 100));
+                           hasAnyDiscount = true;
+                         }
+
+                         return (
+                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {hasAnyDiscount && (
+                                  <span style={{ textDecoration: 'line-through', color: 'var(--gray-400)', fontSize: '0.8rem' }}>${basePrice}</span>
+                                )}
+                                <span className="rd-menu-price" style={{ color: hasAnyDiscount ? 'var(--red-600)' : 'inherit', fontSize: '1.2rem', fontWeight: 800 }}>${finalPrice}</span>
+                             </div>
+                             {itemDiscountPercent > 0 && (
+                               <span style={{ fontSize: '0.65rem', color: 'var(--red-500)', fontWeight: 700, marginBottom: 2 }}>PROMO PLATO</span>
+                             )}
+                             {itemDiscountPercent === 0 && generalDiscountPercent > 0 && (
+                               <span style={{ fontSize: '0.65rem', color: 'var(--red-500)', fontWeight: 700, marginBottom: 2 }}>PROMO LOCAL</span>
+                             )}
+                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                               <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dcto %:</label>
+                               <input 
+                                 type="number" 
+                                 defaultValue={item.descuento || 0}
+                                 className="form-input"
+                                 style={{ width: '60px', padding: '4px', fontSize: '0.75rem', marginBottom: 0, textAlign: 'center' }}
+                                 onBlur={async (e) => {
+                                   const val = parseFloat(e.target.value) || 0;
+                                   try {
+                                     await api.updateMenuItemDiscount(item.id, val);
+                                     toast.success(`Descuento de ${item.nombre} actualizado`);
+                                     loadMenu();
+                                   } catch { toast.error('Error al actualizar'); }
+                                 }}
+                               />
+                             </div>
+                           </div>
+                         );
+                      })()}
+                    </div>
                   </div>
                   <div className="rd-menu-bottom">
                     <label className="toggle" onClick={() => handleToggleDisp(item.id, item.disponibilidad)}>
@@ -1282,9 +1423,6 @@ export default function RestaurantDashboard() {
                         required 
                         style={{ flex: 1 }}
                       />
-                      {!editItem && itemCategory === 'Combos' && itemName === 'COMBO ' && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--red-400)', whiteSpace: 'nowrap' }}>(completar nombre)</span>
-                      )}
                     </div>
                   </div>
                   <select 
@@ -1292,13 +1430,7 @@ export default function RestaurantDashboard() {
                     className="form-select" 
                     defaultValue={editItem?.categoria || ''} 
                     required 
-                    onChange={(e) => {
-                      const cat = e.target.value;
-                      setItemCategory(cat);
-                      if (cat === 'Combos' && !editItem && !itemName.toUpperCase().startsWith('COMBO')) {
-                        setItemName('COMBO ');
-                      }
-                    }}
+                    onChange={(e) => setItemCategory(e.target.value)}
                   >
                     <option value="">Categoría</option>
                     <option value="Hamburguesas">Hamburguesas</option>
@@ -1311,148 +1443,41 @@ export default function RestaurantDashboard() {
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
                 
-                {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') ? (
-                  <div className="card" style={{ padding: 12, marginBottom: 16, background: '#fff9db' }}>
-                    {(() => {
-                      let iceConfig = null;
-                      try { if (editItem?.variantes) iceConfig = JSON.parse(editItem.variantes); } catch(e){}
-                      return (
-                        <>
-                          <p style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: 8 }}>Configuración por peso (Helados)</p>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                            <div>
-                              <label style={{ fontSize: '0.75rem' }}>Precio 1/4 kg</label>
-                              <input name="p_14" type="number" className="form-input" placeholder="$" defaultValue={iceConfig?.precios?.['1/4kg']?.precio || ''} required />
-                              <label style={{ fontSize: '0.75rem' }}>Máx Sabores</label>
-                              <input name="m_14" type="number" className="form-input" defaultValue={iceConfig?.precios?.['1/4kg']?.max || 3} required />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '0.75rem' }}>Precio 1/2 kg</label>
-                              <input name="p_12" type="number" className="form-input" placeholder="$" defaultValue={iceConfig?.precios?.['1/2kg']?.precio || ''} required />
-                              <label style={{ fontSize: '0.75rem' }}>Máx Sabores</label>
-                              <input name="m_12" type="number" className="form-input" defaultValue={iceConfig?.precios?.['1/2kg']?.max || 3} required />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '0.75rem' }}>Precio 1 kg</label>
-                              <input name="p_1" type="number" className="form-input" placeholder="$" defaultValue={iceConfig?.precios?.['1kg']?.precio || ''} required />
-                              <label style={{ fontSize: '0.75rem' }}>Máx Sabores</label>
-                              <input name="m_1" type="number" className="form-input" defaultValue={iceConfig?.precios?.['1kg']?.max || 4} required />
-                            </div>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="rd-form-row rd-form-row-3">
+                <div className="rd-form-row rd-form-row-3">
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Precio Regular ($)</label>
                     <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={editItem?.precio || ''} required />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Descuento Ítem (%)</label>
+                    <input name="descuento" type="number" className="form-input" placeholder="Ej: 15" step="0.1" defaultValue={editItem?.descuento || 0} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Disponibilidad</label>
                     <select name="disponibilidad" className="form-select" defaultValue={editItem ? (editItem.disponibilidad ? 'true' : 'false') : 'true'}>
                       <option value="true">Disponible</option>
                       <option value="false">No disponible</option>
                     </select>
-                    <select name="tamano_porcion" className="form-select" defaultValue={editItem?.tamano || ''}>
-                      <option value="">Tamaño/Porción</option>
-                      <option value="1 persona">1 persona</option>
-                      <option value="2 personas">2 personas</option>
-                      <option value="3 personas">3 personas</option>
-                      <option value="4+ personas">4+ personas</option>
-                    </select>
                   </div>
-                )}
+                </div>
 
                 {(itemCategory === 'Hamburguesas' || editItem?.categoria === 'Hamburguesas' || itemCategory === 'Combos' || editItem?.categoria === 'Combos') && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de {itemCategory === 'Combos' || editItem?.categoria === 'Combos' ? 'Combo' : 'Hamburguesa'}</h3>
-                    
-                    {/* Variantes */}
                     <div style={{ marginBottom: '20px' }}>
                       <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
                       {burgerVariants.map((v, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                          <input 
-                            placeholder="Nombre (ej: Doble)" 
-                            className="form-input" 
-                            style={{ flex: 2, marginBottom: 0 }}
-                            value={v.nombre}
-                            onChange={(e) => {
-                              const newV = [...burgerVariants];
-                              newV[idx].nombre = e.target.value;
-                              setBurgerVariants(newV);
-                            }}
-                          />
-                          <input 
-                            placeholder="Precio $" 
-                            type="number"
-                            className="form-input" 
-                            style={{ flex: 1, marginBottom: 0 }}
-                            value={v.precio}
-                            onChange={(e) => {
-                              const newV = [...burgerVariants];
-                              newV[idx].precio = e.target.value;
-                              setBurgerVariants(newV);
-                            }}
-                          />
-                          <button type="button" className="btn btn-ghost" style={{ padding: '4px 8px', color: 'var(--red-500)' }} onClick={() => {
-                            if (burgerVariants.length > 1) setBurgerVariants(burgerVariants.filter((_, i) => i !== idx));
-                          }}>✕</button>
+                          <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
+                          <input placeholder="Price" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].precio = e.target.value; setBurgerVariants(newV); }} />
+                          <button type="button" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
                         </div>
                       ))}
-                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
-                    </div>
-
-                    {/* Adicionales */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Adicionales (Cheddar, Bacon, etc.)</p>
-                      {burgerExtras.map((ex, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                          <input 
-                            placeholder="Extra (ej: Bacon)" 
-                            className="form-input" 
-                            style={{ flex: 2, marginBottom: 0 }}
-                            value={ex.nombre}
-                            onChange={(e) => {
-                              const newE = [...burgerExtras];
-                              newE[idx].nombre = e.target.value;
-                              setBurgerExtras(newE);
-                            }}
-                          />
-                          <input 
-                            placeholder="Precio $" 
-                            type="number"
-                            className="form-input" 
-                            style={{ flex: 1, marginBottom: 0 }}
-                            value={ex.precio}
-                            onChange={(e) => {
-                              const newE = [...burgerExtras];
-                              newE[idx].precio = e.target.value;
-                              setBurgerExtras(newE);
-                            }}
-                          />
-                          <button type="button" className="btn btn-ghost" style={{ padding: '4px 8px', color: 'var(--red-500)' }} onClick={() => {
-                            if (burgerExtras.length > 1) setBurgerExtras(burgerExtras.filter((_, i) => i !== idx));
-                          }}>✕</button>
-                        </div>
-                      ))}
-                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Añadir Adicional</button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 15, paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {(() => {
-                          let burgerCfg = null;
-                          try { if (editItem?.variantes) burgerCfg = JSON.parse(editItem.variantes); } catch(e){}
-                          return (
-                            <>
-                              <input type="checkbox" name="ofrecer_papas" id="ofrecer_papas" defaultChecked={burgerCfg?.con_papas} style={{ width: 'auto' }} />
-                              <label htmlFor="ofrecer_papas" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Ofrecer con papas (+ $)</label>
-                              <input name="precio_papas" type="number" className="form-input" style={{ width: 100, marginBottom: 0 }} placeholder="Extra $" defaultValue={burgerCfg?.precio_papas || ''} />
-                            </>
-                          );
-                        })()}
-                      </div>
+                      <button type="button" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
                     </div>
                   </div>
                 )}
+
                 <input name="foto" type="file" className="form-input" accept="image/*" />
                 <div className="rd-form-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); }}>Cancelar</button>
@@ -1822,6 +1847,7 @@ export default function RestaurantDashboard() {
                       })}
                     </div>
 
+
                     <h3 style={{ marginTop: '12px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Métodos de Entrega Disponibles</h3>
                     <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -1833,6 +1859,7 @@ export default function RestaurantDashboard() {
                         🛵 Ofrecer Envío a Domicilio
                       </label>
                     </div>
+
 
                     <div className="rd-form-actions" style={{ marginTop: '24px' }}>
                       <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>

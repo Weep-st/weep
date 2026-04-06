@@ -125,7 +125,12 @@ export async function updateLocalEstado(localId, estado) {
 export async function getPerfilLocal(localId) {
   const { data, error } = await supabase.from('locales').select('*').eq('id', localId).single();
   if (error) return { success: false };
-  return { success: true, ...data };
+  return { 
+    success: true, 
+    ...data,
+    dias_descuento: data.dias_descuento || [],
+    descuento_general: data.descuento_general || 0
+  };
 }
 
 export async function updatePerfilLocal(params) {
@@ -364,7 +369,7 @@ export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general')
     .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
@@ -372,7 +377,9 @@ export async function getLocales() {
     horario_apertura: l.horario_apertura, horario_cierre: l.horario_cierre,
     modo_automatico: l.modo_automatico, dias_apertura: l.dias_apertura,
     disponible_desde: l.disponible_desde,
-    acepta_retiro: l.acepta_retiro, acepta_envio: l.acepta_envio
+    acepta_retiro: l.acepta_retiro, acepta_envio: l.acepta_envio,
+    dias_descuento: l.dias_descuento || [],
+    descuento_general: l.descuento_general || 0
   }));
 }
 
@@ -382,40 +389,60 @@ export async function getLocales() {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
     descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
     disponibilidad: i.disponibilidad, imagen_url: i.imagen_url,
     local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_acepta_retiro: i.locales?.acepta_retiro,
     local_acepta_envio: i.locales?.acepta_envio,
+    local_dias_descuento: i.locales?.dias_descuento || [],
+    local_descuento_general: i.locales?.descuento_general || 0
   }));
 }
 
 export async function getMenuByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
     descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
     imagen_url: i.imagen_url, local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
+    local_dias_descuento: i.locales?.dias_descuento || [],
+    local_descuento_general: i.locales?.descuento_general || 0
   }));
 }
 
 export async function getMenuByLocalId(localId) {
-  const { data } = await supabase.from('menu').select('*').eq('local_id', localId).order('nombre');
-  return data || [];
+  const { data } = await supabase
+    .from('menu')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
+    .eq('local_id', localId)
+    .order('nombre');
+  return (data || []).map(i => ({
+    id: i.id, nombre: i.nombre, categoria: i.categoria,
+    descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
+    imagen_url: i.imagen_url, local_id: i.local_id,
+    disponibilidad: i.disponibilidad,
+    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
+    local_dias_descuento: i.locales?.dias_descuento || [],
+    local_descuento_general: i.locales?.descuento_general || 0
+  }));
 }
 
 export async function addMenuItem(params) {
@@ -423,7 +450,9 @@ export async function addMenuItem(params) {
   const { error } = await supabase.from('menu').insert({
     id, local_id: params.localId, nombre: params.nombre,
     categoria: params.categoria, descripcion: params.descripcion,
-    precio: parseFloat(params.precio), disponibilidad: params.disponibilidad !== false && params.disponibilidad !== 'No',
+    precio: parseFloat(params.precio), 
+    descuento: parseFloat(params.descuento) || 0,
+    disponibilidad: params.disponibilidad !== false && params.disponibilidad !== 'No',
     tamano: params.tamano_porcion || params.tamano || '', variantes: params.variantes,
     tiempo_preparacion: String(parseInt(params.tiempo_preparacion) || 30),
     imagen_url: params.imagen_url || '',
@@ -438,6 +467,7 @@ export async function updateMenuItem(params) {
   if (params.categoria) updates.categoria = params.categoria;
   if (params.descripcion !== undefined) updates.descripcion = params.descripcion;
   if (params.precio) updates.precio = parseFloat(params.precio);
+  if (params.descuento !== undefined) updates.descuento = parseFloat(params.descuento) || 0;
   if (params.disponibilidad !== undefined) updates.disponibilidad = params.disponibilidad !== false && params.disponibilidad !== 'No';
   if (params.tamano_porcion !== undefined || params.tamano !== undefined) updates.tamano = params.tamano_porcion || params.tamano;
   if (params.variantes !== undefined) updates.variantes = params.variantes;
@@ -669,7 +699,6 @@ export async function getPedidoGeneral(pedidoId) {
 export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
   const { error } = await supabase.from('pedidos_locales').update({ estado }).eq('id', pedidoLocalId);
   if (error) throw new Error(error.message);
-
   if (estado === 'Rechazado') {
     const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).single();
     if (pl) {
@@ -704,7 +733,7 @@ export async function registrarEmailLanzamiento(email) {
 export async function buscarMenu(query) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
     .eq('disponibilidad', true)
     .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%,categoria.ilike.%${query}%`)
     .order('nombre')
@@ -712,11 +741,14 @@ export async function buscarMenu(query) {
   return (data || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
     descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
     imagen_url: i.imagen_url, local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_acepta_retiro: i.locales?.acepta_retiro,
     local_acepta_envio: i.locales?.acepta_envio,
+    local_dias_descuento: i.locales?.dias_descuento || [],
+    local_descuento_general: i.locales?.descuento_general || 0
   }));
 }
 
@@ -944,7 +976,7 @@ export async function getRepartidoresActivosCount(excludeDriverId) {
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -952,9 +984,7 @@ export async function getLocalesByCategoria(categoria) {
 
   const groupedMap = {};
   for (const item of data) {
-    // Only include accepted locals
     if (item.locales?.admin_status !== 'Aceptado') continue;
-
     const lid = item.local_id;
     if (!groupedMap[lid]) {
       groupedMap[lid] = {
@@ -969,7 +999,9 @@ export async function getLocalesByCategoria(categoria) {
         dias_apertura: item.locales?.dias_apertura,
         disponible_desde: item.locales?.disponible_desde,
         acepta_retiro: item.locales?.acepta_retiro,
-        acepta_envio: item.locales?.acepta_envio
+        acepta_envio: item.locales?.acepta_envio,
+        dias_descuento: item.locales?.dias_descuento || [],
+        descuento_general: item.locales?.descuento_general || 0
       };
     } else {
       if (item.precio < groupedMap[lid].precio_min_categoria) {
@@ -977,7 +1009,6 @@ export async function getLocalesByCategoria(categoria) {
       }
     }
   }
-
   return Object.values(groupedMap);
 }
 
@@ -1104,6 +1135,7 @@ export async function adminGetMenuCompleto() {
   return (data || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
     descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
     disponibilidad: i.disponibilidad, imagen_url: i.imagen_url,
     local_id: i.local_id,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
@@ -1981,4 +2013,47 @@ export async function deleteRepartidorAccount(driverId) {
 export async function adminCleanupInactiveDrivers() {
   // Función desactivada. El sistema ahora usa el CRON nativo de Supabase.
   return { success: true, count: 0 };
+}
+
+// ═══════════════════════════════════════════════════
+// BANNERS
+// ═══════════════════════════════════════════════════
+export async function getBanners() {
+  const { data } = await supabase.from('banners').select('*').eq('activo', true).order('posicion');
+  return data || [];
+}
+
+export async function adminGetBanners() {
+  const { data } = await supabase.from('banners').select('*').order('posicion');
+  return data || [];
+}
+
+export async function adminAddBanner({ imagen_url, link, activo, posicion }) {
+  const { error } = await supabase.from('banners').insert({ imagen_url, link, activo, posicion });
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminUpdateBanner(id, updates) {
+  const { error } = await supabase.from('banners').update(updates).eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminDeleteBanner(id) {
+  const { error } = await supabase.from('banners').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function updateMenuItemAvailability(id, disponibilidad) {
+  const { error } = await supabase.from('menu').update({ disponibilidad }).eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function updateMenuItemDiscount(id, descuento) {
+  const { error } = await supabase.from('menu').update({ descuento }).eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
 }

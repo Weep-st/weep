@@ -65,6 +65,8 @@ export default function CustomerApp() {
   const [orderCount, setOrderCount] = React.useState(null);
   const [showRegretModal, setShowRegretModal] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [banners, setBanners] = React.useState([]);
+  const [bannersLoading, setBannersLoading] = React.useState(true);
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -149,6 +151,7 @@ export default function CustomerApp() {
 
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
+    api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
     if (user) {
       api.getFavoritos(user.id).then(d => {
         if (Array.isArray(d)) setFavorites(d);
@@ -472,7 +475,34 @@ export default function CustomerApp() {
   const totalConComision = checkoutTotals.total;
   const mpFeeUI = checkoutTotals.mp_fee;
 
+  const calculateDiscountedPrice = React.useCallback((item) => {
+    if (!item) return 0;
+    let price = Number(item.precio);
+    
+    // 1. Item Discount (%) - Takes precedence
+    if (item.descuento > 0) {
+      price = price * (1 - Number(item.descuento) / 100);
+    } else {
+      // 2. General Local Discount (Percentage)
+      const discountDays = item.local_dias_descuento || item.dias_descuento || [];
+      const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+      
+      if (generalDiscount > 0 && discountDays.length > 0) {
+        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const todayNorm = normalize(today);
+        
+        if (discountDays.some(d => normalize(d) === todayNorm)) {
+          price = price * (1 - generalDiscount / 100);
+        }
+      }
+    }
+    
+    return Math.round(price);
+  }, []);
+
   // UI-only disguise for "envio"
+
   // When shipping is $2,000, we show it as $1,700 and add the $300 to the fee label.
   const showSurchargeDisguise = false;
   const visibleShipping = showSurchargeDisguise ? 1500 : cart.shippingCost;
@@ -490,6 +520,13 @@ export default function CustomerApp() {
         toast.error(`Este local abrirá el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}`);
         return;
       }
+    }
+
+    // Verificar si el local está abierto
+    const localRef = selectedLocal || locals.find(l => l.id === menu.local_id);
+    if (localRef && !isLocalOpen(localRef)) {
+      toast.error('Este local está cerrado por el momento');
+      return;
     }
 
     // Detect if it's ice cream
@@ -930,7 +967,48 @@ export default function CustomerApp() {
             </div>
           )}
         </div>
+        
+        {/* ─── Banners Carousel ─── */}
+        {!bannersLoading && banners.length > 0 && (
+          <div className="banners-carousel-wrapper animate-fade-in" style={{ padding: '0 20px', marginBottom: '24px' }}>
+            <div className="banners-carousel" style={{ 
+              display: 'flex', 
+              overflowX: 'auto', 
+              gap: '12px', 
+              paddingBottom: '10px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              scrollSnapType: 'x mandatory'
+            }}>
+              {banners.map(b => (
+                <div 
+                  key={b.id} 
+                  className="banner-slide" 
+                  onClick={() => b.link && window.open(b.link, '_blank')}
+                  style={{ 
+                    flex: '0 0 85%', 
+                    maxWidth: '400px', 
+                    height: '180px', 
+                    borderRadius: '16px', 
+                    overflow: 'hidden', 
+                    cursor: b.link ? 'pointer' : 'default',
+                    scrollSnapAlign: 'start',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <img 
+                    src={b.imagen_url} 
+                    alt="Promo" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="app-greeting-container">
+
           {user && !user.telefono && (
             <div className="missing-phone-banner">
               <div className="missing-phone-content">
@@ -1015,14 +1093,10 @@ export default function CustomerApp() {
                     onClick={() => {
                       if (isFutureOpening) {
                         setUnavailableLocal(local);
-                        fetchMenusByLocal(local.id, selectedCategory);
-                      } else if (open) {
-                        setUnavailableLocal(null);
-                        fetchMenusByLocal(local.id, selectedCategory);
                       } else {
-                        toast('Este local está cerrado', { icon: '🔒' });
                         setUnavailableLocal(null);
                       }
+                      fetchMenusByLocal(local.id, selectedCategory);
                     }}
                     style={{ flex: '0 0 auto', border: 'none' }}
                   >
@@ -1056,14 +1130,10 @@ export default function CustomerApp() {
                   onClick={() => {
                     if (isFutureOpening) {
                       setUnavailableLocal(local);
-                      fetchMenusByLocal(local.id, selectedCategory);
-                    } else if (open) {
-                      setUnavailableLocal(null);
-                      fetchMenusByLocal(local.id, selectedCategory);
                     } else {
-                      toast('Este local está cerrado', { icon: '🔒' });
                       setUnavailableLocal(null);
                     }
+                    fetchMenusByLocal(local.id, selectedCategory);
                   }}
                   title={isFutureOpening ? availabilityMsg : local.nombre}
                 >
@@ -1158,7 +1228,25 @@ export default function CustomerApp() {
                       <h3>{menu.nombre}</h3>
                       <p>{menu.descripcion || ''}</p>
                       <div className="menu-card-footer">
-                        <span className="menu-card-price">${Number(menu.precio).toLocaleString('es-AR')}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          {(() => {
+                            const discountedPrice = calculateDiscountedPrice(menu);
+                            const hasDiscount = discountedPrice < Number(menu.precio);
+                            return (
+                              <>
+                                {hasDiscount && (
+                                  <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                                    ${Number(menu.precio).toLocaleString('es-AR')}
+                                  </span>
+                                )}
+                                <span className="menu-card-price" style={{ color: hasDiscount ? 'var(--red-600)' : 'inherit' }}>
+                                  ${discountedPrice.toLocaleString('es-AR')}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+
                         <div className="menu-card-actions">
                           {(() => {
                             const availabilityDate = (selectedLocal?.disponible_desde) || (menu.local_disponible_desde);
@@ -1175,8 +1263,21 @@ export default function CustomerApp() {
                                 );
                               }
                             }
-                            return <button className="btn btn-primary btn-sm" onClick={() => handleAddToCart(menu)}>Agregar</button>;
+                            
+                            const localRef = selectedLocal || locals.find(l => l.id === menu.local_id);
+                            const currentlyOpen = isLocalOpen(localRef);
+                            
+                            if (!currentlyOpen) {
+                              return (
+                                <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '600' }}>
+                                  Local cerrado
+                                </span>
+                              );
+                            }
+
+                            return <button className="btn btn-primary btn-sm" onClick={() => handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) })}>Agregar</button>;
                           })()}
+
                           <button className={`fav-btn ${favorites.includes(menu.id) ? 'active' : ''}`} onClick={() => toggleFav(menu.id)}>
                             <img 
                               src={favorites.includes(menu.id) 
@@ -1236,8 +1337,18 @@ export default function CustomerApp() {
                 <div key={item.id} className="cart-item-row">
                   <div className="cart-item-info">
                     <span className="cart-item-name">{item.nombre}</span>
-                    <span className="cart-item-price">${(Number(item.precio) * item.qty).toLocaleString('es-AR')}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {item.precioOriginal > item.precio && (
+                        <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                          ${(Number(item.precioOriginal) * item.qty).toLocaleString('es-AR')}
+                        </span>
+                      )}
+                      <span className="cart-item-price" style={{ color: item.precioOriginal > item.precio ? 'var(--red-600)' : 'inherit' }}>
+                        ${(Number(item.precio) * item.qty).toLocaleString('es-AR')}
+                      </span>
+                    </div>
                   </div>
+
                   <div className="cart-item-controls">
                     <button className="qty-btn" onClick={() => cart.updateQty(item.id, -1)}>−</button>
                     <span className="qty-display">{item.qty}</span>
@@ -1639,7 +1750,11 @@ export default function CustomerApp() {
               const configuration = JSON.parse(iceCreamModal.variantes);
               const basePrice = parseFloat(configuration.precios[selectedSize].precio || 0);
               const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
-              const currentTotal = basePrice + extrasPrice;
+              const rawTotal = basePrice + extrasPrice;
+              
+              // Apply discount to the total
+              const currentTotal = calculateDiscountedPrice({ ...iceCreamModal, precio: rawTotal });
+              const hasDiscount = currentTotal < rawTotal;
 
               if (selectedLocal && selectedLocal.disponible_desde) {
                 const today = new Date();
@@ -1667,11 +1782,12 @@ export default function CustomerApp() {
 
                     const finalItem = {
                       ...iceCreamModal,
-                      menuId: iceCreamModal.id,
-                      id: `${iceCreamModal.id}-${selectedSize}-${Date.now()}`,
-                      nombre: `${iceCreamModal.nombre} ${selectedSize}`,
-                      precio: currentTotal,
-                      flavors: selectedFlavors,
+                        menuId: iceCreamModal.id,
+                        id: `${iceCreamModal.id}-${selectedSize}-${Date.now()}`,
+                        nombre: `${iceCreamModal.nombre} ${selectedSize}`,
+                        precioOriginal: rawTotal,
+                        precio: currentTotal,
+                        flavors: selectedFlavors,
                       sauces: selectedSauces,
                       extras: selectedExtras,
                       descripcion: details.join(' | ')
@@ -1706,8 +1822,9 @@ export default function CustomerApp() {
                     toast.success('¡Helado agregado!');
                   }}
                 >
-                  Agregar al carrito • ${currentTotal}
+                  Agregar al carrito • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '0.9rem', marginRight: '5px' }}>${rawTotal}</span>} ${currentTotal}
                 </button>
+
               );
             })()}
           </div>
@@ -1728,7 +1845,11 @@ export default function CustomerApp() {
                 const baseVariantPrice = Number(selectedVariant?.precio || burgerModal.precio);
                 const extrasPriceTotal = selectedBurgerExtras.reduce((sum, e) => sum + Number(e.precio || 0), 0);
                 const friesPrice = withFries ? Number(cfg.precio_papas || 0) : 0;
-                const totalCalculated = baseVariantPrice + extrasPriceTotal + friesPrice;
+                const rawTotal = baseVariantPrice + extrasPriceTotal + friesPrice;
+                
+                // Apply discount
+                const totalCalculated = calculateDiscountedPrice({ ...burgerModal, precio: rawTotal });
+                const hasDiscount = totalCalculated < rawTotal;
 
                 return (
                   <>
@@ -1826,6 +1947,7 @@ export default function CustomerApp() {
                               menuId: burgerModal.id,
                               id: `${burgerModal.id}-${Date.now()}`,
                               nombre: finalName,
+                              precioOriginal: rawTotal,
                               precio: totalCalculated,
                               variant: selectedVariant,
                               burgerExtras: selectedBurgerExtras,
@@ -1861,8 +1983,9 @@ export default function CustomerApp() {
                             toast.success(`¡${cfg.es_combo ? 'Combo agregado' : 'Hamburguesa agregada'}!`);
                           }}
                         >
-                          Agregar al carrito • ${totalCalculated}
+                          Agregar al carrito • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '0.9rem', marginRight: '5px' }}>${rawTotal}</span>} ${totalCalculated}
                         </button>
+
                       );
                     })()}
                   </>

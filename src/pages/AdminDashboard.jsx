@@ -10,6 +10,7 @@ import AdminRepartidores from './AdminRepartidores';
 import AdminPagos from './AdminPagos';
 import AdminPedidos from './AdminPedidos';
 import AdminUsuarios from './AdminUsuarios';
+import AdminBanners from './AdminBanners';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -62,6 +63,7 @@ const AdminDashboard = () => {
             case 'tasks': return <AdminTasks />;
             case 'pedidos': return <AdminPedidos />;
             case 'usuarios': return <AdminUsuarios />;
+            case 'banners': return <AdminBanners />;
             default: return <AdminLocales />;
         }
     };
@@ -95,6 +97,10 @@ const AdminDashboard = () => {
                     <button className={activeTab === 'usuarios' ? 'active' : ''} onClick={() => handleTabClick('usuarios')}>
                         <span className="icon">👥</span> Usuarios
                     </button>
+                    <button className={activeTab === 'banners' ? 'active' : ''} onClick={() => handleTabClick('banners')}>
+                        <span className="icon">🖼️</span> Banners
+                    </button>
+
                 </nav>
                 <div className="sidebar-footer">
                     <div className="admin-user-info">

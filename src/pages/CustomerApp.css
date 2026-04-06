@@ -1067,3 +1067,45 @@
   height: 22px;
   object-fit: contain;
 }
+
+/* ─── Banners Carousel ─── */
+.banners-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.banner-slide {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.banner-slide:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.banner-slide img {
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ─── Discount Styles ─── */
+.menu-card-price {
+  line-height: 1;
+}
+
+.comision-line span {
+  color: var(--amber-600);
+  font-weight: 600;
+}
+
+.total-line span {
+  color: var(--red-600);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
