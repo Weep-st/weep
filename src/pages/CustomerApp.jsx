@@ -1017,7 +1017,7 @@ export default function CustomerApp() {
           ))}
         </div>
 
-        <p className="antojo-text animate-fade-in" style={{ animationDelay: '0.2s' }}>Prepará tu antojo para hoy...</p>
+
 
         {/* ─── Locals Carousel ─── */}
         <section className="locals-section animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -1278,6 +1278,13 @@ export default function CustomerApp() {
                             const currentlyOpen = isLocalOpen(localRef);
                             
                             if (!currentlyOpen) {
+                              if (localRef?.modo_automatico && localRef?.horario_apertura) {
+                                return (
+                                  <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '600' }}>
+                                    Abre a las {localRef.horario_apertura.substring(0, 5)} hs
+                                  </span>
+                                );
+                              }
                               return (
                                 <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '600' }}>
                                   Local cerrado
