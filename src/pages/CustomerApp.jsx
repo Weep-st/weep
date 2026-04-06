@@ -1111,6 +1111,10 @@ export default function CustomerApp() {
                         <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
                           {availabilityMsg}
                         </div>
+                      ) : !open && local.modo_automatico && local.horario_apertura ? (
+                        <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                          Abre a las {local.horario_apertura.substring(0, 5)} hs
+                        </div>
                       ) : (
                         <div className="categoria-precio">
                           <span className="cat">{selectedCategory}</span>
@@ -1157,6 +1161,21 @@ export default function CustomerApp() {
                       border: '1px solid white'
                     }}>
                       Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}
+                    </div>
+                  )}
+                  {!open && !isFutureOpening && local.modo_automatico && local.horario_apertura && (
+                    <div className="future-badge" style={{
+                      position: 'absolute',
+                      bottom: -10,
+                      background: 'black',
+                      color: 'white',
+                      fontSize: '0.6rem',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      whiteSpace: 'nowrap',
+                      border: '1px solid white'
+                    }}>
+                      Abre a las {local.horario_apertura.substring(0, 5)} hs
                     </div>
                   )}
                 </button>
