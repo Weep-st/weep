@@ -970,36 +970,17 @@ export default function CustomerApp() {
         
         {/* ─── Banners Carousel ─── */}
         {!bannersLoading && banners.length > 0 && (
-          <div className="banners-carousel-wrapper animate-fade-in" style={{ padding: '0 20px', marginBottom: '24px' }}>
-            <div className="banners-carousel" style={{ 
-              display: 'flex', 
-              overflowX: 'auto', 
-              gap: '12px', 
-              paddingBottom: '10px',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              scrollSnapType: 'x mandatory'
-            }}>
+          <div className="banners-carousel-wrapper animate-fade-in">
+            <div className="banners-carousel">
               {banners.map(b => (
                 <div 
                   key={b.id} 
-                  className="banner-slide" 
+                  className={`banner-slide ${b.link ? 'clickable' : ''}`}
                   onClick={() => b.link && window.open(b.link, '_blank')}
-                  style={{ 
-                    flex: '0 0 85%', 
-                    maxWidth: '400px', 
-                    height: '180px', 
-                    borderRadius: '16px', 
-                    overflow: 'hidden', 
-                    cursor: b.link ? 'pointer' : 'default',
-                    scrollSnapAlign: 'start',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-                  }}
                 >
                   <img 
                     src={b.imagen_url} 
                     alt="Promo" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
                 </div>
               ))}
