@@ -585,16 +585,24 @@ export default function CustomerApp() {
     // Detect if it's a Burger or Combo
     let burgerCfg = null;
     try {
-      if (menu.variantes) {
-        const parsed = JSON.parse(menu.variantes);
-        if (parsed.es_hamburguesa || parsed.es_combo || parsed.con_papas) {
-          burgerCfg = parsed;
-        }
+      if (menu.variantes && (menu.variantes.includes('es_hamburguesa') || menu.variantes.includes('es_combo') || menu.variantes.includes('con_papas'))) {
+        burgerCfg = JSON.parse(menu.variantes);
+      } else if (menu.categoria === 'Hamburguesas' || menu.categoria === 'Combos') {
+        // Fallback for burgers without config
+        burgerCfg = {
+          es_hamburguesa: menu.categoria === 'Hamburguesas',
+          es_combo: menu.categoria === 'Combos',
+          variants: [{ nombre: 'Simple', precio: menu.precio }],
+          extras: [],
+          con_papas: false,
+          precio_papas: 0
+        };
       }
     } catch(e){}
     
     if (burgerCfg) {
-      setBurgerModal(menu);
+      const menuWithConfig = { ...menu, variantes: JSON.stringify(burgerCfg) };
+      setBurgerModal(menuWithConfig);
       setSelectedVariant(burgerCfg.variants?.[0] || null);
       setSelectedBurgerExtras([]);
       setWithFries(false);
