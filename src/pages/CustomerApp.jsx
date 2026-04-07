@@ -152,6 +152,9 @@ export default function CustomerApp() {
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
+    
+    // Verificar repartidores al cargar
+    api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
     if (user) {
       api.getFavoritos(user.id).then(d => {
         if (Array.isArray(d)) setFavorites(d);
@@ -635,7 +638,17 @@ export default function CustomerApp() {
 
     // Check repartidores active strictly before proceeding if envio is selected
     if (cart.deliveryType === 'envio' && !hasRepartidores) {
-      toast.error('No hay repartidores disponibles en este momento. Por favor, selecciona "Retiro en local" o intenta más tarde.');
+      const puedeRetirar = selectedLocal ? selectedLocal.acepta_retiro !== false : true;
+      if (!puedeRetirar) {
+        toast.error('Lo sentimos, este local solo acepta envíos a domicilio y no hay repartidores disponibles en este momento. Por favor, intenta más tarde.');
+      } else {
+        toast.error('No hay repartidores disponibles en este momento. Por favor, selecciona "Retiro en local" para continuar.');
+      }
+      return;
+    }
+
+    if (cart.deliveryType === 'retiro' && selectedLocal?.acepta_retiro === false) {
+      toast.error('Este local no ofrece la opción de retiro en el local.');
       return;
     }
 
@@ -650,7 +663,12 @@ export default function CustomerApp() {
         const freshRiders = await api.checkActiveRepartidores();
         if (!freshRiders.hasActive) {
           setHasRepartidores(false);
-          toast.error('Lo sentimos, ya no hay repartidores disponibles. Por favor, selecciona "Retiro en local" para continuar.');
+          const puedeRetirar = selectedLocal ? selectedLocal.acepta_retiro !== false : true;
+          if (!puedeRetirar) {
+            toast.error('Lo sentimos, ya no hay repartidores disponibles y este local no ofrece retiro.');
+          } else {
+            toast.error('Lo sentimos, ya no hay repartidores disponibles. Por favor, selecciona "Retiro en local" para continuar.');
+          }
           setCheckoutLoading(false);
           return;
         }
@@ -856,7 +874,10 @@ export default function CustomerApp() {
       const r = await api.checkActiveRepartidores();
       setHasRepartidores(r.hasActive);
       if (!r.hasActive && cart.deliveryType === 'envio') {
-        cart.setDeliveryType('retiro');
+        const puedeRetirar = selectedLocal ? selectedLocal.acepta_retiro !== false : true;
+        if (puedeRetirar) {
+          cart.setDeliveryType('retiro');
+        }
       }
     } catch { /* fallback: allow */ }
   };
@@ -1333,6 +1354,25 @@ export default function CustomerApp() {
           <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
         </div>
         <div className="cart-body-content">
+          {!hasRepartidores && (
+            <div className="no-drivers-cart-alert animate-fade-in" style={{
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fef3c7',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              textAlign: 'center',
+              color: '#92400e',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              <span>⚠️</span> No hay repartidores disponibles en este momento. Solo retiro en local disponible.
+            </div>
+          )}
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="form-label">Tipo de entrega</label>
             <select className="form-select" value={cart.deliveryType} onChange={e => {

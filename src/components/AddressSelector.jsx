@@ -174,17 +174,27 @@ const AddressSelector = ({
               onPlaceChanged={onPlaceChanged}
               options={{
                 componentRestrictions: { country: 'AR' },
-                locationBias: { radius: 10000, center: SANTO_TOME_CENTER },
+                // Strict bounds or strong bias for Santo Tomé Corrientes
+                locationBias: { 
+                  north: -28.4, 
+                  south: -28.7, 
+                  east: -55.9, 
+                  west: -56.2 
+                },
                 fields: ['address_components', 'geometry', 'icon', 'name', 'formatted_address']
               }}
             >
               <input
                 type="text"
-                placeholder={title.includes('Local') ? "Ubicación de tu negocio..." : "Escribí tu calle y número..."}
+                placeholder={title.includes('Local') ? "Ubicación de tu negocio..." : "Escribí tu calle y número (Ej: Brasil 719)..."}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                onBlur={handleManualGeocode}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualGeocode()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleManualGeocode();
+                  }
+                }}
                 className="form-input"
               />
             </Autocomplete>

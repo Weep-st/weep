@@ -149,3 +149,27 @@
   color: var(--gray-600);
   margin-bottom: 6px;
 }
+
+/* Fix for Google Maps Autocomplete Dropdown z-index */
+.pac-container {
+  z-index: 100000 !important;
+  border-radius: 12px;
+  margin-top: 4px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  border: 1px solid var(--gray-200);
+  font-family: inherit;
+}
+
+.pac-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.pac-item:hover {
+  background-color: var(--gray-50);
+}
+
+.pac-item-query {
+  font-size: 0.95rem;
+  color: var(--gray-900);
+}
