@@ -535,26 +535,27 @@ export default function CustomerApp() {
     try {
       if (menu.variantes && (menu.variantes.includes('es_helado') || menu.categoria === 'Helados')) {
         const parsed = JSON.parse(menu.variantes || '{}');
-        if (parsed.variants) {
+        if (parsed.precios) {
           iceConfig = parsed;
-        } else if (parsed.precios) {
+        } else if (parsed.variants) {
+          // Compatibility with the dynamic variants attempt
           iceConfig = {
-            ...parsed,
-            variants: Object.entries(parsed.precios).map(([name, p]) => ({
-              nombre: name,
-              precio: p.precio,
-              max_sabores: p.max
-            }))
+            es_helado: true,
+            precios: {
+              '1/4kg': { precio: parsed.variants[0]?.precio || menu.precio, max: parsed.variants[0]?.max_sabores || 3 },
+              '1/2kg': { precio: parsed.variants[1]?.precio || menu.precio, max: parsed.variants[1]?.max_sabores || 3 },
+              '1kg': { precio: parsed.variants[2]?.precio || menu.precio, max: parsed.variants[2]?.max_sabores || 4 }
+            }
           };
         } else {
           // Default fallback
           iceConfig = {
             es_helado: true,
-            variants: [
-              { nombre: '1/4 kg', precio: menu.precio, max_sabores: 3 },
-              { nombre: '1/2 kg', precio: menu.precio, max_sabores: 3 },
-              { nombre: '1 kg', precio: menu.precio, max_sabores: 4 }
-            ]
+            precios: {
+              '1/4kg': { precio: menu.precio, max: 3 },
+              '1/2kg': { precio: menu.precio, max: 3 },
+              '1kg': { precio: menu.precio, max: 4 }
+            }
           };
         }
         isIceCream = true;
@@ -563,7 +564,7 @@ export default function CustomerApp() {
 
     if (isIceCream) {
       const menuWithConfig = { ...menu, variantes: JSON.stringify(iceConfig) };
-      setSelectedSize(iceConfig.variants[0]?.nombre || '');
+      setSelectedSize('1/4kg');
       setSelectedFlavors([]);
       setSelectedSauces([]);
       setSelectedExtras([]);
@@ -1703,19 +1704,19 @@ export default function CustomerApp() {
             <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>{iceCreamModal.nombre}</h2>
             <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
             
-            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginBottom: 20 }}>
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
               {(() => {
                 const cfg = JSON.parse(iceCreamModal.variantes);
-                const currentVariants = cfg.variants || [];
-                return currentVariants.map(v => (
+                const precios = cfg.precios || {};
+                return Object.keys(precios).map(size => (
                   <button 
-                    key={v.nombre}
-                    className={`btn ${selectedSize === v.nombre ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => { setSelectedSize(v.nombre); setSelectedFlavors([]); }}
+                    key={size}
+                    className={`btn ${selectedSize === size ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
                     style={{ fontSize: '0.9rem', padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}
                   >
-                    <span>{v.nombre}</span>
-                    <small style={{ opacity: 0.8 }}>${v.precio}</small>
+                    <span>{size}</span>
+                    <small style={{ opacity: 0.8 }}>${precios[size].precio}</small>
                   </button>
                 ));
               })()}
@@ -1723,19 +1724,19 @@ export default function CustomerApp() {
 
             {(() => {
               const cfg = JSON.parse(iceCreamModal.variantes);
-              const selectedVariant = cfg.variants?.find(v => v.nombre === selectedSize);
-              if (!selectedVariant) return null;
+              const info = cfg.precios?.[selectedSize];
+              if (!info) return null;
               
               return (
                 <>
                   <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>
-                    Seleccioná tus sabores <small>(Máx {selectedVariant.max_sabores})</small>
+                    Seleccioná tus sabores <small>(Máx {info.max})</small>
                   </h3>
                   
                   <div className="flavors-list" style={{ maxHeight: 200, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: 4 }}>
                     {iceCreamFlavors.map(flavor => {
                       const isSelected = selectedFlavors.includes(flavor.nombre);
-                      const max = selectedVariant.max_sabores;
+                      const max = info.max;
                       const canSelect = selectedFlavors.length < max;
                       
                       return (
@@ -1808,8 +1809,8 @@ export default function CustomerApp() {
 
             {(() => {
               const configuration = JSON.parse(iceCreamModal.variantes);
-              const selectedVariant = configuration.variants?.find(v => v.nombre === selectedSize);
-              const basePrice = parseFloat(selectedVariant?.precio || 0);
+              const info = configuration.precios?.[selectedSize];
+              const basePrice = parseFloat(info?.precio || 0);
               const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
               const rawTotal = basePrice + extrasPrice;
               
