@@ -174,13 +174,14 @@ const AddressSelector = ({
               onPlaceChanged={onPlaceChanged}
               options={{
                 componentRestrictions: { country: 'AR' },
-                // Strict bounds or strong bias for Santo Tomé Corrientes
-                locationBias: { 
+                // Restrict results strictly to Santo Tomé, Corrientes area
+                bounds: { 
                   north: -28.4, 
                   south: -28.7, 
                   east: -55.9, 
                   west: -56.2 
                 },
+                strictBounds: true,
                 fields: ['address_components', 'geometry', 'icon', 'name', 'formatted_address']
               }}
             >
