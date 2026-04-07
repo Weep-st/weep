@@ -1326,25 +1326,6 @@ export async function assignRepartidor(pedidoId) {
   // Marcar como ocupado al ser asignado manualmente o por sistema
   await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', elegido.id);
 
-  // Notificar al repartidor
-  try {
-    const { data: pedData } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
-    const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
-    if (pedData && items) {
-      await notifyDriverAboutNewOrder(
-        pedidoId,
-        items,
-        pedData.direccion,
-        pedData.observaciones,
-        pedData.total,
-        pedData.metodo_pago,
-        elegido.email
-      );
-    }
-  } catch (e) {
-    console.error('Error notificando al repartidor en asignacion manual:', e);
-  }
-
   return { success: true, repartidor: elegido };
 }
 
@@ -1388,6 +1369,27 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
         pedidos_aceptados_count: (dRep.pedidos_aceptados_count || 0) + 1,
         rachas_ignoradas: 0 // Reset racha for good behavior
       }).eq('id', repartidorId);
+    }
+
+    // ENVIAR EMAIL SOLO CUANDO SE CONFIRMA EL PEDIDO
+    try {
+      const { data: pg } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
+      const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
+      const { data: rep } = await supabase.from('repartidores').select('email').eq('id', repartidorId).single();
+
+      if (pg && rep?.email) {
+        await notifyDriverAboutNewOrder(
+          pedidoId,
+          items || [],
+          pg.direccion,
+          pg.observaciones,
+          pg.total,
+          pg.metodo_pago,
+          rep.email
+        );
+      }
+    } catch (e) {
+      console.error('Error enviando email tras confirmación del repartidor:', e);
     }
   }
   
@@ -1482,24 +1484,6 @@ export async function repartidorRechazarPedido(pedidoId, currentDriverId) {
 
     if (error) throw new Error(error.message);
     if (!data || !data.id) throw new Error('No se pudo reasignar el pedido.');
-
-    // 2. Obtener datos del pedido para el email (dirección, total, etc.)
-    const { data: pedData } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
-    if (!pedData) return { success: true }; // Si no hay datos, al menos se reasignó
-
-    // 3. Obtener items para el email
-    const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
-
-    // 4. Notificar al nuevo repartidor
-    await notifyDriverAboutNewOrder(
-      pedidoId,
-      items || [],
-      pedData.direccion,
-      pedData.observaciones,
-      pedData.total,
-      pedData.metodo_pago,
-      data.email
-    );
 
     return { success: true, nuevoRepartidor: data.nombre };
   } catch (err) {

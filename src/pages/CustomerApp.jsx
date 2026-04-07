@@ -536,10 +536,24 @@ export default function CustomerApp() {
       if (menu.variantes && menu.variantes.includes('es_helado')) {
         iceConfig = JSON.parse(menu.variantes);
         isIceCream = iceConfig.es_helado;
+      } else if (menu.categoria === 'Helados') {
+        isIceCream = true;
       }
     } catch (e) {}
 
     if (isIceCream) {
+      // Provide default config if missing
+      const finalIceConfig = iceConfig || {
+        es_helado: true,
+        precios: {
+          '1/4kg': { precio: menu.precio, max: 3 },
+          '1/2kg': { precio: menu.precio, max: 3 },
+          '1kg': { precio: menu.precio, max: 4 }
+        }
+      };
+      
+      const menuWithConfig = { ...menu, variantes: JSON.stringify(finalIceConfig) };
+
       setSelectedSize('1/4kg');
       setSelectedFlavors([]);
       setSelectedSauces([]);
@@ -552,7 +566,7 @@ export default function CustomerApp() {
         setIceCreamFlavors(flavors.filter(f => f.disponible && f.tipo === 'Sabor'));
         setIceCreamSauces(flavors.filter(f => f.disponible && f.tipo === 'Salsa'));
         setIceCreamExtras(extras.filter(e => e.disponible));
-        setIceCreamModal(menu);
+        setIceCreamModal(menuWithConfig);
         return; // Stop flow, modal will handle addition
       } catch {
         toast.error('Error al cargar opciones de helado');
@@ -646,8 +660,7 @@ export default function CustomerApp() {
 
     // Check repartidores active strictly before proceeding if envio is selected
     if (cart.deliveryType === 'envio' && !hasRepartidores) {
-      toast.error('No hay repartidores disponibles. Debes retirar en local.');
-      cart.setDeliveryType('retiro');
+      toast.error('No hay repartidores disponibles en este momento. Por favor, selecciona "Retiro en local" o intenta más tarde.');
       return;
     }
 
@@ -662,8 +675,7 @@ export default function CustomerApp() {
         const freshRiders = await api.checkActiveRepartidores();
         if (!freshRiders.hasActive) {
           setHasRepartidores(false);
-          toast.error('Lo sentimos, ya no hay repartidores disponibles. El pedido debe ser para retirar.');
-          cart.setDeliveryType('retiro');
+          toast.error('Lo sentimos, ya no hay repartidores disponibles. Por favor, selecciona "Retiro en local" para continuar.');
           setCheckoutLoading(false);
           return;
         }
