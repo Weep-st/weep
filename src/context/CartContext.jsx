@@ -1,12 +1,27 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import * as api from '../services/api';
 
 const CartContext = createContext(null);
-const COSTO_ENVIO = 2000;
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [deliveryType, setDeliveryType] = useState('envio');
+  const [costoEnvio, setCostoEnvio] = useState(2000); // Default fallback
+
+  useEffect(() => {
+    const fetchCosto = async () => {
+      try {
+        const config = await api.getConfiguracion();
+        if (config && config.valor_envio) {
+          setCostoEnvio(Number(config.valor_envio));
+        }
+      } catch (err) {
+        console.error('Error fetching shipping cost:', err);
+      }
+    };
+    fetchCosto();
+  }, []);
 
   const addItem = useCallback((menu) => {
     setItems(prev => {
@@ -34,9 +49,8 @@ export function CartProvider({ children }) {
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
   const hasDrink = items.some(i => i.categoria?.toLowerCase().includes('bebida'));
-  // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente a pedido del usuario.
-  // const shippingCost = deliveryType === 'retiro' ? 0 : (hasDrink ? 0 : COSTO_ENVIO);
-  const shippingCost = deliveryType === 'retiro' ? 0 : COSTO_ENVIO;
+  
+  const shippingCost = deliveryType === 'retiro' ? 0 : costoEnvio;
   const total = subtotal + shippingCost;
   const totalItems = items.reduce((sum, i) => sum + i.qty, 0);
 
@@ -45,7 +59,7 @@ export function CartProvider({ children }) {
       items, addItem, removeItem, updateQty, clearCart,
       deliveryType, setDeliveryType,
       subtotal, shippingCost, total, totalItems, hasDrink,
-      COSTO_ENVIO,
+      COSTO_ENVIO: costoEnvio,
     }}>
       {children}
     </CartContext.Provider>

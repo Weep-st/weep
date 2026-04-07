@@ -11,6 +11,7 @@ import AdminPagos from './AdminPagos';
 import AdminPedidos from './AdminPedidos';
 import AdminUsuarios from './AdminUsuarios';
 import AdminBanners from './AdminBanners';
+import AdminConfig from './AdminConfig';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -64,6 +65,7 @@ const AdminDashboard = () => {
             case 'pedidos': return <AdminPedidos />;
             case 'usuarios': return <AdminUsuarios />;
             case 'banners': return <AdminBanners />;
+            case 'config': return <AdminConfig />;
             default: return <AdminLocales />;
         }
     };
@@ -99,6 +101,9 @@ const AdminDashboard = () => {
                     </button>
                     <button className={activeTab === 'banners' ? 'active' : ''} onClick={() => handleTabClick('banners')}>
                         <span className="icon">🖼️</span> Banners
+                    </button>
+                    <button className={activeTab === 'config' ? 'active' : ''} onClick={() => handleTabClick('config')}>
+                        <span className="icon">⚙️</span> Configuración
                     </button>
 
                 </nav>

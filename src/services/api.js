@@ -2044,3 +2044,30 @@ export async function updateMenuItemDiscount(id, descuento) {
   if (error) throw new Error(error.message);
   return { success: true };
 }
+// ═══════════════════════════════════════════════════
+// CONFIGURATION — Global Settings
+// ═══════════════════════════════════════════════════
+export async function getConfiguracion() {
+  const { data, error } = await supabase
+    .from('configuracion')
+    .select('*')
+    .eq('id', 'global')
+    .maybeSingle();
+  
+  if (error) {
+    console.error('Error fetching configuration:', error);
+    return { valor_envio: 2000 }; // Default fallback
+  }
+  
+  return data || { valor_envio: 2000 };
+}
+
+export async function updateConfiguracion(updates) {
+  const { error } = await supabase
+    .from('configuracion')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', 'global');
+    
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
