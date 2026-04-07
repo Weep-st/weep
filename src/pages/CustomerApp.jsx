@@ -529,41 +529,17 @@ export default function CustomerApp() {
       return;
     }
 
-    // Detect if it's ice cream
-    let isIceCream = false;
-    let iceConfig = null;
+    // Detect category and configuration
+    let cfg = null;
     try {
-      if (menu.variantes && (menu.variantes.includes('es_helado') || menu.categoria === 'Helados')) {
-        const parsed = JSON.parse(menu.variantes || '{}');
-        if (parsed.precios) {
-          iceConfig = parsed;
-        } else if (parsed.variants) {
-          // Compatibility with the dynamic variants attempt
-          iceConfig = {
-            es_helado: true,
-            precios: {
-              '1/4kg': { precio: parsed.variants[0]?.precio || menu.precio, max: parsed.variants[0]?.max_sabores || 3 },
-              '1/2kg': { precio: parsed.variants[1]?.precio || menu.precio, max: parsed.variants[1]?.max_sabores || 3 },
-              '1kg': { precio: parsed.variants[2]?.precio || menu.precio, max: parsed.variants[2]?.max_sabores || 4 }
-            }
-          };
-        } else {
-          // Default fallback
-          iceConfig = {
-            es_helado: true,
-            precios: {
-              '1/4kg': { precio: menu.precio, max: 3 },
-              '1/2kg': { precio: menu.precio, max: 3 },
-              '1kg': { precio: menu.precio, max: 4 }
-            }
-          };
-        }
-        isIceCream = true;
-      }
+      if (typeof menu.variantes === 'string') cfg = JSON.parse(menu.variantes);
+      else if (typeof menu.variantes === 'object') cfg = menu.variantes;
     } catch (e) {}
 
+    const isIceCream = cfg?.es_helado;
+    const isBurgerOrCombo = cfg?.es_hamburguesa || cfg?.es_combo || cfg?.con_papas;
+
     if (isIceCream) {
-      const menuWithConfig = { ...menu, variantes: JSON.stringify(iceConfig) };
       setSelectedSize('1/4kg');
       setSelectedFlavors([]);
       setSelectedSauces([]);
@@ -576,35 +552,16 @@ export default function CustomerApp() {
         setIceCreamFlavors(flavors.filter(f => f.disponible && f.tipo === 'Sabor'));
         setIceCreamSauces(flavors.filter(f => f.disponible && f.tipo === 'Salsa'));
         setIceCreamExtras(extras.filter(e => e.disponible));
-        setIceCreamModal(menuWithConfig);
+        setIceCreamModal(menu);
         return; 
       } catch {
         toast.error('Error al cargar opciones de helado');
       }
     }
 
-    // Detect if it's a Burger or Combo
-    let burgerCfg = null;
-    try {
-      if (menu.variantes && (menu.variantes.includes('es_hamburguesa') || menu.variantes.includes('es_combo') || menu.variantes.includes('con_papas'))) {
-        burgerCfg = JSON.parse(menu.variantes);
-      } else if (menu.categoria === 'Hamburguesas' || menu.categoria === 'Combos') {
-        // Fallback for burgers without config
-        burgerCfg = {
-          es_hamburguesa: menu.categoria === 'Hamburguesas',
-          es_combo: menu.categoria === 'Combos',
-          variants: [{ nombre: 'Simple', precio: menu.precio }],
-          extras: [],
-          con_papas: false,
-          precio_papas: 0
-        };
-      }
-    } catch(e){}
-    
-    if (burgerCfg) {
-      const menuWithConfig = { ...menu, variantes: JSON.stringify(burgerCfg) };
-      setBurgerModal(menuWithConfig);
-      setSelectedVariant(burgerCfg.variants?.[0] || null);
+    if (isBurgerOrCombo) {
+      setBurgerModal(menu);
+      setSelectedVariant(cfg.variants?.[0] || null);
       setSelectedBurgerExtras([]);
       setWithFries(false);
       return; 
@@ -1243,7 +1200,12 @@ export default function CustomerApp() {
             ) : (
               <div className="menu-list">
                 {menus.map((menu, i) => (
-                  <div key={menu.id || i} className="menu-card card card-hover" style={{ animationDelay: `${i * 0.05}s` }}>
+                  <div 
+                    key={menu.id || i} 
+                    className="menu-card card card-hover" 
+                    style={{ animationDelay: `${i * 0.05}s`, cursor: 'pointer' }}
+                    onClick={() => handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) })}
+                  >
                     <div className="menu-card-img-container">
                       <img
                         src={menu.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'}
@@ -1322,10 +1284,29 @@ export default function CustomerApp() {
                               );
                             }
 
-                            return <button className="btn btn-primary btn-sm" onClick={() => handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) })}>Agregar</button>;
+                            const itemCfg = typeof menu.variantes === 'string' ? JSON.parse(menu.variantes || '{}') : (menu.variantes || {});
+                            const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas;
+
+                            return (
+                              <button 
+                                className="btn btn-primary btn-sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) });
+                                }}
+                              >
+                                {needsCustomization ? 'Elegir' : 'Agregar'}
+                              </button>
+                            );
                           })()}
 
-                          <button className={`fav-btn ${favorites.includes(menu.id) ? 'active' : ''}`} onClick={() => toggleFav(menu.id)}>
+                          <button 
+                            className={`fav-btn ${favorites.includes(menu.id) ? 'active' : ''}`} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFav(menu.id);
+                            }}
+                          >
                             <img 
                               src={favorites.includes(menu.id) 
                                 ? "https://i.postimg.cc/BZYZmSz1/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find.png" 
@@ -1699,101 +1680,81 @@ export default function CustomerApp() {
       {/* ─── Ice Cream Modal ─── */}
       {iceCreamModal && (
         <div className="modal-overlay" onClick={() => setIceCreamModal(null)}>
-          <div className="modal-box animate-scale-in" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '24px' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>{iceCreamModal.nombre}</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.5rem' }}>{iceCreamModal.nombre}</h2>
+            <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 20 }}>{iceCreamModal.descripcion}</p>
             
-            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-              {(() => {
-                const cfg = JSON.parse(iceCreamModal.variantes);
-                const precios = cfg.precios || {};
-                return Object.keys(precios).map(size => (
-                  <button 
-                    key={size}
-                    className={`btn ${selectedSize === size ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
-                    style={{ fontSize: '0.9rem', padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}
-                  >
-                    <span>{size}</span>
-                    <small style={{ opacity: 0.8 }}>${precios[size].precio}</small>
-                  </button>
-                ));
-              })()}
+            <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
+              {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
+                <div 
+                  key={size}
+                  className={`selection-card ${selectedSize === size ? 'active' : ''}`}
+                  onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
+                  style={{ 
+                    padding: '16px 8px', borderRadius: '12px', border: selectedSize === size ? '2px solid var(--red-500)' : '2px solid #eee',
+                    backgroundColor: selectedSize === size ? '#fff5f5' : '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease',
+                    boxShadow: selectedSize === size ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '1rem', color: selectedSize === size ? 'var(--red-600)' : 'inherit' }}>{size}</div>
+                  <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem', marginTop: '4px' }}>
+                    ${JSON.parse(iceCreamModal.variantes).precios[size].precio}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {(() => {
-              const cfg = JSON.parse(iceCreamModal.variantes);
-              const info = cfg.precios?.[selectedSize];
-              if (!info) return null;
-              
-              return (
-                <>
-                  <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>
-                    Seleccioná tus sabores <small>(Máx {info.max})</small>
-                  </h3>
-                  
-                  <div className="flavors-list" style={{ maxHeight: 200, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: 4 }}>
-                    {iceCreamFlavors.map(flavor => {
-                      const isSelected = selectedFlavors.includes(flavor.nombre);
-                      const max = info.max;
-                      const canSelect = selectedFlavors.length < max;
-                      
-                      return (
-                        <button 
-                          key={flavor.id}
-                          className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                          style={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 44 }}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedFlavors(prev => prev.filter(f => f !== flavor.nombre));
-                            } else if (canSelect) {
-                              setSelectedFlavors(prev => [...prev, flavor.nombre]);
-                            }
-                          }}
-                        >
-                          {flavor.nombre}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              );
-            })()}
-
-            {iceCreamSauces.length > 0 && (
-              <>
-                <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>Salsas <small>(Opcional)</small></h3>
-                <div className="sauces-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-                  {iceCreamSauces.map(sauce => {
-                    const isSelected = selectedSauces.includes(sauce.nombre);
-                    return (
-                      <button 
-                        key={sauce.id}
-                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => {
-                          if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
-                          else setSelectedSauces(prev => [...prev, sauce.nombre]);
-                        }}
-                      >
-                        {sauce.nombre}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+            <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>
+               2. Seleccioná tus sabores:
+               <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '400', marginTop: '2px' }}>
+                Máximo {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max} sabores
+               </div>
+            </h3>
+            
+            <div className="flavors-list" style={{ maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24, padding: '4px' }}>
+              {iceCreamFlavors.map(flavor => {
+                const isSelected = selectedFlavors.includes(flavor.nombre);
+                const max = JSON.parse(iceCreamModal.variantes).precios[selectedSize].max;
+                const canSelect = selectedFlavors.length < max;
+                
+                return (
+                  <button 
+                    key={flavor.id}
+                    className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ 
+                      justifyContent: 'flex-start', textAlign: 'left', minHeight: 48, borderRadius: '10px',
+                      borderWidth: isSelected ? '2px' : '1px', fontSize: '0.9rem'
+                    }}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedFlavors(prev => prev.filter(f => f !== flavor.nombre));
+                      } else if (canSelect) {
+                        setSelectedFlavors(prev => [...prev, flavor.nombre]);
+                      } else {
+                        toast.error(`Máximo ${max} sabores para este tamaño`);
+                      }
+                    }}
+                  >
+                    {flavor.nombre}
+                    {isSelected && <span style={{ marginLeft: 'auto' }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
 
             {iceCreamExtras.length > 0 && (
               <>
-                <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>Adicionales</h3>
-                <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
+                <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
                   {iceCreamExtras.map(extra => {
                     const isSelected = selectedExtras.some(e => e.id === extra.id);
                     return (
                       <button 
                         key={extra.id}
                         className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ borderRadius: '20px', padding: '6px 14px' }}
                         onClick={() => {
                           if (isSelected) setSelectedExtras(prev => prev.filter(e => e.id !== extra.id));
                           else setSelectedExtras(prev => [...prev, extra]);
@@ -1809,84 +1770,40 @@ export default function CustomerApp() {
 
             {(() => {
               const configuration = JSON.parse(iceCreamModal.variantes);
-              const info = configuration.precios?.[selectedSize];
-              const basePrice = parseFloat(info?.precio || 0);
+              const basePrice = parseFloat(configuration.precios[selectedSize].precio || 0);
               const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
               const rawTotal = basePrice + extrasPrice;
-              
-              // Apply discount to the total
               const currentTotal = calculateDiscountedPrice({ ...iceCreamModal, precio: rawTotal });
               const hasDiscount = currentTotal < rawTotal;
-
-              if (selectedLocal && selectedLocal.disponible_desde) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const parts = selectedLocal.disponible_desde.split('-');
-                const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                if (today < availableDate) {
-                  return (
-                    <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
-                      Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
-                    </button>
-                  );
-                }
-              }
 
               return (
                 <button 
                   className="btn btn-primary btn-full btn-lg"
                   disabled={selectedFlavors.length === 0}
+                  style={{ borderRadius: '12px', height: '56px', fontSize: '1.1rem' }}
                   onClick={() => {
                     const details = [];
                     details.push(`Sabores: ${selectedFlavors.join(', ')}`);
-                    if (selectedSauces.length > 0) details.push(`Salsas: ${selectedSauces.join(', ')}`);
                     if (selectedExtras.length > 0) details.push(`Extras: ${selectedExtras.map(e => e.nombre).join(', ')}`);
 
                     const finalItem = {
                       ...iceCreamModal,
-                        menuId: iceCreamModal.id,
-                        id: `${iceCreamModal.id}-${selectedSize}-${Date.now()}`,
-                        nombre: `${iceCreamModal.nombre} ${selectedSize}`,
-                        precioOriginal: rawTotal,
-                        precio: currentTotal,
-                        flavors: selectedFlavors,
-                      sauces: selectedSauces,
+                      menuId: iceCreamModal.id,
+                      id: `${iceCreamModal.id}-${selectedSize}-${Date.now()}`,
+                      nombre: `${iceCreamModal.nombre} ${selectedSize}`,
+                      precioOriginal: rawTotal,
+                      precio: currentTotal,
+                      flavors: selectedFlavors,
                       extras: selectedExtras,
                       descripcion: details.join(' | ')
                     };
-                    // Facebook Pixel: AddToCart (Ice Cream)
-                    if (window.fbq) {
-                      window.fbq('track', 'AddToCart', {
-                        content_name: finalItem.nombre,
-                        content_ids: [finalItem.menuId],
-                        content_type: 'product',
-                        value: finalItem.precio,
-                        currency: 'ARS'
-                      });
-                    }
-
-                    // Google Analytics: add_to_cart (Ice Cream)
-                    if (window.gtag) {
-                      window.gtag('event', 'add_to_cart', {
-                        currency: 'ARS',
-                        value: finalItem.precio,
-                        items: [{
-                          item_id: finalItem.menuId,
-                          item_name: finalItem.nombre,
-                          price: finalItem.precio,
-                          quantity: 1
-                        }]
-                      });
-                    }
-
                     cart.addItem(finalItem);
                     setIceCreamModal(null);
                     toast.success('¡Helado agregado!');
                   }}
                 >
-                  Agregar al carrito • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '0.9rem', marginRight: '5px' }}>${rawTotal}</span>} ${currentTotal}
+                  Agregar • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${currentTotal}
                 </button>
-
               );
             })()}
           </div>
@@ -1895,239 +1812,140 @@ export default function CustomerApp() {
 
       {burgerModal && (
         <div className="modal-overlay" onClick={() => setBurgerModal(null)}>
-          <div className="modal-box animate-scale-in" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '24px' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setBurgerModal(null)}>✕</button>
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>{burgerModal.nombre}</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 20 }}>{burgerModal.descripcion}</p>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.5rem' }}>{burgerModal.nombre}</h2>
+            <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 24 }}>{burgerModal.descripcion}</p>
             
             {(() => {
               const cfg = JSON.parse(burgerModal.variantes);
-              
-              if (cfg.es_hamburguesa || cfg.es_combo) {
-                const baseVariantPrice = Number(selectedVariant?.precio || burgerModal.precio);
-                const extrasPriceTotal = selectedBurgerExtras.reduce((sum, e) => sum + Number(e.precio || 0), 0);
-                const friesPrice = withFries ? Number(cfg.precio_papas || 0) : 0;
-                const rawTotal = baseVariantPrice + extrasPriceTotal + friesPrice;
-                
-                // Apply discount
-                const totalCalculated = calculateDiscountedPrice({ ...burgerModal, precio: rawTotal });
-                const hasDiscount = totalCalculated < rawTotal;
+              const baseVariantPrice = Number(selectedVariant?.precio || burgerModal.precio);
+              const extrasPriceTotal = selectedBurgerExtras.reduce((sum, e) => sum + Number(e.precio || 0), 0);
+              const friesPrice = withFries ? Number(cfg.precio_papas || 0) : 0;
+              const rawTotal = baseVariantPrice + extrasPriceTotal + friesPrice;
+              const totalCalculated = calculateDiscountedPrice({ ...burgerModal, precio: rawTotal });
+              const hasDiscount = totalCalculated < rawTotal;
 
-                return (
-                  <>
-                    {cfg.variants?.length > 0 && (
-                      <div style={{ marginBottom: 20 }}>
-                        <h3 style={{ fontSize: '0.95rem', marginBottom: 12 }}>Seleccioná la opción:</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                          {cfg.variants.map((v, i) => (
-                            <button 
-                              key={i}
-                              className={`btn ${selectedVariant?.nombre === v.nombre ? 'btn-primary' : 'btn-outline'}`}
-                              onClick={() => setSelectedVariant(v)}
-                              style={{ fontSize: '0.85rem' }}
-                            >
-                              {v.nombre}<br/>
-                              <small>${v.precio}</small>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {cfg.extras?.length > 0 && (
-                      <div style={{ marginBottom: 20 }}>
-                        <h3 style={{ fontSize: '0.95rem', marginBottom: 12 }}>Adicionales (Precio extra):</h3>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {cfg.extras.map((ex, i) => {
-                            const isIncluded = selectedBurgerExtras.some(e => e.nombre === ex.nombre);
-                            return (
-                              <button 
-                                key={i}
-                                className={`btn btn-xs ${isIncluded ? 'btn-primary' : 'btn-outline'}`}
-                                onClick={() => {
-                                  if (isIncluded) setSelectedBurgerExtras(prev => prev.filter(e => e.nombre !== ex.nombre));
-                                  else setSelectedBurgerExtras(prev => [...prev, ex]);
-                                }}
-                              >
-                                {ex.nombre} (+${ex.precio})
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {cfg.con_papas && (
-                      <div style={{ marginBottom: 24, padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: '1.5rem' }}>🍟</span>
-                            <div style={{ textAlign: 'left' }}>
-                              <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Combo con Papas Fritas</div>
-                              <div style={{ color: 'var(--red-600)', fontSize: '0.8rem', fontWeight: 600 }}>+ ${cfg.precio_papas}</div>
-                            </div>
-                          </div>
-                          <button 
-                            className={`btn btn-sm ${withFries ? 'btn-primary' : 'btn-outline'}`}
-                            onClick={() => setWithFries(!withFries)}
+              return (
+                <>
+                  {cfg.variants?.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Seleccioná la opción:</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                        {cfg.variants.map((v, i) => (
+                          <div 
+                            key={i}
+                            className={`selection-card ${selectedVariant?.nombre === v.nombre ? 'active' : ''}`}
+                            onClick={() => setSelectedVariant(v)}
+                            style={{ 
+                              padding: '12px 6px', borderRadius: '12px', border: selectedVariant?.nombre === v.nombre ? '2px solid var(--red-500)' : '1px solid #eee',
+                              backgroundColor: selectedVariant?.nombre === v.nombre ? '#fff5f5' : '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease'
+                            }}
                           >
-                            {withFries ? 'Agregado ✓' : 'Agregar'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {(() => {
-                      if (selectedLocal && selectedLocal.disponible_desde) {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const parts = selectedLocal.disponible_desde.split('-');
-                        const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                        if (today < availableDate) {
-                          return (
-                            <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
-                              Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}
-                            </button>
-                          );
-                        }
-                      }
-                      return (
-                        <button 
-                          className="btn btn-primary btn-full btn-lg"
-                          onClick={() => {
-                            const variantText = selectedVariant ? `${selectedVariant.nombre}` : '';
-                            const extrasText = selectedBurgerExtras.map(e => e.nombre).join(' + ');
-                            const friesText = withFries ? ' + PAPAS' : '';
-                            
-                            let finalName = burgerModal.nombre;
-                            if (variantText) finalName += ` ${variantText}`;
-                            if (extrasText) finalName += ` c/ ${extrasText}`;
-                            finalName += friesText;
-    
-                            const finalItem = {
-                              ...burgerModal,
-                              menuId: burgerModal.id,
-                              id: `${burgerModal.id}-${Date.now()}`,
-                              nombre: finalName,
-                              precioOriginal: rawTotal,
-                              precio: totalCalculated,
-                              variant: selectedVariant,
-                              burgerExtras: selectedBurgerExtras,
-                              withFries: withFries
-                            };
-                            // Facebook Pixel: AddToCart (Burger/Combo)
-                            if (window.fbq) {
-                              window.fbq('track', 'AddToCart', {
-                                content_name: finalItem.nombre,
-                                content_ids: [finalItem.menuId],
-                                content_type: 'product',
-                                value: finalItem.precio,
-                                currency: 'ARS'
-                              });
-                            }
-    
-                            // Google Analytics: add_to_cart (Burger/Combo)
-                            if (window.gtag) {
-                              window.gtag('event', 'add_to_cart', {
-                                currency: 'ARS',
-                                value: finalItem.precio,
-                                items: [{
-                                  item_id: finalItem.menuId,
-                                  item_name: finalItem.nombre,
-                                  price: finalItem.precio,
-                                  quantity: 1
-                                }]
-                              });
-                            }
-    
-                            cart.addItem(finalItem);
-                            setBurgerModal(null);
-                            toast.success(`¡${cfg.es_combo ? 'Combo agregado' : 'Hamburguesa agregada'}!`);
-                          }}
-                        >
-                          Agregar al carrito • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '0.9rem', marginRight: '5px' }}>${rawTotal}</span>} ${totalCalculated}
-                        </button>
-
-                      );
-                    })()}
-                  </>
-                );
-              } else {
-                // Backward compatibility for old "con_papas" only logic
-                return (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: 15 }}>{withFries ? '🍟' : '🍔'}</div>
-                    <h2 style={{ color: 'var(--red-600)', marginBottom: 10 }}>¿Lo hacemos COMBO?</h2>
-                    <p style={{ color: 'var(--gray-600)', marginBottom: 20 }}>
-                      ¿Querés sumar <strong>papas fritas</strong> a tu {burgerModal.nombre}?
-                    </p>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-                      <div 
-                        className={`selection-card ${withFries ? 'active' : ''}`}
-                        onClick={() => setWithFries(true)}
-                        style={{ 
-                          padding: '20px 10px', borderRadius: '12px', border: withFries ? '2px solid var(--red-500)' : '2px solid #eee',
-                          backgroundColor: withFries ? '#fff5f5' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8
-                        }}
-                      >
-                        <div style={{ fontSize: '2rem' }}>🍟</div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>¡Si, con papas!</div>
-                        <div style={{ color: 'var(--red-600)', fontWeight: 600 }}>+ ${cfg.precio_papas}</div>
-                      </div>
-
-                      <div 
-                        className={`selection-card ${!withFries ? 'active' : ''}`}
-                        onClick={() => setWithFries(false)}
-                        style={{ 
-                          padding: '20px 10px', borderRadius: '12px', border: !withFries ? '2px solid var(--gray-600)' : '2px solid #eee',
-                          backgroundColor: !withFries ? '#f9f9f9' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8
-                        }}
-                      >
-                        <div style={{ fontSize: '2rem' }}>🍔</div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>No, solo la burguer</div>
-                        <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem' }}>Sin adicionales</div>
+                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{v.nombre}</div>
+                            <div style={{ color: 'var(--red-600)', fontWeight: '700', fontSize: '0.85rem', marginTop: '4px' }}>${v.precio}</div>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  )}
 
-                    {(() => {
-                      if (selectedLocal && selectedLocal.disponible_desde) {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const parts = selectedLocal.disponible_desde.split('-');
-                        const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                        if (today < availableDate) {
+                  {cfg.extras?.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>2. Adicionales:</h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {cfg.extras.map((ex, i) => {
+                          const isIncluded = selectedBurgerExtras.some(e => e.nombre === ex.nombre);
                           return (
-                            <button className="btn btn-primary btn-full btn-lg" disabled style={{ background: 'var(--gray-300)', color: 'var(--gray-600)' }}>
-                              Disponible el {availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                            <button 
+                              key={i}
+                              className={`btn btn-xs ${isIncluded ? 'btn-primary' : 'btn-outline'}`}
+                              style={{ borderRadius: '20px', padding: '6px 14px' }}
+                              onClick={() => {
+                                if (isIncluded) setSelectedBurgerExtras(prev => prev.filter(e => e.nombre !== ex.nombre));
+                                else setSelectedBurgerExtras(prev => [...prev, ex]);
+                              }}
+                            >
+                              {ex.nombre} (+${ex.precio})
                             </button>
                           );
-                        }
-                      }
-                      return (
-                        <button 
-                          className="btn btn-primary btn-full btn-lg"
-                          onClick={() => {
-                            const extra = withFries ? Number(cfg.precio_papas) : 0;
-                            const finalItem = {
-                              ...burgerModal,
-                              menuId: burgerModal.id,
-                              nombre: withFries ? `${burgerModal.nombre} + PAPAS` : burgerModal.nombre,
-                              precio: Number(burgerModal.precio) + extra,
-                              id: withFries ? `${burgerModal.id}-conpapas` : burgerModal.id
-                            };
-                            cart.addItem(finalItem);
-                            setBurgerModal(null);
-                            toast.success('¡Agregado!');
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {cfg.con_papas && (
+                    <div style={{ marginBottom: 28 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. ¿Lo hacemos COMBO?</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div 
+                          className={`selection-card ${withFries ? 'active' : ''}`}
+                          onClick={() => setWithFries(true)}
+                          style={{ 
+                            padding: '20px 10px', borderRadius: '12px', border: withFries ? '2px solid var(--red-500)' : '1px solid #eee',
+                            backgroundColor: withFries ? '#fff5f5' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                            boxShadow: withFries ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
                           }}
                         >
-                          Agregar • ${Number(burgerModal.precio) + (withFries ? Number(cfg.precio_papas) : 0)}
-                        </button>
-                      );
-                    })()}
-                  </div>
-                );
-              }
+                          <div style={{ fontSize: '2.5rem' }}>🍟</div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>¡Si, papas!</div>
+                            <div style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '0.9rem' }}>+ ${cfg.precio_papas}</div>
+                          </div>
+                        </div>
+
+                        <div 
+                          className={`selection-card ${!withFries ? 'active' : ''}`}
+                          onClick={() => setWithFries(false)}
+                          style={{ 
+                            padding: '20px 10px', borderRadius: '12px', border: !withFries ? '2px solid var(--gray-600)' : '1px solid #eee',
+                            backgroundColor: !withFries ? '#f9fafb' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                            opacity: !withFries ? 1 : 0.7
+                          }}
+                        >
+                          <div style={{ fontSize: '2.5rem' }}>🍔</div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Solo la burguer</div>
+                            <div style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Sin papas</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button 
+                    className="btn btn-primary btn-full btn-lg"
+                    style={{ borderRadius: '12px', height: '56px', fontSize: '1.1rem' }}
+                    onClick={() => {
+                      const variantText = selectedVariant ? `${selectedVariant.nombre}` : '';
+                      const extrasText = selectedBurgerExtras.map(e => e.nombre).join(' + ');
+                      const friesText = withFries ? ' + PAPAS' : '';
+                      
+                      let finalName = burgerModal.nombre;
+                      if (variantText) finalName += ` ${variantText}`;
+                      if (extrasText) finalName += ` c/ ${extrasText}`;
+                      finalName += friesText;
+
+                      const finalItem = {
+                        ...burgerModal,
+                        menuId: burgerModal.id,
+                        id: `${burgerModal.id}-${Date.now()}`,
+                        nombre: finalName,
+                        precioOriginal: rawTotal,
+                        precio: totalCalculated,
+                        variant: selectedVariant,
+                        burgerExtras: selectedBurgerExtras,
+                        withFries: withFries
+                      };
+                      cart.addItem(finalItem);
+                      setBurgerModal(null);
+                      toast.success(`¡Agregado al carrito!`);
+                    }}
+                  >
+                    Agregar • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${totalCalculated}
+                  </button>
+                </>
+              );
             })()}
           </div>
         </div>

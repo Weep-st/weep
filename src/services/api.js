@@ -419,6 +419,7 @@ export async function getMenuByCategoria(categoria) {
     descripcion: i.descripcion, precio: i.precio,
     descuento: i.descuento || 0,
     imagen_url: i.imagen_url, local_id: i.local_id,
+    variantes: i.variantes,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_dias_descuento: i.locales?.dias_descuento || [],
@@ -437,7 +438,7 @@ export async function getMenuByLocalId(localId) {
     descripcion: i.descripcion, precio: i.precio,
     descuento: i.descuento || 0,
     imagen_url: i.imagen_url, local_id: i.local_id,
-    disponibilidad: i.disponibilidad,
+    disponibilidad: i.disponibilidad, variantes: i.variantes,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_dias_descuento: i.locales?.dias_descuento || [],
@@ -742,7 +743,7 @@ export async function buscarMenu(query) {
     id: i.id, nombre: i.nombre, categoria: i.categoria,
     descripcion: i.descripcion, precio: i.precio,
     descuento: i.descuento || 0,
-    imagen_url: i.imagen_url, local_id: i.local_id,
+    imagen_url: i.imagen_url, local_id: i.local_id, variantes: i.variantes,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_acepta_retiro: i.locales?.acepta_retiro,
@@ -894,6 +895,7 @@ export async function reOrderItems(userId, pedidoId) {
         id: menu.id, nombre: menu.nombre, categoria: menu.categoria,
         descripcion: menu.descripcion, precio: menu.precio,
         imagen_url: menu.imagen_url, local_id: menu.local_id,
+        variantes: menu.variantes,
         local_nombre: menu.locales?.nombre || '', local_logo: menu.locales?.foto_url || '',
         qty: item.cantidad,
       });
@@ -948,6 +950,7 @@ export async function getBebidas() {
     id: i.id, nombre: i.nombre, categoria: i.categoria,
     descripcion: i.descripcion, precio: i.precio,
     imagen_url: i.imagen_url, local_id: i.local_id,
+    variantes: i.variantes,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
   }));
 }

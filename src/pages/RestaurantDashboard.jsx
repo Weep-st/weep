@@ -49,6 +49,8 @@ export default function RestaurantDashboard() {
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
   const [burgerExtras, setBurgerExtras] = React.useState([{ nombre: '', precio: '' }]);
+  const [burgerOfferPapas, setBurgerOfferPapas] = React.useState(false);
+  const [burgerPrecioPapas, setBurgerPrecioPapas] = React.useState('');
   
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -308,24 +310,35 @@ export default function RestaurantDashboard() {
     loadProfile();
     loadOrders();
 
-    // Sync Edit Item to Burger/IceCream States
+    // Sync Edit Item to Burger States
     if (editItem && view === 'addItem') {
-      if (editItem.categoria === 'Hamburguesas' || editItem.categoria === 'Combos') {
+      const cat = editItem.categoria;
+      setItemCategory(cat || '');
+      if (cat === 'Hamburguesas' || cat === 'Combos') {
         try {
-          const cfg = JSON.parse(editItem.variantes);
-          if (cfg.variants) setBurgerVariants(cfg.variants.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
-          if (cfg.extras) setBurgerExtras(cfg.extras.length > 0 ? cfg.extras : [{ nombre: '', precio: '' }]);
+          const cfg = typeof editItem.variantes === 'string' ? JSON.parse(editItem.variantes) : (editItem.variantes || {});
+          setBurgerVariants(cfg.variants?.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
+          setBurgerExtras(cfg.extras?.length > 0 ? cfg.extras : [{ nombre: '', precio: '' }]);
+          setBurgerOfferPapas(!!cfg.con_papas);
+          setBurgerPrecioPapas(cfg.precio_papas || '');
         } catch (e) {
           setBurgerVariants([{ nombre: '', precio: '' }]);
           setBurgerExtras([{ nombre: '', precio: '' }]);
+          setBurgerOfferPapas(false);
+          setBurgerPrecioPapas('');
         }
       } else {
         setBurgerVariants([{ nombre: '', precio: '' }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
+        setBurgerOfferPapas(false);
+        setBurgerPrecioPapas('');
       }
     } else if (view === 'addItem' && !editItem) {
+        setItemCategory('');
         setBurgerVariants([{ nombre: '', precio: '' }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
+        setBurgerOfferPapas(false);
+        setBurgerPrecioPapas('');
     }
 
     // Check if tutorial was already seen
@@ -342,7 +355,7 @@ export default function RestaurantDashboard() {
       clearInterval(pollingRef.current);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [restaurant, loadEstado, loadProfile, loadOrders]);
+  }, [restaurant, loadEstado, loadProfile, loadOrders, editItem, view]);
 
   // Polling
   React.useEffect(() => {
@@ -568,8 +581,8 @@ export default function RestaurantDashboard() {
           es_combo: fd.get('categoria') === 'Combos',
           variants: burgerVariants.filter(v => v.nombre.trim() !== ''),
           extras: burgerExtras.filter(e => e.nombre.trim() !== ''),
-          con_papas: fd.get('ofrecer_papas') === 'on',
-          precio_papas: parseFloat(fd.get('precio_papas')) || 0
+          con_papas: burgerOfferPapas,
+          precio_papas: parseFloat(burgerPrecioPapas) || 0
         };
         variantesVal = JSON.stringify(advancedConfig);
       }
@@ -1461,42 +1474,80 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
+                {/* ─── Helados Configuration ─── */}
+                {(() => {
+                  if (itemCategory !== 'Helados' && editItem?.categoria !== 'Helados') return null;
+                  
+                  let iceConfig = {};
+                  try {
+                    iceConfig = typeof editItem?.variantes === 'string' ? JSON.parse(editItem.variantes) : (editItem?.variantes || {});
+                  } catch(e) {}
+                  const p = iceConfig.precios || {};
+
+                  return (
+                    <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#fff5f5', border: '1px solid #feb2b2' }}>
+                      <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>🍦 Configuración de Helados</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>1/4 kg</label>
+                          <input name="p_14" type="number" className="form-input" placeholder="Precio" defaultValue={p['1/4kg']?.precio || ''} />
+                          <input name="m_14" type="number" className="form-input" placeholder="Máx sabores" defaultValue={p['1/4kg']?.max || 3} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>1/2 kg</label>
+                          <input name="p_12" type="number" className="form-input" placeholder="Precio" defaultValue={p['1/2kg']?.precio || ''} />
+                          <input name="m_12" type="number" className="form-input" placeholder="Máx sabores" defaultValue={p['1/2kg']?.max || 3} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>1 kg</label>
+                          <input name="p_1" type="number" className="form-input" placeholder="Precio" defaultValue={p['1kg']?.precio || ''} />
+                          <input name="m_1" type="number" className="form-input" placeholder="Máx sabores" defaultValue={p['1kg']?.max || 4} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* ─── Burgers/Combos Configuration ─── */}
                 {(itemCategory === 'Hamburguesas' || editItem?.categoria === 'Hamburguesas' || itemCategory === 'Combos' || editItem?.categoria === 'Combos') && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de {itemCategory === 'Combos' || editItem?.categoria === 'Combos' ? 'Combo' : 'Hamburguesa'}</h3>
+                    
                     <div style={{ marginBottom: '20px' }}>
                       <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
                       {burgerVariants.map((v, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                           <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
-                          <input placeholder="Price" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].precio = e.target.value; setBurgerVariants(newV); }} />
-                          <button type="button" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
+                          <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].precio = e.target.value; setBurgerVariants(newV); }} />
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
                         </div>
                       ))}
-                      <button type="button" className="btn btn-ghost btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
                     </div>
-                  </div>
-                )}
 
-                {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') && (
-                  <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de Helado</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px' }}>1/4 kg</p>
-                        <input name="p_14" placeholder="Precio $" type="number" className="form-input" defaultValue={editItem?.variantes ? JSON.parse(editItem.variantes).precios?.['1/4kg']?.precio : ''} />
-                        <input name="m_14" placeholder="Max Sabores" type="number" className="form-input" defaultValue={editItem?.variantes ? JSON.parse(editItem.variantes).precios?.['1/4kg']?.max : 3} />
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px' }}>1/2 kg</p>
-                        <input name="p_12" placeholder="Precio $" type="number" className="form-input" defaultValue={editItem?.variantes ? JSON.parse(editItem.variantes).precios?.['1/2kg']?.precio : ''} />
-                        <input name="m_12" placeholder="Max Sabores" type="number" className="form-input" defaultValue={editItem?.variantes ? JSON.parse(editItem.variantes).precios?.['1/2kg']?.max : 3} />
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px' }}>1 kg</p>
-                        <input name="p_1" placeholder="Precio $" type="number" className="form-input" defaultValue={editItem?.variantes ? JSON.parse(editItem.variantes).precios?.['1/kg']?.precio : ''} />
-                        <input name="m_1" placeholder="Max Sabores" type="number" className="form-input" defaultValue={editItem?.variantes ? JSON.parse(editItem.variantes).precios?.['1/kg']?.max : 4} />
-                      </div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Extras (Bacon, Cheddar, etc.)</p>
+                      {burgerExtras.map((ex, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <input placeholder="Nombre extra" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={ex.nombre} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].nombre = e.target.value; setBurgerExtras(newE); }} />
+                          <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={ex.precio} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].precio = e.target.value; setBurgerExtras(newE); }} />
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerExtras(burgerExtras.filter((_, i) => i !== idx))}>✕</button>
+                        </div>
+                      ))}
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Añadir Extra</button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #edf2f7', paddingTop: '15px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                        <input type="checkbox" name="ofrecer_papas" checked={burgerOfferPapas} onChange={(e) => setBurgerOfferPapas(e.target.checked)} />
+                        Ofrecer con papas
+                      </label>
+                      {burgerOfferPapas && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.8rem' }}>Precio extra papas: $</span>
+                          <input name="precio_papas" type="number" className="form-input" style={{ width: '80px', marginBottom: 0 }} value={burgerPrecioPapas} onChange={(e) => setBurgerPrecioPapas(e.target.value)} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
