@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, Autocomplete, MarkerF, useJsApiLoader } from '@react-google-maps/api';
+import toast from 'react-hot-toast';
 import './AddressSelector.css';
 
 const SANTO_TOME_CENTER = { lat: -28.5489, lng: -56.0411 };
@@ -142,10 +143,15 @@ const AddressSelector = ({
         finalLat = result.lat;
         finalLng = result.lng;
       } else {
-        // Si falla la geocodificación de lo que escribió, no dejamos avanzar o avisamos?
-        // El requerimiento dice: "asegurate que siempre se realice la carga con la api"
-        // Si no se encuentra nada, quizás es mejor no dejar confirmar si es algo inválido.
+        toast.error('No pudimos encontrar esa dirección exacta. Por favor, selecciona una de las sugerencias del buscador.');
+        return;
       }
+    }
+
+    // Doble verificación: asegurarnos que tenemos calle y altura (o al menos no es solo el nombre de la ciudad)
+    if (finalAddress === 'Santo Tomé, Corrientes, Argentina' || finalAddress === 'Santo Tomé, Corrientes') {
+      toast.error('Por favor, ingresa una dirección completa con calle y número.');
+      return;
     }
 
     onConfirm({
