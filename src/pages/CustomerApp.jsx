@@ -533,28 +533,37 @@ export default function CustomerApp() {
     let isIceCream = false;
     let iceConfig = null;
     try {
-      if (menu.variantes && menu.variantes.includes('es_helado')) {
-        iceConfig = JSON.parse(menu.variantes);
-        isIceCream = iceConfig.es_helado;
-      } else if (menu.categoria === 'Helados') {
+      if (menu.variantes && (menu.variantes.includes('es_helado') || menu.categoria === 'Helados')) {
+        const parsed = JSON.parse(menu.variantes || '{}');
+        if (parsed.variants) {
+          iceConfig = parsed;
+        } else if (parsed.precios) {
+          iceConfig = {
+            ...parsed,
+            variants: Object.entries(parsed.precios).map(([name, p]) => ({
+              nombre: name,
+              precio: p.precio,
+              max_sabores: p.max
+            }))
+          };
+        } else {
+          // Default fallback
+          iceConfig = {
+            es_helado: true,
+            variants: [
+              { nombre: '1/4 kg', precio: menu.precio, max_sabores: 3 },
+              { nombre: '1/2 kg', precio: menu.precio, max_sabores: 3 },
+              { nombre: '1 kg', precio: menu.precio, max_sabores: 4 }
+            ]
+          };
+        }
         isIceCream = true;
       }
     } catch (e) {}
 
     if (isIceCream) {
-      // Provide default config if missing
-      const finalIceConfig = iceConfig || {
-        es_helado: true,
-        precios: {
-          '1/4kg': { precio: menu.precio, max: 3 },
-          '1/2kg': { precio: menu.precio, max: 3 },
-          '1kg': { precio: menu.precio, max: 4 }
-        }
-      };
-      
-      const menuWithConfig = { ...menu, variantes: JSON.stringify(finalIceConfig) };
-
-      setSelectedSize('1/4kg');
+      const menuWithConfig = { ...menu, variantes: JSON.stringify(iceConfig) };
+      setSelectedSize(iceConfig.variants[0]?.nombre || '');
       setSelectedFlavors([]);
       setSelectedSauces([]);
       setSelectedExtras([]);
@@ -567,7 +576,7 @@ export default function CustomerApp() {
         setIceCreamSauces(flavors.filter(f => f.disponible && f.tipo === 'Salsa'));
         setIceCreamExtras(extras.filter(e => e.disponible));
         setIceCreamModal(menuWithConfig);
-        return; // Stop flow, modal will handle addition
+        return; 
       } catch {
         toast.error('Error al cargar opciones de helado');
       }
@@ -1686,48 +1695,62 @@ export default function CustomerApp() {
             <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>{iceCreamModal.nombre}</h2>
             <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
             
-            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-              {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
-                <button 
-                  key={size}
-                  className={`btn ${selectedSize === size ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
-                  style={{ fontSize: '0.9rem', padding: '8px 4px' }}
-                >
-                  {size}<br/>
-                  <small>${JSON.parse(iceCreamModal.variantes).precios[size].precio}</small>
-                </button>
-              ))}
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginBottom: 20 }}>
+              {(() => {
+                const cfg = JSON.parse(iceCreamModal.variantes);
+                const currentVariants = cfg.variants || [];
+                return currentVariants.map(v => (
+                  <button 
+                    key={v.nombre}
+                    className={`btn ${selectedSize === v.nombre ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => { setSelectedSize(v.nombre); setSelectedFlavors([]); }}
+                    style={{ fontSize: '0.9rem', padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}
+                  >
+                    <span>{v.nombre}</span>
+                    <small style={{ opacity: 0.8 }}>${v.precio}</small>
+                  </button>
+                ));
+              })()}
             </div>
 
-            <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>
-               Seleccioná tus sabores <small>(Máx {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max})</small>
-            </h3>
-            
-            <div className="flavors-list" style={{ maxHeight: 200, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: 4 }}>
-              {iceCreamFlavors.map(flavor => {
-                const isSelected = selectedFlavors.includes(flavor.nombre);
-                const max = JSON.parse(iceCreamModal.variantes).precios[selectedSize].max;
-                const canSelect = selectedFlavors.length < max;
-                
-                return (
-                  <button 
-                    key={flavor.id}
-                    className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                    style={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 44 }}
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedFlavors(prev => prev.filter(f => f !== flavor.nombre));
-                      } else if (canSelect) {
-                        setSelectedFlavors(prev => [...prev, flavor.nombre]);
-                      }
-                    }}
-                  >
-                    {flavor.nombre}
-                  </button>
-                );
-              })}
-            </div>
+            {(() => {
+              const cfg = JSON.parse(iceCreamModal.variantes);
+              const selectedVariant = cfg.variants?.find(v => v.nombre === selectedSize);
+              if (!selectedVariant) return null;
+              
+              return (
+                <>
+                  <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>
+                    Seleccioná tus sabores <small>(Máx {selectedVariant.max_sabores})</small>
+                  </h3>
+                  
+                  <div className="flavors-list" style={{ maxHeight: 200, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: 4 }}>
+                    {iceCreamFlavors.map(flavor => {
+                      const isSelected = selectedFlavors.includes(flavor.nombre);
+                      const max = selectedVariant.max_sabores;
+                      const canSelect = selectedFlavors.length < max;
+                      
+                      return (
+                        <button 
+                          key={flavor.id}
+                          className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 44 }}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedFlavors(prev => prev.filter(f => f !== flavor.nombre));
+                            } else if (canSelect) {
+                              setSelectedFlavors(prev => [...prev, flavor.nombre]);
+                            }
+                          }}
+                        >
+                          {flavor.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
 
             {iceCreamSauces.length > 0 && (
               <>
@@ -1777,7 +1800,8 @@ export default function CustomerApp() {
 
             {(() => {
               const configuration = JSON.parse(iceCreamModal.variantes);
-              const basePrice = parseFloat(configuration.precios[selectedSize].precio || 0);
+              const selectedVariant = configuration.variants?.find(v => v.nombre === selectedSize);
+              const basePrice = parseFloat(selectedVariant?.precio || 0);
               const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
               const rawTotal = basePrice + extrasPrice;
               

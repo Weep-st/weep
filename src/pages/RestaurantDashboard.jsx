@@ -49,6 +49,7 @@ export default function RestaurantDashboard() {
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
   const [burgerExtras, setBurgerExtras] = React.useState([{ nombre: '', precio: '' }]);
+  const [iceCreamVariants, setIceCreamVariants] = React.useState([{ nombre: '', precio: '', max_sabores: '' }]);
   
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -308,24 +309,45 @@ export default function RestaurantDashboard() {
     loadProfile();
     loadOrders();
 
-    // Sync Edit Item to Burger States
+    // Sync Edit Item to Burger/IceCream States
     if (editItem && view === 'addItem') {
       if (editItem.categoria === 'Hamburguesas' || editItem.categoria === 'Combos') {
         try {
           const cfg = JSON.parse(editItem.variantes);
           if (cfg.variants) setBurgerVariants(cfg.variants.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
           if (cfg.extras) setBurgerExtras(cfg.extras.length > 0 ? cfg.extras : [{ nombre: '', precio: '' }]);
+          setIceCreamVariants([{ nombre: '', precio: '', max_sabores: '' }]);
         } catch (e) {
+          setBurgerVariants([{ nombre: '', precio: '' }]);
+          setBurgerExtras([{ nombre: '', precio: '' }]);
+          setIceCreamVariants([{ nombre: '', precio: '', max_sabores: '' }]);
+        }
+      } else if (editItem.categoria === 'Helados') {
+        try {
+          const cfg = JSON.parse(editItem.variantes);
+          if (cfg.variants) {
+             setIceCreamVariants(cfg.variants.length > 0 ? cfg.variants : [{ nombre: '', precio: '', max_sabores: '' }]);
+          } else if (cfg.precios) {
+             // Migration fallback from old structure
+             const mig = Object.entries(cfg.precios).map(([size, p]) => ({ nombre: size, precio: p.precio, max_sabores: p.max }));
+             setIceCreamVariants(mig);
+          }
+          setBurgerVariants([{ nombre: '', precio: '' }]);
+          setBurgerExtras([{ nombre: '', precio: '' }]);
+        } catch (e) {
+          setIceCreamVariants([{ nombre: '', precio: '', max_sabores: '' }]);
           setBurgerVariants([{ nombre: '', precio: '' }]);
           setBurgerExtras([{ nombre: '', precio: '' }]);
         }
       } else {
         setBurgerVariants([{ nombre: '', precio: '' }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
+        setIceCreamVariants([{ nombre: '', precio: '', max_sabores: '' }]);
       }
     } else if (view === 'addItem' && !editItem) {
         setBurgerVariants([{ nombre: '', precio: '' }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
+        setIceCreamVariants([{ nombre: '', precio: '', max_sabores: '' }]);
     }
 
     // Check if tutorial was already seen
@@ -554,14 +576,12 @@ export default function RestaurantDashboard() {
       if (fd.get('categoria') === 'Helados') {
         const iceCreamConfig = {
           es_helado: true,
-          precios: {
-            '1/4kg': { precio: fd.get('p_14'), max: parseInt(fd.get('m_14')) || 3 },
-            '1/2kg': { precio: fd.get('p_12'), max: parseInt(fd.get('m_12')) || 3 },
-            '1kg': { precio: fd.get('p_1'), max: parseInt(fd.get('m_1')) || 4 }
-          }
+          variants: iceCreamVariants.filter(v => v.nombre.trim() !== '')
         };
         variantesVal = JSON.stringify(iceCreamConfig);
-        precioVal = fd.get('p_14');
+        if (iceCreamConfig.variants.length > 0) {
+          precioVal = iceCreamConfig.variants[0].precio;
+        }
       } else if (fd.get('categoria') === 'Hamburguesas' || fd.get('categoria') === 'Combos') {
         const advancedConfig = {
           es_hamburguesa: fd.get('categoria') === 'Hamburguesas',
@@ -1473,7 +1493,25 @@ export default function RestaurantDashboard() {
                           <button type="button" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
                         </div>
                       ))}
-                      <button type="button" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
+                      <button type="button" className="btn btn-ghost btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
+                    </div>
+                  </div>
+                )}
+
+                {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') && (
+                  <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Variantes de Helado</h3>
+                    <div>
+                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Tamaños/Cantidades (ej: 1/4 kg, 1/2 kg, 1 kg)</p>
+                      {iceCreamVariants.map((v, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <input placeholder="Nombre (ej: 1/4 kg)" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...iceCreamVariants]; newV[idx].nombre = e.target.value; setIceCreamVariants(newV); }} />
+                          <input placeholder="Precio $" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...iceCreamVariants]; newV[idx].precio = e.target.value; setIceCreamVariants(newV); }} />
+                          <input placeholder="Max Sabores" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.max_sabores} onChange={(e) => { const newV = [...iceCreamVariants]; newV[idx].max_sabores = e.target.value; setIceCreamVariants(newV); }} />
+                          <button type="button" className="btn btn-ghost" style={{ padding: '0 8px' }} onClick={() => setIceCreamVariants(iceCreamVariants.filter((_, i) => i !== idx))}>✕</button>
+                        </div>
+                      ))}
+                      <button type="button" className="btn btn-ghost btn-xs" onClick={() => setIceCreamVariants([...iceCreamVariants, { nombre: '', precio: '', max_sabores: '' }])}>+ Añadir Variante</button>
                     </div>
                   </div>
                 )}
