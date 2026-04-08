@@ -8,6 +8,15 @@ export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY };
 const CLOUD_NAME = 'dw10wkbac';
 const UPLOAD_PRESET = 'ml_default';
 
+/**
+ * Retorna la fecha y hora actual ajustada a Argentina (UTC-3) en formato ISO.
+ */
+function getArgISO() {
+  const now = new Date();
+  const argTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  return argTime.toISOString();
+}
+
 // ─── Image Upload ───
 export async function uploadImage(file) {
   const fd = new FormData();
@@ -54,7 +63,7 @@ export async function registerUsuario(nombre, email, password, direccion, telefo
     id, nombre, email, password, direccion, telefono,
     terms_accepted: termsAccepted,
     privacy_accepted: privacyAccepted,
-    terms_accepted_at: new Date().toISOString(),
+    terms_accepted_at: getArgISO(),
     terms_version: 'v1',
     email_confirmado: false,
     token_confirmacion: code
@@ -98,7 +107,7 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
     id, nombre, direccion, email, password,
     terms_accepted: termsAccepted,
     privacy_accepted: privacyAccepted,
-    terms_accepted_at: new Date().toISOString(),
+    terms_accepted_at: getArgISO(),
     terms_version: 'v1',
     email_confirmado: false,
     token_confirmacion: code
@@ -175,10 +184,10 @@ export async function repartidorRegister(params) {
     id, nombre: params.nombre, telefono: params.telefono,
     email: params.email, password: params.password,
     patente: params.patente, marca_modelo: params.marcaModelo,
-    fecha_registro: new Date().toISOString(),
+    fecha_registro: getArgISO(),
     terms_accepted: params.termsAccepted ?? true,
     privacy_accepted: params.privacyAccepted ?? true,
-    terms_accepted_at: new Date().toISOString(),
+    terms_accepted_at: getArgISO(),
     terms_version: 'v1',
     email_confirmado: false,
     token_confirmacion: code
@@ -302,8 +311,9 @@ export async function repartidorUpdatePerfil(params) {
 // Removido getArgTimeISO por conflicto cronologico
 
 export async function repartidorActualizarEstado(driverId, estado, extendMinutes = 30) {
-  const now = new Date();
-  const validUntil = new Date(now.getTime() + extendMinutes * 60000);
+  const nowStr = getArgISO();
+  const now = new Date(nowStr);
+  const validUntil = new Date(now.getTime() + (extendMinutes || 30) * 60000);
   
   const updates = { 
     estado,
@@ -322,7 +332,7 @@ export async function repartidorActualizarEstado(driverId, estado, extendMinutes
 }
 
 export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false) {
-  const now = new Date().toISOString();
+  const now = getArgISO();
   const updates = { 
     ultima_actividad: now
   };
@@ -340,7 +350,8 @@ export async function repartidorUpdateHeartbeat(driverId, hadInteraction = false
 }
 
 export async function repartidorRenovarSesion(driverId, mins = 30) {
-  const validUntil = new Date(Date.now() + mins * 60000).toISOString();
+  const nowStr = getArgISO();
+  const validUntil = new Date(new Date(nowStr).getTime() + mins * 60000).toISOString();
   const { error } = await supabase
     .from('repartidores')
     .update({ sesion_vence_en: validUntil })
@@ -717,12 +728,12 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
 // LANZAMIENTO
 // ═══════════════════════════════════════════════════
 export async function registrarEmailLanzamiento(email) {
-  const now = new Date();
-  const options = { timeZone: 'America/Argentina/Buenos_Aires' };
+  const nowStr = getArgISO();
+  const now = new Date(nowStr);
   const { error } = await supabase.from('lanzamiento').insert({
     email, 
-    dia: now.toLocaleDateString('es-AR', options), 
-    hora: now.toLocaleTimeString('es-AR', options),
+    dia: now.toLocaleDateString('es-AR'), 
+    hora: now.toLocaleTimeString('es-AR'),
   });
   if (error) throw new Error(error.message);
   return { success: true };
@@ -1538,9 +1549,7 @@ export async function getMenuItemById(itemId) {
 // ═══════════════════════════════════════════════════
 export async function createPendingMercadoPagoOrder({ userId, direccion, total, observaciones, cart, emailCliente, nombreCliente }) {
   const pedidoId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
-  const now = new Date();
-  now.setHours(now.getHours() - 3);
-  const fechaArg = now.toISOString();
+  const fechaArg = getArgISO();
 
   const { error } = await supabase.from('pedidos_general').insert({
     id: pedidoId, usuario_id: userId, direccion, estado: 'Pendiente de Pago',
@@ -2065,7 +2074,7 @@ export async function getConfiguracion() {
 export async function updateConfiguracion(updates) {
   const { error } = await supabase
     .from('configuracion')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ ...updates, updated_at: getArgISO() })
     .eq('id', 'global');
     
   if (error) throw new Error(error.message);

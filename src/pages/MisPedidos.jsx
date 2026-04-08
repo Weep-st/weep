@@ -186,7 +186,7 @@ export default function MisPedidos() {
     if (!dateStr) return '—';
     try {
       return new Date(dateStr).toLocaleDateString('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
+        timeZone: 'UTC',
         weekday: 'short', day: 'numeric', month: 'short',
         hour: '2-digit', minute: '2-digit',
       });
@@ -497,7 +497,7 @@ export default function MisPedidos() {
                       {msg.message}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '2px' }}>
-                      {new Date(msg.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
+                      {new Date(msg.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                     </div>
                   </div>
                 ))

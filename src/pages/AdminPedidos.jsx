@@ -65,6 +65,7 @@ const AdminPedidos = () => {
         if (!fechaStr) return 'N/A';
         const date = new Date(fechaStr);
         return date.toLocaleString('es-AR', {
+            timeZone: 'UTC',
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',

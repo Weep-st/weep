@@ -123,13 +123,18 @@ export default function DriverDashboard() {
   const [chatInput, setChatInput] = React.useState('');
   const [pinInput, setPinInput] = React.useState('');
   const [showMap, setShowMap] = React.useState(false);
+  const [showSessionModal, setShowSessionModal] = React.useState(false);
+
+  const getArgNow = React.useCallback(() => {
+    return new Date(Date.now() - 3 * 3600 * 1000);
+  }, []);
 
   // Sesion Timer Effect
   React.useEffect(() => {
     let timerId;
     if (isActive && driverData?.SesionVenceEn) {
       const updateTimer = () => {
-        const diff = new Date(driverData.SesionVenceEn).getTime() - Date.now();
+        const diff = new Date(driverData.SesionVenceEn).getTime() - getArgNow().getTime();
         if (diff <= 0) {
           setTimeLeftStr('Expirada');
           setIsActive(false);
@@ -536,19 +541,39 @@ export default function DriverDashboard() {
   };
 
   const toggleEstado = async () => {
-    const newState = isActive ? 'Inactivo' : 'Activo';
-    setIsActive(!isActive);
-    try {
-      const d = await api.repartidorActualizarEstado(driver.id, newState);
-      if (!d.success) { setIsActive(isActive); toast.error('No se pudo actualizar'); }
-      else {
-        toast.success(`Modo ${newState}`);
-        if (newState === 'Activo') {
-          iniciarGPS();
+    if (!isActive) {
+      setShowSessionModal(true);
+    } else {
+      const newState = 'Inactivo';
+      setIsActive(false);
+      try {
+        const d = await api.repartidorActualizarEstado(driver.id, newState);
+        if (!d.success) { setIsActive(true); toast.error('No se pudo actualizar'); }
+        else {
+          toast.success(`Modo ${newState}`);
+          loadData();
         }
-        loadData(); // To fetch new SesionVenceEn
+      } catch { setIsActive(true); toast.error('Error de conexión'); }
+    }
+  };
+
+  const confirmarActivacion = async (minutos) => {
+    setShowSessionModal(false);
+    setIsActive(true);
+    try {
+      const d = await api.repartidorActualizarEstado(driver.id, 'Activo', minutos);
+      if (!d.success) { 
+        setIsActive(false); 
+        toast.error('No se pudo activar'); 
+      } else {
+        toast.success(`Modo Activo (${minutos} min)`);
+        iniciarGPS();
+        loadData();
       }
-    } catch { setIsActive(isActive); toast.error('Error de conexión'); }
+    } catch { 
+      setIsActive(false); 
+      toast.error('Error de conexión'); 
+    }
   };
 
   const extenderSesion = async () => {
@@ -638,7 +663,7 @@ export default function DriverDashboard() {
         toast.success('¡Entrega confirmada!', { id: 'ent' });
         // Modificar stats locales y cerrar modal
         setSessionGanancias(prev => prev + 10);
-        setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) }, ...historial]);
+        setHistorial([{ ...pedido, fecha: getArgNow().toLocaleTimeString('es-AR') }, ...historial]);
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);
         setPinInput('');
@@ -1795,6 +1820,42 @@ export default function DriverDashboard() {
               </ul>
             </div>
             <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
+          </div>
+        </div>
+      )}
+      {showSessionModal && (
+        <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000 }} onClick={() => setShowSessionModal(false)}>
+          <div className="dd-modal-content animate-slide-up" style={{ background: 'white', padding: '30px', borderRadius: '24px', maxWidth: '400px', width: '92%', textAlign: 'center', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="dd-modal-title">¿Cuánto tiempo vas a trabajar?</div>
+            <p className="dd-modal-subtitle">Elegí tu tiempo de disponibilidad. <br/> Al terminar, pasarás a modo Inactivo automáticamente.</p>
+            
+            <div className="dd-duration-grid">
+              <button 
+                className="dd-duration-btn"
+                onClick={() => confirmarActivacion(15)}
+              >
+                <span className="icon">⏱️</span>
+                <span className="time">15 min</span>
+                <span className="label">Sesión corta</span>
+              </button>
+
+              <button 
+                className="dd-duration-btn"
+                onClick={() => confirmarActivacion(30)}
+              >
+                <span className="icon">🛵</span>
+                <span className="time">30 min</span>
+                <span className="label">Sesión normal</span>
+              </button>
+            </div>
+
+            <button 
+              className="btn btn-secondary dd-btn-large" 
+              style={{ width: '100%', marginTop: '24px', borderRadius: '14px', border: '1px solid #eee', color: '#666', fontWeight: 'bold' }} 
+              onClick={() => setShowSessionModal(false)}
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}

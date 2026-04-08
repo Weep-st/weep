@@ -192,14 +192,20 @@ export default function RestaurantDashboard() {
     } catch {}
   }, [restaurant]);
 
+  const getArgNow = React.useCallback(() => {
+    return new Date(Date.now() - 3 * 3600 * 1000);
+  }, []);
+
   /* ─── Modo Automático ─── */
   const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura) => {
     if (!apertura || !cierre) return false;
     
+    const now = getArgNow();
+    
     // Verificar días de apertura si existen
     if (diasApertura && Array.isArray(diasApertura) && diasApertura.length > 0) {
       const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
+      const currentDayName = daysMap[now.getDay()];
       
       const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const normalizedDays = diasApertura.map(normalize);
@@ -215,7 +221,6 @@ export default function RestaurantDashboard() {
     const minApertura = hA * 60 + mA;
     const minCierre = hC * 60 + mC;
     
-    const now = new Date();
     const current = now.getHours() * 60 + now.getMinutes();
 
     if (minApertura < minCierre) {
@@ -223,7 +228,7 @@ export default function RestaurantDashboard() {
     } else {
       return current >= minApertura || current <= minCierre;
     }
-  }, []);
+  }, [getArgNow]);
 
   const verificarEstadoAutomatico = React.useCallback(() => {
     if (!profileData || !profileData.modo_automatico || !profileData.horario_apertura || !profileData.horario_cierre) return;
@@ -776,7 +781,7 @@ export default function RestaurantDashboard() {
     tipoEntrega: 'Delivery',
     emailCliente: 'cliente@ejemplo.com',
     nombreCliente: 'Juan Pérez (Muestra)',
-    fecha: new Date().toISOString(),
+    fecha: getArgNow().toISOString(),
     numConfirmacion: '1234',
     repartidorId: null,
     localId: restaurant?.id,
@@ -825,7 +830,7 @@ export default function RestaurantDashboard() {
   const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
   const processOrders = orders.filter(o => ['Pendiente', 'Aceptado', 'Listo'].includes(o.estadoActual));
-  const finishedOrders = orders.filter(o => ['Entregado', 'Rechazado'].includes(o.estadoActual));
+  const finishedOrders = orders.filter(o => o.estadoActual === 'Entregado');
   
   const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const preparacionOrders = processOrders.filter(o => o.estadoActual === 'Aceptado');
