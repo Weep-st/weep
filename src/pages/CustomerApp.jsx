@@ -8,6 +8,7 @@ import { iniciarPagoMercadoPago } from '../services/mercadopago';
 import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
+import HelpChatbot from '../components/HelpChatbot';
 import './CustomerApp.css';
 
 export default function CustomerApp() {
@@ -2156,6 +2157,9 @@ export default function CustomerApp() {
           onCancel={() => setShowProfileAddressSelector(false)}
         />
       )}
+
+      {/* Chatbot de Ayuda */}
+      <HelpChatbot />
     </div>
   );
 }
