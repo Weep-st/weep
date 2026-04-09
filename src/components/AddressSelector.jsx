@@ -4,6 +4,22 @@ import toast from 'react-hot-toast';
 import './AddressSelector.css';
 
 const SANTO_TOME_CENTER = { lat: -28.5489, lng: -56.0411 };
+const CITY_STRINGS = [
+  'santo tomé, corrientes', 
+  'santo tomé', 
+  'santo tome, corrientes', 
+  'santo tome',
+  'santo tomé, corrientes province',
+  'santo tome, corrientes province',
+  'santo tomé, provincia de corrientes',
+  'santo tome, provincia de corrientes'
+];
+
+const isJustCity = (addr) => {
+  if (!addr) return true;
+  const lower = addr.toLowerCase();
+  return CITY_STRINGS.some(s => lower.startsWith(s)) && lower.length < 60;
+};
 
 const AddressSelector = ({ 
   onConfirm, 
@@ -58,12 +74,18 @@ const AddressSelector = ({
     if (autocompleteRef.current !== null) {
       const place = autocompleteRef.current.getPlace();
       if (place.geometry) {
+        const fmtAddr = place.formatted_address || '';
+        
+        if (isJustCity(fmtAddr)) {
+          toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
+          return;
+        }
+
         const newPos = {
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng()
         };
         setPosition(newPos);
-        const fmtAddr = place.formatted_address || '';
         setAddress(fmtAddr);
         lastResolvedAddress.current = fmtAddr;
         if (map) {
@@ -111,9 +133,15 @@ const AddressSelector = ({
       }, (results, status) => {
         setIsGeocoding(false);
         if (status === 'OK' && results[0]) {
+          const fmtAddr = results[0].formatted_address;
+
+          if (isJustCity(fmtAddr)) {
+            resolve(null);
+            return;
+          }
+
           const { lat, lng } = results[0].geometry.location;
           const newPos = { lat: lat(), lng: lng() };
-          const fmtAddr = results[0].formatted_address;
           
           setPosition(newPos);
           setAddress(fmtAddr);
@@ -149,21 +177,8 @@ const AddressSelector = ({
     }
 
     // Doble verificación: asegurarnos que tenemos calle y altura (o al menos no es solo el nombre de la ciudad)
-    // Limpiamos la dirección para comparar
-    const lowerAddr = finalAddress.toLowerCase();
-    const cityStrings = [
-      'santo tomé, corrientes', 
-      'santo tomé', 
-      'santo tome, corrientes', 
-      'santo tome',
-      'santo tomé, corrientes province',
-      'santo tome, corrientes province'
-    ];
-    
-    const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 50;
-
-    if (isJustCity) {
-      toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
+    if (isJustCity(finalAddress)) {
+      toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
       return;
     }
 

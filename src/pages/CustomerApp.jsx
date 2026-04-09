@@ -625,12 +625,14 @@ export default function CustomerApp() {
         'santo tome, corrientes', 
         'santo tome',
         'santo tomé, corrientes province',
-        'santo tome, corrientes province'
+        'santo tome, corrientes province',
+        'santo tomé, provincia de corrientes',
+        'santo tome, provincia de corrientes'
       ];
-      const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 50;
+      const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 60;
 
       if (isJustCity) {
-        toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
+        toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
         setShowAddressSelector(true);
         return;
       }
