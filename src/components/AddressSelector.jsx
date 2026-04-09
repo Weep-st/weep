@@ -143,14 +143,18 @@ const AddressSelector = ({
         finalLat = result.lat;
         finalLng = result.lng;
       } else {
-        toast.error('No pudimos encontrar esa dirección exacta. Por favor, selecciona una de las sugerencias del buscador.');
+        toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
         return;
       }
     }
 
     // Doble verificación: asegurarnos que tenemos calle y altura (o al menos no es solo el nombre de la ciudad)
-    if (finalAddress === 'Santo Tomé, Corrientes, Argentina' || finalAddress === 'Santo Tomé, Corrientes') {
-      toast.error('Por favor, ingresa una dirección completa con calle y número.');
+    // Limpiamos la dirección para comparar
+    const cleanAddress = finalAddress.toLowerCase().replace(/ argentina$/, '').replace(/, argentina$/, '').trim();
+    const cityStrings = ['santo tomé, corrientes', 'santo tomé', 'santo tome, corrientes', 'santo tome'];
+    
+    if (cityStrings.includes(cleanAddress)) {
+      toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
       return;
     }
 

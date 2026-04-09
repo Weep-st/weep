@@ -615,6 +615,18 @@ export default function CustomerApp() {
     const mp = metodoPago; // Use state instead of FormData
     const dir = addressData.address;
     if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
+
+    // Validación de dirección correcta (no solo el nombre de la ciudad)
+    if (cart.deliveryType === 'envio') {
+      const cleanAddress = dir.toLowerCase().replace(/ argentina$/, '').replace(/, argentina$/, '').trim();
+      const cityStrings = ['santo tomé, corrientes', 'santo tomé', 'santo tome, corrientes', 'santo tome'];
+      if (cityStrings.includes(cleanAddress)) {
+        toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
+        setShowAddressSelector(true);
+        return;
+      }
+    }
+
     if (!mp) { toast.error('Seleccioná un método de pago'); return; }
     
     // Facebook Pixel: InitiateCheckout
