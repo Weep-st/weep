@@ -40,8 +40,12 @@ const HelpChatbot = () => {
           botResponse = "Lamento escuchar eso. Por favor, indícame tu número de pedido por WhatsApp para que podamos contactar al repartidor de inmediato.";
           action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, mi pedido no ha llegado. Necesito ayuda.`, '_blank');
           break;
-        case 'pin':
-          botResponse = "El PIN de confirmación es un código de 6 dígitos que aparece en 'Mis Pedidos'. Debes entregárselo al repartidor cuando llegue con tu pedido para confirmar que lo recibiste correctamente.";
+        case 'seguimiento':
+          botResponse = "Podés ver la ubicación de tu repartidor ingresando a 'Mis Pedidos', seleccionando tu pedido activo y presionando en 'Ver Seguimiento'.";
+          break;
+        case 'sugerencias':
+          botResponse = "¡Nos encanta escucharte! Por favor, envíanos tu sugerencia por WhatsApp para que podamos seguir mejorando Weep.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, tengo una sugerencia para mejorar Weep: `, '_blank');
           break;
         case 'pago':
           botResponse = "Si tuviste problemas con Mercado Pago o transferencia, por favor envíanos una captura del comprobante por WhatsApp para verificarlo.";
@@ -72,7 +76,8 @@ const HelpChatbot = () => {
   const options = [
     { id: 'dev', label: '💸 Gestionar devolución' },
     { id: 'no_llego', label: '🛵 Mi pedido no llegó' },
-    { id: 'pin', label: '🔑 ¿Cómo funciona el PIN?' },
+    { id: 'seguimiento', label: '📍 Seguimiento en tiempo real' },
+    { id: 'sugerencias', label: '💡 Sugerencias de mejora' },
     { id: 'pago', label: '💳 Problemas con el pago' },
     { id: 'local', label: '🏪 Registrar mi local' },
     { id: 'soporte', label: '🛠️ Soporte técnico' },
