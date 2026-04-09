@@ -69,6 +69,8 @@ export default function DriverDashboard() {
   const [isStandalone, setIsStandalone] = React.useState(false);
   const [deferredPrompt, setDeferredPrompt] = React.useState(null);
   const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
+  const [activeLocales, setActiveLocales] = React.useState([]);
+  const [loadingLocales, setLoadingLocales] = React.useState(false);
 
   React.useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -114,6 +116,68 @@ export default function DriverDashboard() {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     };
   }, [isActive]);
+
+  const isLocalOpen = React.useCallback((local) => {
+    if (!local) return false;
+
+    // Verificar si ya pasó la fecha de disponibilidad
+    if (local.disponible_desde) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = local.disponible_desde.split('-');
+      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (today < availableDate) return false;
+    }
+    
+    // Si no tiene modo automático, dependemos del estado manual
+    if (!local.modo_automatico) {
+      return local.estado?.toLowerCase() === 'activo';
+    }
+
+    // Si tiene modo automático, verificamos horario y días
+    const { horario_apertura, horario_cierre, dias_apertura } = local;
+    if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
+
+    // Verificar días
+    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
+      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const currentDayName = daysMap[new Date().getDay()];
+      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normalizedDays = dias_apertura.map(normalize);
+      const normalizedCurrentDay = normalize(currentDayName);
+      if (!normalizedDays.includes(normalizedCurrentDay)) return false;
+    }
+
+    // Verificar horario
+    const [hA, mA] = horario_apertura.split(':').map(Number);
+    const [hC, mC] = horario_cierre.split(':').map(Number);
+    const minApertura = hA * 60 + mA;
+    const minCierre = hC * 60 + mC;
+    const now = new Date();
+    const current = now.getHours() * 60 + now.getMinutes();
+
+    let insideTime = false;
+    if (minApertura < minCierre) {
+      insideTime = current >= minApertura && current <= minCierre;
+    } else {
+      insideTime = current >= minApertura || current <= minCierre;
+    }
+
+    return insideTime;
+  }, []);
+
+  const fetchActiveLocales = React.useCallback(async () => {
+    setLoadingLocales(true);
+    try {
+      const allLocales = await api.getLocales();
+      const active = allLocales.filter(l => isLocalOpen(l));
+      setActiveLocales(active);
+    } catch (err) {
+      console.error("Error fetching active locales:", err);
+    } finally {
+      setLoadingLocales(false);
+    }
+  }, [isLocalOpen]);
 
   // Modals state
   const [showEntregaModal, setShowEntregaModal] = React.useState(false);
@@ -280,6 +344,7 @@ export default function DriverDashboard() {
         localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
       }
     }
+    fetchActiveLocales();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driver]);
 
@@ -306,6 +371,7 @@ export default function DriverDashboard() {
       interval = setInterval(() => {
         fetchPedidos();
         checkAvailability();
+        fetchActiveLocales();
       }, 30000);
 
       heartbeatInterval = setInterval(async () => {
@@ -1086,6 +1152,72 @@ export default function DriverDashboard() {
     );
   };
 
+  const renderActiveLocales = () => {
+    if (loadingLocales && activeLocales.length === 0) return null;
+    
+    return (
+      <div className="dd-active-locales animate-fade-in" style={{ marginTop: '30px', marginBottom: '30px' }}>
+        <div className="dd-section-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+          <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--gray-800)' }}>Locales Activos</h4>
+          <span style={{ padding: '2px 8px', background: 'var(--green-100)', color: 'var(--green-700)', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+            {activeLocales.length}
+          </span>
+        </div>
+        
+        {activeLocales.length === 0 ? (
+          <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem', textAlign: 'center', padding: '10px' }}>No hay locales abiertos en este momento.</p>
+        ) : (
+          <div className="dd-locales-scroll" style={{ 
+            display: 'flex', 
+            gap: '12px', 
+            overflowX: 'auto', 
+            paddingBottom: '15px',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+            {activeLocales.map(local => (
+              <div key={local.id} className="dd-local-badge" style={{
+                flex: '0 0 auto',
+                width: '80px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '15px',
+                  background: 'white',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                  margin: '0 auto 8px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #f0f0f0'
+                }}>
+                  <img 
+                    src={local.logo || "https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png"} 
+                    alt={local.nombre} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.src = "https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png"; }}
+                  />
+                </div>
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  color: 'var(--gray-600)', 
+                  display: 'block',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  fontWeight: '500'
+                }}>{local.nombre}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderHistorial = () => {
     if (historial.length === 0) {
       return (
@@ -1511,7 +1643,12 @@ export default function DriverDashboard() {
                       Historial
                     </button>
                   </div>
-                  {activeTab === 'disponibles' ? renderDisponibles() : renderHistorial()}
+                  {activeTab === 'disponibles' ? (
+                    <>
+                      {renderActiveLocales()}
+                      {renderDisponibles()}
+                    </>
+                  ) : renderHistorial()}
                 </>
               )}
               {view === 'cobros' && renderCobros()}
