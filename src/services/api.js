@@ -363,6 +363,20 @@ export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
   return { success: true };
 }
 
+export async function localUpdateOneSignalId(localId, onesignalId) {
+  if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
+  
+  const { error } = await supabase.from('locales')
+    .update({ onesignal_id: onesignalId })
+    .eq('id', localId);
+    
+  if (error) {
+    console.error("Error updating Local OneSignal ID:", error);
+    throw new Error(error.message);
+  }
+  return { success: true };
+}
+
 
 // ═══════════════════════════════════════════════════
 // LOCALES — Get all

@@ -532,3 +532,46 @@
 .password-toggle:hover {
   color: var(--red-500);
 }
+
+/* Notification Banners */
+.rd-notification-banner {
+  margin: 0 16px 16px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.banner-danger {
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #cf1322;
+}
+
+.banner-warning {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  color: #d48800;
+}
+
+.banner-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.banner-content strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.banner-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+

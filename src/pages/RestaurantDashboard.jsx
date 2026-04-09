@@ -73,6 +73,8 @@ export default function RestaurantDashboard() {
   const [tutorialStep, setTutorialStep] = React.useState(1);
   const [tutorialSampleOrderState, setTutorialSampleOrderState] = React.useState('Pendiente'); // To simulate order states
   const [itemName, setItemName] = React.useState('');
+  const [notificationStatus, setNotificationStatus] = React.useState('loading');
+  const [isIOS, setIsIOS] = React.useState(false);
 
   // ─── Modal Arrepentimiento ───
   const renderRegretModal = () => (
@@ -146,6 +148,11 @@ export default function RestaurantDashboard() {
       </div>
     )
   );
+
+  React.useEffect(() => {
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    setIsIOS(isIOSDevice);
+  }, []);
 
   // Location State
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -341,6 +348,41 @@ export default function RestaurantDashboard() {
         setBurgerPrecioPapas('');
     }
 
+    // ─── Sync OneSignal ID ───
+    if (restaurant && window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        try {
+          const updateStatus = () => {
+            const perm = OneSignal.Notifications.permission;
+            setNotificationStatus(perm ? 'granted' : (OneSignal.Notifications.permissionNative === 'denied' ? 'denied' : 'default'));
+          };
+          updateStatus();
+
+          const currentSubscription = OneSignal.User.PushSubscription;
+          if (currentSubscription.id) {
+            await api.localUpdateOneSignalId(restaurant.id, currentSubscription.id);
+          }
+
+          OneSignal.Notifications.addEventListener("permissionChange", (permission) => {
+            updateStatus();
+          });
+
+          OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+            const newId = event.current.id;
+            if (newId) {
+              await api.localUpdateOneSignalId(restaurant.id, newId);
+            }
+          });
+
+          if (!isIOS && OneSignal.Notifications.permissionNative === 'default' && localOpen) {
+            await OneSignal.Notifications.requestPermission();
+          }
+        } catch (err) {
+          console.error("❌ OneSignal Sync Error:", err);
+        }
+      });
+    }
+
     // Check if tutorial was already seen
     const hasSeenTutorial = localStorage.getItem(`tutorial_seen_${restaurant.id}`);
     if (!hasSeenTutorial) {
@@ -355,7 +397,7 @@ export default function RestaurantDashboard() {
       clearInterval(pollingRef.current);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [restaurant, loadEstado, loadProfile, loadOrders, editItem, view]);
+  }, [restaurant, loadEstado, loadProfile, loadOrders, editItem, view, localOpen, isIOS]);
 
   // Polling
   React.useEffect(() => {
@@ -1093,6 +1135,40 @@ export default function RestaurantDashboard() {
             </button>
           </div>
         )}
+
+        {notificationStatus === 'denied' && (
+          <div className="rd-notification-banner banner-danger animate-fade-in">
+            <img src="https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" alt="Alert" className="banner-icon" />
+            <div className="banner-content">
+              <strong>Notificaciones Bloqueadas</strong>
+              <p>No recibirás avisos de nuevos pedidos. Habilítalas en la configuración de tu navegador para no perder ventas.</p>
+            </div>
+          </div>
+        )}
+
+        {notificationStatus === 'default' && (
+          <div className="rd-notification-banner banner-warning animate-fade-in">
+            <img src="https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" alt="Alert" className="banner-icon" />
+            <div className="banner-content">
+              <strong>Habilitar Notificaciones</strong>
+              <p>Activá las notificaciones para enterarte al instante cuando recibas un nuevo pedido.</p>
+              <button 
+                className="btn btn-primary btn-xs" 
+                style={{ marginTop: '8px', background: 'var(--red-600)', borderColor: 'var(--red-600)' }}
+                onClick={async () => {
+                  if (window.OneSignalDeferred) {
+                    window.OneSignalDeferred.push(async (OneSignal) => {
+                      await OneSignal.Notifications.requestPermission();
+                    });
+                  }
+                }}
+              >
+                Activar Notificaciones
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Top bar */}
         <div className="rd-topbar animate-fade-in">
           <div className="rd-topbar-left">
