@@ -28,7 +28,12 @@ const AdminConfig = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await api.updateConfiguracion({ valor_envio: Number(config.valor_envio) });
+            await api.updateConfiguracion({ 
+                valor_envio: Number(config.valor_envio),
+                mantenimiento_pedir: config.mantenimiento_pedir,
+                mantenimiento_locales: config.mantenimiento_locales,
+                mantenimiento_repartidores: config.mantenimiento_repartidores
+            });
             toast.success('Configuración guardada correctamente');
         } catch (err) {
             console.error(err);
@@ -74,17 +79,71 @@ const AdminConfig = () => {
                     </p>
                 </div>
 
-                <button 
-                    type="submit" 
-                    className="btn btn-primary" 
-                    disabled={saving}
-                    style={{ padding: '0.75rem 2rem' }}
-                >
-                    {saving ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
+                <div className="maintenance-section" style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
+                    <h3 style={{ marginBottom: '1.5rem', color: 'white' }}>Mantenimiento de Páginas</h3>
+                    
+                    <div style={{ display: 'grid', gap: '1.5rem' }}>
+                        <div className="toggle-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '400px' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>Página de Clientes (/pedir)</h4>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Bloquea el acceso a la app de pedidos</p>
+                            </div>
+                            <label className="switch">
+                                <input 
+                                    type="checkbox" 
+                                    checked={config.mantenimiento_pedir || false}
+                                    onChange={(e) => setConfig({ ...config, mantenimiento_pedir: e.target.checked })}
+                                />
+                                <span className="slider round"></span>
+                            </label>
+                        </div>
+
+                        <div className="toggle-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '400px' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>Página de Locales (/locales)</h4>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Bloquea el acceso al dashboard de comercios</p>
+                            </div>
+                            <label className="switch">
+                                <input 
+                                    type="checkbox" 
+                                    checked={config.mantenimiento_locales || false}
+                                    onChange={(e) => setConfig({ ...config, mantenimiento_locales: e.target.checked })}
+                                />
+                                <span className="slider round"></span>
+                            </label>
+                        </div>
+
+                        <div className="toggle-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '400px' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>Página de Repartidores (/repartidores)</h4>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Bloquea el acceso al panel de drivers</p>
+                            </div>
+                            <label className="switch">
+                                <input 
+                                    type="checkbox" 
+                                    checked={config.mantenimiento_repartidores || false}
+                                    onChange={(e) => setConfig({ ...config, mantenimiento_repartidores: e.target.checked })}
+                                />
+                                <span className="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '3rem' }}>
+                    <button 
+                        type="submit" 
+                        className="btn btn-primary" 
+                        disabled={saving}
+                        style={{ padding: '0.75rem 2rem' }}
+                    >
+                        {saving ? 'Guardando...' : 'Guardar Cambios'}
+                    </button>
+                </div>
             </form>
 
-            <style jsx>{`
+
+            <style>{`
                 .admin-form {
                     margin-top: 1rem;
                 }
@@ -99,6 +158,72 @@ const AdminConfig = () => {
                     align-items: center;
                     height: 200px;
                     color: var(--text-secondary);
+                }
+
+                /* Switch Styles */
+                /* The switch - the box around the slider */
+                .switch {
+                  position: relative;
+                  display: inline-block;
+                  width: 50px;
+                  height: 24px;
+                }
+
+                /* Hide default HTML checkbox */
+                .switch input {
+                  opacity: 0;
+                  width: 0;
+                  height: 0;
+                }
+
+                /* The slider */
+                .slider {
+                  position: absolute;
+                  cursor: pointer;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  bottom: 0;
+                  background-color: rgba(255,255,255,0.1);
+                  -webkit-transition: .4s;
+                  transition: .4s;
+                  border: 1px solid var(--border-color);
+                }
+
+                .slider:before {
+                  position: absolute;
+                  content: "";
+                  height: 16px;
+                  width: 16px;
+                  left: 3px;
+                  bottom: 3px;
+                  background-color: white;
+                  -webkit-transition: .4s;
+                  transition: .4s;
+                }
+
+                input:checked + .slider {
+                  background-color: var(--accent-color);
+                  border-color: var(--accent-color);
+                }
+
+                input:focus + .slider {
+                  box-shadow: 0 0 1px var(--accent-color);
+                }
+
+                input:checked + .slider:before {
+                  -webkit-transform: translateX(26px);
+                  -ms-transform: translateX(26px);
+                  transform: translateX(26px);
+                }
+
+                /* Rounded sliders */
+                .slider.round {
+                  border-radius: 24px;
+                }
+
+                .slider.round:before {
+                  border-radius: 50%;
                 }
             `}</style>
         </div>

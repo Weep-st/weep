@@ -125,16 +125,12 @@ export default function DriverDashboard() {
   const [showMap, setShowMap] = React.useState(false);
   const [showSessionModal, setShowSessionModal] = React.useState(false);
 
-  const getArgNow = React.useCallback(() => {
-    return new Date(Date.now() - 3 * 3600 * 1000);
-  }, []);
-
   // Sesion Timer Effect
   React.useEffect(() => {
     let timerId;
     if (isActive && driverData?.SesionVenceEn) {
       const updateTimer = () => {
-        const diff = new Date(driverData.SesionVenceEn).getTime() - getArgNow().getTime();
+        const diff = new Date(driverData.SesionVenceEn).getTime() - Date.now();
         if (diff <= 0) {
           setTimeLeftStr('Expirada');
           setIsActive(false);
@@ -663,7 +659,7 @@ export default function DriverDashboard() {
         toast.success('¡Entrega confirmada!', { id: 'ent' });
         // Modificar stats locales y cerrar modal
         setSessionGanancias(prev => prev + 10);
-        setHistorial([{ ...pedido, fecha: getArgNow().toLocaleTimeString('es-AR') }, ...historial]);
+        setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) }, ...historial]);
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);
         setPinInput('');

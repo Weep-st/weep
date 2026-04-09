@@ -96,16 +96,12 @@ export default function CustomerApp() {
 
   const searchTimeout = React.useRef(null);
   
-  const getArgNow = React.useCallback(() => {
-    return new Date(Date.now() - 3 * 3600 * 1000);
-  }, []);
-
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
     // Verificar si ya pasó la fecha de disponibilidad
     if (local.disponible_desde) {
-      const today = getArgNow();
+      const today = new Date();
       today.setHours(0, 0, 0, 0);
       const parts = local.disponible_desde.split('-');
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -121,12 +117,10 @@ export default function CustomerApp() {
     const { horario_apertura, horario_cierre, dias_apertura } = local;
     if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
 
-    const now = getArgNow();
-    
     // Verificar días
     if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
       const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[now.getDay()];
+      const currentDayName = daysMap[new Date().getDay()];
       const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const normalizedDays = dias_apertura.map(normalize);
       const normalizedCurrentDay = normalize(currentDayName);
@@ -138,6 +132,7 @@ export default function CustomerApp() {
     const [hC, mC] = horario_cierre.split(':').map(Number);
     const minApertura = hA * 60 + mA;
     const minCierre = hC * 60 + mC;
+    const now = new Date();
     const current = now.getHours() * 60 + now.getMinutes();
 
     let insideTime = false;
@@ -148,7 +143,7 @@ export default function CustomerApp() {
     }
 
     return insideTime;
-  }, [getArgNow]);
+  }, []);
 
   // Load locals + drinks on mount
   React.useEffect(() => {
@@ -496,8 +491,7 @@ export default function CustomerApp() {
       const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
       
       if (generalDiscount > 0 && discountDays.length > 0) {
-        const now = getArgNow();
-        const today = now.toLocaleString('es-AR', { weekday: 'long' });
+        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
         const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const todayNorm = normalize(today);
         
@@ -521,7 +515,7 @@ export default function CustomerApp() {
     // Red de seguridad: Verificar disponibilidad antes de cualquier acción
     const availabilityDate = menu.local_disponible_desde;
     if (availabilityDate) {
-      const today = getArgNow();
+      const today = new Date();
       today.setHours(0, 0, 0, 0);
       const parts = availabilityDate.split('-');
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -646,7 +640,7 @@ export default function CustomerApp() {
     if (cart.deliveryType === 'envio' && !hasRepartidores) {
       const puedeRetirar = selectedLocal ? selectedLocal.acepta_retiro !== false : true;
       if (!puedeRetirar) {
-        toast.error('Lo sentimos, este local solo acepta envíos a domicilio y no hay repartidores disponibles (su sesión ha expirado o no han iniciado ruta).');
+        toast.error('Lo sentimos, este local solo acepta envíos a domicilio y no hay repartidores disponibles en este momento. Por favor, intenta más tarde.');
       } else {
         toast.error('No hay repartidores disponibles en este momento. Por favor, selecciona "Retiro en local" para continuar.');
       }
@@ -835,7 +829,7 @@ export default function CustomerApp() {
             const pendingData = {
               pedidoId: pregeneratedId,
               userId: user.id,
-              fecha: getArgNow().toLocaleString('es-AR'),
+              fecha: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
               direccion: orderInfo.direccion,
               metodoPago: 'Transferencia / Mercado Pago',
               observaciones: orderInfo.observaciones,

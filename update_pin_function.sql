@@ -36,7 +36,6 @@ BEGIN
     SELECT id INTO v_repartidor_id 
     FROM repartidores 
     WHERE estado = 'Activo' 
-    AND (sesion_vence_en > (NOW() - INTERVAL '3 hours') OR sesion_vence_en IS NULL)
     ORDER BY random() 
     LIMIT 1;
 

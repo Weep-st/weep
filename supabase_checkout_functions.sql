@@ -7,7 +7,7 @@ BEGIN
   SELECT COUNT(*) INTO active_count 
   FROM repartidores 
   WHERE estado = 'Activo' 
-  AND (sesion_vence_en > (NOW() - INTERVAL '3 hours') OR sesion_vence_en IS NULL);
+  AND (sesion_vence_en > NOW() OR sesion_vence_en IS NULL); -- IS NULL for backward compatibility or permanent drivers if any
   RETURN active_count > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -26,7 +26,7 @@ BEGIN
       payment_id = p_payment_id,
       preference_id = p_preference_id,
       external_reference = p_external_reference,
-      fecha_pago = (NOW() - INTERVAL '3 hours')
+      fecha_pago = NOW()
   WHERE id = p_pedido_id;
 
   UPDATE pedidos_locales
@@ -79,7 +79,7 @@ BEGIN
     SELECT id INTO v_repartidor_id 
     FROM repartidores 
     WHERE estado = 'Activo' 
-    AND (sesion_vence_en > (NOW() - INTERVAL '3 hours') OR sesion_vence_en IS NULL)
+    AND (sesion_vence_en > NOW() OR sesion_vence_en IS NULL)
     ORDER BY random() 
     LIMIT 1;
 
