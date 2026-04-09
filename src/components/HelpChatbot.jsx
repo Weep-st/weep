@@ -40,6 +40,9 @@ const HelpChatbot = () => {
           botResponse = "Lamento escuchar eso. Por favor, indícame tu número de pedido por WhatsApp para que podamos contactar al repartidor de inmediato.";
           action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, mi pedido no ha llegado. Necesito ayuda.`, '_blank');
           break;
+        case 'no_envio':
+          botResponse = "En este momento todos nuestros repartidores están ocupados procesando otros pedidos para garantizar la mejor calidad de servicio. Por favor, vuelve a intentarlo en unos minutos.";
+          break;
         case 'seguimiento':
           botResponse = "Podés ver la ubicación de tu repartidor ingresando a 'Mis Pedidos', seleccionando tu pedido activo y presionando en 'Ver Seguimiento'.";
           break;
@@ -74,13 +77,14 @@ const HelpChatbot = () => {
   };
 
   const options = [
-    { id: 'dev', label: '💸 Gestionar devolución' },
-    { id: 'no_llego', label: '🛵 Mi pedido no llegó' },
-    { id: 'seguimiento', label: '📍 Seguimiento en tiempo real' },
-    { id: 'sugerencias', label: '💡 Sugerencias de mejora' },
-    { id: 'pago', label: '💳 Problemas con el pago' },
-    { id: 'local', label: '🏪 Registrar mi local' },
-    { id: 'soporte', label: '🛠️ Soporte técnico' },
+    { id: 'dev', label: '💸 Devolución' },
+    { id: 'no_llego', label: '🛵 Pedido no llegó' },
+    { id: 'no_envio', label: '🚚 ¿Por qué no hay envíos?' },
+    { id: 'seguimiento', label: '📍 Seguimiento real' },
+    { id: 'sugerencias', label: '💡 Sugerencias' },
+    { id: 'pago', label: '💳 Problemas pago' },
+    { id: 'local', label: '🏪 Registrar local' },
+    { id: 'soporte', label: '🛠️ Soporte' },
   ];
 
   return (
@@ -114,6 +118,10 @@ const HelpChatbot = () => {
             ))}
             <div ref={chatEndRef} />
           </div>
+
+          <button className="toggle-options-btn" onClick={() => setShowButtons(!showButtons)}>
+            {showButtons ? '🔽 Ocultar sugerencias' : '🔼 Mostrar sugerencias de ayuda'}
+          </button>
 
           {showButtons && (
             <div className="chatbot-options">

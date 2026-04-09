@@ -37,15 +37,17 @@
 
 .toggle-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
   background: #d32f2f;
   color: white;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: bold;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  white-space: nowrap;
 }
 
 .chatbot-window {
@@ -159,12 +161,38 @@
 }
 
 .chatbot-options {
-  padding: 15px;
+  padding: 10px 15px 15px 15px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   border-top: 1px solid #eee;
   background: white;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.toggle-options-btn {
+  background: #f8f8f8;
+  border: none;
+  border-top: 1px solid #eee;
+  color: #666;
+  padding: 8px;
+  width: 100%;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background 0.2s ease;
+}
+
+.toggle-options-btn:hover {
+  background: #efefef;
 }
 
 .chatbot-options button {
