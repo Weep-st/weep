@@ -959,9 +959,13 @@ export async function getBebidas() {
 // REPARTIDORES — Availability check
 // ═══════════════════════════════════════════════════
 export async function checkActiveRepartidores() {
+  // Desactivado momentáneamente por el usuario debido a falsos negativos con sesion_vence_en
+  /*
   const { data, error } = await supabase.rpc('check_active_repartidores');
   if (error) return { hasActive: false };
   return { hasActive: !!data };
+  */
+  return { hasActive: true };
 }
 
 export async function getRepartidoresActivosCount(excludeDriverId) {
