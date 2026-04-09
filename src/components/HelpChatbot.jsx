@@ -71,8 +71,6 @@ const HelpChatbot = () => {
       if (action) {
         setTimeout(action, 1500);
       }
-      
-      setTimeout(() => setShowButtons(true), 2000);
     }, 1000);
   };
 
