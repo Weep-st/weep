@@ -1707,27 +1707,13 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
       </tr>`
     ).join('');
 
-    const isEnvio = tipoEntrega && (tipoEntrega.toLowerCase().includes('env') || tipoEntrega.toLowerCase() === 'con envío');
-    
-    const pinMessageHTML = isEnvio 
-      ? `<p style="text-align: center; margin-bottom: 0;"><strong>Importante:</strong> Deberás informarle este número al repartidor cuando llegue con tu pedido para confirmar la entrega.</p>`
-      : `<p style="text-align: center; margin-bottom: 0;"><strong>Importante:</strong> Deberás brindar este número en el mostrador del local para retirar tu pedido.</p>`;
-
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="text-align: center; margin: 20px 0;">
           <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
         </div>
-        <h2 style="color: #9b1913;">¡Hola ${nombreCliente || 'Cliente'}! Tu pedido está confirmado. 🍔</h2>
-        <div style="background: #eef2f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <h3 style="margin-top: 0; color: #2e7d32; text-align: center;">PIN DE CONFIRMACIÓN: <span style="font-size: 24px;">${numConfirmacion}</span></h3>
-          ${pinMessageHTML}
-        </div>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
-          <p style="margin: 5px 0;"><strong>🚚 Entrega:</strong> ${tipoEntrega}</p>
-          <p style="margin: 5px 0;"><strong>📍 Dirección:</strong> ${direccion || 'Retiro en Local'}</p>
-        </div>
+        <h2 style="color: #9b1913;">¡Pedido Confirmado! #${pedidoId}</h2>
+        <p>Hola <strong>${nombreCliente}</strong>, hemos recibido tu pedido correctamente.</p>
         
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           <thead>
@@ -1742,12 +1728,6 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
             ${itemsHtml}
           </tbody>
         </table>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://weep.com.ar/mis-pedidos" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            Ver Seguimiento 🗺️
-          </a>
-        </div>
 
         <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
           Podés seguir el estado de tu pedido desde la sección "Mis Pedidos" en la app.<br>
