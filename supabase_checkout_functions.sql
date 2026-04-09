@@ -95,8 +95,18 @@ BEGIN
   LOOP
     v_ped_local_id := 'PL-' || v_pedido_id || '-' || v_local_id;
 
-    INSERT INTO pedidos_locales (id, pedido_id, local_id, estado, metodo_pago, created_at)
-    VALUES (v_ped_local_id, v_pedido_id, v_local_id, p_estado, p_metodo_pago, NOW() - INTERVAL '3 hours');
+    -- Calcular subtotal para este local
+    INSERT INTO pedidos_locales (id, pedido_id, local_id, estado, metodo_pago, total, created_at)
+    SELECT 
+      v_ped_local_id, 
+      v_pedido_id, 
+      v_local_id, 
+      p_estado, 
+      p_metodo_pago,
+      SUM((elem->>'precio')::NUMERIC * COALESCE((elem->>'cantidad')::NUMERIC, (elem->>'qty')::NUMERIC, 1)),
+      NOW() - INTERVAL '3 hours'
+    FROM jsonb_array_elements(p_cart) AS elem
+    WHERE COALESCE(elem->>'local_id', 'unknown') = v_local_id;
 
     INSERT INTO pedidos_items (pedido_id, item_id, nombre, precio_unitario, cantidad, subtotal, local_id)
     SELECT 
@@ -104,8 +114,8 @@ BEGIN
       elem->>'id',
       elem->>'nombre',
       (elem->>'precio')::NUMERIC,
-      (elem->>'cantidad')::INT,
-      ((elem->>'precio')::NUMERIC * (elem->>'cantidad')::INT),
+      COALESCE((elem->>'cantidad')::INT, (elem->>'qty')::INT, 1),
+      ((elem->>'precio')::NUMERIC * COALESCE((elem->>'cantidad')::INT, (elem->>'qty')::INT, 1)),
       v_local_id
     FROM jsonb_array_elements(p_cart) AS elem
     WHERE COALESCE(elem->>'local_id', 'unknown') = v_local_id;
