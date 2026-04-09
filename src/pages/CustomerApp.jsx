@@ -1098,17 +1098,19 @@ export default function CustomerApp() {
                       <div className="local-name">{local.nombre}</div>
                       {isFutureOpening ? (
                         <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                          {availabilityMsg}
+                          {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : availabilityMsg}
                         </div>
                       ) : !open && local.modo_automatico && local.horario_apertura ? (
                         <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                          Abre a las {local.horario_apertura.substring(0, 5)} hs
+                          {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Abre a las ${local.horario_apertura.substring(0, 5)} hs`}
                         </div>
                       ) : (
                         <div className="categoria-precio">
                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                             <span className="cat">{selectedCategory}</span>
-                            {open && local.modo_automatico && local.horario_cierre && (
+                            {local.nombre?.toUpperCase().includes('YPF') ? (
+                              <span style={{ color: 'var(--amber-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>PRÓXIMAMENTE</span>
+                            ) : open && local.modo_automatico && local.horario_cierre && (
                               <span style={{ color: 'var(--green-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>
                                 Cierra {local.horario_cierre.substring(0, 5)} hs
                               </span>
@@ -1148,7 +1150,7 @@ export default function CustomerApp() {
                     <div className="future-badge" style={{
                       position: 'absolute',
                       bottom: -10,
-                      background: 'var(--green-600)',
+                      background: local.nombre?.toUpperCase().includes('YPF') ? 'var(--amber-600)' : 'var(--green-600)',
                       color: 'white',
                       fontSize: '0.6rem',
                       padding: '2px 6px',
@@ -1156,14 +1158,14 @@ export default function CustomerApp() {
                       whiteSpace: 'nowrap',
                       border: '1px solid white'
                     }}>
-                      Cierra {local.horario_cierre.substring(0, 5)} hs
+                      {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Cierra ${local.horario_cierre.substring(0, 5)} hs`}
                     </div>
                   )}
-                  {isFutureOpening && (
+                   {isFutureOpening && (
                     <div className="future-badge" style={{
                       position: 'absolute',
                       bottom: -10,
-                      background: 'black',
+                      background: local.nombre?.toUpperCase().includes('YPF') ? 'var(--amber-600)' : 'black',
                       color: 'white',
                       fontSize: '0.6rem',
                       padding: '2px 6px',
@@ -1171,14 +1173,14 @@ export default function CustomerApp() {
                       whiteSpace: 'nowrap',
                       border: '1px solid white'
                     }}>
-                      Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}
+                      {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Abre ${new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}`}
                     </div>
                   )}
-                  {!open && !isFutureOpening && local.modo_automatico && local.horario_apertura && (
+                   {!open && !isFutureOpening && local.modo_automatico && local.horario_apertura && (
                     <div className="future-badge" style={{
                       position: 'absolute',
                       bottom: -10,
-                      background: 'black',
+                      background: local.nombre?.toUpperCase().includes('YPF') ? 'var(--amber-600)' : 'black',
                       color: 'white',
                       fontSize: '0.6rem',
                       padding: '2px 6px',
@@ -1186,7 +1188,7 @@ export default function CustomerApp() {
                       whiteSpace: 'nowrap',
                       border: '1px solid white'
                     }}>
-                      Abre a las {local.horario_apertura.substring(0, 5)} hs
+                      {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Abre a las ${local.horario_apertura.substring(0, 5)} hs`}
                     </div>
                   )}
                 </button>
