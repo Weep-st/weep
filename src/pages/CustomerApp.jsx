@@ -218,6 +218,13 @@ export default function CustomerApp() {
               });
             }
 
+            // Notificar a los locales sobre el nuevo pedido pagado
+            api.notifyLocalsAboutNewOrder(
+              pendingData.pedidoId, pendingData.cart,
+              pendingData.direccion, pendingData.tipoEntrega,
+              pendingData.observaciones, pendingData.metodoPago
+            ).catch(e => console.error("Error notificando locales (MP Success):", e));
+
             cart.clearCart();
           } else if (status === 'pending') {
             toast.error('El pago está pendiente de aprobación');
