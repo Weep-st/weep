@@ -389,7 +389,7 @@ export async function getLocales() {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
@@ -403,14 +403,19 @@ export async function getMenuCompleto() {
     local_acepta_retiro: i.locales?.acepta_retiro,
     local_acepta_envio: i.locales?.acepta_envio,
     local_dias_descuento: i.locales?.dias_descuento || [],
-    local_descuento_general: i.locales?.descuento_general || 0
+    local_descuento_general: i.locales?.descuento_general || 0,
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura
   }));
 }
 
 export async function getMenuByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true)
     .order('nombre');
@@ -423,14 +428,19 @@ export async function getMenuByCategoria(categoria) {
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_dias_descuento: i.locales?.dias_descuento || [],
-    local_descuento_general: i.locales?.descuento_general || 0
+    local_descuento_general: i.locales?.descuento_general || 0,
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura
   }));
 }
 
 export async function getMenuByLocalId(localId) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
     .eq('local_id', localId)
     .order('nombre');
   return (data || []).map(i => ({
@@ -442,7 +452,12 @@ export async function getMenuByLocalId(localId) {
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_dias_descuento: i.locales?.dias_descuento || [],
-    local_descuento_general: i.locales?.descuento_general || 0
+    local_descuento_general: i.locales?.descuento_general || 0,
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura
   }));
 }
 
@@ -734,7 +749,7 @@ export async function registrarEmailLanzamiento(email) {
 export async function buscarMenu(query) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
     .eq('disponibilidad', true)
     .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%,categoria.ilike.%${query}%`)
     .order('nombre')
@@ -749,7 +764,12 @@ export async function buscarMenu(query) {
     local_acepta_retiro: i.locales?.acepta_retiro,
     local_acepta_envio: i.locales?.acepta_envio,
     local_dias_descuento: i.locales?.dias_descuento || [],
-    local_descuento_general: i.locales?.descuento_general || 0
+    local_descuento_general: i.locales?.descuento_general || 0,
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura
   }));
 }
 

@@ -534,8 +534,8 @@ export default function CustomerApp() {
     }
 
     // Verificar si el local está abierto
-    const localRef = selectedLocal || locals.find(l => l.id === menu.local_id);
-    if (localRef && !isLocalOpen(localRef)) {
+    const localRef = selectedLocal || locals.find(l => l.id === menu.local_id) || menu;
+    if (!isLocalOpen(localRef)) {
       toast.error('Este local está cerrado por el momento');
       return;
     }
@@ -1359,7 +1359,7 @@ export default function CustomerApp() {
                               }
                             }
                             
-                            const localRef = selectedLocal || locals.find(l => l.id === menu.local_id);
+                            const localRef = selectedLocal || locals.find(l => l.id === menu.local_id) || menu;
                             const currentlyOpen = isLocalOpen(localRef);
                             
                             if (!currentlyOpen) {
