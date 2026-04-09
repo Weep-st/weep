@@ -150,10 +150,19 @@ const AddressSelector = ({
 
     // Doble verificación: asegurarnos que tenemos calle y altura (o al menos no es solo el nombre de la ciudad)
     // Limpiamos la dirección para comparar
-    const cleanAddress = finalAddress.toLowerCase().replace(/ argentina$/, '').replace(/, argentina$/, '').trim();
-    const cityStrings = ['santo tomé, corrientes', 'santo tomé', 'santo tome, corrientes', 'santo tome'];
+    const lowerAddr = finalAddress.toLowerCase();
+    const cityStrings = [
+      'santo tomé, corrientes', 
+      'santo tomé', 
+      'santo tome, corrientes', 
+      'santo tome',
+      'santo tomé, corrientes province',
+      'santo tome, corrientes province'
+    ];
     
-    if (cityStrings.includes(cleanAddress)) {
+    const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 50;
+
+    if (isJustCity) {
       toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
       return;
     }

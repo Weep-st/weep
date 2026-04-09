@@ -618,9 +618,18 @@ export default function CustomerApp() {
 
     // Validación de dirección correcta (no solo el nombre de la ciudad)
     if (cart.deliveryType === 'envio') {
-      const cleanAddress = dir.toLowerCase().replace(/ argentina$/, '').replace(/, argentina$/, '').trim();
-      const cityStrings = ['santo tomé, corrientes', 'santo tomé', 'santo tome, corrientes', 'santo tome'];
-      if (cityStrings.includes(cleanAddress)) {
+      const lowerAddr = dir.toLowerCase();
+      const cityStrings = [
+        'santo tomé, corrientes', 
+        'santo tomé', 
+        'santo tome, corrientes', 
+        'santo tome',
+        'santo tomé, corrientes province',
+        'santo tome, corrientes province'
+      ];
+      const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 50;
+
+      if (isJustCity) {
         toast.error('Dirección no encontrada, usá el marcador para cargar la dirección.');
         setShowAddressSelector(true);
         return;
