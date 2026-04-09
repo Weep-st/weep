@@ -1106,7 +1106,14 @@ export default function CustomerApp() {
                         </div>
                       ) : (
                         <div className="categoria-precio">
-                          <span className="cat">{selectedCategory}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                            <span className="cat">{selectedCategory}</span>
+                            {open && local.modo_automatico && local.horario_cierre && (
+                              <span style={{ color: 'var(--green-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                                Cierra {local.horario_cierre.substring(0, 5)} hs
+                              </span>
+                            )}
+                          </div>
                           <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
                         </div>
                       )}
@@ -1137,6 +1144,21 @@ export default function CustomerApp() {
                     style={isFutureOpening ? { filter: 'grayscale(0.5)' } : {}}
                   />
                   {open && <span className="open-dot" />}
+                  {open && local.modo_automatico && local.horario_cierre && (
+                    <div className="future-badge" style={{
+                      position: 'absolute',
+                      bottom: -10,
+                      background: 'var(--green-600)',
+                      color: 'white',
+                      fontSize: '0.6rem',
+                      padding: '2px 6px',
+                      borderRadius: '10px',
+                      whiteSpace: 'nowrap',
+                      border: '1px solid white'
+                    }}>
+                      Cierra {local.horario_cierre.substring(0, 5)} hs
+                    </div>
+                  )}
                   {isFutureOpening && (
                     <div className="future-badge" style={{
                       position: 'absolute',
