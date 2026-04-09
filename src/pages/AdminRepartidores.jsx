@@ -56,11 +56,9 @@ const AdminRepartidores = () => {
 
     const isOnline = (rep) => {
         if (!rep.ultima_actividad) return false;
-        // La DB guarda en horario Argentina (-3h). 
-        // Generamos el "Ahora" en Argentina para comparar.
-        const nowUTC = new Date();
-        const argNow = new Date(nowUTC.getTime() - (3 * 3600 * 1000));
-        const diff = (argNow - new Date(rep.ultima_actividad)) / 1000 / 60;
+        // La DB guarda en UTC. Comparamos directamente.
+        const now = new Date();
+        const diff = (now - new Date(rep.ultima_actividad)) / 1000 / 60;
         
         // Consideramos online si reportó actividad en los últimos 5 min y su estado es Activo/Ocupado
         return diff < 5 && (rep.estado === 'Activo' || rep.estado === 'Ocupado');
@@ -68,7 +66,7 @@ const AdminRepartidores = () => {
 
     const formatLastActive = (date) => {
         if (!date) return 'Nunca';
-        // El string ya viene con el -3h desde la DB, lo mostramos tal cual
+        // El string viene en UTC desde la DB, JS lo convierte a local automáticamente
         const d = new Date(date);
         return d.toLocaleTimeString('es-AR', { 
             hour: '2-digit', 

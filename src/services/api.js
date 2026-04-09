@@ -302,15 +302,13 @@ export async function repartidorUpdatePerfil(params) {
 // Removido getArgTimeISO por conflicto cronologico
 
 export async function repartidorActualizarEstado(driverId, estado, extendMinutes = 30) {
-  const now = new Date();
-  const validUntil = new Date(now.getTime() + (extendMinutes || 30) * 60000);
-  
   const updates = { 
     estado,
-    ultima_actividad: now.toISOString(),
+    ultima_actividad: new Date().toISOString(),
   };
-  
+
   if (estado === 'Activo') {
+    const validUntil = new Date(Date.now() + (extendMinutes || 30) * 60000);
     updates.sesion_vence_en = validUntil.toISOString();
   } else {
     updates.sesion_vence_en = null;
@@ -993,13 +991,12 @@ export async function getBebidas() {
 // REPARTIDORES — Availability check
 // ═══════════════════════════════════════════════════
 export async function checkActiveRepartidores() {
-  // Desactivado momentáneamente por el usuario debido a falsos negativos con sesion_vence_en
-  /*
   const { data, error } = await supabase.rpc('check_active_repartidores');
-  if (error) return { hasActive: false };
+  if (error) {
+    console.error("Error checking active repartidores:", error);
+    return { hasActive: false };
+  }
   return { hasActive: !!data };
-  */
-  return { hasActive: true };
 }
 
 export async function getRepartidoresActivosCount(excludeDriverId) {
@@ -1101,6 +1098,9 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
   const updateData = { estado: estado };
   if (estado === 'Activo') {
     updateData.ultima_actividad = new Date().toISOString();
+    // Also set a default session expiration (e.g. 30 mins) if manually activated by admin
+    const validUntil = new Date(Date.now() + 30 * 60000);
+    updateData.sesion_vence_en = validUntil.toISOString();
   }
   const { error } = await supabase.from('repartidores').update(updateData).eq('id', repId);
   if (error) throw new Error(error.message);

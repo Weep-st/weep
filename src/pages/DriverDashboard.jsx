@@ -130,11 +130,14 @@ export default function DriverDashboard() {
     let timerId;
     if (isActive && driverData?.SesionVenceEn) {
       const updateTimer = () => {
-        const diff = new Date(driverData.SesionVenceEn).getTime() - Date.now();
+        const now = Date.now();
+        const diff = new Date(driverData.SesionVenceEn).getTime() - now;
         if (diff <= 0) {
           setTimeLeftStr('Expirada');
           setIsActive(false);
           setDriverData(prev => ({...prev, Estado: 'Inactivo'}));
+          api.repartidorActualizarEstado(driver.id, 'Inactivo'); // Hard lockout in DB
+          toast.error('Tu sesión ha expirado');
         } else {
           const mins = Math.floor(diff / 60000);
           const secs = Math.floor((diff % 60000) / 1000);
@@ -1454,7 +1457,7 @@ export default function DriverDashboard() {
                   <span className="toggle-thumb" />
                 </div>
                 <span className={`dd-status ${isActive ? 'active' : ''}`}>
-                  {isActive ? 'Activo (30 min)' : 'Inactivo'}
+                  {isActive ? (driverData?.SesionVenceEn ? `Activo` : 'Activo') : 'Inactivo'}
                 </span>
                 {isActive && timeLeftStr && (
                   <button className="btn btn-secondary btn-sm" style={{marginLeft:8, fontSize:'0.75rem', padding:'2px 6px'}} onClick={extenderSesion}>
@@ -1826,6 +1829,16 @@ export default function DriverDashboard() {
             <p className="dd-modal-subtitle">Elegí tu tiempo de disponibilidad. <br/> Al terminar, pasarás a modo Inactivo automáticamente.</p>
             
             <div className="dd-duration-grid">
+              <button 
+                className="dd-duration-btn"
+                style={{ borderColor: 'var(--red-600)' }}
+                onClick={() => confirmarActivacion(1)}
+              >
+                <span className="icon">🧪</span>
+                <span className="time">1 min</span>
+                <span className="label">Solo Prueba</span>
+              </button>
+
               <button 
                 className="dd-duration-btn"
                 onClick={() => confirmarActivacion(15)}

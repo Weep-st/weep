@@ -6,8 +6,8 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO active_count 
   FROM repartidores 
-  WHERE estado = 'Activo'; 
-  -- AND (sesion_vence_en > NOW() OR sesion_vence_en IS NULL); 
+  WHERE estado = 'Activo'
+  AND sesion_vence_en > (NOW() - INTERVAL '3 hours'); 
   RETURN active_count > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -20,7 +20,32 @@ CREATE OR REPLACE FUNCTION marcar_pedido_pagado(
   p_external_reference TEXT
 )
 RETURNS VOID AS $$
+DECLARE
+  v_tipo_entrega TEXT;
+  v_repartidor_id TEXT;
 BEGIN
+  -- Obtener tipo de entrega
+  SELECT tipo_entrega INTO v_tipo_entrega FROM pedidos_general WHERE id = p_pedido_id;
+
+  -- Si es envío, buscamos repartidor ahora que está pagado
+  -- Aceptamos 'envio' o 'Con Envío' por compatibilidad
+  IF v_tipo_entrega ILIKE '%envio%' THEN
+    SELECT id INTO v_repartidor_id 
+    FROM repartidores 
+    WHERE estado = 'Activo' 
+    AND sesion_vence_en > (NOW() - INTERVAL '3 hours')
+    ORDER BY random() 
+    LIMIT 1;
+
+    IF v_repartidor_id IS NOT NULL THEN
+      UPDATE repartidores SET estado = 'Ocupado' WHERE id = v_repartidor_id;
+      
+      UPDATE pedidos_general 
+      SET repartidor_id = v_repartidor_id
+      WHERE id = p_pedido_id;
+    END IF;
+  END IF;
+
   UPDATE pedidos_general
   SET estado = 'Pendiente',
       payment_id = p_payment_id,
@@ -79,12 +104,15 @@ BEGIN
     SELECT id INTO v_repartidor_id 
     FROM repartidores 
     WHERE estado = 'Activo' 
-    -- AND (sesion_vence_en > NOW() OR sesion_vence_en IS NULL)
+    AND sesion_vence_en > (NOW() - INTERVAL '3 hours')
     ORDER BY random() 
     LIMIT 1;
 
     IF v_repartidor_id IS NOT NULL THEN
       UPDATE repartidores SET estado = 'Ocupado' WHERE id = v_repartidor_id;
+    ELSE
+      -- Si es con envío y no hay repartidor, lanzamos error para evitar pedidos sin repartidor
+      RAISE EXCEPTION 'No hay repartidores disponibles en este momento.';
     END IF;
   END IF;
 
