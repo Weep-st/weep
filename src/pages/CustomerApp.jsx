@@ -1057,142 +1057,159 @@ export default function CustomerApp() {
                 <span>Probá con otra categoría o buscá más abajo</span>
               </div>
             )}
-            {!loadingLocals && (filteredLocals || locals).map(local => {
-              const open = isLocalOpen(local);
-              
-              // Verificar si es una apertura futura
-              let isFutureOpening = false;
-              let availabilityMsg = "";
-              if (local.disponible_desde) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const parts = local.disponible_desde.split('-');
-                const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                if (today < availableDate) {
-                  isFutureOpening = true;
-                  availabilityMsg = `Disponible desde ${availableDate.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`;
-                }
-              }
+             {!loadingLocals && (filteredLocals || locals).map(local => {
+               const open = isLocalOpen(local);
+               const isYPF = local.nombre?.toUpperCase().includes('YPF') || local.id === 'LOC-1774905718292';
+               
+               // Verificar si es una apertura futura
+               let isFutureOpening = false;
+               let availabilityMsg = "";
+               if (local.disponible_desde) {
+                 const today = new Date();
+                 today.setHours(0, 0, 0, 0);
+                 const parts = local.disponible_desde.split('-');
+                 const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                 if (today < availableDate) {
+                   isFutureOpening = true;
+                   availabilityMsg = `Disponible desde ${availableDate.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`;
+                 }
+               }
 
-              if (filteredLocals) {
-                return (
-                  <button
-                    key={local.id}
-                    className={`suggestion-categoria ${open ? 'open' : 'closed'} ${isFutureOpening ? 'future-opening' : ''}`}
-                    onClick={() => {
-                      if (isFutureOpening) {
-                        setUnavailableLocal(local);
-                      } else {
-                        setUnavailableLocal(null);
-                      }
-                      fetchMenusByLocal(local.id, selectedCategory);
-                    }}
-                    style={{ flex: '0 0 auto', border: 'none' }}
-                  >
-                    <img
-                      src={local.logo || `https://placehold.co/120x120?text=${encodeURIComponent(local.nombre)}`}
-                      alt={local.nombre}
-                      onError={(e) => { e.target.src = 'https://placehold.co/120x120?text=Local'; }}
-                    />
-                    <div className="suggestion-info">
-                      <div className="local-name">{local.nombre}</div>
-                      {isFutureOpening ? (
-                        <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                          {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : availabilityMsg}
-                        </div>
-                      ) : !open && local.modo_automatico && local.horario_apertura ? (
-                        <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                          {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Abre a las ${local.horario_apertura.substring(0, 5)} hs`}
-                        </div>
-                      ) : (
-                        <div className="categoria-precio">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                            <span className="cat">{selectedCategory}</span>
-                            {local.nombre?.toUpperCase().includes('YPF') ? (
-                              <span style={{ color: 'var(--amber-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>PRÓXIMAMENTE</span>
-                            ) : open && local.modo_automatico && local.horario_cierre && (
-                              <span style={{ color: 'var(--green-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>
-                                Cierra {local.horario_cierre.substring(0, 5)} hs
-                              </span>
-                            )}
-                          </div>
-                          <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
-                        </div>
-                      )}
-                    </div>
-                    {open && <span className="open-dot" style={{ position: 'absolute', top: 5, right: 5, width: 12, height: 12, borderWidth: 2 }} />}
-                  </button>
-                );
-              }
+               if (filteredLocals) {
+                 return (
+                   <button
+                     key={local.id}
+                     className={`suggestion-categoria ${open ? 'open' : 'closed'} ${(isFutureOpening || isYPF) ? 'future-opening' : ''}`}
+                     onClick={() => {
+                       if (isFutureOpening || isYPF) {
+                         setUnavailableLocal(local);
+                       } else {
+                         setUnavailableLocal(null);
+                       }
+                       fetchMenusByLocal(local.id, selectedCategory);
+                     }}
+                     style={{ flex: '0 0 auto', border: 'none' }}
+                   >
+                     <img
+                       src={local.logo || `https://placehold.co/120x120?text=${encodeURIComponent(local.nombre)}`}
+                       alt={local.nombre}
+                       onError={(e) => { e.target.src = 'https://placehold.co/120x120?text=Local'; }}
+                     />
+                     <div className="suggestion-info">
+                       <div className="local-name">{local.nombre}</div>
+                       {isYPF ? (
+                         <div className="availability-badge" style={{ color: 'var(--amber-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                           PRÓXIMAMENTE
+                         </div>
+                       ) : isFutureOpening ? (
+                         <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                           {availabilityMsg}
+                         </div>
+                       ) : !open && local.modo_automatico && local.horario_apertura ? (
+                         <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                           Abre a las {local.horario_apertura.substring(0, 5)} hs
+                         </div>
+                       ) : (
+                         <div className="categoria-precio">
+                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                             <span className="cat">{selectedCategory}</span>
+                             {open && local.modo_automatico && local.horario_cierre && (
+                               <span style={{ color: 'var(--green-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                                 Cierra {local.horario_cierre.substring(0, 5)} hs
+                               </span>
+                             )}
+                           </div>
+                           <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
+                         </div>
+                       )}
+                     </div>
+                     {open && <span className="open-dot" style={{ position: 'absolute', top: 5, right: 5, width: 12, height: 12, borderWidth: 2 }} />}
+                   </button>
+                 );
+               }
 
-              return (
-                <button
-                  key={local.id}
-                  className={`local-circle ${open ? 'open' : 'closed'} ${isFutureOpening ? 'future-opening' : ''}`}
-                  onClick={() => {
-                    if (isFutureOpening) {
-                      setUnavailableLocal(local);
-                    } else {
-                      setUnavailableLocal(null);
-                    }
-                    fetchMenusByLocal(local.id, selectedCategory);
-                  }}
-                  title={isFutureOpening ? availabilityMsg : local.nombre}
-                >
-                  <img
-                    src={local.logo || `https://placehold.co/200x200?text=${encodeURIComponent(local.nombre)}`}
-                    alt={local.nombre}
-                    onError={(e) => { e.target.src = 'https://placehold.co/200x200?text=Local'; }}
-                    style={isFutureOpening ? { filter: 'grayscale(0.5)' } : {}}
-                  />
-                  {open && <span className="open-dot" />}
-                  {open && local.modo_automatico && local.horario_cierre && (
-                    <div className="future-badge" style={{
-                      position: 'absolute',
-                      bottom: -10,
-                      background: local.nombre?.toUpperCase().includes('YPF') ? 'var(--amber-600)' : 'var(--green-600)',
-                      color: 'white',
-                      fontSize: '0.6rem',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      whiteSpace: 'nowrap',
-                      border: '1px solid white'
-                    }}>
-                      {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Cierra ${local.horario_cierre.substring(0, 5)} hs`}
-                    </div>
-                  )}
-                   {isFutureOpening && (
-                    <div className="future-badge" style={{
-                      position: 'absolute',
-                      bottom: -10,
-                      background: local.nombre?.toUpperCase().includes('YPF') ? 'var(--amber-600)' : 'black',
-                      color: 'white',
-                      fontSize: '0.6rem',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      whiteSpace: 'nowrap',
-                      border: '1px solid white'
-                    }}>
-                      {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Abre ${new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}`}
-                    </div>
-                  )}
-                   {!open && !isFutureOpening && local.modo_automatico && local.horario_apertura && (
-                    <div className="future-badge" style={{
-                      position: 'absolute',
-                      bottom: -10,
-                      background: local.nombre?.toUpperCase().includes('YPF') ? 'var(--amber-600)' : 'black',
-                      color: 'white',
-                      fontSize: '0.6rem',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      whiteSpace: 'nowrap',
-                      border: '1px solid white'
-                    }}>
-                      {local.nombre?.toUpperCase().includes('YPF') ? 'PRÓXIMAMENTE' : `Abre a las ${local.horario_apertura.substring(0, 5)} hs`}
-                    </div>
-                  )}
-                </button>
-              );
+               return (
+                 <button
+                   key={local.id}
+                   className={`local-circle ${open ? 'open' : 'closed'} ${(isFutureOpening || isYPF) ? 'future-opening' : ''}`}
+                   onClick={() => {
+                     if (isFutureOpening || isYPF) {
+                       setUnavailableLocal(local);
+                     } else {
+                       setUnavailableLocal(null);
+                     }
+                     fetchMenusByLocal(local.id, selectedCategory);
+                   }}
+                   title={isYPF ? 'PRÓXIMAMENTE' : isFutureOpening ? availabilityMsg : local.nombre}
+                 >
+                   <img
+                     src={local.logo || `https://placehold.co/200x200?text=${encodeURIComponent(local.nombre)}`}
+                     alt={local.nombre}
+                     onError={(e) => { e.target.src = 'https://placehold.co/200x200?text=Local'; }}
+                     style={(isFutureOpening || isYPF) ? { filter: 'grayscale(0.5)' } : {}}
+                   />
+                   {open && <span className="open-dot" />}
+                   {isYPF ? (
+                     <div className="future-badge" style={{
+                       position: 'absolute',
+                       bottom: -10,
+                       background: 'var(--amber-600)',
+                       color: 'white',
+                       fontSize: '0.6rem',
+                       padding: '2px 6px',
+                       borderRadius: '10px',
+                       whiteSpace: 'nowrap',
+                       border: '1px solid white'
+                     }}>
+                       PRÓXIMAMENTE
+                     </div>
+                   ) : open && local.modo_automatico && local.horario_cierre && (
+                     <div className="future-badge" style={{
+                       position: 'absolute',
+                       bottom: -10,
+                       background: 'var(--green-600)',
+                       color: 'white',
+                       fontSize: '0.6rem',
+                       padding: '2px 6px',
+                       borderRadius: '10px',
+                       whiteSpace: 'nowrap',
+                       border: '1px solid white'
+                     }}>
+                       Cierra {local.horario_cierre.substring(0, 5)} hs
+                     </div>
+                   )}
+                   {isFutureOpening && !isYPF && (
+                     <div className="future-badge" style={{
+                       position: 'absolute',
+                       bottom: -10,
+                       background: 'black',
+                       color: 'white',
+                       fontSize: '0.6rem',
+                       padding: '2px 6px',
+                       borderRadius: '10px',
+                       whiteSpace: 'nowrap',
+                       border: '1px solid white'
+                     }}>
+                       Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}
+                     </div>
+                   )}
+                   {!open && !isFutureOpening && !isYPF && local.modo_automatico && local.horario_apertura && (
+                     <div className="future-badge" style={{
+                       position: 'absolute',
+                       bottom: -10,
+                       background: 'black',
+                       color: 'white',
+                       fontSize: '0.6rem',
+                       padding: '2px 6px',
+                       borderRadius: '10px',
+                       whiteSpace: 'nowrap',
+                       border: '1px solid white'
+                     }}>
+                       Abre a las {local.horario_apertura.substring(0, 5)} hs
+                     </div>
+                   )}
+                 </button>
+               );
             })}
           </div>
 
