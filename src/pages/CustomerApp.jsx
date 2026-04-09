@@ -1228,7 +1228,7 @@ export default function CustomerApp() {
             }}>
               <span style={{ fontSize: '1.2rem' }}>📅</span>
               <p style={{ margin: 0, fontWeight: 600, color: 'var(--red-600)' }}>
-                <strong>{unavailableLocal.nombre}</strong> estará disponible a partir del {new Date(unavailableLocal.disponible_desde.split('-')[0], unavailableLocal.disponible_desde.split('-')[1]-1, unavailableLocal.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
+                <strong>{unavailableLocal.nombre}</strong> estará disponible próximamente.
               </p>
               <button 
                 className="btn btn-ghost btn-xs" 
