@@ -209,6 +209,7 @@ export default function DriverDashboard() {
               subscriptionIds: [driverData.OneSignalId],
               title: '¡Sesión Finalizada! 🛵',
               message: '¿Vas a seguir trabajando? Tu sesión ha terminado. Conéctate de nuevo para seguir recibiendo pedidos.',
+              url: 'https://weep.com.ar/repartidores',
               data: { type: 'session_expired' }
             });
           }

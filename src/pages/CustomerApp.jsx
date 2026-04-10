@@ -68,6 +68,8 @@ export default function CustomerApp() {
   const [deleting, setDeleting] = React.useState(false);
   const [banners, setBanners] = React.useState([]);
   const [bannersLoading, setBannersLoading] = React.useState(true);
+  const [promoItems, setPromoItems] = React.useState([]);
+  const [loadingPromos, setLoadingPromos] = React.useState(false);
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -154,6 +156,10 @@ export default function CustomerApp() {
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
     
+    // Cargar promociones
+    setLoadingPromos(true);
+    api.getPromos().then(d => setPromoItems(d || [])).catch(() => {}).finally(() => setLoadingPromos(false));
+
     // Verificar repartidores al cargar
     api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
     if (user) {
@@ -1033,7 +1039,6 @@ export default function CustomerApp() {
         )}
 
         <div className="app-greeting-container">
-
           {user && !user.telefono && (
             <div className="missing-phone-banner">
               <div className="missing-phone-content">
@@ -1050,6 +1055,68 @@ export default function CustomerApp() {
           )}
           <h1 className="app-greeting animate-fade-in">¿Qué se te antoja?</h1>
         </div>
+
+        {/* ─── Promotions (Horizontal Scroll) ─── */}
+        {!showMenus && !filteredLocals && promoItems.length > 0 && (
+          <section className="promos-section animate-slide-up" style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.4rem' }}>🔥</span>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', background: 'linear-gradient(90deg, var(--red-600), #ff4d4d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                ¡DESCUENTOS IMPERDIBLES!
+              </h2>
+            </div>
+            <div className="promos-scroll" style={{ display: 'flex', gap: '16px', overflowX: 'auto', padding: '4px 4px 16px 4px', scrollSnapType: 'x mandatory' }}>
+              {promoItems.map((item, i) => {
+                const discPrice = calculateDiscountedPrice(item);
+                const percent = Math.round((1 - discPrice / Number(item.precio)) * 100);
+                const localRef = locals.find(l => l.id === item.local_id);
+                const open = isLocalOpen(localRef);
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`promo-item-card ${!open ? 'closed' : ''}`}
+                    onClick={() => open && handleAddToCart({ ...item, precio: discPrice })}
+                    style={{ 
+                      flex: '0 0 240px', background: 'white', borderRadius: '20px', overflow: 'hidden', 
+                      boxShadow: '0 8px 16px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'transform 0.2s ease',
+                      position: 'relative', border: '1px solid #f0f0f0', scrollSnapAlign: 'start'
+                    }}
+                  >
+                    <div style={{ position: 'relative', height: '140px' }}>
+                      <img 
+                        src={item.imagen_url || 'https://placehold.co/240x140?text=Promo'} 
+                        alt={item.nombre} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--red-600)', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '800', boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)' }}>
+                        {percent}% OFF
+                      </div>
+                      {!open && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                          CERRADO
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        {item.local_logo && <img src={item.local_logo} alt="" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />}
+                        <span style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: '600' }}>{item.local_nombre}</span>
+                      </div>
+                      <h3 style={{ fontSize: '0.95rem', margin: '0 0 8px 0', height: '2.4em', overflow: 'hidden', lineClamp: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical' }}>
+                        {item.nombre}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                        <span style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '1.1rem' }}>${discPrice.toLocaleString('es-AR')}</span>
+                        <span style={{ color: 'var(--gray-400)', textDecoration: 'line-through', fontSize: '0.8rem', marginBottom: '2px' }}>${Number(item.precio).toLocaleString('es-AR')}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ─── Categories ─── */}
         <div className="categories-scroll animate-slide-up">

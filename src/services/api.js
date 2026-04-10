@@ -425,6 +425,35 @@ export async function getMenuCompleto() {
   }));
 }
 
+export async function getPromos() {
+  const { data } = await supabase
+    .from('menu')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
+    .eq('disponibilidad', true)
+    .gt('descuento', 0)
+    .order('descuento', { ascending: false });
+
+  return (data || []).map(i => ({
+    id: i.id, nombre: i.nombre, categoria: i.categoria,
+    descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
+    disponibilidad: i.disponibilidad, imagen_url: i.imagen_url,
+    local_id: i.local_id,
+    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
+    local_acepta_retiro: i.locales?.acepta_retiro,
+    local_acepta_envio: i.locales?.acepta_envio,
+    local_dias_descuento: i.locales?.dias_descuento || [],
+    local_descuento_general: i.locales?.descuento_general || 0,
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura || [],
+    variantes: i.variantes
+  }));
+}
+
 export async function getMenuByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
@@ -1785,10 +1814,10 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
   }
 }
 
-export async function sendPushNotification({ subscriptionIds, title, message, data }) {
+export async function sendPushNotification({ subscriptionIds, title, message, data, url }) {
   try {
     const { data: res, error } = await supabase.functions.invoke('send-push', {
-      body: { subscriptionIds, title, message, data }
+      body: { subscriptionIds, title, message, data, url }
     });
     if (error) throw error;
     return { success: true, data: res };

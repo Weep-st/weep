@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("📥 Payload recibido:", JSON.stringify(body, null, 2));
 
-    const { subscriptionIds, title, message, data } = body;
+    const { subscriptionIds, title, message, data, url } = body;
     const onesignalAppId = Deno.env.get("ONESIGNAL_APP_ID");
     const onesignalApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
 
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
         "es": message || "Tienes una nueva actualización",
         "en": message || "You have a new update"
       },
-      url: "https://weep.com.ar/repartidores",
+      url: url || "https://weep.com.ar/repartidores",
       data: data || {},
     };
 

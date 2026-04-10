@@ -17,6 +17,7 @@ BEGIN
         'subscriptionIds', jsonb_build_array(NEW.onesignal_id),
         'title', '¡Sesión Finalizada! 🛵',
         'message', '¿Vas a seguir trabajando? Tu sesión ha terminado. Conéctate de nuevo para seguir recibiendo pedidos.',
+        'url', 'https://weep.com.ar/repartidores',
         'data', jsonb_build_object('type', 'session_expired')
       );
 

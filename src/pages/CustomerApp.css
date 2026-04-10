@@ -1182,3 +1182,30 @@
 .animate-fade-in {
   animation: fadeIn 0.5s ease forwards;
 }
+
+/* --- Promos --- */
+.promos-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.promos-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.promos-scroll::-webkit-scrollbar-thumb {
+  background: var(--red-200);
+  border-radius: 10px;
+}
+.promos-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--red-300);
+}
+
+.promo-item-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12) !important;
+}
+
+.promo-item-card.closed {
+  filter: grayscale(0.8);
+  opacity: 0.8;
+  pointer-events: none;
+}
