@@ -45,6 +45,8 @@ export default function RestaurantDashboard() {
   const [adicionalesLoading, setAdicionalesLoading] = React.useState(false);
   const [showRegretModal, setShowRegretModal] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [hasRepartidores, setHasRepartidores] = React.useState(false);
+  const [loadingRepartidores, setLoadingRepartidores] = React.useState(false);
   
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
@@ -402,11 +404,13 @@ export default function RestaurantDashboard() {
   // Polling
   React.useEffect(() => {
     if (!restaurant) return;
+    loadRepartidoresStatus();
     pollingRef.current = setInterval(() => {
       loadOrders(true);
+      loadRepartidoresStatus();
     }, 25000);
     return () => clearInterval(pollingRef.current);
-  }, [restaurant, loadOrders]);
+  }, [restaurant, loadOrders, loadRepartidoresStatus]);
 
   // Modo Automatico Auto-update
   React.useEffect(() => {
@@ -431,6 +435,15 @@ export default function RestaurantDashboard() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [profileMenuOpen, addMenuOpen]);
+
+  const loadRepartidoresStatus = React.useCallback(async () => {
+    try {
+      const r = await api.checkActiveRepartidores();
+      setHasRepartidores(r.hasActive);
+    } catch (err) {
+      console.error("Error checking drivers:", err);
+    }
+  }, []);
 
   const loadCobros = async () => {
     if (!restaurant) return;
@@ -1178,6 +1191,19 @@ export default function RestaurantDashboard() {
               <span className="toggle-thumb" />
             </label>
             <span className={`rd-status ${localOpen ? 'open' : ''}`}>{localOpen ? 'Abierto' : 'Cerrado'}</span>
+            
+            <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid #ddd', paddingLeft: '16px' }}>
+               <div style={{ 
+                 width: '10px', 
+                 height: '10px', 
+                 borderRadius: '50%', 
+                 backgroundColor: hasRepartidores ? '#00e676' : '#ffa000',
+                 boxShadow: hasRepartidores ? '0 0 8px #00e676' : '0 0 8px #ffa000'
+               }}></div>
+               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasRepartidores ? 'var(--green-600)' : 'var(--amber-600)' }}>
+                 REPARTIDORES: {hasRepartidores ? 'ACTIVOS' : 'NO DISPONIBLES'}
+               </span>
+            </div>
           </div>
           <div className="rd-topbar-right">
             {profileData?.foto_url && <img src={profileData.foto_url} alt="" className="rd-avatar" />}
