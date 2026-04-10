@@ -172,6 +172,15 @@ export default function RestaurantDashboard() {
     } catch (e) {}
   };
 
+  const loadRepartidoresStatus = React.useCallback(async () => {
+    try {
+      const r = await api.checkActiveRepartidores();
+      setHasRepartidores(r.hasActive);
+    } catch (err) {
+      console.error("Error checking drivers:", err);
+    }
+  }, []);
+
   const loadEstado = React.useCallback(async () => {
     if (!restaurant) return;
     try {
@@ -436,14 +445,6 @@ export default function RestaurantDashboard() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [profileMenuOpen, addMenuOpen]);
 
-  const loadRepartidoresStatus = React.useCallback(async () => {
-    try {
-      const r = await api.checkActiveRepartidores();
-      setHasRepartidores(r.hasActive);
-    } catch (err) {
-      console.error("Error checking drivers:", err);
-    }
-  }, []);
 
   const loadCobros = async () => {
     if (!restaurant) return;
