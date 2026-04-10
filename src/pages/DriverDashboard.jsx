@@ -202,6 +202,16 @@ export default function DriverDashboard() {
           setDriverData(prev => ({...prev, Estado: 'Inactivo'}));
           api.repartidorActualizarEstado(driver.id, 'Inactivo'); // Hard lockout in DB
           toast.error('Tu sesión ha expirado');
+          
+          // Enviar notificación push de renovación
+          if (driverData?.OneSignalId) {
+            api.sendPushNotification({
+              subscriptionIds: [driverData.OneSignalId],
+              title: '¡Sesión Finalizada! 🛵',
+              message: '¿Vas a seguir trabajando? Tu sesión ha terminado. Conéctate de nuevo para seguir recibiendo pedidos.',
+              data: { type: 'session_expired' }
+            });
+          }
         } else {
           const mins = Math.floor(diff / 60000);
           const secs = Math.floor((diff % 60000) / 1000);
@@ -1964,7 +1974,6 @@ export default function DriverDashboard() {
           <div className="dd-modal-content animate-slide-up" style={{ background: 'white', padding: '30px', borderRadius: '24px', maxWidth: '400px', width: '92%', textAlign: 'center', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
             <div className="dd-modal-title">¿Cuánto tiempo vas a trabajar?</div>
             <p className="dd-modal-subtitle">Elegí tu tiempo de disponibilidad. <br/> Al terminar, pasarás a modo Inactivo automáticamente.</p>
-            
             <div className="dd-duration-grid">
               <button 
                 className="dd-duration-btn"
@@ -1975,7 +1984,6 @@ export default function DriverDashboard() {
                 <span className="time">1 min</span>
                 <span className="label">Solo Prueba</span>
               </button>
-
               <button 
                 className="dd-duration-btn"
                 onClick={() => confirmarActivacion(15)}

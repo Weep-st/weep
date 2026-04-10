@@ -274,6 +274,7 @@ export async function repartidorGetDatos(driverId) {
       PedidosAceptados: data.pedidos_aceptados_count || 0,
       PedidosRechazados: data.pedidos_rechazados_count || 0,
       PedidosIgnorados: data.pedidos_ignorados_count || 0,
+      OneSignalId: data.onesignal_id
     },
   };
 }
@@ -1781,6 +1782,19 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     });
   } catch (error) {
     console.error("Error enviando email al cliente:", error);
+  }
+}
+
+export async function sendPushNotification({ subscriptionIds, title, message, data }) {
+  try {
+    const { data: res, error } = await supabase.functions.invoke('send-push', {
+      body: { subscriptionIds, title, message, data }
+    });
+    if (error) throw error;
+    return { success: true, data: res };
+  } catch (err) {
+    console.error("Error in sendPushNotification:", err);
+    return { success: false, error: err.message };
   }
 }
 
