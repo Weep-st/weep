@@ -1484,7 +1484,7 @@ export default function CustomerApp() {
                   value="envio" 
                   style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
                 >
-                  {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (BLOQUEADO)'}
+                  {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (NO DISPONIBLE)'}
                 </option>
               )}
               {(selectedLocal?.acepta_retiro !== false) && (

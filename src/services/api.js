@@ -1221,8 +1221,10 @@ export async function getAdminTasks() {
   return data || [];
 }
 
-export async function createAdminTask(tarea, tipo = 'GENERAL') {
-  const { data, error } = await supabase.from('admin_tasks').insert({ tarea, tipo }).select().single();
+export async function createAdminTask(tarea, tipo = 'GENERAL', fecha_finalizacion = null, prioridad = 'Media') {
+  const { data, error } = await supabase.from('admin_tasks')
+    .insert({ tarea, tipo, fecha_finalizacion, prioridad })
+    .select().single();
   if (error) throw new Error(error.message);
   return data;
 }

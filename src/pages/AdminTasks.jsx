@@ -6,9 +6,12 @@ const AdminTasks = () => {
     const [tasks, setTasks] = useState([]);
     const [newTask, setNewTask] = useState('');
     const [taskType, setTaskType] = useState('GENERAL');
+    const [taskPriority, setTaskPriority] = useState('Media');
+    const [taskDeadline, setTaskDeadline] = useState('');
     const [loading, setLoading] = useState(true);
 
     const taskTypes = ['GENERAL', 'MARKETING', 'LOGISTICA', 'SOPORTE', 'URGENTE', 'SISTEMA'];
+    const priorities = ['Baja', 'Media', 'Alta'];
 
     const loadTasks = async () => {
         try {
@@ -29,9 +32,11 @@ const AdminTasks = () => {
         e.preventDefault();
         if (!newTask.trim()) return;
         try {
-            const added = await api.createAdminTask(newTask, taskType);
+            const added = await api.createAdminTask(newTask, taskType, taskDeadline || null, taskPriority);
             setTasks([added, ...tasks]);
             setNewTask('');
+            setTaskDeadline('');
+            setTaskPriority('Media');
             toast.success('Tarea agregada');
         } catch (err) {
             toast.error('Error al agregar tarea');
@@ -72,6 +77,15 @@ const AdminTasks = () => {
         }
     };
 
+    const getPriorityColor = (prio) => {
+        switch (prio) {
+            case 'Alta': return '#ef4444';
+            case 'Media': return '#f59e0b';
+            case 'Baja': return '#10b981';
+            default: return '#64748b';
+        }
+    };
+
     return (
         <div className="panel-card animate-fade-in" style={{ maxWidth: '800px' }}>
             <header className="panel-header">
@@ -91,11 +105,29 @@ const AdminTasks = () => {
                         className="task-type-select" 
                         value={taskType} 
                         onChange={(e) => setTaskType(e.target.value)}
+                        title="Tipo de tarea"
                     >
                         {taskTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                 </div>
-                <button type="submit" className="btn btn-primary">Agregar</button>
+                <div className="form-group">
+                    <select 
+                        className="task-type-select" 
+                        value={taskPriority} 
+                        onChange={(e) => setTaskPriority(e.target.value)}
+                        title="Prioridad"
+                    >
+                        {priorities.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <input 
+                        type="date" 
+                        value={taskDeadline} 
+                        onChange={(e) => setTaskDeadline(e.target.value)}
+                        className="task-input"
+                        title="Fecha de finalización"
+                    />
+                    <button type="submit" className="btn btn-primary" style={{ minWidth: '120px' }}>Agregar</button>
+                </div>
             </form>
 
             <div className="tasks-list">
@@ -109,12 +141,25 @@ const AdminTasks = () => {
                                     {task.estado === 'Completado' && '✓'}
                                 </div>
                                 <div className="task-info">
-                                    <span 
-                                        className="task-type-badge" 
-                                        style={{ backgroundColor: getBadgeColor(task.tipo) }}
-                                    >
-                                        {task.tipo || 'GENERAL'}
-                                    </span>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <span 
+                                            className="task-type-badge" 
+                                            style={{ backgroundColor: getBadgeColor(task.tipo) }}
+                                        >
+                                            {task.tipo || 'GENERAL'}
+                                        </span>
+                                        <span 
+                                            className="task-priority-badge" 
+                                            style={{ border: `1px solid ${getPriorityColor(task.prioridad)}`, color: getPriorityColor(task.prioridad) }}
+                                        >
+                                            {task.prioridad || 'Media'}
+                                        </span>
+                                        {task.fecha_finalizacion && (
+                                            <span className="task-deadline">
+                                                📅 {new Date(task.fecha_finalizacion).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="task-text">{task.tarea}</span>
                                 </div>
                             </div>
@@ -215,6 +260,21 @@ const AdminTasks = () => {
                     margin-left: 1rem;
                 }
                 .delete-task:hover { opacity: 1; }
+                .task-priority-badge {
+                    font-size: 0.6rem;
+                    font-weight: 700;
+                    padding: 1px 6px;
+                    border-radius: 4px;
+                    text-transform: uppercase;
+                }
+                .task-deadline {
+                    font-size: 0.7rem;
+                    color: #94a3b8;
+                    font-family: monospace;
+                }
+                input[type="date"]::-webkit-calendar-picker-indicator {
+                    filter: invert(1);
+                }
             `}</style>
         </div>
     );
