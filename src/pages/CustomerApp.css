@@ -1200,7 +1200,7 @@
 }
 
 .promo-item-card {
-  flex: 0 0 210px;
+  flex: 0 0 190px;
   background: white;
   border-radius: 18px;
   overflow: hidden;
@@ -1225,7 +1225,7 @@
 
 .promo-img-container {
   position: relative; 
-  height: 125px;
+  height: 110px;
 }
 
 .promo-item-img {
@@ -1295,10 +1295,10 @@
 
 @media (max-width: 480px) {
   .promo-item-card {
-    flex: 0 0 185px;
+    flex: 0 0 170px;
   }
   .promo-img-container {
-    height: 110px;
+    height: 100px;
   }
   .promo-item-title {
     font-size: 0.82rem;

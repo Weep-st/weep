@@ -1061,8 +1061,8 @@ export default function CustomerApp() {
         {!showMenus && !filteredLocals && promoItems.length > 0 && (
           <section className="promos-section animate-slide-up" style={{ marginBottom: '32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.4rem' }}>🔥</span>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', background: 'linear-gradient(90deg, var(--red-600), #ff4d4d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <span style={{ fontSize: '1.2rem' }}>🔥</span>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', background: 'linear-gradient(90deg, var(--red-600), #ff4d4d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 ¡DESCUENTOS IMPERDIBLES!
               </h2>
             </div>
@@ -1089,7 +1089,7 @@ export default function CustomerApp() {
                         {percent}% OFF
                       </div>
                       {!open && (
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.85rem' }}>
                           CERRADO
                         </div>
                       )}
@@ -1102,9 +1102,17 @@ export default function CustomerApp() {
                       <h3 className="promo-item-title">
                         {item.nombre}
                       </h3>
-                      <div className="promo-price-container">
+                      <div className="promo-price-container" style={{ marginBottom: '8px' }}>
                         <span className="promo-price-new">${discPrice.toLocaleString('es-AR')}</span>
                         <span className="promo-price-old">${Number(item.precio).toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="promo-schedule" style={{ fontSize: '0.65rem', fontWeight: '600', color: open ? 'var(--green-600)' : 'var(--red-500)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>{open ? '🟢' : '🔴'}</span>
+                        {open ? (
+                          `Solo hasta las ${localRef?.horario_cierre?.substring(0, 5) || '--:--'} hs`
+                        ) : (
+                          `Disponible desde ${localRef?.horario_apertura?.substring(0, 5) || '--:--'} hs`
+                        )}
                       </div>
                     </div>
                   </div>
