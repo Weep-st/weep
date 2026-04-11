@@ -235,6 +235,19 @@ const AdminPedidos = () => {
                                     </section>
                                 </div>
 
+                                <section className="detail-section">
+                                    <h4>🏢 Locales del Pedido</h4>
+                                    <div className="locales-list">
+                                        {pedidoDetalle.locales_info && pedidoDetalle.locales_info.map(li => (
+                                            <div key={li.id} className="local-item-detail" style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', marginBottom: '8px', border: '1px solid #e2e8f0' }}>
+                                                <strong>{li.locales?.nombre}</strong> 
+                                                <span style={{ marginLeft: '10px', fontSize: '0.85rem' }} className={`badge ${li.estado?.toLowerCase().replace(' ', '-')}`}>{li.estado}</span>
+                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Local: ${Number(li.total).toLocaleString('es-AR')}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
                                 <section className="detail-section items-section">
                                     <h4>📦 Productos</h4>
                                     <table className="items-table">
@@ -242,6 +255,7 @@ const AdminPedidos = () => {
                                             <tr>
                                                 <th>Cant</th>
                                                 <th>Producto</th>
+                                                <th>Local</th>
                                                 <th>Unit.</th>
                                                 <th>Subtotal</th>
                                             </tr>
@@ -251,6 +265,7 @@ const AdminPedidos = () => {
                                                 <tr key={item.id}>
                                                     <td>{item.cantidad}x</td>
                                                     <td>{item.nombre}</td>
+                                                    <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.locales?.nombre || '—'}</td>
                                                     <td>${Number(item.precio_unitario).toLocaleString('es-AR')}</td>
                                                     <td>${Number(item.subtotal).toLocaleString('es-AR')}</td>
                                                 </tr>

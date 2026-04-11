@@ -1159,7 +1159,7 @@ export async function adminGetPedidoDetalle(pedidoId) {
 
   const { data: items, error: errItems } = await supabase
     .from('pedidos_items')
-    .select('*')
+    .select('*, locales:local_id(nombre)')
     .eq('pedido_id', pedidoId);
 
   const { data: locales, error: errLocales } = await supabase
