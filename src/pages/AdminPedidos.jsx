@@ -216,6 +216,7 @@ const AdminPedidos = () => {
                                         <p><strong>Método:</strong> {pedidoDetalle.metodo_pago.toUpperCase()}</p>
                                         <p><strong>Entrega:</strong> {pedidoDetalle.tipo_entrega}</p>
                                         <p><strong>Total:</strong> <span className="total-price">${Number(pedidoDetalle.total).toLocaleString('es-AR')}</span></p>
+                                        <p><strong>PIN de Entrega:</strong> <span style={{ color: 'var(--red-600)', fontWeight: 'bold', fontSize: '1.1rem' }}>{pedidoDetalle.num_confirmacion || 'N/A'}</span></p>
                                         {pedidoDetalle.repartidores && (
                                             <div className="driver-info-box" style={{ marginTop: '10px', padding: '10px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #dcfce7' }}>
                                                 <p style={{ margin: 0, fontWeight: 700, color: '#166534' }}>🛵 Repartidor Asignado:</p>
