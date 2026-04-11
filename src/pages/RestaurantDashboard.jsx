@@ -631,10 +631,11 @@ export default function RestaurantDashboard() {
         };
         variantesVal = JSON.stringify(iceCreamConfig);
         precioVal = fd.get('p_14');
-      } else if (fd.get('categoria') === 'Hamburguesas' || fd.get('categoria') === 'Combos') {
+      } else if (fd.get('categoria') === 'Hamburguesas' || fd.get('categoria') === 'Combos' || fd.get('categoria') === 'Panchos') {
         const advancedConfig = {
           es_hamburguesa: fd.get('categoria') === 'Hamburguesas',
           es_combo: fd.get('categoria') === 'Combos',
+          es_pancho: fd.get('categoria') === 'Panchos',
           variants: burgerVariants.filter(v => v.nombre.trim() !== ''),
           extras: burgerExtras.filter(e => e.nombre.trim() !== ''),
           con_papas: burgerOfferPapas,
@@ -1552,9 +1553,11 @@ export default function RestaurantDashboard() {
                     <option value="Hamburguesas">Hamburguesas</option>
                     <option value="Pizzas">Pizzas</option>
                     <option value="Empanadas">Empanadas</option>
-                    <option value="Merienda">Panadería</option>
+                    <option value="Panchos">Panchos</option>
+                    <option value="Panadería">Panadería</option>
                     <option value="Helados">Helados</option>
                     <option value="Combos">Combos</option>
+                    <option value="Bebidas">Bebidas</option>
                   </select>
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
@@ -1612,9 +1615,12 @@ export default function RestaurantDashboard() {
                 })()}
 
                 {/* ─── Burgers/Combos Configuration ─── */}
-                {(itemCategory === 'Hamburguesas' || editItem?.categoria === 'Hamburguesas' || itemCategory === 'Combos' || editItem?.categoria === 'Combos') && (
+                {(['Hamburguesas', 'Combos', 'Panchos'].includes(itemCategory) || ['Hamburguesas', 'Combos', 'Panchos'].includes(editItem?.categoria)) && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de {itemCategory === 'Combos' || editItem?.categoria === 'Combos' ? 'Combo' : 'Hamburguesa'}</h3>
+                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de {
+                      (itemCategory === 'Combos' || editItem?.categoria === 'Combos') ? 'Combo' : 
+                      (itemCategory === 'Panchos' || editItem?.categoria === 'Panchos') ? 'Pancho' : 'Hamburguesa'
+                    }</h3>
                     
                     <div style={{ marginBottom: '20px' }}>
                       <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>

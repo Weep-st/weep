@@ -573,7 +573,7 @@ export default function CustomerApp() {
     } catch (e) {}
 
     const isIceCream = cfg?.es_helado;
-    const isBurgerOrCombo = cfg?.es_hamburguesa || cfg?.es_combo || cfg?.con_papas;
+    const isBurgerOrCombo = cfg?.es_hamburguesa || cfg?.es_combo || cfg?.es_pancho || cfg?.con_papas;
 
     if (isIceCream) {
       setSelectedSize('1/4kg');
@@ -926,12 +926,13 @@ export default function CustomerApp() {
 
   const categories = [
     { type: 'Hamburguesas', label: 'Burguers', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
+    { type: 'Helados', label: 'Helados', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
     { type: 'Pizzas', label: 'Pizzas', img: 'https://i.postimg.cc/cJkcvmFw/descarga-(1)-(10).jpg' },
     { type: 'Empanadas', label: 'Empanadas', img: 'https://i.postimg.cc/KYjPhTmk/descarga-(1)-(11).jpg' },
+    { type: 'Panchos', label: 'Panchos', img: 'https://i.postimg.cc/XqcCXxZr/buscamos-repartidores-(30).png' },
     { type: 'Panadería', label: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
-    { type: 'Bebidas', label: 'Bebidas', img: 'https://i.postimg.cc/KvhCcGkT/descarga-(1)-(14).jpg' },
-    { type: 'Helados', label: 'Helados', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
     { type: 'Combos', label: 'Combos', img: 'https://i.postimg.cc/1X1wQDX5/buscamos-repartidores-(19).png' },
+    { type: 'Bebidas', label: 'Bebidas', img: 'https://i.postimg.cc/KvhCcGkT/descarga-(1)-(14).jpg' },
     { type: 'favoritos', label: 'Mis favoritos', img: 'https://i.postimg.cc/RCktgLyZ/buscamos-repartidores-(7).png' },
   ];
 
@@ -2105,9 +2106,9 @@ export default function CustomerApp() {
                             opacity: !withFries ? 1 : 0.7
                           }}
                         >
-                          <div style={{ fontSize: '2.5rem' }}>🍔</div>
+                          <div style={{ fontSize: '2.5rem' }}>{cfg.es_pancho ? '🌭' : '🍔'}</div>
                           <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Solo la burguer</div>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Solo el {cfg.es_pancho ? 'pancho' : 'plato'}</div>
                             <div style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Sin papas</div>
                           </div>
                         </div>
