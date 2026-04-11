@@ -51,6 +51,44 @@ export default function App() {
   const location = useLocation();
 
   useEffect(() => {
+    // 0. Version Check & Hard Update
+    const checkVersion = async () => {
+      try {
+        const response = await fetch('/version.json?v=' + Date.now());
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const serverVersion = data.version;
+        const localVersion = localStorage.getItem('weep-app-version');
+
+        if (localVersion && localVersion !== serverVersion) {
+          console.warn('🔄 Nueva versión detectada:', serverVersion, '. Forzando actualización...');
+          
+          // Limpiar caché y Service Workers
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          }
+          
+          // Guardar nueva versión ANTES de recargar
+          localStorage.setItem('weep-app-version', serverVersion);
+          
+          // Forzar recarga completa
+          window.location.reload();
+        } else if (!localVersion) {
+          localStorage.setItem('weep-app-version', serverVersion);
+        }
+      } catch (e) {
+        console.error('Error verificando versión:', e);
+      }
+    };
+    checkVersion();
+
     // 1. Google Analytics Tracking
     if (window.gtag) {
       window.gtag('config', 'G-5QRZYRMZH2', {

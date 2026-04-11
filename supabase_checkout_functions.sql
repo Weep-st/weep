@@ -100,6 +100,27 @@ BEGIN
   -- Extraer el ID del local desde el primer item del carrito
   v_local_id := COALESCE(p_cart->0->>'local_id', 'unknown');
 
+  -- Validar que cada local acepte el tipo de entrega seleccionado
+  FOR v_local_id IN SELECT DISTINCT COALESCE(elem->>'local_id', 'unknown') FROM jsonb_array_elements(p_cart) AS elem
+  LOOP
+    DECLARE
+      v_acepta_retiro BOOLEAN;
+      v_acepta_envio BOOLEAN;
+      v_nombre_local TEXT;
+    BEGIN
+      SELECT acepta_retiro, acepta_envio, nombre INTO v_acepta_retiro, v_acepta_envio, v_nombre_local
+      FROM locales WHERE id = v_local_id;
+
+      IF p_tipo_entrega = 'Retiro en local' AND (v_acepta_retiro IS FALSE) THEN
+        RAISE EXCEPTION 'El local % no acepta retiro en local en este momento.', v_nombre_local;
+      END IF;
+
+      IF p_tipo_entrega = 'Con Envío' AND (v_acepta_envio IS FALSE) THEN
+        RAISE EXCEPTION 'El local % no acepta envíos a domicilio en este momento.', v_nombre_local;
+      END IF;
+    END;
+  END LOOP;
+
   IF p_tipo_entrega = 'Con Envío' THEN
     SELECT id INTO v_repartidor_id 
     FROM repartidores 
