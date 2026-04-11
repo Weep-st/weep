@@ -1162,15 +1162,26 @@ export async function adminGetPedidoDetalle(pedidoId) {
     .select('*')
     .eq('pedido_id', pedidoId);
 
-  const { data: locales, error: errLocales } = await supabase
+  const { data: locales_info, error: errLocales } = await supabase
     .from('pedidos_locales')
-    .select('*, locales(nombre)')
+    .select('*')
     .eq('pedido_id', pedidoId);
+
+  // Fetch local names manually
+  let locales_names = [];
+  if (locales_info && locales_info.length > 0) {
+    const localIds = [...new Set(locales_info.map(l => l.local_id))];
+    const { data: lData } = await supabase.from('locales').select('id, nombre').in('id', localIds);
+    locales_names = lData || [];
+  }
 
   return {
     ...pedido,
     items: items || [],
-    locales_info: locales || []
+    locales_info: (locales_info || []).map(li => ({
+      ...li,
+      locales: locales_names.find(ln => ln.id === li.local_id)
+    }))
   };
 }
 
