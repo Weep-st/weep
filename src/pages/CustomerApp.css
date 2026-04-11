@@ -1143,8 +1143,8 @@
 
 @media (max-width: 480px) {
   .banner-slide {
-    flex: 0 0 85%;
-    max-width: 340px;
+    flex: 0 0 80%; /* Reduced from 85% to show more of the next slide */
+    max-width: 320px; /* Reduced from 340px */
     height: auto;
     aspect-ratio: 2.5 / 1;
   }
@@ -1199,6 +1199,19 @@
   background: var(--red-300);
 }
 
+.promo-item-card {
+  flex: 0 0 210px;
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border: 1px solid #f0f0f0;
+  scroll-snap-align: start;
+}
+
 .promo-item-card:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow: 0 12px 24px rgba(0,0,0,0.12) !important;
@@ -1208,4 +1221,89 @@
   filter: grayscale(0.8);
   opacity: 0.8;
   pointer-events: none;
+}
+
+.promo-img-container {
+  position: relative; 
+  height: 125px;
+}
+
+.promo-item-img {
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.promo-item-card:hover .promo-item-img {
+  transform: scale(1.1);
+}
+
+.promo-content {
+  padding: 10px;
+}
+
+.promo-local-info {
+  display: flex; 
+  align-items: center; 
+  gap: 6px; 
+  margin-bottom: 4px;
+}
+
+.promo-local-logo {
+  width: 16px; 
+  height: 16px; 
+  border-radius: 50%;
+}
+
+.promo-local-name {
+  fontSize: 0.7rem; 
+  color: var(--gray-500); 
+  fontWeight: 600;
+}
+
+.promo-item-title {
+  font-size: 0.88rem; 
+  margin: 0 0 8px 0; 
+  height: 2.4em; 
+  overflow: hidden; 
+  line-clamp: 2; 
+  -webkit-line-clamp: 2; 
+  display: -webkit-box; 
+  -webkit-box-orient: vertical;
+  line-height: 1.2;
+}
+
+.promo-price-container {
+  display: flex; 
+  align-items: flex-end; 
+  gap: 8px;
+}
+
+.promo-price-new {
+  color: var(--red-600); 
+  font-weight: 800; 
+  font-size: 1rem;
+}
+
+.promo-price-old {
+  color: var(--gray-400); 
+  text-decoration: line-through; 
+  font-size: 0.75rem; 
+  margin-bottom: 2px;
+}
+
+@media (max-width: 480px) {
+  .promo-item-card {
+    flex: 0 0 185px;
+  }
+  .promo-img-container {
+    height: 110px;
+  }
+  .promo-item-title {
+    font-size: 0.82rem;
+  }
+  .promo-price-new {
+    font-size: 0.95rem;
+  }
 }

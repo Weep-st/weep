@@ -1142,7 +1142,7 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
 // ═══════════════════════════════════════════════════
 export async function adminGetPedidosGeneral() {
   const { data, error } = await supabase.from('pedidos_general')
-    .select('*')
+    .select('*, repartidores:repartidor_id(nombre, telefono)')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data || [];
@@ -1151,7 +1151,7 @@ export async function adminGetPedidosGeneral() {
 export async function adminGetPedidoDetalle(pedidoId) {
   const { data: pedido, error: errPedido } = await supabase
     .from('pedidos_general')
-    .select('*')
+    .select('*, repartidores:repartidor_id(nombre, telefono)')
     .eq('id', pedidoId)
     .single();
   

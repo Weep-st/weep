@@ -121,6 +121,7 @@ const AdminPedidos = () => {
                             <th>Cliente</th>
                             <th>Total</th>
                             <th>Estado</th>
+                            <th>Repartidor</th>
                             <th>Fecha</th>
                             <th>Pago / Entrega</th>
                             <th>Detalle</th>
@@ -128,7 +129,7 @@ const AdminPedidos = () => {
                     </thead>
                     <tbody>
                         {filteredPedidos.length === 0 ? (
-                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No hay pedidos que coincidan.</td></tr>
+                            <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No hay pedidos que coincidan.</td></tr>
                         ) : (
                             filteredPedidos.map(p => (
                                 <tr key={p.id}>
@@ -147,6 +148,16 @@ const AdminPedidos = () => {
                                         <span className={`badge ${p.estado?.toLowerCase().replace(' ', '-')}`}>
                                             {p.estado || 'Pendiente'}
                                         </span>
+                                    </td>
+                                    <td>
+                                        {p.repartidores ? (
+                                            <div style={{ fontSize: '0.8rem' }}>
+                                                <div style={{ fontWeight: 600, color: '#166534' }}>{p.repartidores.nombre}</div>
+                                                <div style={{ color: '#64748b' }}>{p.repartidores.telefono}</div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No asignado</div>
+                                        )}
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '0.85rem' }}>{formatFecha(p.created_at || p.fecha)}</div>
@@ -205,6 +216,13 @@ const AdminPedidos = () => {
                                         <p><strong>Método:</strong> {pedidoDetalle.metodo_pago.toUpperCase()}</p>
                                         <p><strong>Entrega:</strong> {pedidoDetalle.tipo_entrega}</p>
                                         <p><strong>Total:</strong> <span className="total-price">${Number(pedidoDetalle.total).toLocaleString('es-AR')}</span></p>
+                                        {pedidoDetalle.repartidores && (
+                                            <div className="driver-info-box" style={{ marginTop: '10px', padding: '10px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #dcfce7' }}>
+                                                <p style={{ margin: 0, fontWeight: 700, color: '#166534' }}>🛵 Repartidor Asignado:</p>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}><strong>Nombre:</strong> {pedidoDetalle.repartidores.nombre}</p>
+                                                <p style={{ margin: '2px 0 0 0', fontSize: '0.9rem' }}><strong>Teléfono:</strong> {pedidoDetalle.repartidores.telefono || 'No disponible'}</p>
+                                            </div>
+                                        )}
                                         {pedidoDetalle.mercadopago_payment_id && (
                                             <div className="mp-info">
                                                 <p><strong>MP ID:</strong> {pedidoDetalle.mercadopago_payment_id}</p>

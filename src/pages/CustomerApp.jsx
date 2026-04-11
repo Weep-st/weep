@@ -1077,17 +1077,12 @@ export default function CustomerApp() {
                     key={item.id} 
                     className={`promo-item-card ${!open ? 'closed' : ''}`}
                     onClick={() => open && handleAddToCart({ ...item, precio: discPrice })}
-                    style={{ 
-                      flex: '0 0 240px', background: 'white', borderRadius: '20px', overflow: 'hidden', 
-                      boxShadow: '0 8px 16px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'transform 0.2s ease',
-                      position: 'relative', border: '1px solid #f0f0f0', scrollSnapAlign: 'start'
-                    }}
                   >
-                    <div style={{ position: 'relative', height: '140px' }}>
+                    <div className="promo-img-container">
                       <img 
                         src={item.imagen_url || 'https://placehold.co/240x140?text=Promo'} 
                         alt={item.nombre} 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="promo-item-img"
                       />
                       <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--red-600)', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '800', boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)' }}>
                         {percent}% OFF
@@ -1098,17 +1093,17 @@ export default function CustomerApp() {
                         </div>
                       )}
                     </div>
-                    <div style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                        {item.local_logo && <img src={item.local_logo} alt="" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />}
-                        <span style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: '600' }}>{item.local_nombre}</span>
+                    <div className="promo-content">
+                      <div className="promo-local-info">
+                        {item.local_logo && <img src={item.local_logo} alt="" className="promo-local-logo" />}
+                        <span className="promo-local-name">{item.local_nombre}</span>
                       </div>
-                      <h3 style={{ fontSize: '0.95rem', margin: '0 0 8px 0', height: '2.4em', overflow: 'hidden', lineClamp: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical' }}>
+                      <h3 className="promo-item-title">
                         {item.nombre}
                       </h3>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-                        <span style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '1.1rem' }}>${discPrice.toLocaleString('es-AR')}</span>
-                        <span style={{ color: 'var(--gray-400)', textDecoration: 'line-through', fontSize: '0.8rem', marginBottom: '2px' }}>${Number(item.precio).toLocaleString('es-AR')}</span>
+                      <div className="promo-price-container">
+                        <span className="promo-price-new">${discPrice.toLocaleString('es-AR')}</span>
+                        <span className="promo-price-old">${Number(item.precio).toLocaleString('es-AR')}</span>
                       </div>
                     </div>
                   </div>
