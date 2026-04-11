@@ -261,15 +261,18 @@ const AdminPedidos = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {pedidoDetalle.items.map(item => (
-                                                <tr key={item.id}>
-                                                    <td>{item.cantidad}x</td>
-                                                    <td>{item.nombre}</td>
-                                                    <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.locales?.nombre || '—'}</td>
-                                                    <td>${Number(item.precio_unitario).toLocaleString('es-AR')}</td>
-                                                    <td>${Number(item.subtotal).toLocaleString('es-AR')}</td>
-                                                </tr>
-                                            ))}
+                                            {pedidoDetalle.items.map(item => {
+                                                const local = (pedidoDetalle.locales_info || []).find(l => l.local_id === item.local_id);
+                                                return (
+                                                    <tr key={item.id}>
+                                                        <td>{item.cantidad}x</td>
+                                                        <td>{item.nombre || item.nombre_item}</td>
+                                                        <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{local?.locales?.nombre || '—'}</td>
+                                                        <td>${Number(item.precio_unitario).toLocaleString('es-AR')}</td>
+                                                        <td>${Number(item.subtotal).toLocaleString('es-AR')}</td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                         <tfoot>
                                             <tr>
