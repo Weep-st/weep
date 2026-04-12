@@ -1212,19 +1212,14 @@ export default function CustomerApp() {
                          <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
                            {availabilityMsg}
                          </div>
-                       ) : !open && local.modo_automatico && local.horario_apertura ? (
+                       ) : !open ? (
                          <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                           Abre a las {local.horario_apertura.substring(0, 5)} hs
+                           CERRADO
                          </div>
                        ) : (
                          <div className="categoria-precio">
                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                              <span className="cat">{selectedCategory}</span>
-                             {open && local.modo_automatico && local.horario_cierre && (
-                               <span style={{ color: 'var(--green-600)', fontSize: '0.65rem', fontWeight: 'bold' }}>
-                                 Cierra {local.horario_cierre.substring(0, 5)} hs
-                               </span>
-                             )}
                            </div>
                            <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
                          </div>
