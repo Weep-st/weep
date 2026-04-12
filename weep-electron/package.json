@@ -1,0 +1,21 @@
+{
+  "name": "weep-desktop",
+  "version": "1.0.0",
+  "description": "Sistema de impresión automática de pedidos Weep",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder build --win --x64"
+  },
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3"
+  }
+}

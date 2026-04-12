@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEEP Desktop - Impresión de Pedidos</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Carga de Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="brand">
+                <img src="../../assets/logo.png" alt="WEEP" class="logo">
+                <h1>WEEP Desktop</h1>
+            </div>
+            <div id="status-indicator" class="status-badge disconnected">
+                <span class="dot"></span>
+                <span id="status-text">Desconectado</span>
+            </div>
+        </header>
+
+        <main>
+            <section class="config-panel">
+                <h2>Configuración del Local</h2>
+                <div class="input-group">
+                    <label>Estado de Conexión</label>
+                    <input type="text" id="ws-url" value="Supabase Realtime (Automático)" disabled>
+                </div>
+                <div class="input-group">
+                    <label>ID del Local (Restaurants ID)</label>
+                    <input type="text" id="local-id" placeholder="Ej: LOC-171295...">
+                </div>
+                <div class="input-group">
+                    <label>Impresora Térmica</label>
+                    <select id="printer-select" class="custom-select">
+                        <option value="">Cargando impresoras...</option>
+                    </select>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="auto-print" checked>
+                    <label for="auto-print">Impresión Automática Silenciosa</label>
+                </div>
+                <button id="save-btn" class="primary-btn">Guardar y Conectar</button>
+                <div class="test-actions">
+                    <button id="preview-btn" class="secondary-btn">Vista Previa</button>
+                    <button id="test-btn" class="secondary-btn">Test de Impresión</button>
+                </div>
+            </section>
+
+            <section class="order-monitor">
+                <h2>Monitoreo de Pedidos</h2>
+                <div id="last-order-card" class="order-card empty">
+                    <p class="placeholder">Esperando nuevos pedidos en tiempo real...</p>
+                </div>
+                <div class="logs">
+                    <h3>Registro de Actividad</h3>
+                    <ul id="log-list"></ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de Vista Previa -->
+    <div id="preview-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="close-preview" class="close-btn">&times;</button>
+            <div id="ticket-preview-container" class="ticket-mock">
+                <!-- Se inyecta el ticket aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

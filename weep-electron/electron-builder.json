@@ -1,0 +1,29 @@
+{
+  "appId": "com.weep.printer",
+  "productName": "Weep Desktop",
+  "directories": {
+    "output": "dist"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "https://i.postimg.cc/kgrP5r6V/buscamos-repartidores-(10).png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "runAfterFinish": true
+  },
+  "files": [
+    "src/**/*",
+    "assets/**/*",
+    "package.json"
+  ]
+}

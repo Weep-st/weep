@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 80mm;
+            margin: 0;
+            padding: 5mm;
+            font-size: 13px;
+            color: black;
+            background: white;
+        }
+
+        .central-header {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .banner-logo {
+            max-width: 70mm; /* Casi todo el ancho del ticket */
+            height: auto;
+        }
+
+        .separator {
+            border-top: 2px solid #000;
+            margin: 5px 0;
+        }
+
+        .dashed-separator {
+            border-top: 1px dashed #000;
+            margin: 3mm 0;
+        }
+
+        .order-info {
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .date-info {
+            text-align: center;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+
+        .client-info {
+            margin-bottom: 3mm;
+            font-size: 14px;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1mm;
+        }
+
+        .item-name {
+            flex: 1;
+            padding-right: 2mm;
+        }
+
+        .item-obs {
+            font-size: 11px;
+            font-style: italic;
+            margin-left: 5mm;
+            margin-bottom: 2mm;
+        }
+
+        .total-section {
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 5mm;
+            border-top: 1px solid #000;
+            padding-top: 2mm;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        @media print {
+            body { border: none; }
+            img { filter: grayscale(100%) contrast(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <div id="ticket-content"></div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        ipcRenderer.on('render-ticket', (event, order) => {
+            const container = document.getElementById('ticket-content');
+            
+            // Formatear fecha: DD/M/AAAA, h:mm:ss AM/PM
+            const dateObj = new Date(order.fecha);
+            const formattedDate = dateObj.toLocaleString('es-AR', {
+                day: '2-digit',
+                month: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            }).replace(/\./g, ''); // Limpiar puntos de AM/PM si los hay
+
+            let itemsHtml = order.items.map(item => `
+                <div class="item-row">
+                    <span class="item-name">${item.cantidad} x ${item.nombre}</span>
+                    <span>$${(item.cantidad * item.precio).toFixed(2)}</span>
+                </div>
+                ${item.observaciones ? `<div class="item-obs">- ${item.observaciones}</div>` : ''}
+            `).join('');
+
+            container.innerHTML = `
+                <div class="central-header" style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <img src="${order.local_logo}" style="max-width: 24mm; max-height: 18mm; object-fit: contain;">
+                    <span style="font-size: 30px; line-height: 1;">|</span>
+                    <img src="https://i.postimg.cc/269xSD6z/buscamos-repartidores-(21)-(3)-(1).png" style="max-width: 38mm; max-height: 28mm; object-fit: contain;">
+                </div>
+
+                <div class="separator"></div>
+                
+                <div style="text-align: center; font-size: 10px; font-weight: bold;">RECIBO DE PEDIDO</div>
+
+                <div class="order-info">#${order.id}</div>
+                <div class="date-info">${formattedDate}</div>
+
+                <div class="client-info">
+                    <strong>CLIENTE:</strong><br>
+                    ${order.cliente.nombre}<br>
+                    ${order.cliente.direccion}<br>
+                    Tel: ${order.cliente.telefono}
+                </div>
+
+                <div class="dashed-separator"></div>
+
+                <div class="items">${itemsHtml}</div>
+
+                <div class="dashed-separator"></div>
+
+                <div class="payment-obs">
+                    <strong>PAGO:</strong> ${order.metodo_pago.toUpperCase()}<br>
+                    ${order.observaciones ? `<strong>OBS Gral:</strong> ${order.observaciones}` : ''}
+                </div>
+
+                <div class="total-section">
+                    TOTAL: $${order.total.toFixed(2)}
+                </div>
+
+                <div class="footer">
+                    ¡Gracias por su compra!<br>
+                    <strong>WEEP - Pedidos y Delivery</strong>
+                </div>
+            `;
+
+            const images = container.getElementsByTagName('img');
+            let loadedCount = 0;
+            if (images.length === 0) {
+                ipcRenderer.send('ticket-ready');
+            } else {
+                Array.from(images).forEach(img => {
+                    img.onload = img.onerror = () => {
+                        loadedCount++;
+                        if (loadedCount === images.length) {
+                            setTimeout(() => ipcRenderer.send('ticket-ready'), 150);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
