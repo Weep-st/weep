@@ -43,9 +43,9 @@ export default function DriverDashboard() {
   const [historial, setHistorial] = React.useState([]); 
   const [availableDriversCount, setAvailableDriversCount] = React.useState(0);
 
-  const [sessionGanancias, setSessionGanancias] = React.useState(0);
   const [localInfo, setLocalInfo] = React.useState({ nombre: '', direccion: '', lat: null, lng: null });
   const [montoLocal, setMontoLocal] = React.useState(0);
+  const [realStats, setRealStats] = React.useState({ viajesHoy: 0, gananciasTotalesHoy: 0, viajesTotales: 0, gananciasGlobales: 0 });
 
   // Map state
   const [deliveryCoords, setDeliveryCoords] = React.useState({ lat: null, lng: null });
@@ -260,8 +260,32 @@ export default function DriverDashboard() {
           loginAsDriver(d.data);
         }
       }
+      // Load balance and history server-side
+      loadCobros();
+      fetchHistorial();
+      loadRealStats();
     } catch { toast.error('Error al cargar datos'); }
   }, [driver, loginAsDriver]);
+
+  const loadRealStats = async () => {
+    if (!driver) return;
+    try {
+      const s = await api.repartidorGetDashboardStats(driver.id);
+      if (s.success) setRealStats(s);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchHistorial = React.useCallback(async () => {
+    if (!driver) return;
+    try {
+      const res = await api.getRepartidorHistorial(driver.id);
+      if (res.success) {
+        setHistorial(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching history:", err);
+    }
+  }, [driver]);
 
   const fetchPedidos = React.useCallback(async (silent = false) => {
     if (!driver) return;
@@ -737,9 +761,10 @@ export default function DriverDashboard() {
       const res = await api.updateEstadoPedido(pedido.id, 'Entregado', driver.id, pinInput);
       if (res.success) {
         toast.success('¡Entrega confirmada!', { id: 'ent' });
-        // Modificar stats locales y cerrar modal
-        setSessionGanancias(prev => prev + 10);
-        setHistorial([{ ...pedido, fecha: new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) }, ...historial]);
+        // Refresh server-side balance and history
+        if (typeof loadCobros === 'function') loadCobros();
+        if (typeof fetchHistorial === 'function') fetchHistorial();
+        loadRealStats();
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);
         setPinInput('');
@@ -1233,7 +1258,8 @@ export default function DriverDashboard() {
     if (historial.length === 0) {
       return (
         <div className="empty-state">
-          <h3>Aún no hay entregas finalizadas en esta sesión</h3>
+          <h3>No hay historial de entregas</h3>
+          <p>Tus pedidos entregados aparecerán aquí.</p>
         </div>
       );
     }
@@ -1242,11 +1268,18 @@ export default function DriverDashboard() {
         {historial.map((h, i) => (
           <div className="dd-order-card" key={i}>
             <div className="dd-order-head">
-              <small style={{ color: 'var(--gray-500)' }}>{h.fecha}</small>
-              <span className="dd-badge bg-success">Entregado</span>
+              <small style={{ color: 'var(--gray-500)' }}>
+                {new Date(h.created_at).toLocaleDateString()}
+              </small>
+              <span className={`dd-badge ${h.cobro_repartidor_procesado ? 'bg-success' : (h.metodo_pago === 'Efectivo' ? 'bg-info' : 'bg-warning')}`} style={{ fontSize: '0.7rem' }}>
+                {h.cobro_repartidor_procesado ? '✓ Cobrado' : (h.metodo_pago === 'Efectivo' ? 'Cash Recibido' : 'Pendiente de cobro')}
+              </span>
             </div>
-            <p style={{ margin: '8px 0', fontWeight: 'bold' }}>{h.direccion}</p>
-            <div className="dd-order-amount" style={{ margin: 0 }}>${Number(h.monto).toLocaleString('es-AR')}</div>
+            <p style={{ margin: '8px 0', fontWeight: 'bold', fontSize: '0.9rem' }}>{h.direccion}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="dd-order-amount" style={{ margin: 0, fontSize: '1.2rem' }}>${Number(h.total).toLocaleString('es-AR')}</div>
+              <small style={{ color: 'var(--gray-400)', fontSize: '0.7rem' }}>Pago: {h.metodo_pago}</small>
+            </div>
           </div>
         ))}
       </div>
@@ -1260,12 +1293,12 @@ export default function DriverDashboard() {
       <div className="dd-cobros-view animate-fade-in">
         <div className="dd-card-header" style={{ marginBottom: '24px' }}>
           <h3>Gestión de Cobros</h3>
-          <p style={{ color: 'var(--gray-600)' }}>Retirá tus ganancias acumuladas por pagos con transferencia.</p>
+          <p style={{ color: 'var(--gray-600)' }}>Retirá tus ganancias acumuladas por pagos con transferencia o tarjeta.</p>
         </div>
 
         <div className="dd-stats-grid" style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
           <div className="dd-stat-item highlight" style={{ background: 'var(--red-50)', border: '1px solid var(--red-200)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-            <small style={{ color: 'var(--gray-600)', display: 'block', marginBottom: '8px', fontSize: '1rem' }}>Saldo a Cobrar</small>
+            <small style={{ color: 'var(--gray-600)', display: 'block', marginBottom: '8px', fontSize: '1rem' }}>Saldo a Cobrar (Transferencia/Tarjeta)</small>
             <strong style={{ fontSize: '2.5rem', color: 'var(--red-600)' }}>${Number(cobrosData?.totalDisponible || 0).toLocaleString('es-AR')}</strong>
           </div>
         </div>
@@ -1622,11 +1655,19 @@ export default function DriverDashboard() {
                     <div className="dd-stats-grid">
                       <div className="dd-stat-item">
                         <small>Viajes hoy</small>
-                        <strong>{driverData?.PedidosHoy || 0}</strong>
+                        <strong>{realStats.viajesHoy}</strong>
                       </div>
                       <div className="dd-stat-item">
-                        <small>Ganancias sesión</small>
-                        <strong>${sessionGanancias}</strong>
+                        <small>Ganancias hoy</small>
+                        <strong>${realStats.gananciasTotalesHoy.toLocaleString('es-AR')}</strong>
+                      </div>
+                      <div className="dd-stat-item">
+                        <small>Total Viajes</small>
+                        <strong>{realStats.viajesTotales}</strong>
+                      </div>
+                      <div className="dd-stat-item">
+                        <small>Total Ganancias</small>
+                        <strong>${realStats.gananciasGlobales.toLocaleString('es-AR')}</strong>
                       </div>
                       <div className="dd-stat-item" style={{ gridColumn: 'span 2' }}>
                         <small>Tasa de Aceptación</small>

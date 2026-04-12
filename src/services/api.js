@@ -279,6 +279,43 @@ export async function repartidorGetDatos(driverId) {
   };
 }
 
+export async function repartidorGetDashboardStats(repartidorId) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Consideramos fecha >= hoy 00:00 (en hora local, la DB usa UTC-3 usualmente en el campo fecha)
+  const [todayRes, totalRes] = await Promise.all([
+    supabase
+      .from('pedidos_general')
+      .select('precio_envio')
+      .eq('repartidor_id', repartidorId)
+      .eq('estado', 'Entregado')
+      .gte('created_at', today.toISOString()),
+    supabase
+      .from('pedidos_general')
+      .select('precio_envio')
+      .eq('repartidor_id', repartidorId)
+      .eq('estado', 'Entregado')
+  ]);
+
+  if (todayRes.error) return { success: false, error: todayRes.error.message };
+  if (totalRes.error) return { success: false, error: totalRes.error.message };
+
+  const viajesHoy = todayRes.data.length;
+  const gananciasTotalesHoy = todayRes.data.reduce((sum, p) => sum + (Number(p.precio_envio) || 0), 0);
+  
+  const viajesTotales = totalRes.data.length;
+  const gananciasGlobales = totalRes.data.reduce((sum, p) => sum + (Number(p.precio_envio) || 0), 0);
+
+  return {
+    success: true,
+    viajesHoy,
+    gananciasTotalesHoy,
+    viajesTotales,
+    gananciasGlobales
+  };
+}
+
 export async function repartidorUpdatePerfil(params) {
   const { driverId, ...updates } = params;
   
@@ -680,7 +717,7 @@ export async function validateOrderAvailability(localIds, itemIds) {
 // ═══════════════════════════════════════════════════
 // PEDIDOS
 // ═══════════════════════════════════════════════════
-export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng }) {
+export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio }) {
   const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
   const estado = estadoInicial || 'Pendiente';
 
@@ -696,7 +733,8 @@ export async function crearPedido({ userId, direccion, metodoPago, observaciones
     p_nombre_cliente: nombreCliente || '',
     p_lat: lat || 0,
     p_lng: lng || 0,
-    p_cart: items
+    p_cart: items,
+    p_precio_envio: precioEnvio || 0
   });
 
   if (error) {
@@ -1439,10 +1477,22 @@ export async function getPedidosDisponibles(repartidorId) {
   })) };
 }
 
+export async function getRepartidorHistorial(repartidorId) {
+  const { data, error } = await supabase.from('pedidos_general')
+    .select('id, direccion, total, metodo_pago, estado, created_at, cobro_repartidor_procesado')
+    .eq('repartidor_id', repartidorId)
+    .eq('estado', 'Entregado')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  
+  if (error) return { success: false, error: error.message };
+  return { success: true, data: data || [] };
+}
+
 export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pinConfirmacion = null) {
   const ok = ['Confirmado', 'Retirado', 'En camino', 'Entregado'];
   if (!ok.includes(nuevoEstado)) return { success: false, error: `Estado no permitido: ${nuevoEstado}` };
-  const { data: ped } = await supabase.from('pedidos_general').select('id, num_confirmacion')
+  const { data: ped } = await supabase.from('pedidos_general').select('id, num_confirmacion, metodo_pago')
     .eq('id', pedidoId).eq('repartidor_id', repartidorId).single();
   if (!ped) return { success: false, error: 'Pedido no encontrado para este repartidor' };
 
@@ -1450,7 +1500,12 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     return { success: false, error: 'PIN incorrecto' };
   }
 
-  const { error } = await supabase.from('pedidos_general').update({ estado: nuevoEstado }).eq('id', pedidoId);
+  const updateData = { estado: nuevoEstado };
+  if (nuevoEstado === 'Entregado' && ped.metodo_pago === 'Efectivo') {
+    updateData.cobro_repartidor_procesado = true;
+  }
+
+  const { error } = await supabase.from('pedidos_general').update(updateData).eq('id', pedidoId);
   if (error) return { success: false, error: error.message };
   
   if (nuevoEstado === 'Confirmado') {
@@ -1502,10 +1557,10 @@ export async function repartidorGetCobros(repartidorId) {
   // Solo pedidos Entregados, del repartidor, y que no hayan sido procesados para pago
   const { data: pedidos } = await supabase
     .from('pedidos_general')
-    .select('id, total, metodo_pago, cobro_repartidor_procesado')
+    .select('id, total, metodo_pago, cobro_repartidor_procesado, precio_envio')
     .eq('repartidor_id', repartidorId)
     .eq('estado', 'Entregado')
-    .neq('metodo_pago', 'Efectivo')
+    .ilike('metodo_pago', 'transferencia')
     .eq('cobro_repartidor_procesado', false);
 
   let totalDisponible = 0;
@@ -1513,8 +1568,8 @@ export async function repartidorGetCobros(repartidorId) {
 
   if (pedidos) {
     pedidos.forEach(p => {
-      // El repartidor gana un fijo de $1.800 por pedido (para cobros de transferencias)
-      totalDisponible += 1800;
+      // El repartidor gana lo que se cobró de envío en ese pedido
+      totalDisponible += Number(p.precio_envio) || 0;
       idsIncluidos.push(p.id);
     });
   }

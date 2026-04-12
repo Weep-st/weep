@@ -773,7 +773,8 @@ export default function CustomerApp() {
           estadoInicial: 'Pendiente',
           totalCalculado: exactTotal,
           lat: addressData.lat,
-          lng: addressData.lng
+          lng: addressData.lng,
+          precioEnvio: shipping
         });
 
         toast.success(`¡Pedido #${response.pedidoId} registrado exitosamente!`);
@@ -835,7 +836,8 @@ export default function CustomerApp() {
           emailCliente: user.email, nombreCliente: user.name,
           totalCalculado: exactTotal,
           lat: addressData.lat,
-          lng: addressData.lng
+          lng: addressData.lng,
+          precioEnvio: shipping
         };
 
         await api.crearPedidoTemporal({

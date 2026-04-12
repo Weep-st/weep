@@ -1236,25 +1236,29 @@ export default function RestaurantDashboard() {
               )}
             </div>
 
-            <button 
-              className="btn btn-sm" 
-              style={{ backgroundColor: '#10b981', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} 
-              onClick={() => {
-                const localId = restaurant?.localId || restaurant?.id || 'LOCAL';
-                const downloadUrl = '/Weep_Desktop.exe'; // Servido desde la carpeta public/
-                
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.setAttribute('download', `Weep_${localId}.exe`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                toast.success('Iniciando descarga de WEEP Desktop...');
-              }}
-            >
-              📄 Impresión de Ticket
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              <button 
+                className="btn btn-sm" 
+                title="Descargar instalador de aplicación para Windows"
+                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 0 }} 
+                onClick={() => {
+                  const localId = restaurant?.localId || restaurant?.id || 'LOCAL';
+                  const downloadUrl = '/Weep_Desktop.exe';
+                  
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.setAttribute('download', `Weep_${localId}.exe`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  
+                  toast.success('Iniciando descarga de WEEP Desktop...');
+                }}
+              >
+                📥 Impresión de Ticket
+              </button>
+              <span style={{ fontSize: '10px', color: 'var(--gray-500)', fontWeight: 'bold' }}>Instalador .exe</span>
+            </div>
 
             <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-500)' }} onClick={() => { logoutRestaurant(); window.location.reload(); }}>Salir</button>
           </div>

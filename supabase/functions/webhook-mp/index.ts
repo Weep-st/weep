@@ -117,7 +117,8 @@ Deno.serve(async (req) => {
         p_nombre_cliente: order_info.nombreCliente || '',
         p_lat: parseFloat(order_info.lat || '0'),
         p_lng: parseFloat(order_info.lng || '0'),
-        p_cart: cart_data
+        p_cart: cart_data,
+        p_precio_envio: parseFloat(order_info.precioEnvio || '0')
       });
 
       if (rpcError) {

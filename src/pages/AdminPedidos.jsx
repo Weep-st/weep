@@ -275,6 +275,12 @@ const AdminPedidos = () => {
                                             })}
                                         </tbody>
                                         <tfoot>
+                                            {pedidoDetalle.precio_envio > 0 && (
+                                              <tr style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                                                  <td colSpan="3">ENVÍO</td>
+                                                  <td>${Number(pedidoDetalle.precio_envio).toLocaleString('es-AR')}</td>
+                                              </tr>
+                                            )}
                                             <tr>
                                                 <td colSpan="3">TOTAL</td>
                                                 <td>${Number(pedidoDetalle.total).toLocaleString('es-AR')}</td>
