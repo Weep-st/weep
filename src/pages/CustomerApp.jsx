@@ -99,6 +99,20 @@ export default function CustomerApp() {
 
   const searchTimeout = React.useRef(null);
   
+  const isClosedToday = React.useCallback((local) => {
+    if (!local || !local.modo_automatico) return false;
+    const { dias_apertura } = local;
+    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
+      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const currentDayName = daysMap[new Date().getDay()];
+      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normalizedDays = dias_apertura.map(normalize);
+      const normalizedCurrentDay = normalize(currentDayName);
+      return !normalizedDays.includes(normalizedCurrentDay);
+    }
+    return false;
+  }, []);
+
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
@@ -1214,6 +1228,10 @@ export default function CustomerApp() {
                          <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
                            {availabilityMsg}
                          </div>
+                       ) : isClosedToday(local) ? (
+                         <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                           Cerrado hoy
+                         </div>
                        ) : !open ? (
                          <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
                            CERRADO
@@ -1297,7 +1315,22 @@ export default function CustomerApp() {
                        Abre {new Date(local.disponible_desde.split('-')[0], local.disponible_desde.split('-')[1]-1, local.disponible_desde.split('-')[2]).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'})}
                      </div>
                    )}
-                   {!open && !isFutureOpening && !isYPF && local.modo_automatico && local.horario_apertura && (
+                   {isClosedToday(local) && !isFutureOpening && !isYPF && (
+                     <div className="future-badge" style={{
+                       position: 'absolute',
+                       bottom: -10,
+                       background: 'black',
+                       color: 'white',
+                       fontSize: '0.6rem',
+                       padding: '2px 6px',
+                       borderRadius: '10px',
+                       whiteSpace: 'nowrap',
+                       border: '1px solid white'
+                     }}>
+                       Cerrado hoy
+                     </div>
+                   )}
+                   {!open && !isClosedToday(local) && !isFutureOpening && !isYPF && local.modo_automatico && local.horario_apertura && (
                      <div className="future-badge" style={{
                        position: 'absolute',
                        bottom: -10,
