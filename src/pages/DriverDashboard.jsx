@@ -1277,7 +1277,7 @@ export default function DriverDashboard() {
             </div>
             <p style={{ margin: '8px 0', fontWeight: 'bold', fontSize: '0.9rem' }}>{h.direccion}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="dd-order-amount" style={{ margin: 0, fontSize: '1.2rem' }}>${Number(h.total).toLocaleString('es-AR')}</div>
+              <div className="dd-order-amount" style={{ margin: 0, fontSize: '1.2rem' }}>${Number(h.precio_envio || 0).toLocaleString('es-AR')}</div>
               <small style={{ color: 'var(--gray-400)', fontSize: '0.7rem' }}>Pago: {h.metodo_pago}</small>
             </div>
           </div>

@@ -1479,7 +1479,7 @@ export async function getPedidosDisponibles(repartidorId) {
 
 export async function getRepartidorHistorial(repartidorId) {
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, direccion, total, metodo_pago, estado, created_at, cobro_repartidor_procesado')
+    .select('id, direccion, total, metodo_pago, estado, created_at, cobro_repartidor_procesado, precio_envio')
     .eq('repartidor_id', repartidorId)
     .eq('estado', 'Entregado')
     .order('created_at', { ascending: false })
