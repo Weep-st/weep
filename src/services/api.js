@@ -1324,8 +1324,19 @@ export async function getCobrosByLocal(localId) {
   let totalVentas = 0, totalTransf = 0, totalEfectivo = 0;
   const pedidosIncluidos = [];
   
+  const ids = (pedidosLocales || []).map(p => p.pedido_id);
+  const { data: items } = await supabase.from('pedidos_items')
+    .select('pedido_id, subtotal')
+    .eq('local_id', localId)
+    .in('pedido_id', ids);
+  
+  const sumsMap = {};
+  (items || []).forEach(i => {
+    sumsMap[i.pedido_id] = (sumsMap[i.pedido_id] || 0) + (Number(i.subtotal) || 0);
+  });
+
   for (const p of (pedidosLocales || [])) {
-    const sub = Number(p.total) || 0;
+    const sub = sumsMap[p.pedido_id] || 0;
     totalVentas += sub;
     pedidosIncluidos.push(p.pedido_id);
     if ((p.metodo_pago || '').toLowerCase().includes('efectivo')) {

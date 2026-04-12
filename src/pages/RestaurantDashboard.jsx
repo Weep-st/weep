@@ -300,7 +300,7 @@ export default function RestaurantDashboard() {
           numConfirmacion: resGeneral.numConfirmacion,
           repartidorId: resGeneral.repartidorId,
           localId: p[2],
-          totalLocal: Number(p[3]) || 0,
+          totalLocal: resItems.reduce((acc, item) => acc + (Number(item[7]) || 0), 0),
         });
       }
 
