@@ -1623,7 +1623,7 @@ export default function CustomerApp() {
                         disabled={!hasRepartidores}
                         style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
                       >
-                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (NO DISPONIBLE POR AHORA)'}
+                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (sin repartidores disponibles)'}
                       </option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (

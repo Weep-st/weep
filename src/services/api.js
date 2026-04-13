@@ -1473,7 +1473,7 @@ export async function getPedidosDisponibles(repartidorId) {
   // 1. Pedidos asignados al repartidor (Confirmados o Retirados)
   // 2. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio')
+    .select('id, monto:total, pago:metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.eq.Pendiente)`)
     .in('estado', ['Pendiente', 'Confirmado', 'Retirado'])
     .order('created_at', { ascending: false });
