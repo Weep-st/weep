@@ -1207,7 +1207,7 @@ export default function DriverDashboard() {
               </div>
               <div className="dd-order-amount">
                 <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase' }}>Ganancia Envío</small>
-                ${Number(p.montoEnvio || 0).toLocaleString('es-AR')}
+                ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
               </div>
               <div className="dd-order-info">
                 <p>👤 <strong>Cliente:</strong> {p.nombre_cliente || 'Cliente'}</p>

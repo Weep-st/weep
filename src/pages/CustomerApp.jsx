@@ -1623,7 +1623,7 @@ export default function CustomerApp() {
                         disabled={!hasRepartidores}
                         style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
                       >
-                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Envío NO DISPONIBLE (Sin repartidores)'}
+                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (NO DISPONIBLE POR AHORA)'}
                       </option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (
@@ -1678,13 +1678,17 @@ export default function CustomerApp() {
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
                   <option value="transferencia">Transferencia / Mercado Pago</option>
-                  <option value="efectivo" disabled={orderCount === 0 || orderCount === null}>
-                    Efectivo {orderCount === 0 ? '❌ (No disponible en 1er pedido)' : ''}
+                  <option 
+                    value="efectivo" 
+                    disabled={orderCount === 0 || orderCount === null}
+                    style={{ color: (orderCount === 0 || orderCount === null) ? '#999' : 'inherit' }}
+                  >
+                    { (orderCount === 0 || orderCount === null) ? 'Efectivo (Inhabilitado 1er pedido)' : 'Efectivo' }
                   </option>
                 </select>
-                {(orderCount === 0 || orderCount === null) && user && (
-                  <p style={{ fontSize: '0.7rem', color: 'var(--red-600)', fontWeight: 'bold', marginTop: '4px' }}>
-                    ⚠️ Por seguridad, tu 1er pedido debe ser por transferencia sin excepción.
+                {(orderCount === 0 || orderCount === null) && (
+                  <p style={{ fontSize: '0.7rem', color: 'var(--red-500)', marginTop: '4px', fontStyle: 'italic' }}>
+                    * Por seguridad, tu primer pedido debe ser con Transferencia.
                   </p>
                 )}
               </div>

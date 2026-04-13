@@ -1061,12 +1061,17 @@ export async function getBebidas() {
 // REPARTIDORES — Availability check
 // ═══════════════════════════════════════════════════
 export async function checkActiveRepartidores() {
-  const { data, error } = await supabase.rpc('check_active_repartidores');
+  const { count, error } = await supabase
+    .from('repartidores')
+    .select('id', { count: 'exact', head: true })
+    .eq('estado', 'Activo')
+    .eq('admin_status', 'Aceptado');
+    
   if (error) {
     console.error("Error checking active repartidores:", error);
     return { hasActive: false };
   }
-  return { hasActive: !!data };
+  return { hasActive: (count || 0) > 0 };
 }
 
 export async function getRepartidoresActivosCount(excludeDriverId) {
@@ -1468,7 +1473,7 @@ export async function getPedidosDisponibles(repartidorId) {
   // 1. Pedidos asignados al repartidor (Confirmados o Retirados)
   // 2. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id')
+    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.eq.Pendiente)`)
     .in('estado', ['Pendiente', 'Confirmado', 'Retirado'])
     .order('created_at', { ascending: false });
@@ -1481,12 +1486,12 @@ export async function getPedidosDisponibles(repartidorId) {
   return { success: true, data: (data || []).map(p => ({
     id: p.id, cliente: p.usuario_id, nombre_cliente: p.nombre_cliente || 'Cliente', 
     direccion: p.direccion || 'Sin dirección',
-    monto: +p.total || 0, 
-    montoEnvio: +p.precio_envio || 0, // Añadido para mostrar en tarjeta
+    monto: +p.total || 0,
+    precio_envio: +p.precio_envio || 0,
     pago: p.metodo_pago || 'Efectivo',
     estado: p.estado, observaciones: p.observaciones || '', envio: p.tipo_entrega || 'envio',
     local_id: p.local_id, lat: p.lat, lng: p.lng,
-    esBroadcast: !p.repartidor_id
+    esBroadcast: !p.repartidor_id // Flag para identificar en UI
   })) };
 }
 
