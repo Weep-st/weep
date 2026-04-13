@@ -439,45 +439,44 @@ export default function DriverDashboard() {
       hadInteraction = true;
     };
 
-    if (driver && isActive) {
-      window.addEventListener('mousemove', handleInteraction);
-      window.addEventListener('touchstart', handleInteraction);
-      window.addEventListener('scroll', handleInteraction);
-
-      // First fetch
+    if (driver) {
+      // 1. Consulta inicial (Siempre para ver broadcast)
       fetchPedidos();
       checkAvailability();
+      fetchActiveLocales();
       
-      // Polling de pedidos cada 30 segundos
+      // 2. Polling de pedidos (Siempre mientras esté logueado)
       interval = setInterval(() => {
         fetchPedidos();
-        checkAvailability();
+        if (isActive) checkAvailability();
         fetchActiveLocales();
       }, 30000);
 
-      heartbeatInterval = setInterval(async () => {
-        api.repartidorUpdateHeartbeat(driver.id, hadInteraction);
-        hadInteraction = false; // Reset for next minute
-        
-        // Sincronizar estado real con la BD. Si el CRON lo apagó, se actualizará el estado
-        try {
-          const d = await api.repartidorGetDatos(driver.id);
-          if (d?.success && d.data) {
-            if (d.data.Estado === 'Inactivo') {
-              toast.error('Fuiste desconectado del sistema automáticamente por inactividad o métricas.');
-              setIsActive(false);
-              setDriverData(d.data);
+      // 3. Lógica solo si está ACTIVO (Interacción y Heartbeat)
+      if (isActive) {
+        window.addEventListener('mousemove', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction);
+        window.addEventListener('scroll', handleInteraction);
+
+        // Heartbeat cada 60s para mantener sesión activa
+        heartbeatInterval = setInterval(async () => {
+          api.repartidorUpdateHeartbeat(driver.id, hadInteraction);
+          hadInteraction = false;
+          
+          try {
+            const d = await api.repartidorGetDatos(driver.id);
+            if (d?.success && d.data) {
+              if (d.data.Estado === 'Inactivo') {
+                toast.error('Sesión terminada por inactividad.');
+                setIsActive(false);
+                setDriverData(d.data);
+              }
             }
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }, 60000);
-      
-      // Actualización inmediata al activar
-      api.repartidorUpdateHeartbeat(driver.id, true);
-    } else {
-      setPedidos([]);
+          } catch (e) { console.error(e); }
+        }, 60000);
+
+        api.repartidorUpdateHeartbeat(driver.id, true);
+      }
     }
 
     return () => {
@@ -775,6 +774,18 @@ export default function DriverDashboard() {
 
     toast.loading('Aceptando...', { id: 'ac' });
     try {
+      // SI EL REPARTIDOR NO ESTÁ ACTIVO, SE ACTIVA AUTOMÁTICAMENTE POR 15 MINUTOS
+      if (!isActive) {
+        const activeRes = await api.repartidorActualizarEstado(driver.id, 'Activo', 15);
+        if (activeRes.success) {
+          setIsActive(true);
+          toast.success('¡Activado automáticamente por 15 min!', { id: 'ac' });
+        } else {
+          toast.error('No se pudo activar tu cuenta automáticamente.', { id: 'ac' });
+          return;
+        }
+      }
+
       const res = isBroadcast 
         ? await api.aceptarPedidoBroadcast(pedidoId, driver.id)
         : await api.updateEstadoPedido(pedidoId, 'Confirmado', driver.id);
@@ -1194,7 +1205,10 @@ export default function DriverDashboard() {
                   <span className="dd-badge bg-warning text-dark">Pendiente</span>
                 )}
               </div>
-              <div className="dd-order-amount">${Number(p.monto).toLocaleString('es-AR')}</div>
+              <div className="dd-order-amount">
+                <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase' }}>Ganancia Envío</small>
+                ${Number(p.montoEnvio || 0).toLocaleString('es-AR')}
+              </div>
               <div className="dd-order-info">
                 <p>👤 <strong>Cliente:</strong> {p.nombre_cliente || 'Cliente'}</p>
                 <p>📍 <strong>Destino:</strong> {p.direccion}</p>

@@ -1620,9 +1620,10 @@ export default function CustomerApp() {
                     {(currentLocal?.acepta_envio !== false) && (
                       <option 
                         value="envio" 
+                        disabled={!hasRepartidores}
                         style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
                       >
-                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (NO DISPONIBLE)'}
+                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Envío NO DISPONIBLE (Sin repartidores)'}
                       </option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (
@@ -1677,10 +1678,15 @@ export default function CustomerApp() {
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
                   <option value="transferencia">Transferencia / Mercado Pago</option>
-                  <option value="efectivo">
-                    Efectivo
+                  <option value="efectivo" disabled={orderCount === 0 || orderCount === null}>
+                    Efectivo {orderCount === 0 ? '❌ (No disponible en 1er pedido)' : ''}
                   </option>
                 </select>
+                {(orderCount === 0 || orderCount === null) && user && (
+                  <p style={{ fontSize: '0.7rem', color: 'var(--red-600)', fontWeight: 'bold', marginTop: '4px' }}>
+                    ⚠️ Por seguridad, tu 1er pedido debe ser por transferencia sin excepción.
+                  </p>
+                )}
               </div>
 
               <div className="cart-summary">
