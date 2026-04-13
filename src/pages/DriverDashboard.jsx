@@ -751,10 +751,16 @@ export default function DriverDashboard() {
   };
 
   // ─── PEDIDO ACTIONS ───
-  const aceptarPedido = async (pedidoId) => {
+  const aceptarPedido = async (pedido) => {
+    const pedidoId = typeof pedido === 'string' ? pedido : pedido.id;
+    const isBroadcast = typeof pedido === 'object' ? pedido.esBroadcast : false;
+
     toast.loading('Aceptando...', { id: 'ac' });
     try {
-      const res = await api.updateEstadoPedido(pedidoId, 'Confirmado', driver.id);
+      const res = isBroadcast 
+        ? await api.aceptarPedidoBroadcast(pedidoId, driver.id)
+        : await api.updateEstadoPedido(pedidoId, 'Confirmado', driver.id);
+        
       if (res.success) {
         toast.success('¡Pedido aceptado!', { id: 'ac' });
         fetchPedidos();
@@ -1158,11 +1164,17 @@ export default function DriverDashboard() {
       <div className="dd-orders-grid animate-fade-in">
         {pendientes.map(p => {
           const esFirst = p.id === primerPendienteId;
+          const esBroadcast = p.esBroadcast;
+
           return (
-            <div className="dd-order-card" key={p.id}>
+            <div className={`dd-order-card ${esBroadcast ? 'broadcast-card' : ''}`} key={p.id}>
               <div className="dd-order-head">
                 <h5>Pedido #{p.id.split('-').pop()}</h5>
-                <span className="dd-badge bg-warning text-dark">Pendiente</span>
+                {esBroadcast ? (
+                  <span className="dd-badge bg-broadcast">BROADCAST ⚡</span>
+                ) : (
+                  <span className="dd-badge bg-warning text-dark">Pendiente</span>
+                )}
               </div>
               <div className="dd-order-amount">${Number(p.monto).toLocaleString('es-AR')}</div>
               <div className="dd-order-info">
@@ -1171,38 +1183,35 @@ export default function DriverDashboard() {
                 <p>💳 <strong>Pago:</strong> {p.pago}</p>
               </div>
               <div className="dd-order-actions">
-                {esFirst ? (
+                {(esFirst || esBroadcast) ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                     <button 
-                      className="dd-btn-rojo" 
+                      className={esBroadcast ? "dd-btn-broadcast" : "dd-btn-rojo"}
                       onClick={() => {
                         if (p.id.includes('PRUEBA')) {
                           setTutorialOrder({ ...tutorialOrder, estado: 'Confirmado' });
                           toast.success('¡Pedido aceptado! Ahora búscalo en el local.');
                           if (tutorialStep === 2) setTutorialStep(3);
                         } else {
-                          aceptarPedido(p.id);
+                          aceptarPedido(p);
                         }
                       }}
                     >
-                      Aceptar pedido →
+                      {esBroadcast ? '¡TOMAR VIAJE! →' : 'Aceptar pedido →'}
                     </button>
-                    {p.id.includes('PRUEBA') ? (
-                      <button className="dd-btn-outline" onClick={() => toast('No se puede rechazar en el tutorial')}>✖ Rechazar Pedido</button>
-                    ) : (
-                      <button 
-                        className="dd-btn-outline" 
-                        onClick={() => rechazarPedido(p.id)}
-                        disabled={availableDriversCount < 1}
-                        title={availableDriversCount < 1 ? "No hay otros repartidores disponibles para tomar este pedido" : ""}
-                      >
-                        ✖ Rechazar Pedido
-                      </button>
-                    )}
-                    {!p.id.includes('PRUEBA') && availableDriversCount < 1 && (
-                      <small style={{ fontSize: '0.75rem', color: 'var(--red-500)', textAlign: 'center' }}>
-                        No hay otros repartidores disponibles.
-                      </small>
+                    {!esBroadcast && (
+                      p.id.includes('PRUEBA') ? (
+                        <button className="dd-btn-outline" onClick={() => toast('No se puede rechazar en el tutorial')}>✖ Rechazar Pedido</button>
+                      ) : (
+                        <button 
+                          className="dd-btn-outline" 
+                          onClick={() => rechazarPedido(p.id)}
+                          disabled={availableDriversCount < 1}
+                          title={availableDriversCount < 1 ? "No hay otros repartidores disponibles para tomar este pedido" : ""}
+                        >
+                          ✖ Rechazar Pedido
+                        </button>
+                      )
                     )}
                   </div>
                 ) : (

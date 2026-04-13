@@ -1463,18 +1463,39 @@ export async function assignRepartidor(pedidoId) {
 }
 
 export async function getPedidosDisponibles(repartidorId) {
-  const { data } = await supabase.from('pedidos_general')
-    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente')
-    .eq('repartidor_id', repartidorId)
+  // 1. Pedidos asignados al repartidor (Confirmados o Retirados)
+  // 2. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
+  const { data, error } = await supabase.from('pedidos_general')
+    .select('id, usuario_id, direccion, total, metodo_pago, estado, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at')
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.eq.Pendiente)`)
     .in('estado', ['Pendiente', 'Confirmado', 'Retirado'])
     .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching available orders:", error);
+    return { success: false, error: error.message };
+  }
+
   return { success: true, data: (data || []).map(p => ({
     id: p.id, cliente: p.usuario_id, nombre_cliente: p.nombre_cliente || 'Cliente', 
     direccion: p.direccion || 'Sin dirección',
     monto: +p.total || 0, pago: p.metodo_pago || 'Efectivo',
     estado: p.estado, observaciones: p.observaciones || '', envio: p.tipo_entrega || 'envio',
-    local_id: p.local_id, lat: p.lat, lng: p.lng
+    local_id: p.local_id, lat: p.lat, lng: p.lng,
+    esBroadcast: !p.repartidor_id // Flag para identificar en UI
   })) };
+}
+
+export async function aceptarPedidoBroadcast(pedidoId, repartidorId) {
+  const { data, error } = await supabase.rpc('claim_pedido_broadcast', {
+    p_pedido_id: pedidoId,
+    p_repartidor_id: repartidorId
+  });
+
+  if (error) return { success: false, error: error.message };
+  if (!data.success) return { success: false, error: data.error };
+  
+  return { success: true, mensaje: data.mensaje };
 }
 
 export async function getRepartidorHistorial(repartidorId) {
