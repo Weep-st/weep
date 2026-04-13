@@ -40,15 +40,19 @@ Deno.serve(async (req) => {
       pending: "https://weep.com.ar/pedir"
     };
 
+    const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-mp?local_id=${local_id}`;
+    
     // Configuración de la preferencia base
     const body: any = {
       items,
       external_reference,
       back_urls: safeBackUrls,
-      // Mercado Pago exige HTTPS para auto_return. Si es localhost (HTTP), lo omitimos para que no falle.
       auto_return: safeBackUrls.success.startsWith('https') ? "approved" : undefined,
-      notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-mp?local_id=${local_id}`
+      notification_url: notificationUrl
     }
+
+    console.log(`[Create MP Preference] External Reference: ${external_reference}`);
+    console.log(`[Create MP Preference] Notification URL: ${notificationUrl}`);
 
     // Calcula el total del pedido
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
