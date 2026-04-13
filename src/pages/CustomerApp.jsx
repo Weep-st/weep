@@ -97,6 +97,16 @@ export default function CustomerApp() {
     }
   }, [user]);
 
+  // Session ID for demand tracking
+  const sessionId = React.useMemo(() => {
+    let sid = sessionStorage.getItem('weep_demand_session');
+    if (!sid) {
+      sid = 'SESS-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      sessionStorage.setItem('weep_demand_session', sid);
+    }
+    return sid;
+  }, []);
+
   const searchTimeout = React.useRef(null);
   
   const isClosedToday = React.useCallback((local) => {
@@ -166,6 +176,10 @@ export default function CustomerApp() {
   React.useEffect(() => {
     // La limpieza de inactividad ahora es manejada por el CRON de la BD.
 
+    // Tracking: Page View
+    api.trackDemandSignal('page_view', sessionId).catch(() => {});
+
+    // [Resto del código existente]
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
@@ -303,6 +317,9 @@ export default function CustomerApp() {
     setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
     setSelectedLocal(local);
+
+    // Tracking: Local View
+    api.trackDemandSignal('local_view', sessionId).catch(() => {});
     
     // Auto-select delivery type if only one is available
     if (local) {
@@ -641,6 +658,9 @@ export default function CustomerApp() {
         }]
       });
     }
+
+    // Tracking: Add to Cart
+    api.trackDemandSignal('add_to_cart', sessionId).catch(() => {});
 
     // Default addition for other items
     cart.addItem(menu);
@@ -1655,7 +1675,14 @@ export default function CustomerApp() {
                 </div>
                 {cart.deliveryType !== 'retiro' && metodoPago !== 'transferencia' && (
                   <div className="cart-line">
-                    <span>Envío</span>
+                    <span>
+                      Envío
+                      {cart.incentivoActivo > 0 && (
+                        <span style={{ color: 'var(--red-500)', fontWeight: 600, marginLeft: 8, fontSize: '0.75rem' }}>
+                          ⚡ Dinámica
+                        </span>
+                      )}
+                    </span>
                     <span>{visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`}</span>
                   </div>
                 )}

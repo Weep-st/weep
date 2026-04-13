@@ -134,14 +134,13 @@ BEGIN
 
     IF v_repartidor_id IS NOT NULL THEN
       UPDATE repartidores SET estado = 'Ocupado' WHERE id = v_repartidor_id;
-    ELSE
-      -- Si es con envío y no hay repartidor, lanzamos error para evitar pedidos sin repartidor
-      RAISE EXCEPTION 'No hay repartidores disponibles en este momento.';
     END IF;
+    -- Quitamos el RAISE EXCEPTION para permitir que pedidos pagados (webhook)
+    -- se creen incluso si el repartidor se desconectó en el medio.
   END IF;
 
   INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, lat, lng, repartidor_id, local_id, num_confirmacion, fecha, created_at, precio_envio, cobro_repartidor_procesado)
-  VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours', p_precio_envio, (p_metodo_pago = 'Efectivo'));
+  VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours', p_precio_envio, (LOWER(p_metodo_pago) = 'efectivo'));
 
   FOR v_local_id IN SELECT DISTINCT COALESCE(elem->>'local_id', 'unknown') FROM jsonb_array_elements(p_cart) AS elem
   LOOP

@@ -57,6 +57,13 @@ export default function DriverDashboard() {
   const [cobrosLoading, setCobrosLoading] = React.useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = React.useState(false);
 
+  // Gamification state
+  const [gamificationStats, setGamificationStats] = React.useState(null);
+  const [ranking, setRanking] = React.useState([]);
+  const [showRankingModal, setShowRankingModal] = React.useState(false);
+  const [pointsHistory, setPointsHistory] = React.useState([]);
+  const [showHistoryModal, setShowHistoryModal] = React.useState(false);
+
   // Tutorial State
   const [showTutorial, setShowTutorial] = React.useState(false);
   const [tutorialStep, setTutorialStep] = React.useState(1);
@@ -264,8 +271,29 @@ export default function DriverDashboard() {
       loadCobros();
       fetchHistorial();
       loadRealStats();
+      loadGamification();
     } catch { toast.error('Error al cargar datos'); }
   }, [driver, loginAsDriver]);
+
+  const loadGamification = async () => {
+    if (!driver) return;
+    try {
+      const stats = await api.getDriverGamificationStats(driver.id);
+      if (stats.success) setGamificationStats(stats.data);
+      
+      const rank = await api.getDriverRanking();
+      if (rank.success) setRanking(rank.data);
+    } catch (err) { console.error(err); }
+  };
+
+  const loadPointsHistory = async () => {
+    if (!driver) return;
+    try {
+      const res = await api.getDriverPointsHistory(driver.id);
+      if (res.success) setPointsHistory(res.data);
+      setShowHistoryModal(true);
+    } catch (err) { toast.error('Error al cargar historial'); }
+  };
 
   const loadRealStats = async () => {
     if (!driver) return;
@@ -1651,39 +1679,37 @@ export default function DriverDashboard() {
               {view === 'main' && (
                 <>
                   <div className="dd-stats-box animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                    <h3>Bienvenido, <span>{driverData?.Nombre || '...'}</span></h3>
+                    <div className="dd-stats-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                       <h3 style={{ margin: 0 }}>Bienvenido, <span>{driverData?.Nombre || '...'}</span></h3>
+                       {gamificationStats?.streak_actual > 0 && (
+                        <div className="streak-badge-float">
+                          🔥 {gamificationStats.streak_actual} Racha
+                        </div>
+                       )}
+                    </div>
+
                     <div className="dd-stats-grid">
-                      <div className="dd-stat-item">
-                        <small>Viajes hoy</small>
-                        <strong>{realStats.viajesHoy}</strong>
+                      <div className="dd-stat-item" onClick={() => setShowRankingModal(true)} style={{ cursor: 'pointer', border: '1px solid #ffe8cc', background: '#fff9f0' }}>
+                        <small>🏆 Ranking</small>
+                        <strong>#{gamificationStats?.rank_posicion || '—'}</strong>
+                      </div>
+                      <div className="dd-stat-item" onClick={loadPointsHistory} style={{ cursor: 'pointer', border: '1px solid #e3f2fd', background: '#f1f8ff' }}>
+                        <small>💎 Puntos</small>
+                        <strong>{gamificationStats?.puntos_totales || 0}</strong>
                       </div>
                       <div className="dd-stat-item">
-                        <small>Ganancias hoy</small>
-                        <strong>${realStats.gananciasTotalesHoy.toLocaleString('es-AR')}</strong>
-                      </div>
-                      <div className="dd-stat-item">
-                        <small>Total Viajes</small>
+                        <small>📦 Entregas</small>
                         <strong>{realStats.viajesTotales}</strong>
                       </div>
-                      <div className="dd-stat-item">
-                        <small>Total Ganancias</small>
+                      <div className="dd-stat-item" onClick={() => setView('cobros')} style={{ cursor: 'pointer' }}>
+                        <small>💰 Ganancia</small>
                         <strong>${realStats.gananciasGlobales.toLocaleString('es-AR')}</strong>
                       </div>
-                      <div className="dd-stat-item" style={{ gridColumn: 'span 2' }}>
-                        <small>Tasa de Aceptación</small>
-                        <strong>
-                          {driverData ? (
-                            (() => {
-                              const a = driverData.PedidosAceptados || 0;
-                              const r = driverData.PedidosRechazados || 0;
-                              const i = driverData.PedidosIgnorados || 0;
-                              const total = a + r + i;
-                              if (total === 0) return '100% ⭐';
-                              return Math.round((a / total) * 100) + '% ⭐';
-                            })()
-                          ) : '...'}
-                        </strong>
-                      </div>
+                    </div>
+
+                    <div className="gamification-cta-row" style={{ marginTop: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <button className="dd-btn-outline" style={{ fontSize: '0.75rem', padding: '8px' }} onClick={loadPointsHistory}>📜 Ver Puntos</button>
+                        <button className="dd-btn-outline" style={{ fontSize: '0.75rem', padding: '8px' }} onClick={() => setShowRankingModal(true)}>🏆 Ver Top 5</button>
                     </div>
                   </div>
 
@@ -2052,6 +2078,69 @@ export default function DriverDashboard() {
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+      {/* Ranking Modal */}
+      {showRankingModal && (
+        <div className="dd-modal-overlay" onClick={() => setShowRankingModal(false)}>
+          <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="dd-modal-header" style={{ background: 'var(--red-600)' }}>
+              <h5 style={{ color: 'white' }}>🏆 Top 5 Semanal</h5>
+              <button className="dd-modal-close" onClick={() => setShowRankingModal(false)}>×</button>
+            </div>
+            <div className="dd-modal-body" style={{ padding: '0' }}>
+              <div className="ranking-list">
+                {ranking.map((r, i) => (
+                  <div key={i} className={`ranking-item ${r.nombre === driverData?.Nombre ? 'is-me' : ''}`} style={{
+                    display: 'flex', alignItems: 'center', gap: 15, padding: '15px 20px', borderBottom: '1px solid #eee',
+                    background: r.posicion <= 3 ? '#fffcf0' : 'white'
+                  }}>
+                    <div className="rank-number" style={{ width: 30, fontWeight: 'bold', fontSize: '1.2rem', color: r.posicion <= 3 ? '#eab308' : '#999' }}>
+                      {r.posicion === 1 ? '🥇' : r.posicion === 2 ? '🥈' : r.posicion === 3 ? '🥉' : r.posicion}
+                    </div>
+                    <img src={r.foto_url || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold' }}>{r.nombre} {r.nombre === driverData?.Nombre && '(Tú)'}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666' }}>{r.streak_actual || 0} racha 🔥</div>
+                    </div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--red-600)' }}>{r.puntos_totales} <small>pts</small></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Points History Modal */}
+      {showHistoryModal && (
+        <div className="dd-modal-overlay" onClick={() => setShowHistoryModal(false)}>
+          <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
+            <div className="dd-modal-header">
+              <h5>📜 Historial de Puntos</h5>
+              <button className="dd-modal-close" onClick={() => setShowHistoryModal(false)}>×</button>
+            </div>
+            <div className="dd-modal-body" style={{ maxHeight: 400, overflowY: 'auto' }}>
+              {pointsHistory.length === 0 ? (
+                <p style={{ textAlign: 'center', padding: 20 }}>Aún no has acumulado puntos. ¡Responde a las alertas para ganar!</p>
+              ) : (
+                <div className="history-list">
+                  {pointsHistory.map((p, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #eee' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          {p.motivo.startsWith('RESPONSE') ? '🎯 Respuesta a Alerta' : 
+                           p.motivo.startsWith('STREAK') ? '🔥 Bonus de Racha' : p.motivo}
+                        </div>
+                        <small style={{ color: '#999' }}>{new Date(p.created_at).toLocaleString()}</small>
+                      </div>
+                      <div style={{ color: 'var(--red-500)', fontWeight: 'bold' }}>+{p.puntos}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -7,20 +7,34 @@ const CartContext = createContext(null);
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [deliveryType, setDeliveryType] = useState('envio');
-  const [costoEnvio, setCostoEnvio] = useState(2000); // Default fallback
+  const [costoEnvio, setCostoEnvio] = useState(1800); 
+  const [incentivoActivo, setIncentivoActivo] = useState(0);
 
   useEffect(() => {
     const fetchCosto = async () => {
       try {
-        const config = await api.getConfiguracion();
-        if (config && config.valor_envio) {
-          setCostoEnvio(Number(config.valor_envio));
-        }
+        // Consultamos el incentivo dinámico y la configuración base
+        const [config, activation] = await Promise.all([
+          api.getConfiguracion(),
+          api.getSystemActivation()
+        ]);
+
+        const base = Number(config?.valor_envio) || 1800;
+        const incentivo = Number(activation?.valor_incentivo) || 0;
+
+        setCostoEnvio(base + incentivo);
+        setIncentivoActivo(incentivo);
       } catch (err) {
-        console.error('Error fetching shipping cost:', err);
+        console.error('Error fetching dynamic shipping cost:', err);
+        setCostoEnvio(1800);
       }
     };
+    
     fetchCosto();
+    
+    // Opcional: Refrescar cada 2 minutos para reflejar cambios de tarifa
+    const interval = setInterval(fetchCosto, 120000);
+    return () => clearInterval(interval);
   }, []);
 
   const addItem = useCallback((menu) => {
@@ -60,6 +74,7 @@ export function CartProvider({ children }) {
       deliveryType, setDeliveryType,
       subtotal, shippingCost, total, totalItems, hasDrink,
       COSTO_ENVIO: costoEnvio,
+      incentivoActivo
     }}>
       {children}
     </CartContext.Provider>

@@ -2211,3 +2211,64 @@ export async function updateConfiguracion(updates) {
   if (error) throw new Error(error.message);
   return { success: true };
 }
+
+// ═══════════════════════════════════════════════════
+// ACTIVACIÓN POR DEMANDA (NUEVO)
+// ═══════════════════════════════════════════════════
+export async function getSystemActivation() {
+  const { data } = await supabase
+    .from('system_activation_status')
+    .select('current_state, valor_incentivo, current_score')
+    .eq('id', 1)
+    .single();
+  return data || { current_state: 'IDLE', valor_incentivo: 0 };
+}
+
+export async function trackDemandSignal(eventType, sessionId) {
+  const weights = { 
+    page_view: 1, 
+    local_view: 5, 
+    item_view: 10, 
+    add_to_cart: 25 
+  };
+  
+  const weight = weights[eventType] || 1;
+  
+  return supabase.from('demand_signals').insert({
+    session_id: sessionId,
+    event_type: eventType,
+    weight: weight
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// GAMIFICACIÓN (NUEVO)
+// ═══════════════════════════════════════════════════
+export async function getDriverGamificationStats(driverId) {
+  const { data, error } = await supabase
+    .from('driver_gamification_stats')
+    .select('*')
+    .eq('driver_id', driverId)
+    .single();
+  if (error) return { success: false, error: error.message };
+  return { success: true, data };
+}
+
+export async function getDriverRanking() {
+  const { data, error } = await supabase
+    .from('view_driver_ranking')
+    .select('*');
+  if (error) return { success: false, error: error.message };
+  return { success: true, data };
+}
+
+export async function getDriverPointsHistory(driverId) {
+  const { data, error } = await supabase
+    .from('driver_points_log')
+    .select('*')
+    .eq('driver_id', driverId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) return { success: false, error: error.message };
+  return { success: true, data };
+}
