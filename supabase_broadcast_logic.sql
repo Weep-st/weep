@@ -52,7 +52,7 @@ BEGIN
             v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, 
             p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, 
             v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours', 
-            p_precio_envio + COALESCE(v_val_incentivo, 0), -- Sumamos incentivo al precio de envío
+            p_precio_envio, -- El precio ya viene con el incentivo desde el cliente si correspondía
             (LOWER(p_metodo_pago) = 'efectivo'), p_external_reference
         );
 
