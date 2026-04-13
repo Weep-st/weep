@@ -218,7 +218,7 @@ export default function CustomerApp() {
     if (hasRepartidores === false && cart.deliveryType === 'envio') {
       // Intentar obtener el local del primer item del carrito si selectedLocal es null
       const localRef = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-      const puedeRetirar = localRef ? (localRef.acepta_retiro !== false) : true;
+      const puedeRetirar = localRef?.acepta_retiro === true;
       if (puedeRetirar) {
         cart.setDeliveryType('retiro');
       }
@@ -324,9 +324,9 @@ export default function CustomerApp() {
     // Auto-select delivery type if only one is available
     if (local) {
       if (local.acepta_envio === false && cart.deliveryType === 'envio') {
-        cart.setDeliveryType('retiro');
-      } else if (local.acepta_retiro === false && cart.deliveryType === 'retiro') {
-        cart.setDeliveryType('envio');
+        if (local.acepta_retiro === true) cart.setDeliveryType('retiro');
+      } else if (local.acepta_retiro !== true && cart.deliveryType === 'retiro') {
+        if (local.acepta_envio !== false) cart.setDeliveryType('envio');
       }
     }
 
@@ -726,12 +726,14 @@ export default function CustomerApp() {
       });
     }
 
+    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+
     // Check repartidores active strictly before proceeding if envio is selected
     if (cart.deliveryType === 'envio') {
       const freshRiders = await api.checkActiveRepartidores();
       if (!freshRiders.hasActive) {
         setHasRepartidores(false);
-        const puedeRetirar = selectedLocal ? selectedLocal.acepta_retiro !== false : true;
+        const puedeRetirar = currentLocal?.acepta_retiro === true;
         if (puedeRetirar) {
           cart.setDeliveryType('retiro');
         }
@@ -739,8 +741,16 @@ export default function CustomerApp() {
       }
     }
 
-    if (cart.deliveryType === 'retiro' && selectedLocal?.acepta_retiro === false) {
+    if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
       toast.error('Este local no ofrece la opción de retiro en el local.');
+      return;
+    }
+
+    // Validación de primer pedido por transferencia
+    if (mp === 'efectivo' && (orderCount === 0 || orderCount === null)) {
+      // Si es null, por seguridad asumimos que es el primero si ya logramos obtener user e intentamos cargar orderCount
+      toast.error('Por seguridad, tu primer pedido debe ser por transferencia / Mercado Pago.');
+      setMetodoPago('transferencia');
       return;
     }
 
@@ -1589,8 +1599,11 @@ export default function CustomerApp() {
                   api.checkActiveRepartidores().then(fresh => {
                     setHasRepartidores(fresh.hasActive);
                     if (!fresh.hasActive) {
-                      // Si al final no había, revertimos a retiro
-                      cart.setDeliveryType('retiro');
+                      // Si al final no había, revertimos a retiro (si se permite)
+                      const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+                      if (currentLocal?.acepta_retiro === true) {
+                        cart.setDeliveryType('retiro');
+                      }
                     }
                   }).catch(() => {});
                 }
@@ -1600,17 +1613,24 @@ export default function CustomerApp() {
                 backgroundColor: !hasRepartidores ? '#fff9f0' : ''
               }}
             >
-              {(selectedLocal?.acepta_envio !== false) && (
-                <option 
-                  value="envio" 
-                  style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
-                >
-                  {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (NO DISPONIBLE)'}
-                </option>
-              )}
-              {(selectedLocal?.acepta_retiro !== false) && (
-                <option value="retiro">🥡 Retirar en local</option>
-              )}
+              {(() => {
+                const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+                return (
+                  <>
+                    {(currentLocal?.acepta_envio !== false) && (
+                      <option 
+                        value="envio" 
+                        style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
+                      >
+                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (NO DISPONIBLE)'}
+                      </option>
+                    )}
+                    {(currentLocal?.acepta_retiro === true) && (
+                      <option value="retiro">🥡 Retirar en local</option>
+                    )}
+                  </>
+                );
+              })()}
             </select>
           </div>
 
@@ -1657,15 +1677,10 @@ export default function CustomerApp() {
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
                   <option value="transferencia">Transferencia / Mercado Pago</option>
-                  <option value="efectivo" disabled={orderCount === 0}>
-                    Efectivo {orderCount === 0 ? '(No disponible en 1er pedido)' : ''}
+                  <option value="efectivo">
+                    Efectivo
                   </option>
                 </select>
-                {orderCount === 0 && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: '600', margin: '0 0 10px 4px' }}>
-                    * Por seguridad, tu primer pedido debe ser por transferencia.
-                  </p>
-                )}
               </div>
 
               <div className="cart-summary">
