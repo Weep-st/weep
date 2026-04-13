@@ -27,7 +27,7 @@ BEGIN
       v_push_payload := jsonb_build_object(
         'subscriptionIds', v_onesignal_ids,
         'title', '¡Nuevo Pedido Disponible! 🛵',
-        'message', 'Viaje de $' || NEW.total || ' disponible. ¡El primero en aceptar se lo lleva!',
+        'message', 'Viaje de $' || NEW.precio_envio || ' disponible. ¡El primero en aceptar se lo lleva!',
         'data', jsonb_build_object('pedidoId', NEW.id, 'type', 'new_order_broadcast')
       );
 
