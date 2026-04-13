@@ -130,7 +130,7 @@
 
 @media (max-width: 768px) {
   .app-main { padding-top: 120px; }
-  .app-header { gap: 8px; }
+  .app-header { gap: 8px; justify-content: space-between; }
   .search-wrapper { order: 3; width: 100%; flex-basis: 100%; }
 }
 
