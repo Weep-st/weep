@@ -125,71 +125,74 @@ DECLARE
     v_streak INT;
     v_last_resp TIMESTAMPTZ;
 BEGIN
-    -- Solo actuar si pasa de Inactivo a Activo
-    IF NEW.estado = 'Activo' AND (OLD.estado IS NULL OR OLD.estado != 'Activo') THEN
-        
-        -- Obtener estado de demanda
-        SELECT * INTO v_status FROM public.system_activation_status WHERE id = 1;
-
-        IF v_status.current_state != 'IDLE' AND v_status.current_cycle_id IS NOT NULL THEN
+    -- Envolver en bloque resiliente para no romper actualizaciones de repartidor si el sistema de puntos falla
+    BEGIN
+        -- Solo actuar si pasa de Inactivo a Activo
+        IF NEW.estado = 'Activo' AND (OLD.estado IS NULL OR OLD.estado != 'Activo') THEN
             
-            -- 1. LÓGICA DE PUNTOS POR NIVEL Y VENTANA DE GRACIA (3 MINUTOS)
-            v_tiempo_desde_l1 := EXTRACT(EPOCH FROM (NOW() - v_status.l1_started_at)) / 60;
+            -- Obtener estado de demanda
+            SELECT * INTO v_status FROM public.system_activation_status WHERE id = 1;
 
-            IF v_tiempo_desde_l1 <= 3 THEN
-                v_puntos_base := 100; -- Premio máximo por rapidez (Gracia L1)
-            ELSE
-                IF v_status.current_state = 'ALERTED_L1' THEN v_puntos_base := 100;
-                ELSIF v_status.current_state = 'ALERTED_L2' THEN v_puntos_base := 60;
-                ELSIF v_status.current_state = 'ALERTED_L3' THEN v_puntos_base := 30;
+            IF v_status IS NOT NULL AND v_status.current_state != 'IDLE' AND v_status.current_cycle_id IS NOT NULL THEN
+                
+                -- 1. LÓGICA DE PUNTOS POR NIVEL Y VENTANA DE GRACIA (3 MINUTOS)
+                v_tiempo_desde_l1 := EXTRACT(EPOCH FROM (NOW() - v_status.l1_started_at)) / 60;
+
+                IF v_tiempo_desde_l1 <= 3 THEN
+                    v_puntos_base := 100; -- Premio máximo por rapidez (Gracia L1)
+                ELSE
+                    IF v_status.current_state = 'ALERTED_L1' THEN v_puntos_base := 100;
+                    ELSIF v_status.current_state = 'ALERTED_L2' THEN v_puntos_base := 60;
+                    ELSIF v_status.current_state = 'ALERTED_L3' THEN v_puntos_base := 30;
+                    END IF;
                 END IF;
+
+                -- 2. BONUS FIRST RESPONDER (+150 pts)
+                v_puntos_extra := 150;
+
+                -- 3. LOGUEAR PUNTOS
+                INSERT INTO public.driver_points_log (driver_id, cycle_id, puntos, motivo)
+                VALUES (NEW.id, v_status.current_cycle_id, v_puntos_base + v_puntos_extra, 'RESPONSE_' || v_status.current_state);
+
+                -- 4. ACTUALIZAR ESTADÍSTICAS Y RACHAS
+                SELECT streak_actual, last_response_at INTO v_streak, v_last_resp 
+                FROM public.driver_gamification_stats WHERE driver_id = NEW.id;
+
+                IF v_last_resp >= NOW() - INTERVAL '24 hours' THEN
+                    v_streak := COALESCE(v_streak, 0) + 1;
+                ELSE
+                    v_streak := 1;
+                END IF;
+
+                -- Bonus por Racha
+                IF v_streak = 3 THEN 
+                    INSERT INTO public.driver_points_log (driver_id, cycle_id, puntos, motivo) VALUES (NEW.id, v_status.current_cycle_id, 100, 'STREAK_3');
+                    v_puntos_extra := v_puntos_extra + 100;
+                ELSIF v_streak = 5 THEN
+                    INSERT INTO public.driver_points_log (driver_id, cycle_id, puntos, motivo) VALUES (NEW.id, v_status.current_cycle_id, 250, 'STREAK_5');
+                    v_puntos_extra := v_puntos_extra + 250;
+                END IF;
+
+                UPDATE public.driver_gamification_stats 
+                SET puntos_totales = puntos_totales + v_puntos_base + v_puntos_extra,
+                    puntos_canjeables = puntos_canjeables + v_puntos_base + v_puntos_extra,
+                    streak_actual = v_streak,
+                    last_response_at = NOW()
+                WHERE driver_id = NEW.id;
+
+                -- 5. RESET DEL SISTEMA (Él fue el responsable)
+                UPDATE public.system_activation_status 
+                SET current_state = 'IDLE', 
+                    valor_incentivo = 0, 
+                    current_cycle_id = NULL,
+                    updated_at = NOW() 
+                WHERE id = 1;
             END IF;
-
-            -- 2. BONUS FIRST RESPONDER (+150 pts)
-            -- Si el ciclo sigue activo, el primero en conectar se lo lleva
-            v_puntos_extra := 150;
-
-            -- 3. LOGUEAR PUNTOS
-            INSERT INTO public.driver_points_log (driver_id, cycle_id, puntos, motivo)
-            VALUES (NEW.id, v_status.current_cycle_id, v_puntos_base + v_puntos_extra, 'RESPONSE_' || v_status.current_state);
-
-            -- 4. ACTUALIZAR ESTADÍSTICAS Y RACHAS
-            SELECT streak_actual, last_response_at INTO v_streak, v_last_resp 
-            FROM public.driver_gamification_stats WHERE driver_id = NEW.id;
-
-            -- Si su última respuesta fue en las últimas 24hs, suma racha
-            IF v_last_resp >= NOW() - INTERVAL '24 hours' THEN
-                v_streak := COALESCE(v_streak, 0) + 1;
-            ELSE
-                v_streak := 1;
-            END IF;
-
-            -- Bonus por Racha
-            IF v_streak = 3 THEN 
-                 INSERT INTO public.driver_points_log (driver_id, cycle_id, puntos, motivo) VALUES (NEW.id, v_status.current_cycle_id, 100, 'STREAK_3');
-                 v_puntos_extra := v_puntos_extra + 100;
-            ELSIF v_streak = 5 THEN
-                 INSERT INTO public.driver_points_log (driver_id, cycle_id, puntos, motivo) VALUES (NEW.id, v_status.current_cycle_id, 250, 'STREAK_5');
-                 v_puntos_extra := v_puntos_extra + 250;
-            END IF;
-
-            UPDATE public.driver_gamification_stats 
-            SET puntos_totales = puntos_totales + v_puntos_base + v_puntos_extra,
-                puntos_canjeables = puntos_canjeables + v_puntos_base + v_puntos_extra,
-                streak_actual = v_streak,
-                last_response_at = NOW()
-            WHERE driver_id = NEW.id;
-
-            -- 5. RESET DEL SISTEMA (Él fue el responsable)
-            UPDATE public.system_activation_status 
-            SET current_state = 'IDLE', 
-                valor_incentivo = 0, 
-                current_cycle_id = NULL,
-                updated_at = NOW() 
-            WHERE id = 1;
-
         END IF;
-    END IF;
+    EXCEPTION WHEN OTHERS THEN
+        -- Ignorar error para permitir que la actualización del repartidor continúe
+        RAISE NOTICE 'Error en gamificación: %', SQLERRM;
+    END;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
