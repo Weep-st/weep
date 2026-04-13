@@ -1041,7 +1041,7 @@ export default function DriverDashboard() {
                   </div>
                   <div className="dd-info-row">
                     <span className="dd-info-value monto">
-                      {enViaje.pago?.toLowerCase() === 'efectivo' 
+                      {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
                         ? `Debés pagar: $${Number(montoMostrar).toLocaleString('es-AR')}` 
                         : 'Ya Pago (Retirá sin pagar)'}
                     </span>
@@ -1063,8 +1063,8 @@ export default function DriverDashboard() {
                   </div>
                   <div className="dd-info-row">
                     <span className="dd-info-value monto cobrar">
-                      {enViaje.pago?.toLowerCase() === 'efectivo' 
-                        ? `Debés cobrar: $${Number(enViaje.monto).toLocaleString('es-AR')}` 
+                      {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
+                        ? `Debés cobrar: $${Number(enViaje.total || enViaje.monto || 0).toLocaleString('es-AR')}` 
                         : 'Ya Pago (No cobrar)'}
                     </span>
                   </div>
@@ -1073,7 +1073,7 @@ export default function DriverDashboard() {
             )}
 
             <div className="dd-envio-status">
-              Metodo: {enViaje.pago} | Tipo: {enViaje.envio}
+              Metodo: {enViaje.metodo_pago || enViaje.pago} | Tipo: {enViaje.tipo_entrega || enViaje.envio}
             </div>
 
             {showMap && (
@@ -1216,7 +1216,7 @@ export default function DriverDashboard() {
               <div className="dd-order-info">
                 <p>👤 <strong>Cliente:</strong> {p.nombre_cliente || 'Cliente'}</p>
                 <p>📍 <strong>Destino:</strong> {p.direccion}</p>
-                <p>💳 <strong>Pago:</strong> {p.pago}</p>
+                <p>💳 <strong>Pago:</strong> {p.metodo_pago || p.pago}</p>
               </div>
               <div className="dd-order-actions">
                 {(esFirst || esBroadcast) ? (
