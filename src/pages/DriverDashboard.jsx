@@ -372,16 +372,24 @@ export default function DriverDashboard() {
             }
 
             // 2. Listeners for changes (e.g. user clears cache/re-registers)
-            OneSignal.Notifications.addEventListener("permissionChange", (permission) => {
+            OneSignal.Notifications.addEventListener("permissionChange", async (permission) => {
               console.log("🔔 OneSignal Permission changed:", permission);
               updateStatus();
+              // Si se concedió permiso, intentar sincronizar el ID de inmediato
+              if (permission) {
+                const sub = OneSignal.User.PushSubscription;
+                if (sub.id) {
+                  console.log("🔔 OneSignal Syncing on Permission Change:", sub.id);
+                  await api.repartidorUpdateOneSignalId(driver.id, sub.id).catch(console.error);
+                }
+              }
             });
 
             OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
-              const newId = event.current.id;
+              const newId = event.current?.id || OneSignal.User.PushSubscription.id;
+              console.log("🔔 OneSignal ID Change Event:", newId);
               if (newId) {
-                console.log("🔔 OneSignal ID changed:", newId);
-                await api.repartidorUpdateOneSignalId(driver.id, newId);
+                await api.repartidorUpdateOneSignalId(driver.id, newId).catch(console.error);
               }
             });
 
@@ -390,7 +398,17 @@ export default function DriverDashboard() {
             // On other platforms, we can try to prompt if active.
             if (!isIOS && OneSignal.Notifications.permissionNative === 'default' && isActive) {
               console.log("🔔 OneSignal: Autoprompting (Non-iOS)...");
-              await OneSignal.Notifications.requestPermission();
+              const granted = await OneSignal.Notifications.requestPermission();
+              if (granted) {
+                // Pequeña espera para asegurar que la suscripción se cree
+                setTimeout(async () => {
+                  const subId = OneSignal.User.PushSubscription.id;
+                  if (subId) {
+                    console.log("🔔 OneSignal Syncing after Prompt (Deferred):", subId);
+                    await api.repartidorUpdateOneSignalId(driver.id, subId).catch(console.error);
+                  }
+                }, 1000);
+              }
             }
 
           } catch (err) {

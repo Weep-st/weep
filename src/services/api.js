@@ -386,6 +386,7 @@ export async function repartidorRenovarSesion(driverId, mins = 30) {
 
 export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
   if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
+  console.log(`🚀 DB: Actualizando OneSignal para Driver ${driverId}:`, onesignalId);
   
   // Update in database
   const { error } = await supabase.from('repartidores')
@@ -393,9 +394,10 @@ export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
     .eq('id', driverId);
     
   if (error) {
-    console.error("Error updating OneSignal ID:", error);
+    console.error("❌ Error actualizando OneSignal ID en DB:", error);
     throw new Error(error.message);
   }
+  console.log("✅ DB: OneSignal ID actualizado exitosamente.");
   return { success: true };
 }
 
