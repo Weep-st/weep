@@ -84,7 +84,9 @@ CREATE OR REPLACE FUNCTION create_pedido_completo(
   p_lat NUMERIC,
   p_lng NUMERIC,
   p_cart JSONB,
-  p_precio_envio NUMERIC DEFAULT 0
+  p_precio_envio NUMERIC DEFAULT 0,
+  p_id TEXT DEFAULT NULL,
+  p_external_reference TEXT DEFAULT NULL
 )
 RETURNS JSONB AS $$
 DECLARE
@@ -94,7 +96,13 @@ DECLARE
   v_repartidor_id TEXT;
   v_num_confirmacion TEXT;
 BEGIN
-  v_pedido_id := 'PED-' || (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT::TEXT;
+  -- Si se proporciona un ID (desde pedidos_temporales), lo usamos.
+  IF p_id IS NOT NULL THEN
+    v_pedido_id := p_id;
+  ELSE
+    v_pedido_id := 'PED-' || (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT::TEXT;
+  END IF;
+
   v_repartidor_id := NULL;
   
   -- Generar PIN de 4 digitos
@@ -139,8 +147,8 @@ BEGIN
     -- se creen incluso si el repartidor se desconectó en el medio.
   END IF;
 
-  INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, lat, lng, repartidor_id, local_id, num_confirmacion, fecha, created_at, precio_envio, cobro_repartidor_procesado)
-  VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours', p_precio_envio, (LOWER(p_metodo_pago) = 'efectivo'));
+  INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, lat, lng, repartidor_id, local_id, num_confirmacion, fecha, created_at, precio_envio, cobro_repartidor_procesado, external_reference)
+  VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours', p_precio_envio, (LOWER(p_metodo_pago) = 'efectivo'), p_external_reference);
 
   FOR v_local_id IN SELECT DISTINCT COALESCE(elem->>'local_id', 'unknown') FROM jsonb_array_elements(p_cart) AS elem
   LOOP

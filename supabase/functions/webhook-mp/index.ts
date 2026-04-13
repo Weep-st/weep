@@ -19,18 +19,25 @@ Deno.serve(async (req) => {
     const payload = await req.json()
     console.log('Webhook MP Payload:', payload)
 
-    // 1. Verificar qué tipo de evento es
-    // Normalmente viene: { "action": "payment.created", "data": { "id": "123456" } }
-    // O { "type": "payment", "data": { "id": "123456" } }
+    // 1. Verificar qué tipo de evento es y extraer ID
+    // Puede venir como: { "data": { "id": "123" } }
+    // O como: { "resource": ".../payments/123", "topic": "payment" }
     
-    const id = payload?.data?.id || payload?.id
-    const type = payload?.type || payload?.action || 'payment'
+    let id = payload?.data?.id || payload?.id
+    
+    if (!id && payload?.resource) {
+      const parts = payload.resource.split('/')
+      id = parts[parts.length - 1]
+    }
+
+    const type = payload?.type || payload?.action || payload?.topic || 'payment'
     const localId = new URL(req.url).searchParams.get('local_id')
 
     console.log(`[Webhook MP] Recibida notificación: tipo=${type}, id=${id}, local=${localId}`)
 
-    if (!id) {
-      return new Response(JSON.stringify({ message: "No id found in payload" }), { status: 200 })
+    if (!id || isNaN(Number(id))) {
+      console.log('[Webhook MP] ID no válido o ausente en el payload')
+      return new Response(JSON.stringify({ message: "No valid id found in payload" }), { status: 200 })
     }
 
     // 2. Obtener Tokens
@@ -118,7 +125,9 @@ Deno.serve(async (req) => {
         p_lat: parseFloat(order_info.lat || '0'),
         p_lng: parseFloat(order_info.lng || '0'),
         p_cart: cart_data,
-        p_precio_envio: parseFloat(order_info.precioEnvio || '0')
+        p_precio_envio: parseFloat(order_info.precioEnvio || '0'),
+        p_id: externalReference,
+        p_external_reference: externalReference
       });
 
       if (rpcError) {
