@@ -98,6 +98,28 @@
 
         ipcRenderer.on('render-ticket', (event, order) => {
             const container = document.getElementById('ticket-content');
+            const config = order.config || {
+                paper_width: "80mm",
+                margin_left: "0mm",
+                margin_right: "4mm",
+                padding_left: "2mm",
+                padding_right: "2mm",
+                base_font_size: "13px",
+                header_image_max_width: "35mm",
+                weep_logo_max_width: "40mm"
+            };
+
+            // Aplicar Estilos Dinámicos (Nube)
+            document.body.style.width = config.paper_width;
+            document.body.style.marginLeft = config.margin_left;
+            document.body.style.marginRight = config.margin_right;
+            document.body.style.paddingLeft = config.padding_left;
+            document.body.style.paddingRight = config.padding_right;
+            document.body.style.fontSize = config.base_font_size;
+            
+            // Forzar que nada se salga del ancho del papel
+            document.body.style.boxSizing = "border-box";
+            document.body.style.overflow = "hidden";
             
             // Formatear fecha: DD/M/AAAA, h:mm:ss AM/PM
             const dateObj = new Date(order.fecha);
@@ -109,7 +131,7 @@
                 minute: '2-digit',
                 second: '2-digit',
                 hour12: true
-            }).replace(/\./g, ''); // Limpiar puntos de AM/PM si los hay
+            }).replace(/\./g, '');
 
             let itemsHtml = order.items.map(item => `
                 <div class="item-row">
@@ -120,10 +142,10 @@
             `).join('');
 
             container.innerHTML = `
-                <div class="central-header" style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                    <img src="${order.local_logo}" style="max-width: 24mm; max-height: 18mm; object-fit: contain;">
-                    <span style="font-size: 30px; line-height: 1;">|</span>
-                    <img src="https://i.postimg.cc/269xSD6z/buscamos-repartidores-(21)-(3)-(1).png" style="max-width: 38mm; max-height: 28mm; object-fit: contain;">
+                <div class="central-header" style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <img src="${order.local_logo}" style="max-width: ${config.header_image_max_width}; max-height: 20mm; object-fit: contain;">
+                    <span style="font-size: 25px; line-height: 1;">|</span>
+                    <img src="https://i.postimg.cc/269xSD6z/buscamos-repartidores-(21)-(3)-(1).png" style="max-width: ${config.weep_logo_max_width}; max-height: 25mm; object-fit: contain;">
                 </div>
 
                 <div class="separator"></div>

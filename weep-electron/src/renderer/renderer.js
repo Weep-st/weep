@@ -22,6 +22,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let supabaseClient = null;
 let channel = null;
+let cloudConfig = null; // Almacenará el diseño desde la nube
 
 async function init() {
     const settings = await window.electronAPI.getSettings();
@@ -34,8 +35,27 @@ async function init() {
 
     if (settings.localId) {
         connectToSupabase(settings.localId);
+        await refreshCloudConfig(); // Cargar diseño desde la nube
     } else {
         addLog('Esperando ID de Local para conectar...');
+    }
+}
+
+async function refreshCloudConfig() {
+    try {
+        if (!supabaseClient) return;
+        const { data, error } = await supabaseClient
+            .from('app_config')
+            .select('value')
+            .eq('key', 'ticket_design')
+            .single();
+        
+        if (error) throw error;
+        cloudConfig = data.value;
+        addLog('Diseño de ticket actualizado desde la nube');
+    } catch (e) {
+        addLog('Aviso: Usando diseño local (no se pudo cargar la nube)');
+        console.error('Error cargando config:', e);
     }
 }
 
@@ -147,7 +167,10 @@ function processNewOrder(order) {
         sound.play().catch(e => console.log('Error de audio:', e));
     }
 
-    window.electronAPI.sendNewOrder(order);
+    window.electronAPI.sendNewOrder({
+        ...order,
+        config: cloudConfig // Enviamos la configuración de diseño junto con el pedido
+    });
 }
 
 function renderTicketToElement(order, targetElement) {
@@ -275,6 +298,7 @@ saveBtn.addEventListener('click', () => {
         printerName: printerSelect.value
     });
     connectToSupabase(localId);
+    refreshCloudConfig(); // Actualizar al guardar
     addLog('Configuración guardada correctamente');
 });
 

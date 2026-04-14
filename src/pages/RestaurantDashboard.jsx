@@ -1798,6 +1798,9 @@ export default function RestaurantDashboard() {
               <button className={profileSubView === 'edit' ? 'active' : ''} onClick={() => setProfileSubView('edit')}>
                 👤 Editar Perfil
               </button>
+              <button className={profileSubView === 'printing' ? 'active' : ''} onClick={() => setProfileSubView('printing')}>
+                🖨️ Impresión Ticket
+              </button>
             </div>
 
             {profileSubView === 'ventas' && (
@@ -2113,8 +2116,60 @@ export default function RestaurantDashboard() {
                     onCancel={() => setShowAddressSelector(false)}
                     title="Ubicación de tu Local"
                     errorMsg="El local debe estar ubicado en Santo Tomé."
+                    limitToCity="Santo Tomé"
                   />
                 )}
+              </div>
+            )}
+
+            {profileSubView === 'printing' && (
+              <div className="card card-body animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🖨️</div>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Impresión Automática de Tickets</h2>
+                <p style={{ color: 'var(--gray-600)', maxWidth: '500px', margin: '0 auto 32px', lineHeight: 1.6 }}>
+                  Optimizá tu local con nuestra aplicación de escritorio. Imprime tickets automáticamente en tu comandera térmica apenas recibís un pedido.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
+                  <a 
+                    href="https://weep.ar/download/weep-printer-latest.exe" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-full"
+                    style={{ padding: '16px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                  >
+                    🚀 Descargar instalador para Windows
+                  </a>
+                  
+                  <div className="card" style={{ padding: '24px', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', marginTop: '20px' }}>
+                    <h3 style={{ fontSize: '0.9rem', color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Tu ID de Configuración</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                      <code style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--gray-800)', background: 'white', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--gray-300)' }}>
+                        {restaurant?.id}
+                      </code>
+                      <button 
+                        className="btn btn-sm btn-ghost" 
+                        onClick={() => { navigator.clipboard.writeText(restaurant?.id); toast.success('ID Copiado'); }}
+                        style={{ padding: '8px' }}
+                      >
+                        📋 Copiar
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '16px' }}>
+                      Copiá este ID y pegalo en la aplicación de escritorio para vincular tu local.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '40px', borderTop: '1px solid var(--gray-100)', paddingTop: '40px', textAlign: 'left', maxWidth: '600px', margin: '40px auto 0' }}>
+                  <h4 style={{ marginBottom: '16px' }}>Pasos para configurar:</h4>
+                  <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--gray-600)' }}>
+                    <li><strong>Descargá e instalá</strong> el programa en la computadora que tiene conectada la impresora.</li>
+                    <li><strong>Abrí Weep Desktop</strong> e ingresá tu ID de Local (arriba).</li>
+                    <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
+                    <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
+                  </ol>
+                </div>
               </div>
             )}
           </section>
