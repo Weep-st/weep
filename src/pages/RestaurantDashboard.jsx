@@ -1243,7 +1243,7 @@ export default function RestaurantDashboard() {
                 style={{ backgroundColor: '#10b981', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 0 }} 
                 onClick={() => {
                   const localId = restaurant?.localId || restaurant?.id || 'LOCAL';
-                  const downloadUrl = '/Weep_Desktop.exe';
+                  const downloadUrl = '/download/weep-printer-latest.exe';
                   
                   const link = document.createElement('a');
                   link.href = downloadUrl;
