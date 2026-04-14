@@ -741,3 +741,5 @@
 .dd-btn-broadcast:active {
   transform: scale(0.98);
 }
+@ k e y f r a m e s   p u l s e   {   0 %   {   o p a c i t y :   0 . 6 ;   t r a n s f o r m :   s c a l e ( 1 ) ;   }   5 0 %   {   o p a c i t y :   1 ;   t r a n s f o r m :   s c a l e ( 1 . 2 ) ;   }   1 0 0 %   {   o p a c i t y :   0 . 6 ;   t r a n s f o r m :   s c a l e ( 1 ) ;   }   }  
+ 

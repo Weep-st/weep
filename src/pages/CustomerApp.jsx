@@ -349,6 +349,7 @@ export default function CustomerApp() {
   }, [locals, filteredLocals]);
 
   const fetchByCategory = React.useCallback((cat) => {
+    api.trackDemandSignal('category_view', sessionId).catch(() => {});
     if (cat === 'favoritos') {
       if (!user) { setModal('login'); return; }
       setLoadingMenus(true);

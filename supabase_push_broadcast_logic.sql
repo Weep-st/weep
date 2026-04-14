@@ -11,7 +11,7 @@ DECLARE
   v_onesignal_id TEXT;
 BEGIN
   -- CASO 1: PEDIDO BROADCAST (Nuevo pedido sin asignar)
-  IF (TG_OP = 'INSERT' AND NEW.repartidor_id IS NULL AND NEW.estado = 'Pendiente') THEN
+  IF (TG_OP = 'INSERT' AND NEW.repartidor_id IS NULL AND NEW.estado = 'Pendiente' AND NEW.tipo_entrega = 'Con Envío') THEN
     
     -- Recolectar IDs de OneSignal de todos los repartidores ACEPTADOS
     -- No importa su estado de actividad (según requerimiento previo), solo que estén aceptados por admin
@@ -76,6 +76,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Re-vincular el trigger
 DROP TRIGGER IF EXISTS tr_notify_repartidor_assignment ON public.pedidos_general;
+DROP TRIGGER IF EXISTS tr_notify_repartidor_broadcast ON public.pedidos_general;
 
 CREATE TRIGGER tr_notify_repartidor_broadcast
   AFTER INSERT OR UPDATE OF repartidor_id

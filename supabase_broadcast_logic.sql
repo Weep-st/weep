@@ -109,7 +109,8 @@ BEGIN
         estado = 'Confirmado'
     WHERE id = p_pedido_id 
       AND repartidor_id IS NULL 
-      AND estado = 'Pendiente';
+      AND estado = 'Pendiente'
+      AND tipo_entrega = 'Con Envío';
 
     GET DIAGNOSTICS v_updated = ROW_COUNT;
 

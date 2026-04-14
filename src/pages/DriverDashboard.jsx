@@ -1022,7 +1022,12 @@ export default function DriverDashboard() {
         <div className="dd-simple-card animate-slide-up">
           <div className="dd-simple-header">
             <h4>Pedido #{enViaje.id.split('-').pop()}</h4>
-            <div className="dd-status-badge">{enViaje.estado}</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {Number(enViaje.precio_envio) > 1800 && (
+                <span className="incentivo-flash" title="¡Este viaje tiene un bono de demanda! ⚡">⚡</span>
+              )}
+              <div className="dd-status-badge">{enViaje.estado}</div>
+            </div>
           </div>
           
           <div className="dd-simple-body">
@@ -1212,6 +1217,13 @@ export default function DriverDashboard() {
               <div className="dd-order-amount">
                 <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)', textTransform: 'uppercase' }}>Ganancia Envío</small>
                 ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
+                {Number(p.precio_envio) > 1800 && (
+                  <span className="incentivo-flash" title="¡Incentivo de demanda activo! ⚡" style={{ 
+                    marginLeft: '8px', 
+                    fontSize: '1rem',
+                    animation: 'pulse 1.5s infinite'
+                  }}>⚡</span>
+                )}
               </div>
               <div className="dd-order-info">
                 <p>👤 <strong>Cliente:</strong> {p.nombre_cliente || 'Cliente'}</p>
