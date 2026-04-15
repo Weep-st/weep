@@ -2303,3 +2303,28 @@ export async function getDriverPointsHistory(driverId) {
   if (error) return { success: false, error: error.message };
   return { success: true, data };
 }
+
+// ═══════════════════════════════════════════════════
+// PLANES Y COMISIONES
+// ═══════════════════════════════════════════════════
+
+export async function getPlanInfo(localId) {
+    const { data, error } = await supabase.rpc('get_current_commission_info', { p_local_id: localId });
+    if (error) {
+        console.error("Error fetching plan info:", error);
+        return { success: false, error: error.message };
+    }
+    return { success: true, ...data };
+}
+
+export async function getDisponibilidadPlanes() {
+    const { data, error } = await supabase.from('planes_config').select('*, planes_niveles(*)').order('precio_mensual', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data;
+}
+
+export async function suscribirAPlan(localId, planId) {
+    const { error } = await supabase.from('locales').update({ plan_id: planId }).eq('id', localId);
+    if (error) throw new Error(error.message);
+    return { success: true };
+}

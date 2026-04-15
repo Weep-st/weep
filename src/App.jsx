@@ -6,6 +6,7 @@ import Landing from './pages/Landing';
 import Maintenance from './pages/Maintenance';
 import CustomerApp from './pages/CustomerApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
+import PruebaDashboard from './pages/PruebaDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import MisPedidos from './pages/MisPedidos';
 import ConfirmarEmail from './pages/ConfirmarEmail';
@@ -127,6 +128,11 @@ export default function App() {
           <Route path="/locales" element={
             <MaintenanceGuard configKey="mantenimiento_locales">
               <RestaurantDashboard />
+            </MaintenanceGuard>
+          } />
+          <Route path="/prueba" element={
+            <MaintenanceGuard configKey="mantenimiento_locales">
+              <PruebaDashboard />
             </MaintenanceGuard>
           } />
           <Route path="/repartidores" element={

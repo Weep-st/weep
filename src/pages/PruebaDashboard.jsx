@@ -6,12 +6,12 @@ import AddressSelector from '../components/AddressSelector';
 import * as api from '../services/api';
 import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
-import './RestaurantDashboard.css';
+import './PruebaDashboard.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 // V2.2 - Reset Modals Cache Fix
-export default function RestaurantDashboard() {
+export default function PruebaDashboard() {
   const { restaurant, loginAsRestaurant, logoutRestaurant } = useAuth();
 
   const [view, setView] = React.useState('orders'); // 'menu','addItem','orders','profile'
@@ -47,6 +47,11 @@ export default function RestaurantDashboard() {
   const [deleting, setDeleting] = React.useState(false);
   const [hasRepartidores, setHasRepartidores] = React.useState(false);
   const [loadingRepartidores, setLoadingRepartidores] = React.useState(false);
+
+  // Plans & Gamification State
+  const [planInfo, setPlanInfo] = React.useState(null);
+  const [planLoading, setPlanLoading] = React.useState(false);
+  const [availablePlans, setAvailablePlans] = React.useState([]);
   
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
@@ -327,6 +332,7 @@ export default function RestaurantDashboard() {
     loadEstado();
     loadProfile();
     loadOrders();
+    loadPlanInfo();
 
     // Sync Edit Item to Burger States
     if (editItem && view === 'addItem') {
@@ -544,6 +550,36 @@ export default function RestaurantDashboard() {
       toast.success('Sabor eliminado');
       loadSabores();
     } catch { toast.error('Error al eliminar'); }
+  };
+
+  const loadPlanInfo = React.useCallback(async () => {
+    if (!restaurant) return;
+    setPlanLoading(true);
+    try {
+      const info = await api.getPlanInfo(restaurant.id);
+      if (info.success) {
+        setPlanInfo(info);
+      }
+      const allPlanes = await api.getDisponibilidadPlanes();
+      setAvailablePlans(allPlanes);
+    } catch (err) {
+      console.error("Error loading plan info:", err);
+    } finally {
+      setPlanLoading(false);
+    }
+  }, [restaurant]);
+
+  const handleSuscripPlan = async (planId) => {
+    try {
+      setPlanLoading(true);
+      await api.suscribirAPlan(restaurant.id, planId);
+      toast.success('¡Plan actualizado correctamente!', { icon: '🚀' });
+      loadPlanInfo();
+    } catch (err) {
+      toast.error('Error al actualizar plan');
+    } finally {
+      setPlanLoading(false);
+    }
   };
 
   const toggleEstado = async () => {
@@ -1015,6 +1051,115 @@ export default function RestaurantDashboard() {
     </div>
   );
 
+  const renderPlansView = () => {
+    if (planLoading) return <div className="loading-state"><div className="spinner" /> Cargando planes...</div>;
+    if (!planInfo) return <div>No se pudo cargar la información de planes.</div>;
+
+    const { plan_nombre, nivel_actual, comision_actual, metricas_mes, proximo_nivel } = planInfo;
+    const progress = proximo_nivel ? Math.min(100, (metricas_mes.pedidos / (metricas_mes.pedidos + proximo_nivel.falta_pedidos)) * 100) : 100;
+
+    const getLevelName = (lvl) => lvl === 1 ? 'Ventas activas' : 'Top en ventas';
+
+    const planBenefits = {
+      'Freemium': [
+        'Sin costo mensual',
+        'Presencia en la plataforma',
+        'Pedidos automatizados',
+        'Acceso a red de repartidores'
+      ],
+      'Plus': [
+        'Mejor posición en búsqueda',
+        'Etiqueta "Recomendado"',
+        'Más visibilidad en sección categorías',
+        'Acceso a promociones simples'
+      ],
+      'Pro': [
+        'Prioridad en toda la plataforma',
+        'Aparición en sección "Destacados" / carrusel',
+        'Badge "Top" / "Más pedidos"',
+        'Máxima visibilidad en sección categorías',
+        'Promociones destacadas en home (banners)'
+      ]
+    };
+
+    return (
+      <section className="plans-dashboard animate-fade-in">
+        <div className="plans-hero card">
+          <div className="plans-hero-content">
+            <h2 className="plans-title">Mi Plan: <span className={`plan-badge ${plan_nombre.toLowerCase()}`}>{plan_nombre}</span></h2>
+            <div className="plan-stats-grid">
+              <div className="plan-stat-card">
+                <span className="stat-label">Estado Actual</span>
+                <span className="stat-value">🚀 {getLevelName(nivel_actual)}</span>
+              </div>
+              <div className="plan-stat-card">
+                <span className="stat-label">Comisión</span>
+                <span className="stat-value">{comision_actual}%</span>
+              </div>
+              <div className="plan-stat-card">
+                <span className="stat-label">Ventas Mes</span>
+                <span className="stat-value">${metricas_mes.facturacion.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {proximo_nivel && (
+          <div className="next-level-card card animate-slide-up">
+            <div className="next-level-header">
+              <h3>🎯 Próximo Objetivo: {getLevelName(proximo_nivel.nivel)}</h3>
+              <span className="next-commission">Bajá a {proximo_nivel.comision}% de comisión</span>
+            </div>
+            <div className="progress-container">
+              <div className="progress-bar" style={{ width: `${progress}%` }}>
+                <span className="progress-text">{Math.round(progress)}%</span>
+              </div>
+            </div>
+            <div className="next-level-footer">
+              <p>Te faltan <strong>{proximo_nivel.falta_pedidos} pedidos</strong> o <strong>${proximo_nivel.falta_facturacion.toLocaleString()}</strong> en ventas para subir de nivel.</p>
+              <p className="motivational-msg">¡Sigue así! Estás cada vez más cerca de maximizar tus ganancias. 🎯</p>
+            </div>
+          </div>
+        )}
+
+        <h3 style={{ margin: '32px 0 16px', color: 'var(--gray-800)' }}>Explorar Planes</h3>
+        <div className="plans-grid">
+          {availablePlans.map(plan => (
+            <div key={plan.id} className={`plan-select-card card ${plan.nombre === plan_nombre ? 'current' : ''}`}>
+              {plan.nombre === plan_nombre && <div className="current-label">ACTUAL</div>}
+              <h4>{plan.nombre}</h4>
+              <p className="plan-price">${plan.precio_mensual.toLocaleString()} / mes</p>
+              
+              <ul className="plan-advantages" style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', textAlign: 'left' }}>
+                {(planBenefits[plan.nombre] || []).map((benefit, i) => (
+                  <li key={i} style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                    <span style={{ color: 'var(--green-500)' }}>✔</span> {benefit}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="divider" style={{ height: '1px', background: '#eee', margin: '16px 0' }} />
+
+              <ul className="plan-features">
+                {plan.planes_niveles.sort((a,b)=>a.nivel-b.nivel).map(nv => (
+                  <li key={nv.id}>
+                    {getLevelName(nv.nivel)}: <strong>{nv.comision_porcentaje}%</strong> 
+                    {nv.threshold_pedidos > 0 && ` (+${nv.threshold_pedidos} pedidos)`}
+                  </li>
+                ))}
+              </ul>
+              {plan.nombre !== plan_nombre ? (
+                <button className="btn btn-primary btn-full" onClick={() => handleSuscripPlan(plan.id)}>Elegir {plan.nombre}</button>
+              ) : (
+                <button className="btn btn-secondary btn-full" disabled>Plan Activo</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
   // ─── Tutorial Overlay ───
   const renderTutorial = () => {
     if (!showTutorial) return null;
@@ -1274,6 +1419,7 @@ export default function RestaurantDashboard() {
             )}
           </button>
           <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
+          <button className={`rd-nav-btn ${view === 'plans' ? 'active' : ''}`} onClick={() => { setView('plans'); loadPlanInfo(); }}>🚀 Planes</button>
           
           <div className="rd-dropdown-container">
             <button 
@@ -1298,6 +1444,31 @@ export default function RestaurantDashboard() {
         {/* ─── Orders View ─── */}
         {view === 'orders' && (
           <section className="animate-fade-in">
+            {planInfo && (
+              <div className="gamification-pill card" onClick={() => setView('plans')} style={{ 
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', margin: '0 0 16px', 
+                background: 'linear-gradient(90deg, #fff 0%, #fff5f5 100%)', borderLeft: '4px solid #e63946' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>💎</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--red-600)' }}>{planInfo.plan_nombre} - Nivel {planInfo.nivel_actual}</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)' }}>Comisión actual: {planInfo.comision_actual}%</p>
+                  </div>
+                </div>
+                {planInfo.proximo_nivel && (
+                   <div style={{ textAlign: 'right' }}>
+                     <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600 }}>Próximo Objetivo: {planInfo.proximo_nivel.comision}%</p>
+                     <div style={{ width: '100px', height: '6px', background: '#eee', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                       <div style={{ 
+                         width: `${Math.min(100, (planInfo.metricas_mes.pedidos / (planInfo.metricas_mes.pedidos + planInfo.proximo_nivel.falta_pedidos)) * 100)}%`, 
+                         height: '100%', background: '#e63946' 
+                       }}></div>
+                     </div>
+                   </div>
+                )}
+              </div>
+            )}
             <div style={{ marginBottom: '16px' }}>
               <input 
                 type="text" 
@@ -1349,6 +1520,7 @@ export default function RestaurantDashboard() {
             ))}
           </section>
         )}
+        {view === 'plans' && renderPlansView()}
 
         {/* ─── Menu View ─── */}
         {view === 'menu' && (
