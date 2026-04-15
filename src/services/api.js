@@ -1460,7 +1460,9 @@ export async function assignRepartidor(pedidoId) {
   if (!activos?.length) return { success: false, message: 'No hay repartidores activos' };
   const elegido = activos[0];
   const { error } = await supabase.from('pedidos_general')
-    .update({ repartidor_id: elegido.id }).eq('id', pedidoId);
+    .update({ repartidor_id: elegido.id })
+    .eq('id', pedidoId)
+    .is('repartidor_id', null);
   if (error) return { success: false, error: error.message };
 
   // Marcar como ocupado al ser asignado manualmente o por sistema
