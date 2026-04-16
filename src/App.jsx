@@ -118,11 +118,6 @@ export default function App() {
           <Route path="/mantenimiento" element={<Maintenance />} />
           <Route path="/pedir" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
-              <CustomerApp />
-            </MaintenanceGuard>
-          } />
-          <Route path="/pruebas" element={
-            <MaintenanceGuard configKey="mantenimiento_pedir">
               <PruebasApp />
             </MaintenanceGuard>
           } />
