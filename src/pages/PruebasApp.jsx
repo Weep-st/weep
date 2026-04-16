@@ -275,8 +275,13 @@ export default function PruebasApp() {
             // 3. Update order state to 'Pendiente' so restaurants see it
             (async () => {
               try {
-                await api.supabase.from('pedidos_general').update({ estado: 'Pendiente' }).eq('id', pendingData.pedidoId);
-                await api.supabase.from('pedidos_locales').update({ estado: 'Pendiente' }).eq('pedido_id', pendingData.pedidoId);
+                // Check current state to see if it was already accepted by a driver
+                const { data: currentOrder } = await api.supabase.from('pedidos_general').select('estado').eq('id', pendingData.pedidoId).single();
+                
+                const nextState = (currentOrder?.estado === 'Pendiente de Pago') ? 'Confirmado' : 'Pendiente';
+
+                await api.supabase.from('pedidos_general').update({ estado: nextState }).eq('id', pendingData.pedidoId);
+                await api.supabase.from('pedidos_locales').update({ estado: nextState }).eq('pedido_id', pendingData.pedidoId);
                 
                 // 4. Notify locals
                 api.notifyLocalsAboutNewOrder(
