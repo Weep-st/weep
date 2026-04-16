@@ -92,6 +92,7 @@ export default function PruebasApp() {
 
   const [unavailableLocal, setUnavailableLocal] = React.useState(null);
   const [selectedLocal, setSelectedLocal] = React.useState(null);
+  const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
 
   // Actualizar addressData cuando el usuario carga (login)
   React.useEffect(() => {
@@ -103,7 +104,10 @@ export default function PruebasApp() {
         lng: user.lng || null
       }));
     }
-  }, [user]);
+  }, []);
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
   // Session ID for demand tracking
   const sessionId = React.useMemo(() => {
@@ -1034,10 +1038,48 @@ export default function PruebasApp() {
   ];
 
   // Show drinks carousel when no drink in cart and delivery is envio
-  const showDrinks = cart.items.length > 0 && cart.deliveryType === 'envio' && !cart.hasDrink && drinks.length > 0;
+  const renderPWAInstructionsModal = () => {
+    if (!showPWAInstructions) return null;
+
+    return (
+      <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={() => setShowPWAInstructions(false)}>
+        <div className="modal-box animate-scale-in" style={{ maxWidth: '400px', textAlign: 'center', padding: '24px' }} onClick={e => e.stopPropagation()}>
+          <button className="modal-close" onClick={() => setShowPWAInstructions(false)}>✕</button>
+          
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '12px', color: 'var(--red-600)', fontWeight: 800 }}>
+            Seguí tu pedido en tiempo real
+          </h2>
+          <p style={{ color: 'var(--gray-600)', marginBottom: '24px', lineHeight: '1.5', fontSize: '0.95rem' }}>
+            Para que podamos enviarte <strong>notificaciones push</strong> con el seguimiento de tu pedido y avisos de llegada, instala Weep en tu inicio:
+          </p>
+          
+          <div style={{ textAlign: 'left', background: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>1</span>
+              <span>Presioná el botón <img src="https://i.postimg.cc/QM1gsLSD/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '20px', verticalAlign: 'middle' }} /> <strong>compartir</strong>.</span>
+            </p>
+            <p style={{ margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>2</span>
+              <span>Buscá y elegí <strong>"Agregar a inicio"</strong>.</span>
+            </p>
+            <p style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>3</span>
+              <span>Abrí la app y activá las notificaciones.</span>
+            </p>
+          </div>
+
+          <button className="btn btn-primary btn-full btn-lg" style={{ height: '54px', borderRadius: '12px' }} onClick={() => setShowPWAInstructions(false)}>
+            ¡Entendido!
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="customer-app">
+      {renderPWAInstructionsModal()}
       <header className="app-header">
         <Link to="/" className="app-logo-link">
           <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="app-logo" />
@@ -1055,6 +1097,29 @@ export default function PruebasApp() {
             <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito" className="cart-icon-img" />
             {cart.totalItems > 0 && <span className="cart-badge">{cart.totalItems}</span>}
           </button>
+          
+          {isIOS && !isStandalone && (
+            <button 
+              className="install-pill-btn animate-fade-in"
+              onClick={() => setShowPWAInstructions(true)}
+              style={{
+                background: 'linear-gradient(90deg, #c62828, #e53935)',
+                color: 'white',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(198, 40, 40, 0.3)',
+                cursor: 'pointer'
+              }}
+            >
+              <span>📱 Instalar App</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -1079,25 +1144,75 @@ export default function PruebasApp() {
               zIndex: 90
             }}>
               <span>🛵 ¡Tienes un pedido en proceso!</span>
-              <button 
-                onClick={() => navigate('/mis-pedidos')} 
-                style={{
-                  background: 'white',
-                  color: '#ff9800',
-                  border: 'none',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '700',
-                  fontSize: '0.85rem',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-              >
-                Ver Mis Pedidos
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  onClick={() => navigate('/mis-pedidos')} 
+                  style={{
+                    background: 'white',
+                    color: '#ff9800',
+                    border: 'none',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  Ver Pedido
+                </button>
+                {isIOS && !isStandalone && (
+                  <button 
+                    onClick={() => setShowPWAInstructions(true)} 
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      border: '1px solid white',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '700',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    🔔 Avisarme cuando llega
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
+        
+        {/* ─── Banner PWA para iPhone ─── */}
+        {isIOS && !isStandalone && (
+          <div className="pwa-install-banner" style={{
+            background: 'linear-gradient(135deg, #c62828 0%, #b71c1c 100%)',
+            color: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '20px',
+            margin: '0 16px 20px',
+            boxShadow: '0 8px 24px rgba(198, 40, 40, 0.25)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📱 Instala Weep en tu iPhone
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
+                Para una mejor experiencia, debes anclar la app al inicio:
+                <br />
+                1. Presiona el botón <img src="https://i.postimg.cc/QM1gsLSD/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '22px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>(icono de la imagen)</strong>.
+                <br />
+                2. Busca y elige <strong>"Agregar a inicio"</strong>.
+                <br />
+                3. Abre la app desde el icono creado.
+              </p>
+            </div>
+            <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', fontSize: '80px', opacity: 0.1 }}>🏠</div>
+          </div>
+        )}
         
         {/* ─── Banners Carousel ─── */}
         {!bannersLoading && banners.length > 0 && (
@@ -1595,6 +1710,32 @@ export default function PruebasApp() {
           <h2>Tu Carrito</h2>
           <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
         </div>
+        
+        {isIOS && !isStandalone && (
+          <div 
+            className="cart-pwa-tip animate-fade-in"
+            onClick={() => setShowPWAInstructions(true)}
+            style={{
+              margin: '0 20px 16px',
+              padding: '12px',
+              background: '#fdf2f2',
+              border: '1px solid #fee2e2',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+          >
+            <div style={{ fontSize: '1.2rem' }}>📱</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--red-600)' }}>Instala la App para seguir tu pedido</p>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>Recibe avisos de llegada y mensajes en tiempo real.</p>
+            </div>
+            <span style={{ color: 'var(--red-400)' }}>➔</span>
+          </div>
+        )}
+
         <div className="cart-body-content">
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="form-label">Tipo de entrega</label>
