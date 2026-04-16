@@ -1596,69 +1596,19 @@ export default function PruebasApp() {
           <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
         </div>
         <div className="cart-body-content">
-          {!hasRepartidores && (
-            <div 
-              className="no-drivers-cart-top-notice animate-fade-in" 
-              style={{
-                background: '#fffbeb',
-                color: '#92400e',
-                fontSize: '0.9rem',
-                padding: '16px',
-                borderRadius: '12px',
-                marginBottom: '20px',
-                fontWeight: '700',
-                border: '2px solid #fef3c7',
-                textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(251, 191, 36, 0.1)'
-              }}
-            >
-              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🚫</div>
-              No hay repartidores disponibles en este momento.
-              <p style={{ fontWeight: '400', fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>
-                Vuelve a intentar en unos minutos para envíos a domicilio.
-              </p>
-            </div>
-          )}
-
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="form-label">Tipo de entrega</label>
             <select 
               className="form-select" 
               value={cart.deliveryType} 
-              onChange={e => {
-                const val = e.target.value;
-                cart.setDeliveryType(val);
-
-                if (val === 'envio') {
-                  api.checkActiveRepartidores().then(fresh => {
-                    setHasRepartidores(fresh.hasActive);
-                    if (!fresh.hasActive) {
-                      // Si al final no había, revertimos a retiro (si se permite)
-                      const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-                      if (currentLocal?.acepta_retiro === true) {
-                        cart.setDeliveryType('retiro');
-                      }
-                    }
-                  }).catch(() => {});
-                }
-              }}
-              style={{ 
-                borderColor: !hasRepartidores ? 'var(--amber-400)' : '',
-                backgroundColor: !hasRepartidores ? '#fff9f0' : ''
-              }}
+              onChange={e => cart.setDeliveryType(e.target.value)}
             >
               {(() => {
                 const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
                 return (
                   <>
                     {(currentLocal?.acepta_envio !== false) && (
-                      <option 
-                        value="envio" 
-                        disabled={!hasRepartidores}
-                        style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
-                      >
-                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (sin repartidores disponibles)'}
-                      </option>
+                      <option value="envio">🛵 Con envío a domicilio</option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (
                       <option value="retiro">🥡 Retirar en local</option>
