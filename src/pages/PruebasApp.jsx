@@ -220,17 +220,7 @@ export default function PruebasApp() {
     }
   }, [user]);
   
-  // Forzar cambio a retiro si no hay repartidores y está seleccionado envio
-  React.useEffect(() => {
-    if (hasRepartidores === false && cart.deliveryType === 'envio') {
-      // Intentar obtener el local del primer item del carrito si selectedLocal es null
-      const localRef = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-      const puedeRetirar = localRef?.acepta_retiro === true;
-      if (puedeRetirar) {
-        cart.setDeliveryType('retiro');
-      }
-    }
-  }, [hasRepartidores, cart.deliveryType, selectedLocal, cart, locals]);
+  // El sistema de envío siempre está habilitado para incentivar repartidores
 
   // MP Return URL Parse
   React.useEffect(() => {
@@ -1068,23 +1058,6 @@ export default function PruebasApp() {
         </div>
       </header>
 
-      {!hasRepartidores && (
-          <div className="no-drivers-alert animate-fade-in" style={{
-            backgroundColor: '#fffbeb',
-            borderBottom: '1px solid #fef3c7',
-            padding: '10px 20px',
-            textAlign: 'center',
-            color: '#92400e',
-            fontSize: '0.85rem',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}>
-            <span>⚠️</span> No hay repartidores disponibles en este momento, vuelve intentar en unos minutos. Solo retiro en local disponible.
-          </div>
-        )}
 
       <main className="app-main">
         <div className="banners-container" style={{ marginBottom: '20px' }}>
