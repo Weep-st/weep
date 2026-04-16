@@ -131,12 +131,16 @@ async function fetchOrderDetails(pedidoLocal) {
             .eq('id', pedidoLocal.local_id)
             .single();
 
+        const localLogo = localData?.foto_url || 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png';
+        
+        console.log(`Logo obtenido para local ${pedidoLocal.local_id}:`, localLogo);
+
         const fullOrder = {
             id: general.num_confirmacion || general.id.substring(0, 8),
             db_id: general.id,
             total: pedidoLocal.total,
             fecha: general.created_at,
-            local_logo: localData?.foto_url || '',
+            local_logo: localLogo,
             cliente: {
                 nombre: general.nombre_cliente,
                 direccion: general.direccion,

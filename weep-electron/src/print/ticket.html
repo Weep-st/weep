@@ -143,9 +143,9 @@
 
             container.innerHTML = `
                 <div class="central-header" style="display: flex; justify-content: center; align-items: center; gap: 8px;">
-                    <img src="${order.local_logo}" style="max-width: ${config.header_image_max_width}; max-height: 20mm; object-fit: contain;">
+                    <img src="${order.local_logo}" onerror="this.style.display='none'" style="max-width: ${config.header_image_max_width}; max-height: 20mm; object-fit: contain;">
                     <span style="font-size: 25px; line-height: 1;">|</span>
-                    <img src="https://i.postimg.cc/269xSD6z/buscamos-repartidores-(21)-(3)-(1).png" style="max-width: ${config.weep_logo_max_width}; max-height: 25mm; object-fit: contain;">
+                    <img src="https://i.postimg.cc/269xSD6z/buscamos-repartidores-(21)-(3)-(1).png" onerror="this.style.display='none'" style="max-width: ${config.weep_logo_max_width}; max-height: 25mm; object-fit: contain;">
                 </div>
 
                 <div class="separator"></div>
