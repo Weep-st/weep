@@ -341,21 +341,23 @@ export default function PruebasApp() {
     if (searchingDriver && !foundDriver && !driverSearchTimeout) {
       timer = setInterval(() => {
         setSearchSeconds(prev => {
-          if (prev >= 240) { // 4 minutes timeout
+          if (prev >= 60) { // After 1 minute, show the "Keep Waiting" choice
             setDriverSearchTimeout(true);
-            setSearchingDriver(false);
-            if (pendingOrderId) {
-              api.updateEstadoLocalOrder(pendingOrderId, 'Rechazado').catch(console.error);
-              // Or better, a global cancel if available. Let's look for one.
-            }
             return prev;
           }
+          
+          // Re-enviar Push cada 20 segundos para incentivar (en 20s y 40s)
+          if (prev > 0 && prev % 20 === 0 && pendingOrderId) {
+            console.log("📣 Re-enviando push de incentivo...");
+            api.broadcastOrderToDrivers(pendingOrderId, cart.total);
+          }
+          
           return prev + 1;
         });
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [searchingDriver, foundDriver, driverSearchTimeout]);
+  }, [searchingDriver, foundDriver, driverSearchTimeout, pendingOrderId, cart.total]);
 
   // Effect to listen for driver acceptance via Realtime + Polling Fallback
   React.useEffect(() => {
@@ -2474,19 +2476,46 @@ export default function PruebasApp() {
 
       {driverSearchTimeout && (
         <div className="searching-modal-overlay">
-          <div className="searching-modal-card">
-            <div className="timeout-icon">😔</div>
-            <h2>Lo sentimos</h2>
-            <p>No encontramos un repartidor disponible por el momento. Por favor, intenta de nuevo en unos minutos.</p>
-            <button 
-              className="btn btn-primary"
-              onClick={() => {
-                setDriverSearchTimeout(false);
-                setSearchSeconds(0);
-              }}
-            >
-              Entendido
-            </button>
+          <div className="searching-modal-card animate-slide-up">
+            <div className="timeout-icon">📣</div>
+            <h2>Seguimos buscando...</h2>
+            <p>Los repartidores están un poco ocupados en este momento. ¿Quieres seguir esperando un poco más? Seguiremos notificándolos.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '20px' }}>
+              <button 
+                className="btn btn-primary btn-full"
+                onClick={() => {
+                  setDriverSearchTimeout(false);
+                  setSearchSeconds(searchSeconds + 1); // Desbloquea el timer
+                  // Re-enviar push de inmediato al reintentar
+                  api.broadcastOrderToDrivers(pendingOrderId, cart.total);
+                  toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
+                }}
+              >
+                ✅ Sí, seguir esperando
+              </button>
+              <button 
+                className="btn btn-outline btn-full"
+                onClick={async () => {
+                  const orderIdToCancel = pendingOrderId;
+                  setDriverSearchTimeout(false);
+                  setSearchingDriver(false);
+                  setPendingOrderId(null);
+                  localStorage.removeItem('pendingOrderDataPruebas');
+                  
+                  if (orderIdToCancel) {
+                    try {
+                      await api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel);
+                      toast.success('Búsqueda cancelada');
+                    } catch (e) {
+                      console.error("Error cancelling order:", e);
+                    }
+                  }
+                }}
+              >
+                ✖ No, cancelar pedido
+              </button>
+            </div>
           </div>
         </div>
       )}
