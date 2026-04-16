@@ -878,10 +878,10 @@ export default function RestaurantDashboard() {
 
   const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
-  const processOrders = orders.filter(o => ['Pendiente', 'Aceptado', 'Listo'].includes(o.estadoActual));
+  const processOrders = orders.filter(o => ['Pendiente', 'Confirmado', 'Aceptado', 'Listo'].includes(o.estadoActual));
   const finishedOrders = orders.filter(o => o.estadoActual === 'Entregado');
   
-  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const preparacionOrders = processOrders.filter(o => o.estadoActual === 'Aceptado');
   const listosOrders = processOrders.filter(o => o.estadoActual === 'Listo');
 
