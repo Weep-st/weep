@@ -1057,7 +1057,7 @@ export default function PruebasApp() {
           <div style={{ textAlign: 'left', background: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
             <p style={{ margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>1</span>
-              <span>Presioná el botón <img src="https://i.postimg.cc/QM1gsLSD/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '20px', verticalAlign: 'middle' }} /> <strong>compartir</strong>.</span>
+              <span>Presioná el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '20px', verticalAlign: 'middle' }} /> <strong>compartir</strong>.</span>
             </p>
             <p style={{ margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>2</span>
@@ -1203,7 +1203,7 @@ export default function PruebasApp() {
               <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
                 Para una mejor experiencia, debes anclar la app al inicio:
                 <br />
-                1. Presiona el botón <img src="https://i.postimg.cc/QM1gsLSD/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '22px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>(icono de la imagen)</strong>.
+                1. Presiona el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '22px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>(icono de la imagen)</strong>.
                 <br />
                 2. Busca y elige <strong>"Agregar a inicio"</strong>.
                 <br />

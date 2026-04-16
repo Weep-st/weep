@@ -1659,7 +1659,7 @@ export default function DriverDashboard() {
               <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
                 Para <strong>recibir pedidos</strong> en tiempo real, debes anclar la app al inicio:
                 <br />
-                1. Presiona el botón <img src="https://i.postimg.cc/QM1gsLSD/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '22px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>(icono de la imagen)</strong>.
+                1. Presiona el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '22px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>(icono de la imagen)</strong>.
                 <br />
                 2. Busca y elige <strong>"Agregar a inicio"</strong>.
                 <br />
