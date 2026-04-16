@@ -84,8 +84,7 @@ const AdminPedidos = () => {
 
     if (loading) return <div className="loading-state">Cargando pedidos...</div>;
 
-    const estadosPosibles = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'En camino', 'Entregado', 'Rechazado', 'Cancelado'];
-
+    const estadosPosibles = ['Buscando Repartidor', 'Pendiente de Pago', 'Pendiente', 'Confirmado', 'Preparando', 'Listo', 'En camino', 'Entregado', 'Rechazado', 'Cancelado'];
     return (
         <div className="panel-card animate-fade-in">
             <header className="panel-header">

@@ -497,7 +497,7 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     if (!isMapLoaded) return;
 
-    const enViaje = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
+    const enViaje = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado'].includes(p.estado));
     if (enViaje) {
       // 1. Cargar datos del local
       if (enViaje.local_id) {
@@ -997,9 +997,9 @@ export default function DriverDashboard() {
   );
 
   const renderDisponibles = () => {
-    // Si hay pedidos Confirmado/Retirado, estamos "En Viaje"
-    const enViajeReal = pedidos.find(p => p.estado === 'Confirmado' || p.estado === 'Retirado');
-    const enViajeTutorial = tutorialOrder && (tutorialOrder.estado === 'Confirmado' || tutorialOrder.estado === 'Retirado');
+    // Si hay pedidos Confirmado/Retirado o Pendiente de Pago, o incluso Pendiente/Aceptado PERO ya asignados a mí, estamos "En Viaje" o "En Espera"
+    const enViajeReal = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado'].includes(p.estado));
+    const enViajeTutorial = tutorialOrder && (['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado'].includes(tutorialOrder.estado));
     const enViaje = enViajeTutorial ? tutorialOrder : enViajeReal;
 
     if (enViaje) {
@@ -1026,12 +1026,20 @@ export default function DriverDashboard() {
               {Number(enViaje.precio_envio) > 1800 && (
                 <span className="incentivo-flash" title="¡Este viaje tiene un bono de demanda! ⚡">⚡</span>
               )}
-              <div className="dd-status-badge">{enViaje.estado}</div>
+              <div className={`dd-status-badge ${enViaje.estado === 'Pendiente de Pago' ? 'pulse-orange' : ''}`}>
+                {enViaje.estado === 'Pendiente de Pago' ? 'Esperando Pago' : enViaje.estado}
+              </div>
             </div>
           </div>
           
           <div className="dd-simple-body">
-            {!isRetirado ? (
+            {enViaje.estado === 'Pendiente de Pago' ? (
+              <div className="dd-waiting-payment-box animate-pulse">
+                <div className="waiting-icon">⏳</div>
+                <p><strong>Esperando el pago del cliente...</strong></p>
+                <p className="small">Los detalles del local y el cliente aparecerán una vez confirmado el pago.</p>
+              </div>
+            ) : !isRetirado ? (
               <>
                 {/* RETIRO */}
                 <div className="dd-section-title">📍 Punto de Retiro</div>
@@ -1077,11 +1085,13 @@ export default function DriverDashboard() {
               </>
             )}
 
-            <div className="dd-envio-status">
-              Metodo: {enViaje.metodo_pago || enViaje.pago} | Tipo: {enViaje.tipo_entrega || enViaje.envio}
-            </div>
+            {enViaje.estado !== 'Pendiente de Pago' && (
+              <div className="dd-envio-status">
+                Metodo: {enViaje.metodo_pago || enViaje.pago} | Tipo: {enViaje.tipo_entrega || enViaje.envio}
+              </div>
+            )}
 
-            {showMap && (
+            {showMap && enViaje.estado !== 'Pendiente de Pago' && (
               <div className="dd-map-container" style={{ marginTop: '20px' }}>
                 <MapComponent 
                   isLoaded={isMapLoaded}
@@ -1099,41 +1109,49 @@ export default function DriverDashboard() {
           </div>
 
           <div className="dd-simple-actions">
-            <div className="dd-btn-row">
-              <button className="btn btn-light btn-full" onClick={() => isTutorial ? toast('Chat de simulación') : openChat(enViaje.id)}>
-                💬 Chat Cliente
-              </button>
-              {!isRetirado ? (
-                <button
-                  className="dd-btn-rojo"
-                  onClick={() => {
-                    if (isTutorial) {
-                      setTutorialOrder({ ...tutorialOrder, estado: 'Retirado' });
-                      if (tutorialStep === 3) setTutorialStep(4);
-                    } else {
-                      retirarPedido(enViaje.id);
-                    }
-                  }}
+            {enViaje.estado === 'Pendiente de Pago' ? (
+              <small style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>
+                No puedes realizar acciones hasta que se confirme el pago.
+              </small>
+            ) : (
+              <>
+                <div className="dd-btn-row">
+                  <button className="btn btn-light btn-full" onClick={() => isTutorial ? toast('Chat de simulación') : openChat(enViaje.id)}>
+                    💬 Chat Cliente
+                  </button>
+                  {!isRetirado ? (
+                    <button
+                      className="dd-btn-rojo"
+                      onClick={() => {
+                        if (isTutorial) {
+                          setTutorialOrder({ ...tutorialOrder, estado: 'Retirado' });
+                          if (tutorialStep === 3) setTutorialStep(4);
+                        } else {
+                          retirarPedido(enViaje.id);
+                        }
+                      }}
+                    >
+                      🏍️ Marcar RETIRADO
+                    </button>
+                  ) : (
+                    <button
+                      className="dd-btn-verde dd-btn-large"
+                      onClick={() => isTutorial ? setShowEntregaModal(true) : confirmarEntregaClick()}
+                    >
+                      🚀 Marcar ENTREGADO
+                    </button>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={() => setShowMap(!showMap)} 
+                  className="dd-btn-outline" 
+                  style={{ marginTop: '10px' }}
                 >
-                  🏍️ Marcar RETIRADO
+                  📍 {showMap ? 'Ocultar mapa' : `Ver mapa del ${!isRetirado ? 'Local' : 'Cliente'}`}
                 </button>
-              ) : (
-                <button
-                  className="dd-btn-verde dd-btn-large"
-                  onClick={() => isTutorial ? setShowEntregaModal(true) : confirmarEntregaClick()}
-                >
-                  🚀 Marcar ENTREGADO
-                </button>
-              )}
-            </div>
-            
-            <button 
-              onClick={() => setShowMap(!showMap)} 
-              className="dd-btn-outline" 
-              style={{ marginTop: '10px' }}
-            >
-              📍 {showMap ? 'Ocultar mapa' : `Ver mapa del ${!isRetirado ? 'Local' : 'Cliente'}`}
-            </button>
+              </>
+            )}
           </div>
 
           {showEntregaModal && (
@@ -1183,7 +1201,7 @@ export default function DriverDashboard() {
     }
 
     // List of pending orders (Disponibles)
-    const pendientesReales = pedidos.filter(p => p.estado === 'Pendiente');
+    const pendientesReales = pedidos.filter(p => p.estado === 'Pendiente' || p.estado === 'Buscando Repartidor');
     const pendientesTutorial = tutorialOrder && tutorialOrder.estado === 'Pendiente' ? [tutorialOrder] : [];
     const pendientes = [...pendientesTutorial, ...pendientesReales];
     if (pendientes.length === 0) {

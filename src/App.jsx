@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import Landing from './pages/Landing';
 import Maintenance from './pages/Maintenance';
 import CustomerApp from './pages/CustomerApp';
+import PruebasApp from './pages/PruebasApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import PruebaDashboard from './pages/PruebaDashboard';
 import DriverDashboard from './pages/DriverDashboard';
@@ -118,6 +119,11 @@ export default function App() {
           <Route path="/pedir" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
               <CustomerApp />
+            </MaintenanceGuard>
+          } />
+          <Route path="/pruebas" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasApp />
             </MaintenanceGuard>
           } />
           <Route path="/mis-pedidos" element={

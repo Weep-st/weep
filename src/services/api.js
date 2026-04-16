@@ -1475,9 +1475,9 @@ export async function getPedidosDisponibles(repartidorId) {
   // 1. Pedidos asignados al repartidor (Confirmados o Retirados)
   // 2. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio')
-    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.eq.Pendiente,tipo_entrega.eq.Con Envío)`)
-    .in('estado', ['Pendiente', 'Confirmado', 'Retirado'])
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id')
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor"),tipo_entrega.eq."Con Envío")`)
+    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino'])
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -2329,4 +2329,34 @@ export async function suscribirAPlan(localId, planId) {
     const { error } = await supabase.from('locales').update({ plan_id: planId }).eq('id', localId);
     if (error) throw new Error(error.message);
     return { success: true };
+}
+
+export async function broadcastOrderToDrivers(pedidoId, total) {
+  try {
+    console.log("⚡ Broadcasting order push to all accepted drivers...");
+    const { data: drivers } = await supabase
+      .from('repartidores')
+      .select('onesignal_id')
+      .eq('admin_status', 'Aceptado')
+      .not('onesignal_id', 'is', null);
+
+    if (!drivers || drivers.length === 0) {
+      console.warn("⚠️ No drivers found with OneSignalId");
+      return { success: false, message: 'No hay repartidores con OneSignalId' };
+    }
+
+    const ids = drivers.map(d => d.onesignal_id).filter(Boolean);
+    console.log(`🔔 Sending push to ${ids.length} drivers:`, ids);
+
+    return await sendPushNotification({
+      subscriptionIds: ids,
+      title: '¡Nuevo Pedido Disponible de Prueba! 🛵',
+      message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo para participar en la prueba!`,
+      url: 'https://weep.com.ar/repartidores',
+      data: { pedidoId, type: 'new_order_broadcast' }
+    });
+  } catch (err) {
+    console.error("Error in broadcastOrderToDrivers:", err);
+    return { success: false, error: err.message };
+  }
 }
