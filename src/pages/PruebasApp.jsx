@@ -1089,15 +1089,6 @@ export default function PruebasApp() {
           <input type="text" placeholder="Buscar menús o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         </div>
         <div className="header-actions">
-          <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
-            <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
-            <span className="hide-mobile">{user ? 'Mi Perfil' : 'Ingresar'}</span>
-          </button>
-          <button className="cart-btn" onClick={openCart}>
-            <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito" className="cart-icon-img" />
-            {cart.totalItems > 0 && <span className="cart-badge">{cart.totalItems}</span>}
-          </button>
-          
           {isIOS && !isStandalone && (
             <button 
               className="install-pill-btn animate-fade-in"
@@ -1120,6 +1111,16 @@ export default function PruebasApp() {
               <span>📱 Instalar App</span>
             </button>
           )}
+
+          <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
+            <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
+            <span className="hide-mobile">{user ? 'Mi Perfil' : 'Ingresar'}</span>
+          </button>
+          
+          <button className="cart-btn" onClick={openCart}>
+            <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito" className="cart-icon-img" />
+            {cart.totalItems > 0 && <span className="cart-badge">{cart.totalItems}</span>}
+          </button>
         </div>
       </header>
 
@@ -1183,36 +1184,6 @@ export default function PruebasApp() {
           )}
         </div>
         
-        {/* ─── Banner PWA para iPhone ─── */}
-        {isIOS && !isStandalone && (
-          <div className="pwa-install-banner" style={{
-            background: 'linear-gradient(135deg, #c62828 0%, #b71c1c 100%)',
-            color: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '20px',
-            margin: '0 16px 20px',
-            boxShadow: '0 8px 24px rgba(198, 40, 40, 0.25)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            <div style={{ position: 'relative', zIndex: 2 }}>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                📱 Instala Weep en tu iPhone
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
-                Para una mejor experiencia, debes anclar la app al inicio:
-                <br />
-                1. Presiona el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '22px', verticalAlign: 'middle', margin: '0 2px' }} /> <strong>(icono de la imagen)</strong>.
-                <br />
-                2. Busca y elige <strong>"Agregar a inicio"</strong>.
-                <br />
-                3. Abre la app desde el icono creado.
-              </p>
-            </div>
-            <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', fontSize: '80px', opacity: 0.1 }}>🏠</div>
-          </div>
-        )}
         
         {/* ─── Banners Carousel ─── */}
         {!bannersLoading && banners.length > 0 && (
