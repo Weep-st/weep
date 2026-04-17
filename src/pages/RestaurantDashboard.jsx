@@ -2202,6 +2202,7 @@ function OrderCard({ order: o, onAction, finished }) {
         <p><strong>Cliente:</strong> {o.nombreCliente}</p>
         <p><strong>Dirección:</strong> {o.direccion}</p>
         <p><strong>Pago:</strong> {o.metodoPago}</p>
+        <p><strong>Repartidor:</strong> <span style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>{o.repartidorNombre || 'Buscando...'}</span></p>
         {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
         <div className="rd-order-items">
           {o.items.map((item, i) => (

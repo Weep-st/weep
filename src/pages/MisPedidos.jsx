@@ -195,8 +195,11 @@ export default function MisPedidos() {
 
   const getBadgeClass = (estado) => {
     const map = {
+      'Buscando Repartidor': 'badge-warning',
+      'Pendiente de Pago': 'badge-info',
       'Pendiente': 'badge-warning',
       'Confirmado': 'badge-info',
+      'Aceptado': 'badge-info',
       'Preparando': 'badge-info',
       'Listo': 'badge-primary',
       'Retirado': 'badge-green',
@@ -207,17 +210,18 @@ export default function MisPedidos() {
   };
 
   const timelineSteps = [
-    { key: 'Pendiente', label: 'Recibido', icon: '📋', text: 'Tu pedido fue recibido' },
-    { key: 'Confirmado', label: 'Confirmado', icon: '✔️', text: 'El local confirmó tu pedido' },
-    { key: 'Listo', label: 'Listo', icon: '👨‍🍳', text: 'Tu pedido está preparado' },
-    { key: 'Retirado', label: 'Retirado', icon: '🛵', text: 'El repartidor retiró el pedido' },
-    { key: 'En camino', label: 'En camino', icon: '🚀', text: 'Tu pedido va en camino' },
+    { key: 'Buscando Repartidor', label: 'Buscando', icon: '🔍', text: 'Buscando repartidor' },
+    { key: 'Pendiente de Pago', label: 'Pago', icon: '💳', text: 'Esperando tu pago' },
+    { key: 'Confirmado', label: 'Confirmado', icon: '✔️', text: 'Pedido confirmado' },
+    { key: 'Aceptado', label: 'Preparación', icon: '👨‍🍳', text: 'El local está preparando' },
+    { key: 'Listo', label: 'Listo', icon: '✅', text: 'El repartidor está en el local' },
+    { key: 'Retirado', label: 'En camino', icon: '🛵', text: 'El repartidor ya salió' },
     { key: 'Entregado', label: 'Entregado', icon: '📦', text: '¡Pedido entregado!' },
   ];
 
   const getTimelineProgress = (estado) => {
-    if (estado === 'Aceptado') return 1;
-    if (estado === 'Retirado') return 4;
+    if (estado === 'En camino') return 5;
+    if (estado === 'Pendiente') return 2; // Map 'Pendiente' to 'Confirmado' if it skipped searching
     const idx = timelineSteps.findIndex(s => s.key === estado);
     return idx >= 0 ? idx : 0;
   };
