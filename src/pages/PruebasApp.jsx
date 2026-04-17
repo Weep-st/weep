@@ -335,9 +335,9 @@ export default function PruebasApp() {
     if (searchingDriver && !foundDriver && !driverSearchTimeout) {
       timer = setInterval(() => {
         setSearchSeconds(prev => {
-          if (prev >= 60) { // After 1 minute, show the "Keep Waiting" choice
+          if (prev >= 60) { // After 1 minute of UNACCEPTED search
             setDriverSearchTimeout(true);
-            return prev;
+            return 60; // Keep it at 60 until reset
           }
           
           // Re-enviar Push cada 20 segundos para incentivar (en 20s y 40s)
@@ -2480,7 +2480,10 @@ export default function PruebasApp() {
                   <span><strong>NO CIERRES ESTA VENTANA:</strong> Una vez que encontremos repartidor, deberás realizar el pago para confirmar tu pedido.</span>
                 </div>
                 <div className="searching-timer">
-                  Tiempo transcurrido: {Math.floor(searchSeconds / 60)}:{(searchSeconds % 60).toString().padStart(2, '0')}
+                  Buscando repartidor... 
+                  <span style={{ fontWeight: 800, color: 'var(--red-600)', marginLeft: '8px', fontSize: '1.1rem' }}>
+                    0{Math.floor((60 - searchSeconds) / 60)}:{( (60 - searchSeconds) % 60 ).toString().padStart(2, '0')}
+                  </span>
                 </div>
                 <button 
                   className="searching-cancel-btn"
@@ -2492,8 +2495,11 @@ export default function PruebasApp() {
                     
                     if (orderIdToCancel) {
                       try {
-                        // Mark as rejected/cancelled so it disappears for drivers
-                        await api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel);
+                        // Mark as rejected/cancelled so it disappears for drivers AND locals
+                        await Promise.all([
+                          api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
+                          api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
+                        ]);
                         toast.success('Búsqueda cancelada');
                       } catch (e) {
                         console.error("Error cancelling order:", e);
@@ -2542,7 +2548,7 @@ export default function PruebasApp() {
                 className="btn btn-primary btn-full"
                 onClick={() => {
                   setDriverSearchTimeout(false);
-                  setSearchSeconds(searchSeconds + 1); // Desbloquea el timer
+                  setSearchSeconds(0); 
                   // Re-enviar push de inmediato al reintentar
                   api.broadcastOrderToDrivers(pendingOrderId, cart.total);
                   toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
@@ -2561,7 +2567,10 @@ export default function PruebasApp() {
                   
                   if (orderIdToCancel) {
                     try {
-                      await api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel);
+                      await Promise.all([
+                        api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
+                        api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
+                      ]);
                       toast.success('Búsqueda cancelada');
                     } catch (e) {
                       console.error("Error cancelling order:", e);
