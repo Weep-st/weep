@@ -2350,8 +2350,8 @@ export async function broadcastOrderToDrivers(pedidoId, total) {
 
     return await sendPushNotification({
       subscriptionIds: ids,
-      title: '¡Nuevo Pedido Disponible de Prueba! 🛵',
-      message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo para participar en la prueba!`,
+      title: '¡Nuevo Pedido Disponible! 🛵',
+      message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo ahora mismo!`,
       url: 'https://weep.com.ar/repartidores',
       data: { pedidoId, type: 'new_order_broadcast' }
     });
