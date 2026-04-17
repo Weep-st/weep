@@ -280,6 +280,11 @@ export default function MisPedidos() {
                     </span>
                   </div>
                   <div className="pedido-items-list">
+                    {p.repartidorNombre && (
+                      <div className="pedido-repartidor-mini" style={{ fontSize: '0.8rem', color: 'var(--blue-600)', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
+                        🛵 <strong>{p.repartidorNombre}</strong> asignado
+                      </div>
+                    )}
                     {p.itemsResumen?.map((i, idx) => (
                       <div key={idx} className="pedido-item-row">
                         <span className="pedido-item-qty">{i.cantidad}x</span>

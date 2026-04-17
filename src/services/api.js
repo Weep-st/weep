@@ -871,7 +871,7 @@ export async function getUserOrderCount(userId) {
 export async function getMisPedidos(userId) {
   const { data: pedidos } = await supabase
     .from('pedidos_general')
-    .select('*')
+    .select('*, repartidor:repartidores(nombre)')
     .eq('usuario_id', userId)
     .order('created_at', { ascending: false });
   if (!pedidos || pedidos.length === 0) return { enCurso: [], historial: [] };
@@ -904,6 +904,7 @@ export async function getMisPedidos(userId) {
       metodoPago: p.metodo_pago, tipoEntrega: p.tipo_entrega,
       observaciones: p.observaciones, numConfirmacion: p.num_confirmacion,
       repartidorId: p.repartidor_id,
+      repartidorNombre: p.repartidor?.nombre,
       itemsResumen: items.map(i => ({ nombre: i.nombre || i.nombre_item, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 
