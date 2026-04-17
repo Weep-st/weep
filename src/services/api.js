@@ -2360,3 +2360,27 @@ export async function broadcastOrderToDrivers(pedidoId, total) {
     return { success: false, error: err.message };
   }
 }
+export async function notifyDriverAboutPaymentApproved(pedidoId, driverId) {
+  try {
+    if (!driverId) return;
+    
+    // Get driver OneSignal ID
+    const { data: driver } = await supabase
+      .from('repartidores')
+      .select('onesignal_id')
+      .eq('id', driverId)
+      .single();
+
+    if (driver?.onesignal_id) {
+      await sendPushNotification({
+        subscriptionIds: [driver.onesignal_id],
+        title: '✅ ¡Pago Confirmado! 🚀',
+        message: `El cliente ya pagó el pedido #${pedidoId.split('-').pop()}. Ya puedes ver los datos y retirar el pedido.`,
+        url: 'https://weep.com.ar/repartidores',
+        data: { pedidoId, type: 'payment_confirmed' }
+      });
+    }
+  } catch (err) {
+    console.error("Error notifying driver about payment:", err);
+  }
+}

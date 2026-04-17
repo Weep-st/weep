@@ -1034,10 +1034,12 @@ export default function DriverDashboard() {
           
           <div className="dd-simple-body">
             {enViaje.estado === 'Pendiente de Pago' ? (
-              <div className="dd-waiting-payment-box animate-pulse">
-                <div className="waiting-icon">⏳</div>
-                <p><strong>Esperando el pago del cliente...</strong></p>
-                <p className="small">Los detalles del local y el cliente aparecerán una vez confirmado el pago.</p>
+              <div className="dd-waiting-payment-box animate-pulse" style={{ background: '#fff7ed', border: '1px solid #ffedd5', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
+                <div className="waiting-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
+                <p style={{ margin: '0 0 8px 0', color: '#9a3412' }}><strong>Pedido pendiente de confirmación</strong></p>
+                <p className="small" style={{ fontSize: '0.8rem', color: '#c2410c', lineHeight: '1.4' }}>
+                  Una vez que el usuario realice el pago, el pedido se confirmará automáticamente y podrás ver los datos del local para el retiro.
+                </p>
               </div>
             ) : !isRetirado ? (
               <>

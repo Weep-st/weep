@@ -270,13 +270,17 @@ export default function PruebasApp() {
             (async () => {
               try {
                 // Check current state to see if it was already accepted by a driver
-                const { data: currentOrder } = await api.supabase.from('pedidos_general').select('estado').eq('id', pendingData.pedidoId).single();
+                const { data: currentOrder } = await api.supabase.from('pedidos_general').select('estado, repartidor_id').eq('id', pendingData.pedidoId).single();
                 
                 const nextState = (currentOrder?.estado === 'Pendiente de Pago') ? 'Confirmado' : 'Pendiente';
 
                 await api.supabase.from('pedidos_general').update({ estado: nextState }).eq('id', pendingData.pedidoId);
                 await api.supabase.from('pedidos_locales').update({ estado: nextState }).eq('pedido_id', pendingData.pedidoId);
                 
+                if (nextState === 'Confirmado' && currentOrder?.repartidor_id) {
+                  api.notifyDriverAboutPaymentApproved(pendingData.pedidoId, currentOrder.repartidor_id).catch(console.error);
+                }
+
                 // 4. Notify locals
                 api.notifyLocalsAboutNewOrder(
                   pendingData.pedidoId, pendingData.cart,
@@ -446,6 +450,9 @@ export default function PruebasApp() {
               await api.supabase.from('pedidos_general').update({ estado: 'Confirmado' }).eq('id', pendingData.pedidoId);
               await api.supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', pendingData.pedidoId);
               
+              // Notify driver
+              api.notifyDriverAboutPaymentApproved(pendingData.pedidoId, orderData.repartidor_id).catch(console.error);
+
               api.notifyLocalsAboutNewOrder(
                 pendingData.pedidoId, pendingData.cart,
                 pendingData.direccion, pendingData.tipoEntrega,
