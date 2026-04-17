@@ -265,28 +265,43 @@ export default function PruebasApp() {
                 }))
               });
             }
-
-            // 3. Update order state to 'Pendiente' so restaurants see it
+            
+            // 3. Update order state via RPC
             (async () => {
               try {
-                // Check current state to see if it was already accepted by a driver
-                const { data: currentOrder } = await api.supabase.from('pedidos_general').select('estado, repartidor_id').eq('id', pendingData.pedidoId).single();
-                
-                const nextState = (currentOrder?.estado === 'Pendiente de Pago') ? 'Confirmado' : 'Pendiente';
+                // Primero marcar como pagado en la BD
+                const resPaid = await api.markOrderAsPaid(
+                  pendingData.pedidoId, 
+                  payment_id, 
+                  preference_id, 
+                  pendingData.pedidoId // External reference is the ID here
+                );
 
-                await api.supabase.from('pedidos_general').update({ estado: nextState }).eq('id', pendingData.pedidoId);
-                await api.supabase.from('pedidos_locales').update({ estado: nextState }).eq('pedido_id', pendingData.pedidoId);
-                
-                if (nextState === 'Confirmado' && currentOrder?.repartidor_id) {
-                  api.notifyDriverAboutPaymentApproved(pendingData.pedidoId, currentOrder.repartidor_id).catch(console.error);
+                if (resPaid.success) {
+                  // Obtener info actual del pedido (especialmente el repartidor)
+                  const { data: currentOrder } = await api.supabase
+                    .from('pedidos_general')
+                    .select('estado, repartidor_id')
+                    .eq('id', pendingData.pedidoId)
+                    .single();
+                  
+                  // Si tiene repartidor asignado, notificarlo
+                  if (currentOrder?.repartidor_id) {
+                    api.notifyDriverAboutPaymentApproved(pendingData.pedidoId, currentOrder.repartidor_id).catch(console.error);
+                  }
+
+                  // 4. Notificar a los locales (aunque el estado ya haya cambiado en la BD, necesitamos disparar el email)
+                  api.notifyLocalsAboutNewOrder(
+                    pendingData.pedidoId, pendingData.cart,
+                    pendingData.direccion, pendingData.tipoEntrega,
+                    pendingData.observaciones, pendingData.metodoPago
+                  ).catch(e => console.error("Error notificando locales (MP Success):", e));
+                } else {
+                  console.error("Error en markOrderAsPaid:", resPaid.error);
+                  // Fallback manual por si falla la RPC pero queremos intentar que el pedido avance
+                  await api.supabase.from('pedidos_general').update({ estado: 'Confirmado' }).eq('id', pendingData.pedidoId);
+                  await api.supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', pendingData.pedidoId);
                 }
-
-                // 4. Notify locals
-                api.notifyLocalsAboutNewOrder(
-                  pendingData.pedidoId, pendingData.cart,
-                  pendingData.direccion, pendingData.tipoEntrega,
-                  pendingData.observaciones, pendingData.metodoPago
-                ).catch(e => console.error("Error notificando locales (MP Success):", e));
               } catch (err) {
                 console.error("Error activating order after payment:", err);
               }

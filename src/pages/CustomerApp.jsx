@@ -240,6 +240,29 @@ export default function CustomerApp() {
           if (status === 'approved') {
             toast.success(`¡Pago confirmado! Tu pedido #${pendingData.pedidoId} está siendo procesado.`);
             
+            // Actualizar estado del pedido en la base de datos
+            api.markOrderAsPaid(
+              pendingData.pedidoId, 
+              payment_id, 
+              preference_id, 
+              pendingData.externalReference
+            ).then(async (res) => {
+              if (res.success) {
+                // Si el pedido tiene un repartidor asignado, notificarlo
+                try {
+                  const orderRes = await api.getOrderDetail(user.id, pendingData.pedidoId);
+                  if (orderRes.success && orderRes.detalle.repartidor_id) {
+                    await api.notifyDriverAboutPaymentApproved(
+                      pendingData.pedidoId, 
+                      orderRes.detalle.repartidor_id
+                    );
+                  }
+                } catch (err) {
+                  console.error("Error al notificar al repartidor:", err);
+                }
+              }
+            }).catch(e => console.error("Error al marcar pedido como pagado:", e));
+            
             // Facebook Pixel: Purchase
             if (window.fbq) {
               window.fbq('track', 'Purchase', {
@@ -260,7 +283,7 @@ export default function CustomerApp() {
                   item_id: i.id,
                   item_name: i.nombre,
                   quantity: i.qty,
-                  price: i.precio
+                  price: i.price || i.precio
                 }))
               });
             }
