@@ -2384,3 +2384,11 @@ export async function notifyDriverAboutPaymentApproved(pedidoId, driverId) {
     console.error("Error notifying driver about payment:", err);
   }
 }
+
+export async function subscribeToDriverAvailability(onesignalId, userId = null) {
+  const { data, error } = await supabase
+    .from('clientes_esperando_repartidor')
+    .insert([{ onesignal_id: onesignalId, usuario_id: userId }]);
+  if (error) throw error;
+  return { success: true };
+}

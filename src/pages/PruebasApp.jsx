@@ -2585,7 +2585,49 @@ export default function PruebasApp() {
               >
                 ✖ No, cancelar pedido
               </button>
-            </div>
+
+              <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #eee' }} />
+              
+              <button 
+                className="btn btn-ghost btn-full"
+                style={{ color: 'var(--blue-600)', background: 'var(--blue-50)', fontWeight: 'bold' }}
+                onClick={async () => {
+                  const orderIdToCancel = pendingOrderId;
+                  // 1. Cancel order
+                  if (orderIdToCancel) {
+                    await Promise.all([
+                      api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
+                      api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
+                    ]).catch(console.error);
+                  }
+                  
+                  // 2. Subscribe to push
+                  try {
+                    const OneSignal = window.OneSignal;
+                    if (OneSignal) {
+                      await OneSignal.Notifications.requestPermission();
+                      const subId = OneSignal.User.PushSubscription.id;
+                      if (subId) {
+                        await api.subscribeToDriverAvailability(subId, user?.id);
+                        toast.success('🚀 ¡Perfecto! Te avisaremos apenas se conecte un repartidor.');
+                      } else {
+                        toast.error('No pudimos activar las notificaciones. Asegúrate de tener la App instalada.');
+                      }
+                    }
+                  } catch (e) {
+                    console.error("Error subscribing to demand recovery:", e);
+                    toast.error('Ocurrió un error al agendar el aviso.');
+                  }
+
+                  // 3. Close everything
+                  setDriverSearchTimeout(false);
+                  setSearchingDriver(false);
+                  setPendingOrderId(null);
+                }}
+              >
+                🔔 Avisarme cuando haya repartidores
+              </button>
+           </div>
           </div>
         </div>
       )}
