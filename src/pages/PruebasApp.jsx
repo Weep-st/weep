@@ -450,8 +450,6 @@ export default function PruebasApp() {
               await api.supabase.from('pedidos_general').update({ estado: 'Confirmado' }).eq('id', pendingData.pedidoId);
               await api.supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', pendingData.pedidoId);
               
-              // Notify driver
-              api.notifyDriverAboutPaymentApproved(pendingData.pedidoId, orderData.repartidor_id).catch(console.error);
 
               api.notifyLocalsAboutNewOrder(
                 pendingData.pedidoId, pendingData.cart,
