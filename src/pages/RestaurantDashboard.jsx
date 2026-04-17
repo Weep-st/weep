@@ -2184,7 +2184,7 @@ function OrderCard({ order: o, onAction, finished }) {
     setLoading('');
   };
   const subtotal = o.items.reduce((sum, i) => sum + (i[7] || 0), 0);
-  const statusColors = { Pendiente: 'badge-amber', Aceptado: 'badge-info', Listo: 'badge-blue', Entregado: 'badge-green', Rechazado: 'badge-red' };
+  const statusColors = { Pendiente: 'badge-amber', Confirmado: 'badge-amber', Aceptado: 'badge-info', Listo: 'badge-blue', Entregado: 'badge-green', Rechazado: 'badge-red' };
   return (
     <div className="rd-order-card card">
       <div className="rd-order-header">
@@ -2219,7 +2219,7 @@ function OrderCard({ order: o, onAction, finished }) {
         </div>
         {!finished && (
           <div className="rd-order-actions">
-            {o.estadoActual === 'Pendiente' ? (
+            {['Pendiente', 'Confirmado'].includes(o.estadoActual) ? (
               <>
                 <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
                   {loading === 'Aceptado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✓ Aceptar'}
