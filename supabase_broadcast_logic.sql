@@ -106,10 +106,10 @@ BEGIN
     -- 1. Intentar actualizar de forma atómica
     UPDATE public.pedidos_general 
     SET repartidor_id = p_repartidor_id, 
-        estado = 'Confirmado'
+        estado = 'Pendiente de Pago'
     WHERE id = p_pedido_id 
       AND repartidor_id IS NULL 
-      AND estado = 'Pendiente'
+      AND (estado = 'Pendiente' OR estado = 'Buscando Repartidor')
       AND tipo_entrega = 'Con Envío';
 
     GET DIAGNOSTICS v_updated = ROW_COUNT;

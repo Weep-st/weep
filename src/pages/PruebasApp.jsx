@@ -436,9 +436,36 @@ export default function PruebasApp() {
       toast.success('¡Repartidor encontrado! 🚀');
       
       // 2. Clear flags after showing success for a while
-      setTimeout(() => {
-        // Trigger Mercado Pago Checkout automatically
-        triggerMPCheckout(orderData);
+      setTimeout(async () => {
+        const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
+        if (pendingRaw) {
+          const pendingData = JSON.parse(pendingRaw);
+          if (pendingData.metodoPago === 'efectivo') {
+            // Confirm immediately for cash
+            try {
+              await api.supabase.from('pedidos_general').update({ estado: 'Confirmado' }).eq('id', pendingData.pedidoId);
+              await api.supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', pendingData.pedidoId);
+              
+              api.notifyLocalsAboutNewOrder(
+                pendingData.pedidoId, pendingData.cart,
+                pendingData.direccion, pendingData.tipoEntrega,
+                pendingData.observaciones, pendingData.metodoPago
+              ).catch(console.error);
+
+              toast.success('¡Pedido confirmado! El repartidor ya está en camino al local.');
+              setSearchingDriver(false);
+              setFoundDriver(null);
+              setPendingOrderId(null);
+              localStorage.removeItem('pendingOrderDataPruebas');
+            } catch (err) {
+              console.error("Error confirming cash order:", err);
+              toast.error('Error al confirmar el pedido');
+            }
+          } else {
+            // Trigger Mercado Pago Checkout for transfers
+            triggerMPCheckout(orderData);
+          }
+        }
       }, 3500);
 
     } catch (e) {
@@ -864,19 +891,6 @@ export default function PruebasApp() {
 
     if (!mp) { toast.error('Seleccioná un método de pago'); return; }
     
-    // Check repartidores active strictly before proceeding if envio is selected
-    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-    if (cart.deliveryType === 'envio') {
-      const freshRiders = await api.checkActiveRepartidores();
-      if (!freshRiders.hasActive) {
-        setHasRepartidores(false);
-        const puedeRetirar = currentLocal?.acepta_retiro === true;
-        if (puedeRetirar) {
-          cart.setDeliveryType('retiro');
-        }
-        return;
-      }
-    }
 
     if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
       toast.error('Este local no ofrece la opción de retiro en el local.');
@@ -927,82 +941,73 @@ export default function PruebasApp() {
       }));
 
       // 3. Handle Flow
-      if (mp === 'efectivo') {
-        // Cash remains standard for now as it's less risky and already has a confirmation step
-        const response = await api.crearPedido({
-          userId: user.id,
-          direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
-          tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
-          metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
-          items: orderItems, emailCliente: user.email, nombreCliente: user.name,
-          estadoInicial: 'Pendiente', totalCalculado: exactTotal,
-          lat: addressData.lat, lng: addressData.lng, precioEnvio: shipping
-        });
+      // UNIFIED FLOW: Both Cash and Transfer wait for driver before proceeding
+      const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
+      
+      const orderInfo = {
+        direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
+        tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
+        metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
+        emailCliente: user.email, nombreCliente: user.name,
+        totalCalculado: exactTotal,
+        lat: addressData.lat, lng: addressData.lng, precioEnvio: shipping
+      };
 
-        toast.success(`¡Pedido #${response.pedidoId} registrado!`);
-        api.notifyLocalsAboutNewOrder(response.pedidoId, cart.items, orderItems.direccion, orderItems.tipoEntrega, fd.get('observaciones') || '', mp).catch(() => {});
-        cart.clearCart(); setCartOpen(false); e.target.reset();
-      } 
-      else if (mp === 'transferencia') {
-        // PRUEBAS FLOW: Wait for driver BEFORE opening MP
-        const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
-        
-        const orderInfo = {
-          direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
-          tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
-          metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
-          emailCliente: user.email, nombreCliente: user.name,
-          totalCalculado: exactTotal,
-          lat: addressData.lat, lng: addressData.lng, precioEnvio: shipping
-        };
+      // Create order in "Buscando Repartidor" (or Pendiente if already confirmed for pickup)
+      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Pendiente' : 'Pendiente de Pago');
 
-        // Create the actual order immediately in "Pendiente" so drivers see it
-        const response = await api.crearPedido({
-          userId: user.id,
-          pedidoId: pregeneratedId, // Pass the ID to keep it consistent
+      const response = await api.crearPedido({
+        userId: user.id,
+        pedidoId: pregeneratedId,
+        direccion: orderInfo.direccion,
+        tipoEntrega: orderInfo.tipoEntrega,
+        metodoPago: mp, observaciones: orderInfo.observaciones,
+        items: orderItems,
+        emailCliente: user.email, nombreCliente: user.name,
+        estadoInicial: initialState,
+        totalCalculado: exactTotal,
+        lat: addressData.lat,
+        lng: addressData.lng,
+        precioEnvio: shipping
+      });
+
+      if (response.success) {
+        // Store data for secondary steps
+        localStorage.setItem('pendingOrderDataPruebas', JSON.stringify({
+          pedidoId: response.pedidoId,
+          total: exactTotal,
+          localId: cart.items[0]?.local_id,
+          marketplace_fee: finalTotals.platform_gross,
           direccion: orderInfo.direccion,
           tipoEntrega: orderInfo.tipoEntrega,
-          metodoPago: mp, observaciones: orderInfo.observaciones,
-          items: orderItems,
-          emailCliente: user.email, nombreCliente: user.name,
-          estadoInicial: 'Buscando Repartidor',
-          totalCalculado: exactTotal,
-          lat: addressData.lat,
-          lng: addressData.lng,
-          precioEnvio: shipping
-        });
+          observaciones: orderInfo.observaciones,
+          cart: cart.items,
+          metodoPago: mp,
+          orderItems: orderItems // Original items format
+        }));
 
-        if (response.success) {
-          // Store data for MP later
-          localStorage.setItem('pendingOrderDataPruebas', JSON.stringify({
-            pedidoId: response.pedidoId,
-            total: exactTotal,
-            localId: cart.items[0]?.local_id,
-            marketplace_fee: finalTotals.platform_gross,
-            direccion: orderInfo.direccion,
-            tipoEntrega: orderInfo.tipoEntrega,
-            observaciones: orderInfo.observaciones,
-            cart: cart.items,
-            metodoPago: mp
-          }));
+        if (cart.deliveryType === 'envio') {
+          setPendingOrderId(response.pedidoId);
+          setSearchingDriver(true);
+          setFoundDriver(null);
+          setDriverSearchTimeout(false);
+          setSearchSeconds(0);
+          setCartOpen(false);
 
-          if (cart.deliveryType === 'envio') {
-            setPendingOrderId(response.pedidoId);
-            setSearchingDriver(true);
-            setFoundDriver(null);
-            setDriverSearchTimeout(false);
-            setSearchSeconds(0);
-            setCartOpen(false);
-
-            // Notify drivers via Push
-            api.broadcastOrderToDrivers(response.pedidoId, exactTotal).catch(console.error);
+          // Notify drivers via Push
+          api.broadcastOrderToDrivers(response.pedidoId, exactTotal).catch(console.error);
+        } else {
+          // Pickup Flow
+          if (mp === 'efectivo') {
+            toast.success(`¡Pedido #${response.pedidoId} registrado!`);
+            api.notifyLocalsAboutNewOrder(response.pedidoId, cart.items, orderInfo.direccion, orderInfo.tipoEntrega, orderInfo.observaciones, mp).catch(console.error);
+            cart.clearCart(); setCartOpen(false);
           } else {
-            // If it's pickup, go straight to MP
             triggerMPCheckout(response);
           }
-        } else {
-          throw new Error('No se pudo crear el pedido base.');
         }
+      } else {
+        throw new Error('No se pudo crear el pedido.');
       }
     } catch (err) { 
       toast.error('Error: ' + err.message); 
@@ -2458,6 +2463,22 @@ export default function PruebasApp() {
                 <p className="searching-description">
                   Estamos buscando al mejor repartidor disponible para llevar tu pedido. Esto puede demorar unos minutos.
                 </p>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#dc2626',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  marginTop: '10px',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>⚠️</span> 
+                  <span><strong>NO CIERRES ESTA VENTANA:</strong> Una vez que encontremos repartidor, deberás realizar el pago para confirmar tu pedido.</span>
+                </div>
                 <div className="searching-timer">
                   Tiempo transcurrido: {Math.floor(searchSeconds / 60)}:{(searchSeconds % 60).toString().padStart(2, '0')}
                 </div>
