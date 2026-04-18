@@ -96,7 +96,13 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: rpcError.message }), { status: 200 })
       }
 
-      // 5. Limpiar temporales si todo salió bien
+      // 5. Guardar el payment_id (Esto disparará el nuevo Trigger de confirmación robusta)
+      await supabase.from('pedidos_general').update({ 
+        payment_id: String(id),
+        fecha_pago: new Date().toISOString()
+      }).eq('id', externalReference)
+
+      // 6. Limpiar temporales si todo salió bien
       await supabase.from('pedidos_temporales').delete().eq('id', externalReference)
       console.log(`[Webhook MP] Pedido ${externalReference} procesado con éxito.`)
     }
