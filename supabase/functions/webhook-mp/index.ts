@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         p_observaciones: tempOrder.order_info.observaciones || '',
         p_tipo_entrega: tempOrder.order_info.tipoEntrega,
         p_total: tempOrder.order_info.totalCalculado,
-        p_estado: 'Pendiente',
+        p_estado: 'Confirmado',
         p_email_cliente: tempOrder.order_info.emailCliente || '',
         p_nombre_cliente: tempOrder.order_info.nombreCliente || '',
         p_lat: tempOrder.order_info.lat,

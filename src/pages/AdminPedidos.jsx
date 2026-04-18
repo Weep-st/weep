@@ -51,8 +51,7 @@ const AdminPedidos = () => {
     const handleUpdateStatus = async (pedidoId, newStatus) => {
         if (!window.confirm(`¿Cambiar estado a ${newStatus}?`)) return;
         try {
-            // we should have this in api, if not we add it
-            await api.supabase.from('pedidos_general').update({ estado: newStatus }).eq('id', pedidoId);
+            await api.adminUpdatePedidoStatus(pedidoId, newStatus);
             toast.success('Estado actualizado');
             setPedidoDetalle(prev => ({ ...prev, estado: newStatus }));
             loadPedidos();

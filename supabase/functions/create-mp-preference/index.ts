@@ -34,10 +34,11 @@ Deno.serve(async (req) => {
 
     // Sanitizamos las back_urls por si el frontend envía 'http://localhost' o 'file://' que MP rechaza para auto_return
     const isValidUrl = (url: any) => typeof url === 'string' && (url.startsWith('https') || url.startsWith('http://localhost'));
+    const successUrl = "https://weep.com.ar/pedir";
     const safeBackUrls = (back_urls && isValidUrl(back_urls.success)) ? back_urls : {
-      success: "https://weep.com.ar/pedir",
-      failure: "https://weep.com.ar/pedir",
-      pending: "https://weep.com.ar/pedir"
+      success: successUrl,
+      failure: successUrl,
+      pending: successUrl
     };
 
     const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-mp?local_id=${local_id}`;

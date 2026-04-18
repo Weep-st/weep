@@ -1232,6 +1232,29 @@ export async function adminGetPedidoDetalle(pedidoId) {
 }
 
 // ═══════════════════════════════════════════════════
+// ADMIN — Update Pedido Status (Global + Local)
+// ═══════════════════════════════════════════════════
+export async function adminUpdatePedidoStatus(pedidoId, status) {
+  // 1. Update general
+  const { error: e1 } = await supabase.from('pedidos_general').update({ estado: status }).eq('id', pedidoId);
+  if (e1) throw new Error(e1.message);
+
+  // 2. Update all associated local orders
+  const { error: e2 } = await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
+  if (e2) throw new Error(e2.message);
+
+  // 3. Side effects (e.g. freeing driver if rejected)
+  if (status === 'Rechazado' || status === 'Cancelado') {
+     const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pedidoId).single();
+     if (pg && pg.repartidor_id) {
+       await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
+     }
+  }
+
+  return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
 // ADMIN — Usuarios
 // ═══════════════════════════════════════════════════
 export async function adminGetUsuarios() {
@@ -1297,6 +1320,23 @@ export async function adminUpdateCobroStatus(id, estado, comprobanteUrl = null) 
   
   const { error } = await supabase.from('gestion_cobros').update(updateData).eq('id', id);
   if (error) throw new Error(error.message);
+
+  // If payment is approved ('Pagado'), automatically confirm the associated orders
+  if (estado === 'Pagado') {
+    const { data: sol } = await supabase.from('gestion_cobros').select('pedidos_incluidos').eq('id', id).single();
+    if (sol && sol.pedidos_incluidos) {
+      const pids = sol.pedidos_incluidos.split(',').map(s => s.trim()).filter(Boolean);
+      for (const pid of pids) {
+        // We only transition orders from 'Pendiente de Pago' to 'Confirmado'
+        // This avoids touching orders that might already be 'Entregado' (commission settlement flow)
+        const { data: order } = await supabase.from('pedidos_general').select('estado').eq('id', pid).single();
+        if (order && order.estado === 'Pendiente de Pago') {
+          await adminUpdatePedidoStatus(pid, 'Confirmado');
+        }
+      }
+    }
+  }
+
   return { success: true };
 }
 
@@ -1767,6 +1807,14 @@ export async function markOrderAsPaid(pedidoId, paymentId, preferenceId, externa
     p_external_reference: externalReference || null
   });
   if (error) return { success: false, error: error.message };
+
+  // Ensure status transitions to 'Confirmado' in both tables to trigger printer/restaurant dashboard
+  try {
+    await adminUpdatePedidoStatus(pedidoId, 'Confirmado');
+  } catch (e) {
+    console.error("Error updating status in markOrderAsPaid:", e);
+  }
+
   return { success: true };
 }
 
