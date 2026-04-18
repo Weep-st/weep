@@ -63,48 +63,59 @@ Deno.serve(async (req) => {
     const externalReference = paymentData.external_reference
     console.log(`[Webhook MP] Pago ${id} estado: ${status}, Ref: ${externalReference}`)
 
-    // 3. Si está aprobado, crear el pedido
+    // 3. Si está aprobado, procesar la confirmación
     if (status === 'approved' && externalReference) {
+      // Intentar obtener el temporal
       const { data: tempOrder } = await supabase.from('pedidos_temporales').select('*').eq('id', externalReference).single()
 
-      if (!tempOrder) {
-        console.error(`[Webhook MP] Pedido temporal ${externalReference} no existe`)
-        return new Response(JSON.stringify({ message: "Temp order not found" }), { status: 200 })
+      if (tempOrder) {
+        console.log(`[Webhook MP] Procesando pedido temporal ${externalReference}`)
+        // 4. Ejecutar el RPC oficial (crea el pedido final)
+        const { error: rpcError } = await supabase.rpc('create_pedido_completo', {
+          p_user_id: tempOrder.usuario_id,
+          p_direccion: tempOrder.order_info.direccion,
+          p_metodo_pago: tempOrder.order_info.metodoPago,
+          p_observaciones: tempOrder.order_info.observaciones || '',
+          p_tipo_entrega: tempOrder.order_info.tipoEntrega,
+          p_total: tempOrder.order_info.totalCalculado,
+          p_estado: 'Confirmado',
+          p_email_cliente: tempOrder.order_info.emailCliente || '',
+          p_nombre_cliente: tempOrder.order_info.nombreCliente || '',
+          p_lat: tempOrder.order_info.lat,
+          p_lng: tempOrder.order_info.lng,
+          p_cart: tempOrder.cart_data,
+          p_precio_envio: tempOrder.order_info.precioEnvio || 0,
+          p_id: externalReference,
+          p_external_reference: externalReference
+        })
+
+        if (rpcError) {
+          console.error(`[Webhook MP] Error al crear pedido final via RPC:`, rpcError)
+          // No retornamos error aquí para permitir que el flujo de actualización intente arreglarlo abajo
+        }
+
+        // 5. Limpiar temporales
+        await supabase.from('pedidos_temporales').delete().eq('id', externalReference)
+      } else {
+        console.log(`[Webhook MP] Pedido temporal no encontrado. Verificando si ya existe en pedidos_general...`)
       }
 
-      // 4. Ejecutar el RPC oficial (con p_id y p_external_reference)
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('create_pedido_completo', {
-        p_user_id: tempOrder.usuario_id,
-        p_direccion: tempOrder.order_info.direccion,
-        p_metodo_pago: tempOrder.order_info.metodoPago,
-        p_observaciones: tempOrder.order_info.observaciones || '',
-        p_tipo_entrega: tempOrder.order_info.tipoEntrega,
-        p_total: tempOrder.order_info.totalCalculado,
-        p_estado: 'Confirmado',
-        p_email_cliente: tempOrder.order_info.emailCliente || '',
-        p_nombre_cliente: tempOrder.order_info.nombreCliente || '',
-        p_lat: tempOrder.order_info.lat,
-        p_lng: tempOrder.order_info.lng,
-        p_cart: tempOrder.cart_data,
-        p_precio_envio: tempOrder.order_info.precioEnvio || 0,
-        p_id: externalReference,
-        p_external_reference: externalReference
-      })
-
-      if (rpcError) {
-        console.error(`[Webhook MP] Error al crear pedido final:`, rpcError)
-        return new Response(JSON.stringify({ error: rpcError.message }), { status: 200 })
-      }
-
-      // 5. Guardar el payment_id (Esto disparará el nuevo Trigger de confirmación robusta)
-      await supabase.from('pedidos_general').update({ 
+      // 6. ASEGURAR ACTUALIZACIÓN (Fallback Robusto)
+      // Actualizamos estado y payment_id directamente en las tablas finales. 
+      // Si el RPC ya lo hizo, esto es seguro de repetir. Si el RPC falló pero el pedido ya existía, esto lo "salva".
+      const { error: updateError } = await supabase.from('pedidos_general').update({ 
+        estado: 'Confirmado',
         payment_id: String(id),
         fecha_pago: new Date().toISOString()
       }).eq('id', externalReference)
 
-      // 6. Limpiar temporales si todo salió bien
-      await supabase.from('pedidos_temporales').delete().eq('id', externalReference)
-      console.log(`[Webhook MP] Pedido ${externalReference} procesado con éxito.`)
+      if (updateError) {
+        console.error(`[Webhook MP] Error actualizando estado en pedidos_general:`, updateError)
+      } else {
+        // También actualizar locales para el dashboard/impresora
+        await supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', externalReference)
+        console.log(`[Webhook MP] Pedido ${externalReference} confirmado con éxito.`)
+      }
     }
 
     return new Response(JSON.stringify({ message: "OK" }), { status: 200 })
