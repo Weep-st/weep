@@ -84,14 +84,27 @@ function connectToSupabase(localId) {
         .on(
             'postgres_changes',
             { 
-                event: 'INSERT', 
+                event: '*', 
                 schema: 'public', 
                 table: 'pedidos_locales',
                 filter: `local_id=eq.${localId}`
             },
             (payload) => {
-                addLog('¡Nuevo pedido detectado!');
-                fetchOrderDetails(payload.new);
+                const order = payload.new;
+                
+                // Solo imprimimos si el estado es EXACTAMENTE 'Confirmado'
+                if (order.estado === 'Confirmado') {
+                    // Evitar duplicados (por ejemplo si hay varios updates seguidos)
+                    if (window.lastPrintedOrderId === order.pedido_id) return;
+                    window.lastPrintedOrderId = order.pedido_id;
+
+                    addLog('¡Pedido CONFIRMADO detectado!');
+                    fetchOrderDetails(order);
+                } else {
+                    // Loggeamos el cambio pero no disparamos la impresión
+                    const shortId = order.pedido_id ? order.pedido_id.substring(order.pedido_id.length - 6) : '???';
+                    addLog(`Pedido #${shortId} en estado: ${order.estado} (No se imprime)`);
+                }
             }
         )
         .subscribe((status) => {
