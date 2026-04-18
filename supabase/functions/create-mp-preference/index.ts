@@ -32,10 +32,8 @@ Deno.serve(async (req) => {
     const masterToken = 'APP_USR-595288641172928-010710-d915bce4137b3ee26e0c6e04873f1ac1-695835795';
     const accessToken = localData?.mp_access_token || Deno.env.get('MP_ACCESS_TOKEN_GLOBAL') || masterToken;
 
-    // Sanitizamos las back_urls por si el frontend envía 'http://localhost' o 'file://' que MP rechaza para auto_return
-    const isValidUrl = (url: any) => typeof url === 'string' && (url.startsWith('https') || url.startsWith('http://localhost'));
     const successUrl = "https://weep.com.ar/pedir";
-    const safeBackUrls = (back_urls && isValidUrl(back_urls.success)) ? back_urls : {
+    const safeBackUrls = {
       success: successUrl,
       failure: successUrl,
       pending: successUrl
