@@ -1560,7 +1560,7 @@ export async function getPedidosDisponibles(repartidorId) {
   // 1. Pedidos asignados al repartidor (Confirmados o Retirados)
   // 2. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id')
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono)')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino'])
     .order('created_at', { ascending: false });
@@ -1571,13 +1571,20 @@ export async function getPedidosDisponibles(repartidorId) {
   }
 
   return { success: true, data: (data || []).map(p => ({
-    id: p.id, cliente: p.usuario_id, nombre_cliente: p.nombre_cliente || 'Cliente', 
+    id: p.id, 
+    cliente: p.usuario_id, 
+    nombre_cliente: p.nombre_cliente || 'Cliente', 
+    telefono_cliente: p.usuarios?.telefono || '',
     direccion: p.direccion || 'Sin dirección',
     monto: +p.total || 0,
     precio_envio: +p.precio_envio || 0,
     pago: p.metodo_pago || 'Efectivo',
-    estado: p.estado, observaciones: p.observaciones || '', envio: p.tipo_entrega || 'envio',
-    local_id: p.local_id, lat: p.lat, lng: p.lng,
+    estado: p.estado, 
+    observaciones: p.observaciones || '', 
+    envio: p.tipo_entrega || 'envio',
+    local_id: p.local_id, 
+    lat: p.lat, 
+    lng: p.lng,
     esBroadcast: !p.repartidor_id // Flag para identificar en UI
   })) };
 }

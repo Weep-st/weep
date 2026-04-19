@@ -1121,6 +1121,22 @@ export default function DriverDashboard() {
                   <button className="btn btn-light btn-full" onClick={() => isTutorial ? toast('Chat de simulación') : openChat(enViaje.id)}>
                     💬 Chat Cliente
                   </button>
+                  {isRetirado && (
+                    <button 
+                      className="btn btn-light btn-full" 
+                      onClick={() => {
+                        if (enViaje.telefono_cliente) {
+                          // Limpiar cualquier carácter no numérico para el link de WhatsApp
+                          const cleanTel = enViaje.telefono_cliente.replace(/\D/g, '');
+                          window.open(`https://wa.me/${cleanTel}`, '_blank');
+                        } else {
+                          toast.error('Número de teléfono no disponible');
+                        }
+                      }}
+                    >
+                      📞 Contactar
+                    </button>
+                  )}
                   {!isRetirado ? (
                     <button
                       className="dd-btn-rojo"
