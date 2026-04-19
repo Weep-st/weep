@@ -1139,6 +1139,26 @@ export async function adminGetLocales() {
   return data || [];
 }
 
+export async function adminGetSalesByLocale() {
+  const { data, error } = await supabase
+    .from('pedidos_locales')
+    .select('local_id, total, estado, created_at')
+    .eq('estado', 'Entregado');
+  
+  if (error) throw new Error(error.message);
+  
+  const salesMap = {};
+  data.forEach(sale => {
+    if (!salesMap[sale.local_id]) {
+      salesMap[sale.local_id] = { total: 0, count: 0 };
+    }
+    salesMap[sale.local_id].total += Number(sale.total);
+    salesMap[sale.local_id].count += 1;
+  });
+  
+  return salesMap;
+}
+
 export async function adminUpdateLocalStatus(localId, admin_status) {
   const { error } = await supabase.from('locales').update({ admin_status }).eq('id', localId);
   if (error) throw new Error(error.message);
@@ -1153,6 +1173,27 @@ export async function adminUpdateLocalAvailability(localId, disponibleDesde) {
 
 export async function adminUpdateLocalEstado(localId, estado) {
   const { error } = await supabase.from('locales').update({ estado: estado }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminGetDriverSettlements() {
+  const { data, error } = await supabase
+    .from('pedidos_general')
+    .select('id, created_at, total, precio_envio, repartidor_id, cobro_repartidor_procesado, repartidores(nombre)')
+    .eq('estado', 'Entregado')
+    .order('created_at', { ascending: false });
+  
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function adminUpdateDriverPaymentStatus(pedidoId, status) {
+  const { error } = await supabase
+    .from('pedidos_general')
+    .update({ cobro_repartidor_procesado: status })
+    .eq('id', pedidoId);
+  
   if (error) throw new Error(error.message);
   return { success: true };
 }

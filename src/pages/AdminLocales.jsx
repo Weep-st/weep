@@ -14,6 +14,8 @@ const AdminLocales = () => {
     const [menuLoading, setMenuLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLocal, setSelectedLocal] = useState('');
+    const [salesData, setSalesData] = useState({});
+    const [salesLoading, setSalesLoading] = useState(false);
 
     const loadLocales = async () => {
         setLoading(true);
@@ -52,7 +54,22 @@ const AdminLocales = () => {
         if (activeTab === 'menus' && menuItems.length === 0) {
             loadMenuCompleto();
         }
+        if (activeTab === 'ventas') {
+            loadSales();
+        }
     }, [activeTab]);
+
+    const loadSales = async () => {
+        setSalesLoading(true);
+        try {
+            const data = await api.adminGetSalesByLocale();
+            setSalesData(data);
+        } catch (err) {
+            toast.error('Error al cargar datos de ventas');
+        } finally {
+            setSalesLoading(false);
+        }
+    };
 
     const handleUpdateStatus = async (id, status) => {
         try {
@@ -117,6 +134,12 @@ const AdminLocales = () => {
                         onClick={() => setActiveTab('cobros')}
                     >
                         Cobros
+                    </button>
+                    <button 
+                        className={`tab-btn ${activeTab === 'ventas' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('ventas')}
+                    >
+                        Ventas
                     </button>
                 </div>
             </header>
@@ -272,6 +295,73 @@ const AdminLocales = () => {
                             )}
                         </div>
                     )}
+                </div>
+            ) : activeTab === 'ventas' ? (
+                <div className="table-responsive">
+                    <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h3 style={{ margin: 0 }}>Distribución de Ventas por Local</h3>
+                            <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>Solo incluye pedidos en estado "Entregado"</p>
+                        </div>
+                        <button className="btn btn-sm btn-primary" onClick={loadSales} disabled={salesLoading}>
+                            {salesLoading ? 'Actualizando...' : 'Refrescar'}
+                        </button>
+                    </header>
+                    <table className="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Local</th>
+                                <th style={{ textAlign: 'center' }}>Pedidos Entregados</th>
+                                <th style={{ textAlign: 'right' }}>Ventas Totales</th>
+                                <th style={{ textAlign: 'right' }}>Ticket Promedio</th>
+                                <th>Última venta (Simulada)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {locales.filter(l => l.admin_status === 'Aceptado').map(local => {
+                                const stats = salesData[local.id] || { total: 0, count: 0 };
+                                return (
+                                    <tr key={local.id}>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <img 
+                                                    src={local.foto_url || 'https://placehold.co/40x40'} 
+                                                    alt="" 
+                                                    style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }} 
+                                                />
+                                                <span style={{ fontWeight: 600 }}>{local.nombre}</span>
+                                            </div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>{stats.count}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 800, color: '#10b981' }}>
+                                            ${Number(stats.total).toLocaleString('es-AR')}
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            ${stats.count > 0 ? (stats.total / stats.count).toLocaleString('es-AR', { maximumFractionDigits: 0 }) : 0}
+                                        </td>
+                                        <td style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                                            {stats.count > 0 ? 'Hoy' : 'Sin ventas'}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {locales.filter(l => l.admin_status === 'Aceptado').length === 0 && (
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No hay locales aceptados.</td></tr>
+                            )}
+                        </tbody>
+                        <tfoot style={{ background: '#f8fafc', fontWeight: 800 }}>
+                            <tr>
+                                <td>TOTAL GLOBAL</td>
+                                <td style={{ textAlign: 'center' }}>
+                                    {Object.values(salesData).reduce((sum, s) => sum + s.count, 0)}
+                                </td>
+                                <td style={{ textAlign: 'right', color: '#10b981', fontSize: '1.1rem' }}>
+                                    ${Object.values(salesData).reduce((sum, s) => sum + s.total, 0).toLocaleString('es-AR')}
+                                </td>
+                                <td colSpan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             ) : (
                 <AdminPagos tipo="Local" />

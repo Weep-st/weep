@@ -7,6 +7,8 @@ const AdminPedidos = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('Todos');
+    const [localFilter, setLocalFilter] = useState('Todos');
+    const [locales, setLocales] = useState([]);
     
     // Modal state
     const [selectedPedido, setSelectedPedido] = useState(null);
@@ -18,6 +20,10 @@ const AdminPedidos = () => {
         try {
             const data = await api.adminGetPedidosGeneral();
             setPedidos(data);
+            
+            // Fetch locales for filter
+            const localesData = await api.adminGetLocales();
+            setLocales(localesData.filter(l => l.admin_status === 'Aceptado'));
         } catch (err) {
             toast.error('Error al cargar pedidos');
         } finally {
@@ -78,7 +84,8 @@ const AdminPedidos = () => {
             p.num_confirmacion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.id.includes(searchTerm);
         const matchesStatus = statusFilter === 'Todos' || p.estado === statusFilter;
-        return matchesSearch && matchesStatus;
+        const matchesLocal = localFilter === 'Todos' || p.local_id === localFilter;
+        return matchesSearch && matchesStatus && matchesLocal;
     });
 
     if (loading) return <div className="loading-state">Cargando pedidos...</div>;
@@ -106,6 +113,15 @@ const AdminPedidos = () => {
                     >
                         <option value="Todos">Todos los estados</option>
                         {estadosPosibles.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+
+                    <select 
+                        className="filter-select"
+                        value={localFilter}
+                        onChange={(e) => setLocalFilter(e.target.value)}
+                    >
+                        <option value="Todos">Todos los locales</option>
+                        {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
                     </select>
                     <button className="btn btn-primary" onClick={loadPedidos}>Refrescar</button>
                 </div>

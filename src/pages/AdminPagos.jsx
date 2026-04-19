@@ -6,6 +6,11 @@ const AdminPagos = ({ tipo = 'Local' }) => {
     const [solicitudes, setSolicitudes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(null);
+    const [viewMode, setViewMode] = useState('solicitudes'); // 'solicitudes' or 'liquidacion'
+    const [settlements, setSettlements] = useState([]);
+    const [settlementsLoading, setSettlementsLoading] = useState(false);
+    const [repFilter, setRepFilter] = useState('Todos');
+    const [repartidores, setRepartidores] = useState([]);
 
     const loadSolicitudes = async () => {
         setLoading(true);
@@ -21,7 +26,40 @@ const AdminPagos = ({ tipo = 'Local' }) => {
 
     useEffect(() => {
         loadSolicitudes();
+        if (tipo === 'Repartidor') {
+            loadSettlements();
+            loadRepartidores();
+        }
     }, [tipo]);
+
+    const loadSettlements = async () => {
+        setSettlementsLoading(true);
+        try {
+            const data = await api.adminGetDriverSettlements();
+            setSettlements(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSettlementsLoading(false);
+        }
+    };
+
+    const loadRepartidores = async () => {
+        try {
+            const data = await api.adminGetRepartidores();
+            setRepartidores(data.filter(r => r.admin_status === 'Aceptado'));
+        } catch (err) { }
+    };
+
+    const handleTogglePaymentStatus = async (pedidoId, currentStatus) => {
+        try {
+            await api.adminUpdateDriverPaymentStatus(pedidoId, !currentStatus);
+            toast.success('Estado actualizado');
+            loadSettlements();
+        } catch (err) {
+            toast.error('Error al actualizar');
+        }
+    };
 
     const handleUpdateStatus = async (id, status) => {
         let comprobanteUrl = null;
@@ -47,9 +85,82 @@ const AdminPagos = ({ tipo = 'Local' }) => {
         <div className="panel-card animate-fade-in">
             <header className="panel-header">
                 <h2>Gestión de Cobros — {tipo}s</h2>
-                <button className="btn btn-primary" onClick={loadSolicitudes}>Refrescar</button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    {tipo === 'Repartidor' && (
+                        <div className="btn-group" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                            <button 
+                                className="btn btn-sm" 
+                                style={{ background: viewMode === 'solicitudes' ? 'white' : 'transparent', boxShadow: viewMode === 'solicitudes' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                onClick={() => setViewMode('solicitudes')}
+                            >
+                                Solicitudes
+                            </button>
+                            <button 
+                                className="btn btn-sm" 
+                                style={{ background: viewMode === 'liquidacion' ? 'white' : 'transparent', boxShadow: viewMode === 'liquidacion' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                onClick={() => setViewMode('liquidacion')}
+                            >
+                                Liquidación Directa
+                            </button>
+                        </div>
+                    )}
+                    <button className="btn btn-primary" onClick={viewMode === 'solicitudes' ? loadSolicitudes : loadSettlements}>
+                        Refrescar
+                    </button>
+                </div>
             </header>
-            <div className="table-responsive">
+
+            {viewMode === 'liquidacion' && tipo === 'Repartidor' ? (
+                <div className="table-responsive">
+                    <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <select 
+                            className="filter-select" 
+                            value={repFilter} 
+                            onChange={(e) => setRepFilter(e.target.value)}
+                        >
+                            <option value="Todos">Todos los repartidores</option>
+                            {repartidores.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                        </select>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>* Solo pedidos Entregados</span>
+                    </div>
+                    <table className="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Pedido</th>
+                                <th>Repartidor</th>
+                                <th style={{ textAlign: 'right' }}>Envío</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {settlements.filter(s => repFilter === 'Todos' || s.repartidor_id === repFilter).map(s => (
+                                <tr key={s.id}>
+                                    <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                                    <td>#{s.id.substring(0,8)}</td>
+                                    <td>{s.repartidores?.nombre || s.repartidor_id}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>${Number(s.precio_envio).toLocaleString()}</td>
+                                    <td>
+                                        <span className={`badge ${s.cobro_repartidor_procesado ? 'success' : 'warning'}`}>
+                                            {s.cobro_repartidor_procesado ? 'Pagado' : 'Pendiente'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button 
+                                            className="btn btn-sm btn-light"
+                                            onClick={() => handleTogglePaymentStatus(s.id, s.cobro_repartidor_procesado)}
+                                        >
+                                            {s.cobro_repartidor_procesado ? 'Revertir' : 'Saldar'}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="table-responsive">
                 <table className="admin-table">
                     <thead>
                         <tr>
@@ -121,6 +232,7 @@ const AdminPagos = ({ tipo = 'Local' }) => {
                     </tbody>
                 </table>
             </div>
+            )}
         </div>
     );
 };
