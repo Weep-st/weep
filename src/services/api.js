@@ -783,7 +783,7 @@ export async function getItemsByPedidoLocal(pedidoId, localId) {
 }
 
 export async function getPedidoGeneral(pedidoId) {
-  const { data } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
+  const { data } = await supabase.from('pedidos_general').select('*, repartidores(nombre, telefono)').eq('id', pedidoId).single();
   if (!data) return {};
   return {
     direccion: data.direccion, observaciones: data.observaciones,
@@ -791,6 +791,8 @@ export async function getPedidoGeneral(pedidoId) {
     emailCliente: data.email_cliente, nombreCliente: data.nombre_cliente,
     fecha: data.created_at, numConfirmacion: data.num_confirmacion,
     repartidorId: data.repartidor_id,
+    repartidorNombre: data.repartidores?.nombre || null,
+    repartidorTelefono: data.repartidores?.telefono || null
   };
 }
 
@@ -871,7 +873,7 @@ export async function getUserOrderCount(userId) {
 export async function getMisPedidos(userId) {
   const { data: pedidos } = await supabase
     .from('pedidos_general')
-    .select('*, repartidor:repartidores(nombre)')
+    .select('*, repartidor:repartidores(nombre, telefono)')
     .eq('usuario_id', userId)
     .order('created_at', { ascending: false });
   if (!pedidos || pedidos.length === 0) return { enCurso: [], historial: [] };
@@ -905,6 +907,7 @@ export async function getMisPedidos(userId) {
       observaciones: p.observaciones, numConfirmacion: p.num_confirmacion,
       repartidorId: p.repartidor_id,
       repartidorNombre: p.repartidor?.nombre,
+      repartidorTelefono: p.repartidor?.telefono,
       itemsResumen: items.map(i => ({ nombre: i.nombre || i.nombre_item, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 

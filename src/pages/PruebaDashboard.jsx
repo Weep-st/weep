@@ -304,6 +304,8 @@ export default function PruebaDashboard() {
           fecha: resGeneral.fecha,
           numConfirmacion: resGeneral.numConfirmacion,
           repartidorId: resGeneral.repartidorId,
+          repartidorNombre: resGeneral.repartidorNombre,
+          repartidorTelefono: resGeneral.repartidorTelefono,
           localId: p[2],
           totalLocal: resItems.reduce((acc, item) => acc + (Number(item[7]) || 0), 0),
         });
@@ -2374,6 +2376,7 @@ function OrderCard({ order: o, onAction, finished }) {
         <p><strong>Cliente:</strong> {o.nombreCliente}</p>
         <p><strong>Dirección:</strong> {o.direccion}</p>
         <p><strong>Pago:</strong> {o.metodoPago}</p>
+        <p><strong>Repartidor:</strong> <span style={{ color: o.repartidorNombre ? 'var(--blue-600)' : 'var(--gray-500)', fontWeight: 600 }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-600)' }}>({o.repartidorTelefono})</span>}</p>
         {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
         <div className="rd-order-items">
           {o.items.map((item, i) => (
