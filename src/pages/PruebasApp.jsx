@@ -1225,35 +1225,13 @@ export default function PruebasApp() {
       {renderNotificationActivationModal()}
       <header className="app-header">
         <Link to="/" className="app-logo-link">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="app-logo" />
+          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="app-logo" />
         </Link>
         <div className="search-wrapper">
           <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
           <input type="text" placeholder="Buscar menús o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         </div>
         <div className="header-actions">
-          {isIOS && !isStandalone && (
-            <button 
-              className="install-pill-btn animate-fade-in"
-              onClick={() => setShowPWAInstructions(true)}
-              style={{
-                background: 'linear-gradient(90deg, #c62828, #e53935)',
-                color: 'white',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: '20px',
-                fontSize: '0.75rem',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 12px rgba(198, 40, 40, 0.3)',
-                cursor: 'pointer'
-              }}
-            >
-              <span>📱 Instalar App</span>
-            </button>
-          )}
 
           <button 
             className="profile-btn" 
@@ -2526,15 +2504,15 @@ export default function PruebasApp() {
 
 
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '80px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Weep</strong> — Plataforma de Pedidos y Delivery</p>
         <p>
           <Link to="/locales">Registrá tu local</Link> •{' '}
-          <button className="footer-link" onClick={() => setModal('terms')}>Términos</button> •{' '}
+          <button className="footer-link" style={{ color: 'white' }} onClick={() => setModal('terms')}>Términos</button> •{' '}
           <a href="mailto:bajoneando.st@gmail.com">Soporte</a> •{' '}
           <button 
             className="footer-link" 
-            style={{ color: 'var(--red-600)', fontWeight: 'bold' }} 
+            style={{ color: 'white', fontWeight: 'bold' }} 
             onClick={() => setShowRegretModal(true)}
           >
             Botón de Arrepentimiento

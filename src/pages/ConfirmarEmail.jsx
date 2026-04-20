@@ -128,7 +128,7 @@ export default function ConfirmarEmail() {
         boxShadow: '0 20px 50px rgba(0,0,0,0.08)'
       }}>
         <img 
-          src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" 
+          src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" 
           alt="Weep" 
           style={{ width: '100px', marginBottom: '30px' }} 
         />

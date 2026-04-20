@@ -34,7 +34,7 @@ const AdminLogin = () => {
     return (
         <div className="admin-login-page">
             <div className="login-card animate-fade-in">
-                <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="login-logo" />
+                <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="login-logo" />
                 <h1>WEEP Admin</h1>
                 <p>Ingresa tus credenciales para gestionar la plataforma</p>
                 

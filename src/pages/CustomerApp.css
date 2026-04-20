@@ -22,7 +22,7 @@
 }
 
 .app-logo-link { flex-shrink: 0; }
-.app-logo { height: 48px; object-fit: contain; }
+.app-logo { height: 60px; object-fit: contain; }
 
 .search-wrapper {
   flex: 1;

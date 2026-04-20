@@ -59,7 +59,7 @@ export default function Landing() {
     <div className="landing">
       <header className="landing-header">
         <img
-          src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png"
+          src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png"
           alt="Weep"
           className="landing-logo"
         />

@@ -79,7 +79,7 @@ const AdminDashboard = () => {
             <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <button className="sidebar-close" onClick={toggleSidebar}>×</button>
                 <div className="sidebar-header">
-                    <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep Admin" className="admin-logo" />
+                    <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep Admin" className="admin-logo" />
                     <h2>Admin Panel</h2>
                 </div>
                 <nav className="sidebar-nav">

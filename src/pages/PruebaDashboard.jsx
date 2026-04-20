@@ -949,7 +949,7 @@ export default function PruebaDashboard() {
     <div className="rd-page">
       <header className="rd-header">
         <Link to="/">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="rd-logo" />
+          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="rd-logo" />
         </Link>
         <h1>Panel de Gestión</h1>
       </header>
@@ -1030,7 +1030,7 @@ export default function PruebaDashboard() {
         </div>
       </main>
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
@@ -1264,7 +1264,7 @@ export default function PruebaDashboard() {
       {renderTutorial()}
       <header className="rd-header">
         <Link to="/">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="rd-logo" />
+          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="rd-logo" />
         </Link>
         <h1>Panel de Gestión</h1>
       </header>
@@ -2328,7 +2328,7 @@ export default function PruebaDashboard() {
       </main>
 
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 

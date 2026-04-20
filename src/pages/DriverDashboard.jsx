@@ -1352,10 +1352,10 @@ export default function DriverDashboard() {
                   border: '1px solid #f0f0f0'
                 }}>
                   <img 
-                    src={local.logo || "https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png"} 
+                    src={local.logo || "https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png"} 
                     alt={local.nombre} 
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { e.target.src = "https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png"; }}
+                    onError={(e) => { e.target.src = "https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png"; }}
                   />
                 </div>
                 <span style={{ 
@@ -1627,7 +1627,7 @@ export default function DriverDashboard() {
     <div className="dd-page">
       <header className="dd-header">
         <Link to="/">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="dd-logo" />
+          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="dd-logo" />
         </Link>
         <h1>Panel de Repartidores</h1>
       </header>
@@ -2024,7 +2024,7 @@ export default function DriverDashboard() {
       )}
 
       <footer className="footer" style={{ background: 'var(--red-800)', color: 'white', borderTop: 'none', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p style={{ margin: 0 }}>© 2026 Weep - Todos los derechos reservados</p>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>PWA optimizada para uso en moto • GPS en tiempo real</p>
         <button 
