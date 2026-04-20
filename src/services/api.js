@@ -415,6 +415,20 @@ export async function localUpdateOneSignalId(localId, onesignalId) {
   return { success: true };
 }
 
+export async function usuarioUpdateOneSignalId(userId, onesignalId) {
+  if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
+  
+  const { error } = await supabase.from('usuarios')
+    .update({ onesignal_id: onesignalId })
+    .eq('id', userId);
+    
+  if (error) {
+    console.error("Error updating User OneSignal ID:", error);
+    throw new Error(error.message);
+  }
+  return { success: true };
+}
+
 
 // ═══════════════════════════════════════════════════
 // LOCALES — Get all

@@ -89,10 +89,11 @@ export default function PruebasApp() {
     lng: user?.lng || null,
     reference: ''
   });
-
   const [unavailableLocal, setUnavailableLocal] = React.useState(null);
   const [selectedLocal, setSelectedLocal] = React.useState(null);
   const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
+  const [showNotificationActivation, setShowNotificationActivation] = React.useState(false);
+  const [notificationStatus, setNotificationStatus] = React.useState('default');
 
   // Actualizar addressData cuando el usuario carga (login)
   React.useEffect(() => {
@@ -182,6 +183,82 @@ export default function PruebasApp() {
 
     return insideTime;
   }, []);
+
+  // Sync OneSignal for users
+  React.useEffect(() => {
+    if (user && isStandalone && window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        const subId = OneSignal.User.PushSubscription.id;
+        const currentPerm = OneSignal.Notifications.permission;
+        setNotificationStatus(currentPerm ? 'granted' : (OneSignal.Notifications.permissionNative === 'denied' ? 'denied' : 'default'));
+        
+        if (subId) {
+          api.usuarioUpdateOneSignalId(user.id, subId).catch(console.error);
+        }
+      });
+    }
+  }, [user, isStandalone]);
+
+  const handleNotificationClick = async () => {
+    if (!user) { setModal('login'); return; }
+
+    
+
+    if (window.OneSignal) {
+      try {
+        await window.OneSignal.Notifications.requestPermission();
+        const subId = window.OneSignal.User.PushSubscription.id;
+        if (subId) {
+          await api.usuarioUpdateOneSignalId(user.id, subId);
+          setNotificationStatus('granted');
+          setShowNotificationActivation(false);
+          toast.success('¡Notificaciones activadas correctamente! 🔔');
+        } else {
+          toast.error('No se pudo obtener el ID de suscripción.');
+        }
+      } catch (err) {
+        console.error("Error activating notifications:", err);
+        toast.error('Error al activar notificaciones');
+      }
+    } else if (window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        await OneSignal.Notifications.requestPermission();
+        const subId = OneSignal.User.PushSubscription.id;
+        if (subId) {
+          await api.usuarioUpdateOneSignalId(user.id, subId);
+          setNotificationStatus('granted');
+          setShowNotificationActivation(false);
+          toast.success('¡Notificaciones activadas! 🔔');
+        }
+      });
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    if (window.OneSignal) {
+      try {
+        await window.OneSignal.User.PushSubscription.optOut();
+        if (user) {
+          await api.usuarioUpdateOneSignalId(user.id, null);
+        }
+        setNotificationStatus('default');
+        toast.success('Notificaciones desactivadas 🔕');
+      } catch (err) {
+        console.error("Error unsubscribing:", err);
+        toast.error('Error al desactivar notificaciones');
+      }
+    }
+  };
+
+  const onNotificationBellClick = () => {
+    if (!user) { setModal('login'); return; }
+    
+    if (notificationStatus === 'granted') {
+      handleUnsubscribe();
+    } else {
+      setShowNotificationActivation(true);
+    }
+  };
 
   // Load locals + drinks on mount
   React.useEffect(() => {
@@ -1067,36 +1144,76 @@ export default function PruebasApp() {
     if (!showPWAInstructions) return null;
 
     return (
-      <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={() => setShowPWAInstructions(false)}>
+      <div className="modal-overlay" style={{ zIndex: 100001 }} onClick={() => setShowPWAInstructions(false)}>
         <div className="modal-box animate-scale-in" style={{ maxWidth: '400px', textAlign: 'center', padding: '24px' }} onClick={e => e.stopPropagation()}>
           <button className="modal-close" onClick={() => setShowPWAInstructions(false)}>✕</button>
           
           <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '12px', color: 'var(--red-600)', fontWeight: 800 }}>
+          <h2 style={{ fontSize: '1.4rem', marginBottom: '12px', color: 'var(--red-600)', fontWeight: 800 }}>
             Seguí tu pedido en tiempo real
           </h2>
-          <p style={{ color: 'var(--gray-600)', marginBottom: '24px', lineHeight: '1.5', fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--gray-600)', marginBottom: '24px', lineHeight: '1.5', fontSize: '0.9rem' }}>
             Para que podamos enviarte <strong>notificaciones push</strong> con el seguimiento de tu pedido y avisos de llegada, instala Weep en tu inicio:
           </p>
           
-          <div style={{ textAlign: 'left', background: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
-            <p style={{ margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>1</span>
-              <span>Presioná el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '20px', verticalAlign: 'middle' }} /> <strong>compartir</strong>.</span>
-            </p>
-            <p style={{ margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>2</span>
+          <div style={{ textAlign: 'left', background: '#f8fafc', padding: '16px', borderRadius: '16px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
+            <div style={{ margin: '0 0 16px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ background: 'var(--red-600)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>1</span>
+              <span>Presioná el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '18px', verticalAlign: 'middle' }} /> <strong>compartir</strong>.</span>
+            </div>
+            <div style={{ margin: '0 0 16px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ background: 'var(--red-600)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>2</span>
               <span>Buscá y elegí <strong>"Agregar a inicio"</strong>.</span>
-            </p>
-            <p style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ background: 'var(--red-600)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>3</span>
+            </div>
+            <div style={{ margin: 0, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ background: 'var(--red-600)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>3</span>
               <span>Abrí la app y activá las notificaciones.</span>
-            </p>
+            </div>
           </div>
 
-          <button className="btn btn-primary btn-full btn-lg" style={{ height: '54px', borderRadius: '12px' }} onClick={() => setShowPWAInstructions(false)}>
+          <button className="btn btn-primary btn-full" style={{ height: '50px', borderRadius: '12px' }} onClick={() => setShowPWAInstructions(false)}>
             ¡Entendido!
           </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderNotificationActivationModal = () => {
+    if (!showNotificationActivation) return null;
+
+    return (
+      <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={() => setShowNotificationActivation(false)}>
+        <div className="modal-box animate-scale-in" style={{ maxWidth: '380px', textAlign: 'center', padding: '24px' }} onClick={e => e.stopPropagation()}>
+          <button className="modal-close" onClick={() => setShowNotificationActivation(false)}>✕</button>
+          
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔔</div>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '16px', color: '#333', fontWeight: 800 }}>
+            Activar Notificaciones
+          </h2>
+          <p style={{ color: 'var(--gray-600)', marginBottom: '24px', lineHeight: '1.5', fontSize: '1rem' }}>
+            Para activar las notificaciones debes anclar Weep al inicio de pantalla.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button 
+              className="btn btn-outline btn-full" 
+              style={{ height: '50px', borderRadius: '12px', fontWeight: 'bold' }} 
+              onClick={() => {
+                setShowNotificationActivation(false);
+                setShowPWAInstructions(true);
+              }}
+            >
+              📱 Anclar al inicio
+            </button>
+            <button 
+              className="btn btn-primary btn-full" 
+              style={{ height: '50px', borderRadius: '12px', fontWeight: '800' }} 
+              onClick={handleNotificationClick}
+            >
+              ✅ Confirmar suscribir
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1105,6 +1222,7 @@ export default function PruebasApp() {
   return (
     <div className="customer-app">
       {renderPWAInstructionsModal()}
+      {renderNotificationActivationModal()}
       <header className="app-header">
         <Link to="/" className="app-logo-link">
           <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775234747/gvapffe3wwp4ljgr33le.png" alt="Weep" className="app-logo" />
@@ -1136,6 +1254,46 @@ export default function PruebasApp() {
               <span>📱 Instalar App</span>
             </button>
           )}
+
+          <button 
+            className="profile-btn" 
+            onClick={onNotificationBellClick}
+            title={notificationStatus === 'granted' ? "Desactivar Notificaciones" : "Activar Notificaciones"}
+            style={{ 
+              marginRight: '8px',
+              opacity: 1,
+              position: 'relative'
+            }}
+          >
+            <img src="https://i.postimg.cc/fRRSkmTY/descarga-(26)-(1).png" alt="Notificaciones" className="profile-avatar-img" />
+            {notificationStatus === 'granted' && (
+              <span style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '1.2rem',
+                color: 'rgba(255, 0, 0, 0.8)',
+                fontWeight: 'bold',
+                pointerEvents: 'none',
+                textShadow: '0 0 2px white'
+              }}>
+                ✖
+              </span>
+            )}
+            {notificationStatus !== 'granted' && isStandalone && (
+              <span style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                width: '10px',
+                height: '10px',
+                background: '#ff5252',
+                borderRadius: '50%',
+                border: '2px solid white'
+              }}></span>
+            )}
+          </button>
 
           <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
             <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />

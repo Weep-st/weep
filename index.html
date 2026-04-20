@@ -10,7 +10,24 @@
     <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
     <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
     <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link id="manifest-link" rel="manifest" href="/manifest.json" />
+    <script>
+      (function() {
+        var path = window.location.pathname;
+        var link = document.getElementById('manifest-link');
+        if (link) {
+          if (path.startsWith('/pedir')) {
+            link.setAttribute('href', '/manifest-pedir.json');
+          } else if (path.startsWith('/locales')) {
+            link.setAttribute('href', '/manifest-locales.json');
+          } else if (path.startsWith('/admin')) {
+            link.setAttribute('href', '/manifest-admin.json');
+          } else if (path.startsWith('/repartidores')) {
+            link.setAttribute('href', '/manifest-repartidores.json');
+          }
+        }
+      })();
+    </script>
     <meta name="apple-mobile-web-app-title" content="Weep" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
