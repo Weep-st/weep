@@ -112,20 +112,28 @@ export default function App() {
 
   // 3. Dynamic PWA Manifest Update
   useEffect(() => {
-    const link = document.getElementById('manifest-link');
-    if (link) {
-      const path = location.pathname;
-      if (path.startsWith('/pedir')) {
-        link.setAttribute('href', '/manifest-pedir.json');
-      } else if (path.startsWith('/locales')) {
-        link.setAttribute('href', '/manifest-locales.json');
-      } else if (path.startsWith('/admin')) {
-        link.setAttribute('href', '/manifest-admin.json');
-      } else if (path.startsWith('/repartidores')) {
-        link.setAttribute('href', '/manifest-repartidores.json');
-      } else {
-        link.setAttribute('href', '/manifest.json');
-      }
+    const existingLink = document.getElementById('manifest-link');
+    const path = location.pathname;
+    let manifest = '/manifest.json';
+    
+    if (path.startsWith('/pedir')) manifest = '/manifest-pedir.json';
+    else if (path.startsWith('/locales')) manifest = '/manifest-locales.json';
+    else if (path.startsWith('/admin')) manifest = '/manifest-admin.json';
+    else if (path.startsWith('/repartidores')) manifest = '/manifest-repartidores.json';
+
+    // Solamente actualizamos si el href es distinto para evitar ciclos o parpadeos innecesarios
+    if (existingLink && existingLink.getAttribute('href') !== manifest) {
+      const newLink = document.createElement('link');
+      newLink.id = 'manifest-link';
+      newLink.rel = 'manifest';
+      newLink.href = manifest;
+      existingLink.parentNode.replaceChild(newLink, existingLink);
+    } else if (!existingLink) {
+      const newLink = document.createElement('link');
+      newLink.id = 'manifest-link';
+      newLink.rel = 'manifest';
+      newLink.href = manifest;
+      document.head.appendChild(newLink);
     }
   }, [location.pathname]);
 
