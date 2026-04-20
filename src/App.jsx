@@ -110,6 +110,25 @@ export default function App() {
     }
   }, [location]);
 
+  // 3. Dynamic PWA Manifest Update
+  useEffect(() => {
+    const link = document.getElementById('manifest-link');
+    if (link) {
+      const path = location.pathname;
+      if (path.startsWith('/pedir')) {
+        link.setAttribute('href', '/manifest-pedir.json');
+      } else if (path.startsWith('/locales')) {
+        link.setAttribute('href', '/manifest-locales.json');
+      } else if (path.startsWith('/admin')) {
+        link.setAttribute('href', '/manifest-admin.json');
+      } else if (path.startsWith('/repartidores')) {
+        link.setAttribute('href', '/manifest-repartidores.json');
+      } else {
+        link.setAttribute('href', '/manifest.json');
+      }
+    }
+  }, [location.pathname]);
+
   return (
     <AuthProvider>
       <CartProvider>
