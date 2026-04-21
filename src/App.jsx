@@ -114,32 +114,35 @@ export default function App() {
   useEffect(() => {
     const existingLink = document.getElementById('manifest-link');
     const path = location.pathname;
-    let manifest = '/manifest.json';
-    let title = 'Weep';
     
-    if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) {
-      manifest = '/manifest-pedir.json';
-      title = 'Weep - Pedidos';
-    }
-    else if (path.startsWith('/locales') || path.startsWith('/prueba')) {
-      manifest = '/manifest-locales.json';
-      title = 'Weep - Locales';
-    }
-    else if (path.startsWith('/admin')) {
-      manifest = '/manifest-admin.json';
-      title = 'Weep - Admin';
-    }
-    else if (path.startsWith('/repartidores')) {
-      manifest = '/manifest-repartidores.json';
-      title = 'Weep - Repartidores';
-    }
+    let config = { name: "Weep", start: "/", title: "Weep" };
+    if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Weep - Pedidos", start: "/pedir", title: "Weep - Pedidos" }; }
+    else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Weep - Locales", start: "/locales", title: "Weep - Locales" }; }
+    else if (path.startsWith('/admin')) { config = { name: "Weep - Admin", start: "/admin", title: "Weep - Admin" }; }
+    else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }
 
-    // Actualizamos el manifest existente o lo creamos
-    const manifestUrl = manifest + '?v=' + Date.now();
+    const absoluteStartUrl = window.location.origin + config.start;
+
+    const manifestData = {
+      "name": config.name,
+      "short_name": "Weep",
+      "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
+      "start_url": absoluteStartUrl, 
+      "scope": "/",
+      "display": "standalone",
+      "background_color": "#ffffff",
+      "theme_color": "#c62828",
+      "icons": [
+        { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+        { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "512x512", "type": "image/png" }
+      ]
+    };
+
+    const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+    const manifestUrl = URL.createObjectURL(blob);
+
     if (existingLink) {
-      if (existingLink.getAttribute('href') !== manifestUrl) {
-        existingLink.href = manifestUrl;
-      }
+      existingLink.href = manifestUrl;
     } else {
       const newLink = document.createElement('link');
       newLink.id = 'manifest-link';
@@ -148,7 +151,6 @@ export default function App() {
       document.head.appendChild(newLink);
     }
 
-    // Actualizar canonical para ayudar a Safari a decidir la URL del acceso directo
     let canonical = document.getElementById('canonical-link');
     if (!canonical) {
       canonical = document.createElement('link');
@@ -156,12 +158,11 @@ export default function App() {
       canonical.rel = 'canonical';
       document.head.appendChild(canonical);
     }
-    canonical.setAttribute('href', window.location.origin + path);
+    canonical.setAttribute('href', absoluteStartUrl);
 
-    // Actualizar meta tags para "Añadir a pantalla de inicio" en iOS
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
     if (appleTitle) {
-      appleTitle.setAttribute('content', title);
+      appleTitle.setAttribute('content', config.title);
     }
   }, [location.pathname]);
 

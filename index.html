@@ -12,56 +12,74 @@
     <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
     <script>
       (function() {
-        var path = window.location.pathname;
-        var search = window.location.search;
+        var l = window.location;
+        var path = l.pathname;
+        var search = l.search;
         
         // Soporte para redirección SPA (GitHub Pages hack)
         if (search && search.indexOf('p=/') !== -1) {
           path = search.split('p=')[1].split('&')[0].replace(/~and~/g, '&');
         }
 
-        var manifest = '/manifest.json';
-        var title = 'Weep';
-        if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { 
-          manifest = '/manifest-pedir.json'; 
-          title = 'Weep - Pedidos'; 
-        }
-        else if (path.startsWith('/locales') || path.startsWith('/prueba')) { 
-          manifest = '/manifest-locales.json'; 
-          title = 'Weep - Locales'; 
-        }
-        else if (path.startsWith('/admin')) { 
-          manifest = '/manifest-admin.json'; 
-          title = 'Weep - Admin'; 
-        }
-        else if (path.startsWith('/repartidores')) { 
-          manifest = '/manifest-repartidores.json'; 
-          title = 'Weep - Repartidores'; 
-        }
+        var config = { name: "Weep", start: "/", title: "Weep" };
+        if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Weep - Pedidos", start: "/pedir", title: "Weep - Pedidos" }; }
+        else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Weep - Locales", start: "/locales", title: "Weep - Locales" }; }
+        else if (path.startsWith('/admin')) { config = { name: "Weep - Admin", start: "/admin", title: "Weep - Admin" }; }
+        else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }
         
-        // Cache-busting para obligar a iOS a recargar el manifest
-        manifest += '?v=' + Date.now();
+        // URL Absoluta para start_url (crucial para Safari)
+        var absoluteStartUrl = l.origin + config.start;
 
+        var manifest = {
+          "name": config.name,
+          "short_name": "Weep",
+          "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
+          "start_url": absoluteStartUrl,
+          "scope": "/",
+          "display": "standalone",
+          "background_color": "#ffffff",
+          "theme_color": "#c62828",
+          "icons": [
+            { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+            { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "512x512", "type": "image/png" }
+          ]
+        };
+
+        // Crear Manifest vía Blob
+        var blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        var manifestUrl = URL.createObjectURL(blob);
+        
         var link = document.createElement('link');
         link.id = 'manifest-link';
         link.rel = 'manifest';
-        link.href = manifest;
+        link.href = manifestUrl;
         document.head.appendChild(link);
 
-        // Actualizar título y canonical inmediatamente para Safari
-        document.addEventListener('DOMContentLoaded', function() {
-          var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-          if (appleTitle) appleTitle.setAttribute('content', title);
-          
-          var canonical = document.createElement('link');
-          canonical.id = 'canonical-link';
-          canonical.rel = 'canonical';
-          canonical.href = window.location.origin + path;
-          document.head.appendChild(canonical);
-        });
+        // Canonical dinámico
+        var canonical = document.createElement('link');
+        canonical.id = 'canonical-link';
+        canonical.rel = 'canonical';
+        canonical.href = absoluteStartUrl;
+        document.head.appendChild(canonical);
+
+        // Apple Meta Tags Dinámicos
+        var updateApple = function() {
+          var metaTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+          if (!metaTitle) {
+            metaTitle = document.createElement('meta');
+            metaTitle.name = 'apple-mobile-web-app-title';
+            document.head.appendChild(metaTitle);
+          }
+          metaTitle.content = config.title;
+        };
+        
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', updateApple);
+        } else {
+          updateApple();
+        }
       })();
     </script>
-    <meta name="apple-mobile-web-app-title" content="Weep" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
