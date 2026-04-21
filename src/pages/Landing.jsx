@@ -25,7 +25,7 @@ export default function Landing() {
     <div className="landing">
       <header className="landing-header">
         <img
-          src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png"
+          src="https://i.postimg.cc/kGf1B318/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
           alt="Weep"
           className="landing-logo"
         />
@@ -49,15 +49,14 @@ export default function Landing() {
             </Link>
           </div>
 
-          {/* ACCIONES SECUNDARIAS: LOCALES Y REPARTIDORES */}
           <div className="hub-secondary-grid animate-fade-in animate-delay-2">
             <Link to="/locales" className="btn-hub-secondary">
               <span className="icon">🏪</span>
-              Área Locales
+              Locales
             </Link>
             <Link to="/repartidores" className="btn-hub-secondary">
               <span className="icon">🏍️</span>
-              Soy Repartidor
+              Repartidores
             </Link>
           </div>
 

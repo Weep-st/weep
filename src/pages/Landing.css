@@ -33,7 +33,7 @@
 }
 
 .landing-logo {
-  height: 60px;
+  height: 80px;
   object-fit: contain;
 }
 
@@ -85,17 +85,17 @@
 .btn-hub-primary {
   background: var(--primary-gradient);
   color: white !important;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  padding: 24px 40px;
-  border-radius: 20px;
+  padding: 16px 32px;
+  border-radius: 16px;
   text-decoration: none;
-  box-shadow: 0 10px 25px rgba(198, 40, 40, 0.25);
+  box-shadow: 0 8px 20px rgba(198, 40, 40, 0.2);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   border: none;
   cursor: pointer;
 }
@@ -115,10 +115,10 @@
 .btn-hub-secondary {
   background: white;
   color: #334155 !important;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  padding: 18px 12px;
-  border-radius: 16px;
+  padding: 14px 8px;
+  border-radius: 12px;
   text-decoration: none;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -126,11 +126,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btn-hub-secondary span.icon {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
 .btn-hub-secondary:hover {
@@ -163,8 +163,10 @@
 
 @media (max-width: 480px) {
   .hub-secondary-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr; /* Mantenemos uno al lado del otro incluso en móvil */
+    gap: 10px;
   }
-  .landing-logo { height: 50px; }
-  .hub-title { font-size: 2.2rem; }
+  .landing-logo { height: 70px; }
+  .hub-title { font-size: 2rem; }
+  .btn-hub-primary { font-size: 1.1rem; padding: 14px 24px; }
 }
