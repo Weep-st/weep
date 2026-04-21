@@ -3,6 +3,7 @@
   "short_name": "Weep",
   "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
   "start_url": "/locales",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#c62828",

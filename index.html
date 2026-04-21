@@ -22,10 +22,22 @@
 
         var manifest = '/manifest.json';
         var title = 'Weep';
-        if (path.startsWith('/pedir')) { manifest = '/manifest-pedir.json'; title = 'Weep - Pedidos'; }
-        else if (path.startsWith('/locales')) { manifest = '/manifest-locales.json'; title = 'Weep - Locales'; }
-        else if (path.startsWith('/admin')) { manifest = '/manifest-admin.json'; title = 'Weep - Admin'; }
-        else if (path.startsWith('/repartidores')) { manifest = '/manifest-repartidores.json'; title = 'Weep - Repartidores'; }
+        if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { 
+          manifest = '/manifest-pedir.json'; 
+          title = 'Weep - Pedidos'; 
+        }
+        else if (path.startsWith('/locales') || path.startsWith('/prueba')) { 
+          manifest = '/manifest-locales.json'; 
+          title = 'Weep - Locales'; 
+        }
+        else if (path.startsWith('/admin')) { 
+          manifest = '/manifest-admin.json'; 
+          title = 'Weep - Admin'; 
+        }
+        else if (path.startsWith('/repartidores')) { 
+          manifest = '/manifest-repartidores.json'; 
+          title = 'Weep - Repartidores'; 
+        }
         
         // Cache-busting para obligar a iOS a recargar el manifest
         manifest += '?v=' + Date.now();

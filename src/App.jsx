@@ -117,11 +117,11 @@ export default function App() {
     let manifest = '/manifest.json';
     let title = 'Weep';
     
-    if (path.startsWith('/pedir')) {
+    if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) {
       manifest = '/manifest-pedir.json';
       title = 'Weep - Pedidos';
     }
-    else if (path.startsWith('/locales')) {
+    else if (path.startsWith('/locales') || path.startsWith('/prueba')) {
       manifest = '/manifest-locales.json';
       title = 'Weep - Locales';
     }
