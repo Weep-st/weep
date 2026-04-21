@@ -21,16 +21,32 @@
         }
 
         var manifest = '/manifest.json';
-        if (path.startsWith('/pedir')) manifest = '/manifest-pedir.json';
-        else if (path.startsWith('/locales')) manifest = '/manifest-locales.json';
-        else if (path.startsWith('/admin')) manifest = '/manifest-admin.json';
-        else if (path.startsWith('/repartidores')) manifest = '/manifest-repartidores.json';
+        var title = 'Weep';
+        if (path.startsWith('/pedir')) { manifest = '/manifest-pedir.json'; title = 'Weep - Pedidos'; }
+        else if (path.startsWith('/locales')) { manifest = '/manifest-locales.json'; title = 'Weep - Locales'; }
+        else if (path.startsWith('/admin')) { manifest = '/manifest-admin.json'; title = 'Weep - Admin'; }
+        else if (path.startsWith('/repartidores')) { manifest = '/manifest-repartidores.json'; title = 'Weep - Repartidores'; }
         
+        // Cache-busting para obligar a iOS a recargar el manifest
+        manifest += '?v=' + Date.now();
+
         var link = document.createElement('link');
         link.id = 'manifest-link';
         link.rel = 'manifest';
         link.href = manifest;
         document.head.appendChild(link);
+
+        // Actualizar título y canonical inmediatamente para Safari
+        document.addEventListener('DOMContentLoaded', function() {
+          var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+          if (appleTitle) appleTitle.setAttribute('content', title);
+          
+          var canonical = document.createElement('link');
+          canonical.id = 'canonical-link';
+          canonical.rel = 'canonical';
+          canonical.href = window.location.origin + path;
+          document.head.appendChild(canonical);
+        });
       })();
     </script>
     <meta name="apple-mobile-web-app-title" content="Weep" />

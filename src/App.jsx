@@ -135,17 +135,28 @@ export default function App() {
     }
 
     // Actualizamos el manifest existente o lo creamos
+    const manifestUrl = manifest + '?v=' + Date.now();
     if (existingLink) {
-      if (existingLink.getAttribute('href') !== manifest) {
-        existingLink.href = manifest;
+      if (existingLink.getAttribute('href') !== manifestUrl) {
+        existingLink.href = manifestUrl;
       }
     } else {
       const newLink = document.createElement('link');
       newLink.id = 'manifest-link';
       newLink.rel = 'manifest';
-      newLink.href = manifest;
+      newLink.href = manifestUrl;
       document.head.appendChild(newLink);
     }
+
+    // Actualizar canonical para ayudar a Safari a decidir la URL del acceso directo
+    let canonical = document.getElementById('canonical-link');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.id = 'canonical-link';
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', window.location.origin + path);
 
     // Actualizar meta tags para "Añadir a pantalla de inicio" en iOS
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
