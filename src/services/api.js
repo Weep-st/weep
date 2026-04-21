@@ -876,7 +876,8 @@ export async function getUserOrderCount(userId) {
   const { count, error } = await supabase
     .from('pedidos_general')
     .select('id', { count: 'exact', head: true })
-    .eq('usuario_id', userId);
+    .eq('usuario_id', userId)
+    .eq('estado', 'Entregado');
   if (error) return 0;
   return count || 0;
 }
