@@ -127,8 +127,8 @@ export default function App() {
     else if (path.startsWith('/admin')) { config = { name: "Weep - Admin", start: "/admin", title: "Weep - Admin" }; }
     else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }
 
-    const absoluteStartUrl = window.location.origin + config.start;
-    const pwaStartUrl = absoluteStartUrl + (absoluteStartUrl.indexOf('?') !== -1 ? '&' : '?') + 'mode=pwa';
+    // URL Robusta para start_url (usa el truco de ?p= para evitar recortes de Safari)
+    const pwaStartUrl = window.location.origin + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
 
     const manifestData = {
       "name": config.name,
