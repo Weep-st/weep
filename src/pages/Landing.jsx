@@ -15,6 +15,22 @@ export default function Landing() {
   const [launched, setLaunched] = useState(false);
 
   useEffect(() => {
+    // 1. PWA Magic Redirect
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const searchParams = new URLSearchParams(window.location.search);
+    const isPWAMode = searchParams.get('mode') === 'pwa';
+
+    if (isPWA || isPWAMode) {
+      const lastSection = localStorage.getItem('weep-last-section');
+      // Solo redirigir si tenemos una sección válida y NO estamos ya ahí (aunque Landing es /)
+      if (lastSection && lastSection !== '/') {
+        console.log('🚀 PWA Launch detectado. Redirigiendo a:', lastSection);
+        window.location.replace(lastSection);
+        return; // Detener ejecución del contador de landing si vamos a redirigir
+      }
+    }
+
+    // 2. Countdown logic
     const update = () => {
       const now = Date.now();
       const diff = LAUNCH_DATE - now;

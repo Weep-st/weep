@@ -108,6 +108,12 @@ export default function App() {
         'ad_personalization': savedConsent
       });
     }
+
+    // 3. Section Tracking for PWA Magic Redirect
+    const path = location.pathname;
+    if (['/pedir', '/repartidores', '/locales', '/admin', '/prueba', '/mis-pedidos'].some(s => path.startsWith(s))) {
+      localStorage.setItem('weep-last-section', path);
+    }
   }, [location]);
 
   // 3. Dynamic PWA Manifest Update
@@ -122,12 +128,13 @@ export default function App() {
     else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }
 
     const absoluteStartUrl = window.location.origin + config.start;
+    const pwaStartUrl = absoluteStartUrl + (absoluteStartUrl.indexOf('?') !== -1 ? '&' : '?') + 'mode=pwa';
 
     const manifestData = {
       "name": config.name,
       "short_name": "Weep",
       "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
-      "start_url": absoluteStartUrl, 
+      "start_url": pwaStartUrl, 
       "scope": "/",
       "display": "standalone",
       "background_color": "#ffffff",

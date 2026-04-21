@@ -29,12 +29,13 @@
         
         // URL Absoluta para start_url (crucial para Safari)
         var absoluteStartUrl = l.origin + config.start;
+        var pwaStartUrl = absoluteStartUrl + (absoluteStartUrl.indexOf('?') !== -1 ? '&' : '?') + 'mode=pwa';
 
         var manifest = {
           "name": config.name,
           "short_name": "Weep",
           "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
-          "start_url": absoluteStartUrl,
+          "start_url": pwaStartUrl,
           "scope": "/",
           "display": "standalone",
           "background_color": "#ffffff",
