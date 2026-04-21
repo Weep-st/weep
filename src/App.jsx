@@ -115,25 +115,42 @@ export default function App() {
     const existingLink = document.getElementById('manifest-link');
     const path = location.pathname;
     let manifest = '/manifest.json';
+    let title = 'Weep';
     
-    if (path.startsWith('/pedir')) manifest = '/manifest-pedir.json';
-    else if (path.startsWith('/locales')) manifest = '/manifest-locales.json';
-    else if (path.startsWith('/admin')) manifest = '/manifest-admin.json';
-    else if (path.startsWith('/repartidores')) manifest = '/manifest-repartidores.json';
+    if (path.startsWith('/pedir')) {
+      manifest = '/manifest-pedir.json';
+      title = 'Weep - Pedidos';
+    }
+    else if (path.startsWith('/locales')) {
+      manifest = '/manifest-locales.json';
+      title = 'Weep - Locales';
+    }
+    else if (path.startsWith('/admin')) {
+      manifest = '/manifest-admin.json';
+      title = 'Weep - Admin';
+    }
+    else if (path.startsWith('/repartidores')) {
+      manifest = '/manifest-repartidores.json';
+      title = 'Weep - Repartidores';
+    }
 
-    // Solamente actualizamos si el href es distinto para evitar ciclos o parpadeos innecesarios
-    if (existingLink && existingLink.getAttribute('href') !== manifest) {
-      const newLink = document.createElement('link');
-      newLink.id = 'manifest-link';
-      newLink.rel = 'manifest';
-      newLink.href = manifest;
-      existingLink.parentNode.replaceChild(newLink, existingLink);
-    } else if (!existingLink) {
+    // Actualizamos el manifest existente o lo creamos
+    if (existingLink) {
+      if (existingLink.getAttribute('href') !== manifest) {
+        existingLink.href = manifest;
+      }
+    } else {
       const newLink = document.createElement('link');
       newLink.id = 'manifest-link';
       newLink.rel = 'manifest';
       newLink.href = manifest;
       document.head.appendChild(newLink);
+    }
+
+    // Actualizar meta tags para "Añadir a pantalla de inicio" en iOS
+    const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (appleTitle) {
+      appleTitle.setAttribute('content', title);
     }
   }, [location.pathname]);
 

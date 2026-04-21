@@ -13,6 +13,13 @@
     <script>
       (function() {
         var path = window.location.pathname;
+        var search = window.location.search;
+        
+        // Soporte para redirección SPA (GitHub Pages hack)
+        if (search && search.indexOf('p=/') !== -1) {
+          path = search.split('p=')[1].split('&')[0].replace(/~and~/g, '&');
+        }
+
         var manifest = '/manifest.json';
         if (path.startsWith('/pedir')) manifest = '/manifest-pedir.json';
         else if (path.startsWith('/locales')) manifest = '/manifest-locales.json';
