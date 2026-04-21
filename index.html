@@ -56,6 +56,7 @@
         document.head.appendChild(link);
 
         // Canonical dinámico
+        var absoluteStartUrl = l.origin + config.start;
         var canonical = document.createElement('link');
         canonical.id = 'canonical-link';
         canonical.rel = 'canonical';

@@ -165,6 +165,7 @@ export default function App() {
       canonical.rel = 'canonical';
       document.head.appendChild(canonical);
     }
+    const absoluteStartUrl = window.location.origin + config.start;
     canonical.setAttribute('href', absoluteStartUrl);
 
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
