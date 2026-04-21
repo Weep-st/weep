@@ -52,11 +52,11 @@ export default function Landing() {
           <div className="hub-secondary-grid animate-fade-in animate-delay-2">
             <Link to="/locales" className="btn-hub-secondary">
               <span className="icon">🏪</span>
-              Locales
+              Acceso Locales
             </Link>
             <Link to="/repartidores" className="btn-hub-secondary">
               <span className="icon">🏍️</span>
-              Repartidores
+              Acceso Repartidores
             </Link>
           </div>
 
