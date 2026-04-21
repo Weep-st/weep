@@ -1194,7 +1194,7 @@ export async function adminUpdateLocalEstado(localId, estado) {
 export async function adminGetDriverSettlements() {
   const { data, error } = await supabase
     .from('pedidos_general')
-    .select('id, created_at, total, precio_envio, repartidor_id, cobro_repartidor_procesado, repartidores(nombre)')
+    .select('id, created_at, total, precio_envio, metodo_pago, repartidor_id, cobro_repartidor_procesado, repartidores(nombre)')
     .eq('estado', 'Entregado')
     .order('created_at', { ascending: false });
   

@@ -10,6 +10,9 @@ const AdminRepartidores = () => {
     const [settlements, setSettlements] = useState([]);
     const [settlementsLoading, setSettlementsLoading] = useState(false);
     const [repFilter, setRepFilter] = useState('Todos');
+    const [selectedSettleIds, setSelectedSettleIds] = useState([]);
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [generatedMessage, setGeneratedMessage] = useState('');
 
     const loadRepartidores = async () => {
         setLoading(true);
@@ -57,6 +60,70 @@ const AdminRepartidores = () => {
             loadSettlements();
         } catch (err) {
             toast.error('Error al actualizar estado de pago');
+        }
+    };
+
+    const toggleSelection = (id) => {
+        setSelectedSettleIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = (filteredSettlements) => {
+        const allFilteredIds = filteredSettlements.map(s => s.id);
+        if (selectedSettleIds.length === allFilteredIds.length) {
+            setSelectedSettleIds([]);
+        } else {
+            setSelectedSettleIds(allFilteredIds);
+        }
+    };
+
+    const handleGenerateMessage = () => {
+        if (selectedSettleIds.length === 0) return;
+        
+        const selectedData = settlements.filter(s => selectedSettleIds.includes(s.id));
+        const firstRep = selectedData[0]?.repartidores?.nombre || 'Repartidor';
+        
+        let msg = `Hola ${firstRep}, te envío la liquidación de tus pedidos de hoy:\n\n`;
+        let totalTransferir = 0;
+        
+        selectedData.forEach(s => {
+            const amount = Number(s.precio_envio || 0);
+            const isCash = s.metodo_pago === 'Efectivo';
+            const isProcessed = s.cobro_repartidor_procesado;
+            
+            let note = '';
+            if (isCash) note = ' (Efectivo - Ya pagado)';
+            else if (isProcessed) note = ' (Ya saldado)';
+
+            msg += `- #${s.id.substring(0, 8)} (${new Date(s.created_at).toLocaleDateString()}): $${amount.toLocaleString('es-AR')}${note}\n`;
+            
+            if (!isProcessed && !isCash) {
+                totalTransferir += amount;
+            }
+        });
+        
+        msg += `\n*TOTAL A TRANSFERIR: $${totalTransferir.toLocaleString('es-AR')}*`;
+        
+        setGeneratedMessage(msg);
+        setShowInvoiceModal(true);
+    };
+
+    const handleBulkMarkAsPaid = async () => {
+        const toProcess = settlements.filter(s => selectedSettleIds.includes(s.id) && !s.cobro_repartidor_procesado);
+        if (toProcess.length === 0) {
+            toast.error('No hay pedidos pendientes para marcar como saldados');
+            return;
+        }
+        if (!window.confirm(`¿Seguro que deseas marcar ${toProcess.length} pedidos como saldados?`)) return;
+        
+        try {
+            await Promise.all(toProcess.map(s => api.adminUpdateDriverPaymentStatus(s.id, true)));
+            toast.success(`${toProcess.length} pedidos actualizados`);
+            setSelectedSettleIds([]);
+            loadSettlements();
+        } catch (err) {
+            toast.error('Error al actualizar pedidos');
         }
     };
 
@@ -245,7 +312,10 @@ const AdminRepartidores = () => {
                             <select 
                                 className="filter-select" 
                                 value={repFilter} 
-                                onChange={(e) => setRepFilter(e.target.value)}
+                                onChange={(e) => {
+                                    setRepFilter(e.target.value);
+                                    setSelectedSettleIds([]);
+                                }}
                                 style={{ padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}
                             >
                                 <option value="Todos">Todos los repartidores</option>
@@ -259,9 +329,41 @@ const AdminRepartidores = () => {
                         </div>
                     </header>
 
+                    {selectedSettleIds.length > 0 && (
+                        <div className="animate-fade-in" style={{ 
+                            background: '#eff6ff', 
+                            padding: '12px 20px', 
+                            borderRadius: '8px', 
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            border: '1px solid #bfdbfe'
+                        }}>
+                            <div>
+                                <span style={{ fontWeight: 600, color: '#1e40af' }}>{selectedSettleIds.length} pedidos seleccionados</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="btn btn-sm" style={{ background: '#3b82f6', color: 'white' }} onClick={handleGenerateMessage}>
+                                    Generar Comprobante
+                                </button>
+                                <button className="btn btn-sm" style={{ background: '#10b981', color: 'white' }} onClick={handleBulkMarkAsPaid}>
+                                    Marcar como Saldados
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <table className="admin-table">
                         <thead>
                             <tr>
+                                <th style={{ width: '40px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedSettleIds.length > 0 && selectedSettleIds.length === settlements.filter(s => (repFilter === 'Todos' || s.repartidor_id === repFilter)).length}
+                                        onChange={() => handleSelectAll(settlements.filter(s => repFilter === 'Todos' || s.repartidor_id === repFilter))}
+                                    />
+                                </th>
                                 <th>Fecha</th>
                                 <th>Pedido</th>
                                 <th>Repartidor</th>
@@ -274,7 +376,14 @@ const AdminRepartidores = () => {
                             {settlements
                                 .filter(s => repFilter === 'Todos' || s.repartidor_id === repFilter)
                                 .map(settle => (
-                                <tr key={settle.id}>
+                                <tr key={settle.id} className={selectedSettleIds.includes(settle.id) ? 'selected-row' : ''}>
+                                    <td>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedSettleIds.includes(settle.id)}
+                                            onChange={() => toggleSelection(settle.id)}
+                                        />
+                                    </td>
                                     <td style={{ fontSize: '0.85rem' }}>{new Date(settle.created_at).toLocaleDateString()}</td>
                                     <td style={{ fontSize: '0.85rem', fontWeight: 600 }}>#{settle.id.substring(0, 8)}</td>
                                     <td>{settle.repartidores?.nombre || settle.repartidor_id || 'N/A'}</td>
@@ -299,7 +408,7 @@ const AdminRepartidores = () => {
                         </tbody>
                         <tfoot style={{ background: '#f8fafc', fontWeight: 800 }}>
                             <tr>
-                                <td colSpan="3">TOTAL SELECCIONADO</td>
+                                <td colSpan="4">TOTAL SELECCIONADO</td>
                                 <td style={{ textAlign: 'right', color: '#10b981' }}>
                                     ${settlements
                                         .filter(s => repFilter === 'Todos' || s.repartidor_id === repFilter)
@@ -318,6 +427,67 @@ const AdminRepartidores = () => {
                 </div>
             ) : (
                 <AdminPagos tipo="Repartidor" />
+            )}
+            {showInvoiceModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: 'white',
+                        padding: '2rem',
+                        borderRadius: '12px',
+                        maxWidth: '500px',
+                        width: '100%',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                    }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            🧾 Comprobante de Pago
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
+                            Copia el siguiente mensaje y envíalo al repartidor para confirmar la liquidación.
+                        </p>
+                        <pre style={{
+                            background: '#f1f5f9',
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            whiteSpace: 'pre-wrap',
+                            fontSize: '0.85rem',
+                            fontFamily: 'inherit',
+                            border: '1px solid #e2e8f0',
+                            marginBottom: '1.5rem',
+                            maxHeight: '300px',
+                            overflowY: 'auto'
+                        }}>
+                            {generatedMessage}
+                        </pre>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button 
+                                className="btn btn-primary" 
+                                style={{ flex: 1 }}
+                                onClick={() => {
+                                    navigator.clipboard.writeText(generatedMessage);
+                                    toast.success('Mensaje copiado al portapapeles');
+                                }}
+                            >
+                                Copiar Mensaje
+                            </button>
+                            <button 
+                                className="btn btn-secondary" 
+                                style={{ flex: 1 }}
+                                onClick={() => setShowInvoiceModal(false)}
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
