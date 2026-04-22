@@ -2197,7 +2197,10 @@ export default function DriverDashboard() {
                       <div style={{ fontWeight: 'bold' }}>{r.nombre} {r.nombre === driverData?.Nombre && '(Tú)'}</div>
                       <div style={{ fontSize: '0.8rem', color: '#666' }}>{r.streak_actual || 0} racha 🔥</div>
                     </div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--red-600)' }}>{r.puntos_totales} <small>pts</small></div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 'bold', color: 'var(--red-600)' }}>{r.puntos_totales} <small>pts</small></div>
+                      <div style={{ fontSize: '0.75rem', color: '#888' }}>{r.entregas_totales || 0} entregas</div>
+                    </div>
                   </div>
                 ))}
               </div>

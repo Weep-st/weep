@@ -1786,6 +1786,29 @@ export default function RestaurantDashboard() {
             {profileSubView === 'ventas' && (
               <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Mis Ventas</h2>
+                
+                {finishedOrders.length > 0 && (
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                    gap: '16px', 
+                    marginBottom: '32px' 
+                  }}>
+                    {/* Contador de Cantidad */}
+                    <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--red-600)', background: 'var(--gray-50)' }}>
+                      <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase' }}>Cantidad de Ventas</p>
+                      <h3 style={{ margin: '8px 0 0', fontSize: '2.5rem', color: 'var(--red-600)', fontWeight: 800 }}>{finishedOrders.length}</h3>
+                    </div>
+                    {/* Contador de Monto Total */}
+                    <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--green-600)', background: 'var(--gray-50)' }}>
+                      <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase' }}>Monto Total Recaudado</p>
+                      <h3 style={{ margin: '8px 0 0', fontSize: '2.5rem', color: 'var(--green-600)', fontWeight: 800 }}>
+                        ${finishedOrders.reduce((sum, o) => sum + (Number(o.totalLocal) || 0), 0).toLocaleString('es-AR')}
+                      </h3>
+                    </div>
+                  </div>
+                )}
+
                 {finishedOrders.length === 0 ? (
                   <p className="rd-empty">No hay ventas registradas aún.</p>
                 ) : (
