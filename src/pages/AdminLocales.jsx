@@ -153,6 +153,7 @@ const AdminLocales = () => {
                                 <th>Email</th>
                                 <th>Dirección</th>
                                 <th>Disponible desde</th>
+                                <th>Notif.</th>
                                 <th>Disponibilidad</th>
                                 <th>Estado Admin</th>
                                 <th>Acciones</th>
@@ -189,6 +190,14 @@ const AdminLocales = () => {
                                                     fontSize: '0.875rem'
                                                 }}
                                             />
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <span 
+                                                title={local.onesignal_id ? 'Suscribo a Notificaciones' : 'Sin Suscripción'} 
+                                                style={{ fontSize: '1.2rem', filter: local.onesignal_id ? 'none' : 'grayscale(1)' }}
+                                            >
+                                                {local.onesignal_id ? '🔔' : '🔕'}
+                                            </span>
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>

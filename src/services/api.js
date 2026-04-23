@@ -1149,7 +1149,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde')
+    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -1218,7 +1218,7 @@ export async function adminUpdateDriverPaymentStatus(pedidoId, status) {
 // ═══════════════════════════════════════════════════
 export async function adminGetRepartidores() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado, ultima_actividad')
+    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado, ultima_actividad, onesignal_id')
     .order('created_at', { ascending: false });
   return data || [];
 }

@@ -209,6 +209,7 @@ const AdminRepartidores = () => {
                             <th>Nombre</th>
                             <th>Contacto</th>
                             <th>Vehículo</th>
+                            <th>Push</th>
                             <th>Disponibilidad</th>
                             <th>Activo</th>
                             <th>Estado Admin</th>
@@ -238,6 +239,14 @@ const AdminRepartidores = () => {
                                     <td>
                                         <div>{rep.patente}</div>
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rep.marca_modelo}</div>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <span 
+                                            title={rep.onesignal_id ? 'Suscribo a Notificaciones' : 'Sin Suscripción'} 
+                                            style={{ fontSize: '1.2rem', filter: rep.onesignal_id ? 'none' : 'grayscale(1)' }}
+                                        >
+                                            {rep.onesignal_id ? '🔔' : '🔕'}
+                                        </span>
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '0.85rem' }}>
