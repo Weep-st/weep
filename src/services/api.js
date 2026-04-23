@@ -733,12 +733,13 @@ export async function validateOrderAvailability(localIds, itemIds) {
 // ═══════════════════════════════════════════════════
 // PEDIDOS
 // ═══════════════════════════════════════════════════
-export async function crearPedido({ userId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio }) {
+export async function crearPedido({ userId, pedidoId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio, cuponId = null, descuentoCupon = 0 }) {
   const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
   const estado = estadoInicial || 'Pendiente';
 
   const { data, error } = await supabase.rpc('create_pedido_completo', {
     p_user_id: userId,
+    p_id: pedidoId,
     p_direccion: direccion,
     p_metodo_pago: metodoPago,
     p_observaciones: observaciones || '',
@@ -750,7 +751,9 @@ export async function crearPedido({ userId, direccion, metodoPago, observaciones
     p_lat: lat || 0,
     p_lng: lng || 0,
     p_cart: items,
-    p_precio_envio: precioEnvio || 0
+    p_precio_envio: precioEnvio || 0,
+    p_cupon_id: cuponId,
+    p_descuento_cupon: descuentoCupon
   });
 
   if (error) {
@@ -2507,3 +2510,73 @@ export async function subscribeToDriverAvailability(onesignalId, userId = null) 
   if (error) throw error;
   return { success: true };
 }
+
+// ═══════════════════════════════════════════════════
+// CUPONES
+// ═══════════════════════════════════════════════════
+export async function adminGetCupones() {
+  const { data, error } = await supabase.from('cupones').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminCreateCupon(cuponData) {
+  const { error } = await supabase.from('cupones').insert(cuponData);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function adminUpdateCupon(id, updates) {
+  const { error } = await supabase.from('cupones').update(updates).eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function adminDeleteCupon(id) {
+  const { error } = await supabase.from('cupones').delete().eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
+/**
+ * Valida un cupón y retorna sus datos si es válido.
+ * @param {string} codigo 
+ * @param {number} subtotal - Subtotal del pedido 
+ * @param {string} localId - ID del local (opcional)
+ */
+export async function validateCupon(codigo, subtotal, localId = null) {
+  if (!codigo) return { success: false, error: 'Ingresá un código' };
+  
+  const { data, error } = await supabase
+    .from('cupones')
+    .select('*')
+    .eq('codigo', codigo.toUpperCase().trim())
+    .eq('activo', true)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return { success: false, error: 'Cupón inválido o inexistente' };
+
+  // Validar expiración
+  if (data.fecha_expiracion && new Date(data.fecha_expiracion) < new Date()) {
+    return { success: false, error: 'Este cupón ha expirado' };
+  }
+
+  // Validar monto mínimo
+  if (subtotal < (data.minimo_compra || 0)) {
+    return { success: false, error: `El monto mínimo para este cupón es $${data.minimo_compra}` };
+  }
+
+  // Validar local (si el cupón es específico)
+  if (data.local_id && data.local_id !== localId) {
+    return { success: false, error: 'Este cupón no es válido para este restaurante' };
+  }
+
+  // Validar límite de usos
+  if (data.limite_usos !== null && data.usos_actuales >= data.limite_usos) {
+    return { success: false, error: 'Este cupón ya ha alcanzado su límite de usos' };
+  }
+
+  return { success: true, cupon: data };
+}
+

@@ -13,6 +13,7 @@ import AdminUsuarios from './AdminUsuarios';
 import AdminBanners from './AdminBanners';
 import AdminConfig from './AdminConfig';
 import AdminPruebas from './AdminPruebas';
+import AdminCupones from './AdminCupones';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -68,6 +69,7 @@ const AdminDashboard = () => {
             case 'banners': return <AdminBanners />;
             case 'config': return <AdminConfig />;
             case 'pruebas': return <AdminPruebas />;
+            case 'cupones': return <AdminCupones />;
             default: return <AdminLocales />;
         }
     };
@@ -106,6 +108,9 @@ const AdminDashboard = () => {
                     </button>
                     <button className={activeTab === 'config' ? 'active' : ''} onClick={() => handleTabClick('config')}>
                         <span className="icon">⚙️</span> Configuración
+                    </button>
+                    <button className={activeTab === 'cupones' ? 'active' : ''} onClick={() => handleTabClick('cupones')}>
+                        <span className="icon">🎟️</span> Cupones
                     </button>
                     <button className={activeTab === 'pruebas' ? 'active' : ''} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} onClick={() => handleTabClick('pruebas')}>
                         <span className="icon">🧪</span> Pruebas

@@ -95,6 +95,11 @@ export default function PruebasApp() {
   const [showNotificationActivation, setShowNotificationActivation] = React.useState(false);
   const [notificationStatus, setNotificationStatus] = React.useState('default');
 
+  // Coupon States
+  const [appliedCupon, setAppliedCupon] = React.useState(null);
+  const [cuponCode, setCuponCode] = React.useState('');
+  const [validatingCupon, setValidatingCupon] = React.useState(false);
+
   // Actualizar addressData cuando el usuario carga (login)
   React.useEffect(() => {
     if (user && !addressData.address) {
@@ -800,9 +805,20 @@ export default function PruebasApp() {
   const MP_FEE_RATE = 0.0824;
 
   const calculateCheckoutTotals = (P, E, method) => {
-    const net_commission = P * PLATFORM_COMMISSION;
-    const net_local = P - net_commission;
-    const total_net = P + E;
+    let couponDiscount = 0;
+    if (appliedCupon) {
+        if (appliedCupon.tipo === 'porcentaje') {
+            couponDiscount = P * (Number(appliedCupon.valor) / 100);
+        } else {
+            couponDiscount = Number(appliedCupon.valor);
+        }
+        if (couponDiscount > P) couponDiscount = P;
+    }
+
+    const discountedP = P - couponDiscount;
+    const net_commission = discountedP * PLATFORM_COMMISSION;
+    const net_local = discountedP - net_commission;
+    const total_net = discountedP + E;
 
     if (method === 'transferencia') {
       const weep_income = E + net_commission;
@@ -818,8 +834,9 @@ export default function PruebasApp() {
 
       return {
         total: Math.round(total_paid),
-        product_total: P,
+        product_total: discountedP,
         delivery_fee: E,
+        coupon_discount: Math.round(couponDiscount),
         commission: Math.round(net_commission),
         mp_fee: Math.round(surcharge),
         merchant_payout: Math.round(total_paid - marketplace_fee),
@@ -830,9 +847,10 @@ export default function PruebasApp() {
 
     // Default (Efectivo)
     return {
-      total: Math.round(P + E),
-      product_total: P,
+      total: Math.round(discountedP + E),
+      product_total: discountedP,
       delivery_fee: E,
+      coupon_discount: Math.round(couponDiscount),
       commission: Math.round(net_commission),
       mp_fee: 0,
       merchant_payout: Math.round(net_local),
@@ -977,8 +995,35 @@ export default function PruebasApp() {
     ), { duration: 3000, style: { padding: '12px 16px' } });
   };
 
+  const handleApplyCupon = async () => {
+    if (!cuponCode) return;
+    setValidatingCupon(true);
+    try {
+      const currentLocalId = cart.items[0]?.local_id;
+      const res = await api.validateCupon(cuponCode, cart.subtotal, currentLocalId);
+      if (res.success) {
+        setAppliedCupon(res.cupon);
+        toast.success('¡Cupón aplicado correctamente!');
+      } else {
+        toast.error(res.error || 'Error al validar cupón');
+      }
+    } catch (err) {
+      toast.error('Error al validar cupón');
+    } finally {
+      setValidatingCupon(false);
+    }
+  };
+
+  const removeCupon = () => {
+    setAppliedCupon(null);
+    setCuponCode('');
+    toast('Cupón removido');
+  };
+
   const handleCheckout = async (e) => {
     e.preventDefault();
+    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+
     if (!user) { setModal('login'); return; }
     if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
     const fd = new FormData(e.target);
@@ -1065,7 +1110,9 @@ export default function PruebasApp() {
         totalCalculado: exactTotal,
         lat: addressData.lat,
         lng: addressData.lng,
-        precioEnvio: shipping
+        precioEnvio: shipping,
+        cuponId: appliedCupon?.id,
+        descuentoCupon: finalTotals.coupon_discount || 0
       });
 
       if (response.success) {
@@ -1974,10 +2021,54 @@ export default function PruebasApp() {
                     <span>+${(metodoPago === 'transferencia' && cart.deliveryType !== 'retiro' ? (visibleMpFee + visibleShipping) : visibleMpFee).toLocaleString('es-AR')}</span>
                   </div>
                 )}
+                {checkoutTotals.coupon_discount > 0 && (
+                  <div className="cart-line" style={{ color: 'var(--red-600)', fontWeight: 600 }}>
+                    <span>Descuento cupón</span>
+                    <span>-${checkoutTotals.coupon_discount.toLocaleString('es-AR')}</span>
+                  </div>
+                )}
                 <div className="cart-line total-line">
                   <span>Total</span>
                   <span>${totalConComision.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
+              </div>
+
+
+
+              {/* Coupon Section */}
+              <div className="coupon-section" style={{ marginTop: '16px', marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '8px', display: 'block' }}>¿Tenés un cupón de descuento?</label>
+                {!appliedCupon ? (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="Ingresá el código" 
+                      value={cuponCode}
+                      onChange={e => setCuponCode(e.target.value.toUpperCase())}
+                      style={{ fontSize: '0.85rem', flex: 1, textTransform: 'uppercase' }}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn btn-primary" 
+                      style={{ padding: '0 16px', fontSize: '0.85rem' }}
+                      onClick={handleApplyCupon}
+                      disabled={validatingCupon || !cuponCode}
+                    >
+                      {validatingCupon ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--red-100)' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, color: 'var(--red-600)', fontSize: '0.85rem' }}>{appliedCupon.codigo}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginLeft: '8px' }}>
+                        (-{appliedCupon.tipo === 'porcentaje' ? `${appliedCupon.valor}%` : `$${appliedCupon.valor}`})
+                      </span>
+                    </div>
+                    <button type="button" onClick={removeCupon} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                  </div>
+                )}
               </div>
 
               <form onSubmit={handleCheckout} className="checkout-form">
