@@ -1634,7 +1634,7 @@ export async function getRepartidorHistorial(repartidorId) {
 export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pinConfirmacion = null) {
   const ok = ['Confirmado', 'Retirado', 'En camino', 'Entregado'];
   if (!ok.includes(nuevoEstado)) return { success: false, error: `Estado no permitido: ${nuevoEstado}` };
-  const { data: ped } = await supabase.from('pedidos_general').select('id, num_confirmacion, metodo_pago')
+  const { data: ped } = await supabase.from('pedidos_general').select('id, num_confirmacion, metodo_pago, estado')
     .eq('id', pedidoId).eq('repartidor_id', repartidorId).single();
   if (!ped) return { success: false, error: 'Pedido no encontrado para este repartidor' };
 
@@ -1642,8 +1642,20 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     return { success: false, error: 'PIN incorrecto' };
   }
 
-  const updateData = { estado: nuevoEstado };
-  if (nuevoEstado === 'Entregado' && ped.metodo_pago === 'Efectivo') {
+  // Lógica de transición de estado inteligente
+  let targetEstado = nuevoEstado;
+  if (targetEstado === 'Confirmado') {
+    const isCash = (ped.metodo_pago || '').toLowerCase().includes('efectivo');
+    const needsPayment = !isCash;
+    
+    // Si el repartidor acepta un pedido que requiere pago previo, lo pasamos a 'Pendiente de Pago'
+    if (needsPayment && (ped.estado === 'Buscando Repartidor' || ped.estado === 'Pendiente')) {
+      targetEstado = 'Pendiente de Pago';
+    }
+  }
+
+  const updateData = { estado: targetEstado };
+  if (targetEstado === 'Entregado' && ped.metodo_pago === 'Efectivo') {
     updateData.cobro_repartidor_procesado = true;
   }
 

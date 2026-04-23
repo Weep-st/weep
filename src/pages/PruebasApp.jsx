@@ -468,7 +468,7 @@ export default function PruebasApp() {
           .eq('id', pendingOrderId)
           .single();
           
-        if (data && data.estado === 'Pendiente de Pago' && !foundDriver) {
+        if (data && (data.estado === 'Pendiente de Pago' || data.estado === 'Confirmado') && !foundDriver) {
           console.log("✅ Order accepted (Detected via Polling/Initial Check)!");
           handleDriverFound(data);
           return true;
@@ -493,7 +493,7 @@ export default function PruebasApp() {
       }, (payload) => {
         const newOrder = payload.new;
         console.log("🔄 Realtime update:", newOrder.id, newOrder.estado);
-        if (newOrder.estado === 'Pendiente de Pago' && !foundDriver) {
+        if ((newOrder.estado === 'Pendiente de Pago' || newOrder.estado === 'Confirmado') && !foundDriver) {
           handleDriverFound(newOrder);
         }
       })
