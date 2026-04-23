@@ -111,6 +111,14 @@
   justify-content: space-evenly;
 }
 
+.dd-stat-item {
+  padding: 16px 12px;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
+  background: #fdfdfd;
+  transition: all 0.2s;
+}
+
 .dd-stat-item small {
   display: block;
   color: var(--gray-500);
@@ -487,8 +495,9 @@
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .dd-main { padding: 15px 12px 100px; }
-  .dd-stats-grid { flex-direction: column; gap: 15px; }
-  .dd-stat-item strong { font-size: 1.8rem; }
+  .dd-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .dd-stat-item { padding: 14px 8px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .dd-stat-item strong { font-size: 1.4rem; }
   .dd-sidebar { width: 85% !important; }
 }
 
