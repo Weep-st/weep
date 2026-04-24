@@ -6,6 +6,7 @@ import Landing from './pages/Landing';
 import Maintenance from './pages/Maintenance';
 import CustomerApp from './pages/CustomerApp';
 import PruebasApp from './pages/PruebasApp';
+import PruebasWalletApp from './pages/PruebasWalletApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import PruebaDashboard from './pages/PruebaDashboard';
 import DriverDashboard from './pages/DriverDashboard';
@@ -203,6 +204,11 @@ export default function App() {
           <Route path="/repartidores" element={
             <MaintenanceGuard configKey="mantenimiento_repartidores">
               <DriverDashboard />
+            </MaintenanceGuard>
+          } />
+          <Route path="/pruebas" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasWalletApp />
             </MaintenanceGuard>
           } />
 

@@ -58,11 +58,60 @@ BEGIN
             UPDATE cupones SET usos_actuales = usos_actuales + 1 WHERE id = p_cupon_id;
         END IF;
 
-        -- 5. Procesar items y pedidos locales
+        -- 5. Procesar items, pedidos locales y gestión de stock
         FOR v_local_id IN SELECT DISTINCT COALESCE(elem->>'local_id', 'unknown') FROM jsonb_array_elements(p_cart) AS elem
         LOOP
             v_ped_local_id := 'PL-' || v_pedido_id || '-' || v_local_id;
 
+            -- 5a. Validación y Descuento de Stock (Solo si el rubro lo requiere)
+            -- Validamos todos los items del local antes de insertar nada
+            DECLARE
+                v_item_data RECORD;
+                v_target_id TEXT;
+                v_needed INT;
+                v_available INT;
+                v_is_bakery BOOLEAN;
+            BEGIN
+                SELECT (rubro = 'Panadería') INTO v_is_bakery FROM locales WHERE id = v_local_id;
+                
+                IF v_is_bakery THEN
+                    FOR v_item_data IN 
+                        SELECT 
+                            el->>'id' as item_id, 
+                            el->>'nombre' as item_nombre,
+                            COALESCE((el->>'cantidad')::INT, (el->>'qty')::INT, 1) as buy_qty,
+                            m.maneja_stock,
+                            m.stock_base_id,
+                            COALESCE(m.unidades_por_venta, 1) as units_per_sale
+                        FROM jsonb_array_elements(p_cart) AS el
+                        JOIN menu m ON m.id = (el->>'id')
+                        WHERE COALESCE(el->>'local_id', 'unknown') = v_local_id
+                    LOOP
+                        -- Identificar de dónde descontar
+                        v_target_id := CASE 
+                            WHEN v_item_data.stock_base_id IS NOT NULL THEN v_item_data.stock_base_id
+                            WHEN v_item_data.maneja_stock THEN v_item_data.item_id
+                            ELSE NULL
+                        END;
+
+                        IF v_target_id IS NOT NULL THEN
+                            v_needed := v_item_data.buy_qty * v_item_data.units_per_sale;
+                            
+                            -- Bloquear fila para actualización atómica
+                            SELECT stock_actual INTO v_available FROM menu WHERE id = v_target_id FOR UPDATE;
+                            
+                            IF v_available < v_needed THEN
+                                RAISE EXCEPTION 'Lo sentimos, no hay stock suficiente de %. Quedan % unidades.', v_item_data.item_nombre, v_available;
+                            END IF;
+
+                            -- Descontar stock
+                            UPDATE menu SET stock_actual = stock_actual - v_needed WHERE id = v_target_id;
+                        END IF;
+                    END LOOP;
+                END IF;
+            END;
+
+            -- 5b. Insertar Pedido Local
             INSERT INTO pedidos_locales (id, pedido_id, local_id, estado, metodo_pago, total, created_at)
             SELECT 
                 v_ped_local_id, 
@@ -75,6 +124,7 @@ BEGIN
             FROM jsonb_array_elements(p_cart) AS el
             WHERE COALESCE(el->>'local_id', 'unknown') = v_local_id;
 
+            -- 5c. Insertar Items del Pedido
             INSERT INTO pedidos_items (pedido_id, item_id, nombre, precio_unitario, cantidad, subtotal, local_id)
             SELECT 
                 v_pedido_id, 
@@ -88,8 +138,9 @@ BEGIN
             WHERE COALESCE(el->>'local_id', 'unknown') = v_local_id;
         END LOOP;
 
-    EXCEPTION WHEN OTHERS THEN
-        RAISE EXCEPTION 'Error crítico en creación de pedido completo: %', SQLERRM;
+    EXCEPTION 
+        WHEN OTHERS THEN
+            RAISE EXCEPTION '%', SQLERRM;
     END;
 
     RETURN jsonb_build_object(

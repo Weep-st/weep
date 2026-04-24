@@ -77,6 +77,21 @@ export default function RestaurantDashboard() {
   const [itemName, setItemName] = React.useState('');
   const [notificationStatus, setNotificationStatus] = React.useState('loading');
   const [isIOS, setIsIOS] = React.useState(false);
+  const [isBaseProductMode, setIsBaseProductMode] = React.useState(false);
+
+  // Stock State (Moved to top level)
+  const [itemManejaStock, setItemManejaStock] = React.useState(false);
+  const [needsStockConfirmation, setNeedsStockConfirmation] = React.useState(false);
+  const [stockToConfirm, setStockToConfirm] = React.useState([]);
+  const [showStockModal, setShowStockModal] = React.useState(false);
+
+  React.useEffect(() => {
+    if (editItem) {
+      setItemManejaStock(editItem.maneja_stock || false);
+    } else {
+      setItemManejaStock(false);
+    }
+  }, [editItem]);
 
   // ─── Modal Arrepentimiento ───
   const renderRegretModal = () => (
@@ -269,10 +284,53 @@ export default function RestaurantDashboard() {
     setMenuLoading(true);
     try {
       const items = await api.getMenuByLocalId(restaurant.id);
-      setMenuItems(Array.isArray(items) ? items : []);
-    } catch { toast.error('Error al cargar menú'); }
+      const menuArray = Array.isArray(items) ? items : [];
+      setMenuItems(menuArray);
+
+      // Check for stock confirmation (Only for Panadería)
+      if (profileData?.rubro === 'Panadería') {
+        const baseItems = menuArray.filter(i => i.maneja_stock && !i.stock_base_id);
+        const today = new Date().toLocaleDateString('es-AR');
+        
+        const pending = baseItems.filter(i => {
+          if (!i.ultima_confirmacion_stock) return true;
+          const lastDate = new Date(i.ultima_confirmacion_stock).toLocaleDateString('es-AR');
+          return lastDate !== today;
+        });
+
+        if (pending.length > 0) {
+          setStockToConfirm(pending);
+          setNeedsStockConfirmation(true);
+        } else {
+          setNeedsStockConfirmation(false);
+        }
+      }
+    } catch (err) { 
+      console.error(err);
+      toast.error('Error al cargar menú'); 
+    }
     setMenuLoading(false);
-  }, [restaurant]);
+  }, [restaurant, profileData?.rubro]);
+
+  const handleConfirmDailyStock = async (updates) => {
+    try {
+      setItemLoading(true);
+      const today = new Date().toISOString();
+      
+      const promises = Object.entries(updates).map(([id, stock]) => 
+        api.updateMenuItem({ itemId: id, stock_actual: parseInt(stock), ultima_confirmacion_stock: today })
+      );
+
+      await Promise.all(promises);
+      toast.success('¡Stock confirmado para hoy!');
+      setNeedsStockConfirmation(false);
+      loadMenu();
+    } catch {
+      toast.error('Error al confirmar stock');
+    } finally {
+      setItemLoading(false);
+    }
+  };
 
   const loadOrders = React.useCallback(async (silent = false) => {
     if (!restaurant) return;
@@ -655,6 +713,12 @@ export default function RestaurantDashboard() {
         tamano_porcion: fd.get('tamano_porcion'), variantes: variantesVal,
         tiempo_preparacion: fd.get('tiempo_preparacion'),
         imagen_url: imgUrl,
+        // Stock management fields
+        maneja_stock: fd.get('maneja_stock') === 'on',
+        stock_actual: parseInt(fd.get('stock_actual')) || 0,
+        stock_minimo: parseInt(fd.get('stock_minimo')) || 10,
+        unidades_por_venta: parseInt(fd.get('unidades_por_venta')) || 1,
+        stock_base_id: fd.get('stock_base_id') || null,
       };
       if (editItem) {
         data.itemId = editItem.id;
@@ -662,8 +726,10 @@ export default function RestaurantDashboard() {
       } else {
         await api.addMenuItem(data);
       }
-      toast.success(editItem ? 'Plato actualizado' : 'Plato agregado');
+      const itemTerm = (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia') ? 'Artículo' : 'Plato';
+      toast.success(editItem ? `${itemTerm} actualizado` : `${itemTerm} agregado`);
       setEditItem(null);
+      setIsBaseProductMode(false);
       setView('menu');
       loadMenu();
     } catch (err) { toast.error(err.message || 'Error al guardar'); }
@@ -756,51 +822,65 @@ export default function RestaurantDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     const file = fd.get('foto');
-    const direccion = fd.get('direccion');
-    const selectedDays = [];
     const email = fd.get('email');
-    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (email && !isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    
+    try {
+      let fotoUrl = '';
+      if (file && file.size > 0) fotoUrl = await api.uploadImage(file);
+      
+      const params = { localId: restaurant.id };
+      if (fd.has('nombre')) params.nombre = fd.get('nombre');
+      if (fd.has('email')) params.email = email;
+      if (fd.has('direccion')) {
+        params.direccion = profileAddress;
+        params.lat = profileLat;
+        params.lng = profileLng;
+      }
+      
+      const pass = fd.get('password');
+      if (pass) params.password = pass;
+      if (fotoUrl) params.foto_url = fotoUrl;
+
+      // Compatibility for legacy fields if they are still in the form
+      if (fd.has('horario_apertura')) params.horario_apertura = fd.get('horario_apertura');
+      if (fd.has('horario_cierre')) params.horario_cierre = fd.get('horario_cierre');
+      if (fd.has('modo_automatico')) params.modo_automatico = fd.get('modo_automatico') === 'true';
+
+      const success = await api.updatePerfilLocal(params);
+      if (success) {
+        toast.success('Perfil actualizado correctamente');
+        setProfileData(prev => ({ ...prev, ...params }));
+      }
+    } catch { toast.error('Error al guardar perfil'); }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const selectedDays = [];
     
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
       if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
     });
 
     try {
-      let fotoUrl = '';
-      if (file && file.size > 0) fotoUrl = await api.uploadImage(file);
-      
-      const discountDays = [];
-      ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
-        if (fd.get(`desc_${day}`) === 'on') discountDays.push(day);
-      });
-
       const params = {
         localId: restaurant.id, 
-        nombre: fd.get('nombre'),
-        direccion: profileAddress,
-        lat: profileLat,
-        lng: profileLng,
-        email: fd.get('email'),
         horario_apertura: fd.get('horario_apertura'),
         horario_cierre: fd.get('horario_cierre'),
         modo_automatico: fd.get('modo_automatico') === 'true',
         dias_apertura: selectedDays,
-        dias_descuento: discountDays,
-        descuento_general: parseInt(fd.get('descuento_general')) || 0,
         acepta_retiro: fd.get('acepta_retiro') === 'on',
         acepta_envio: fd.get('acepta_envio') === 'on'
       };
 
-      const pass = fd.get('password');
-      if (pass) params.password = pass;
-      if (fotoUrl) params.foto_url = fotoUrl;
       const success = await api.updatePerfilLocal(params);
       if (success) {
-        toast.success('Perfil actualizado correctamente');
+        toast.success('Configuración actualizada correctamente');
         setProfileData(prev => ({ ...prev, ...params }));
-        if (view !== 'profile') setView('orders'); // Don't jump if we are in profile
       }
-    } catch { toast.error('Error al guardar perfil'); }
+    } catch { toast.error('Error al guardar configuración'); }
   };
 
   const handleAddressConfirm = (data) => {
@@ -1113,10 +1193,66 @@ export default function RestaurantDashboard() {
     );
   };
 
+  const renderStockModal = () => {
+    if (!showStockModal) return null;
+
+    return (
+      <div className="modal-overlay animate-fade-in" style={{ zIndex: 10001 }}>
+        <div className="modal-content animate-slide-up" style={{ maxWidth: '500px', width: '95%' }}>
+          <h2 style={{ color: '#c2410c', marginBottom: 12 }}>🥖 Confirmar Stock del Día</h2>
+          <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: 20 }}>
+            Ingresá las unidades frescas disponibles para hoy. Esto evitará que vendas productos que ya no tenés.
+          </p>
+
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const updates = {};
+            stockToConfirm.forEach(item => {
+              updates[item.id] = fd.get(`stock_${item.id}`);
+            });
+            handleConfirmDailyStock(updates);
+            setShowStockModal(false);
+          }}>
+            <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {stockToConfirm.map(item => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {item.imagen_url && <img src={item.imagen_url} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />}
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.nombre}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input 
+                      name={`stock_${item.id}`} 
+                      type="number" 
+                      className="form-input" 
+                      style={{ width: 80, marginBottom: 0, textAlign: 'center' }} 
+                      defaultValue={item.stock_actual}
+                      required 
+                    />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>u.</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowStockModal(false)}>Más tarde</button>
+              <button type="submit" className="btn btn-primary" style={{ background: '#f97316', borderColor: '#f97316' }} disabled={itemLoading}>
+               {itemLoading ? <span className="spinner spinner-white" /> : 'Confirmar Todo'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   // ─── Dashboard ───
   return (
     <div className="rd-page">
       {renderTutorial()}
+      {renderStockModal()}
       <header className="rd-header">
         <Link to="/">
           <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="rd-logo" />
@@ -1247,6 +1383,22 @@ export default function RestaurantDashboard() {
         {/* Persistent Alerts for Missing Configs */}
         {profileData && (
           <div className="rd-alerts" style={{ padding: '0 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Alerta de Confirmación Diaria (Solo Panadería) */}
+            {needsStockConfirmation && (
+              <div style={{ backgroundColor: '#fff7ed', border: '1px solid #ffedd5', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ color: '#9a3412', fontWeight: '600' }}>🥖 <strong>Stock del día no confirmado:</strong> Actualizá tus unidades de hoy para evitar ventas sin stock.</span>
+                <button className="btn btn-sm" style={{ backgroundColor: '#f97316', color: '#fff', border: 'none' }} onClick={() => setShowStockModal(true)}>Confirmar Ahora</button>
+              </div>
+            )}
+
+            {/* Alert of low stock items */}
+            {profileData?.rubro === 'Panadería' && menuItems.filter(i => i.maneja_stock && !i.stock_base_id && i.stock_actual <= i.stock_minimo).length > 0 && (
+              <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ color: '#991b1b', fontWeight: '500' }}>⚠️ <strong>Stock Bajo:</strong> Hay productos que están alcanzando el límite mínimo.</span>
+                <button className="btn btn-sm" style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none' }} onClick={() => setView('menu')}>Ver ítems</button>
+              </div>
+            )}
+
             {(!profileData.mp_access_token) && (
               <div style={{ backgroundColor: '#fffbe6', border: '1px solid #ffe58f', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#d48800', fontWeight: '500' }}>⚠️ <strong>Mercado Pago desvinculado:</strong> Vinculá tu cuenta para recibir pagos online.</span>
@@ -1283,15 +1435,25 @@ export default function RestaurantDashboard() {
             </button>
             {addMenuOpen && (
               <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, right: 'auto' }}>
-                <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory(''); setAddMenuOpen(false); }}>
-                  🍔 Nuevo Plato
+                <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory(''); setAddMenuOpen(false); setIsBaseProductMode(false); }}>
+                  {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
                 </button>
-                <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setAddMenuOpen(false); }}>
-                  🍦 Sabores y Adicionales
-                </button>
+                {(profileData?.rubro === 'Panadería') && (
+                  <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setAddMenuOpen(false); setIsBaseProductMode(true); }} style={{ color: '#c2410c', fontWeight: 'bold' }}>
+                    🍞 Nuevo Producto Base
+                  </button>
+                )}
+                {(profileData?.rubro === 'Heladería') && (
+                  <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setAddMenuOpen(false); }}>
+                    🍦 Sabores y Adicionales
+                  </button>
+                )}
               </div>
             )}
           </div>
+          <button className={`rd-nav-btn ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')}>
+            ⚙️ Configuración
+          </button>
         </nav>
 
         {/* ─── Orders View ─── */}
@@ -1405,7 +1567,7 @@ export default function RestaurantDashboard() {
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-                   <button className="btn btn-success" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); }}>+ Nuevo Plato</button>
+                   <button className="btn btn-success" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); }}>+ {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Nuevo Artículo' : 'Nuevo Plato'}</button>
                    <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 600 }}>
                       Estado hoy: {(() => {
                         const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
@@ -1417,6 +1579,82 @@ export default function RestaurantDashboard() {
                 </div>
               </div>
             </div>
+            
+            {/* ─── Panel de Stock Rápido (Solo Panadería) ─── */}
+            {profileData?.rubro === 'Panadería' && (
+              <div className="card animate-fade-in" style={{ marginBottom: 24, padding: '16px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                   <h3 style={{ color: '#c2410c', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                     📦 Gestión de Stock Rápida
+                   </h3>
+                   <span style={{ fontSize: '0.75rem', background: '#fff7ed', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', border: '1px solid #ffedd5', fontWeight: 600 }}>
+                     Sólo ítems que manejan stock
+                   </span>
+                </div>
+                
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '12px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  paddingRight: '4px'
+                }}>
+                  {menuItems.filter(i => i.maneja_stock).length === 0 ? (
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', textAlign: 'center', gridColumn: '1/-1', padding: '20px' }}>
+                      No tenés platos con stock habilitado. Editá un plato para activarlo.
+                    </p>
+                  ) : (
+                    menuItems.filter(i => i.maneja_stock).map(item => (
+                      <div key={item.id} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        padding: '10px 14px', 
+                        background: '#f8fafc', 
+                        borderRadius: '10px', 
+                        border: '1px solid #e2e8f0' 
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                           {item.imagen_url && <img src={item.imagen_url} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} />}
+                           <div style={{ minWidth: 0 }}>
+                             <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.nombre}</p>
+                             <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>
+                               {item.stock_base_id ? `Pack (${item.unidades_por_venta} u.)` : 'Producto Base'}
+                             </p>
+                           </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                           <input 
+                             type="number" 
+                             className="form-input" 
+                             style={{ width: '70px', padding: '6px', fontSize: '0.85rem', marginBottom: 0, textAlign: 'center', background: 'white' }}
+                             value={item.stock_actual}
+                             onChange={async (e) => {
+                               const val = parseInt(e.target.value) || 0;
+                               // Optimistic Update
+                               setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, stock_actual: val } : m));
+                             }}
+                             onBlur={async (e) => {
+                               const val = parseInt(e.target.value) || 0;
+                               try {
+                                 await api.updateMenuItem({ itemId: item.id, stock_actual: val });
+                                 toast.success(`Stock de ${item.nombre} actualizado`, { id: `stock-upd-${item.id}` });
+                               } catch { 
+                                 toast.error('Error al actualizar stock'); 
+                                 loadMenu(); // Rollback
+                               }
+                             }}
+                           />
+                           <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontWeight: 600 }}>u.</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="rd-menu-filters">
               <input className="form-input" placeholder="🔍 Buscar plato..." value={menuFilter} onChange={e => setMenuFilter(e.target.value)} />
               <select className="form-select" value={menuCatFilter} onChange={e => setMenuCatFilter(e.target.value)}>
@@ -1427,7 +1665,7 @@ export default function RestaurantDashboard() {
             {menuLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando menú...</div>
             ) : finalMenu.length === 0 ? (
-              <p className="rd-empty">No hay platos. ¡Agregá tu primer plato!</p>
+              <p className="rd-empty">No hay {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'artículos' : 'platos'}. ¡Agregá tu primer {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'artículo' : 'plato'}!</p>
             ) : finalMenu.map(item => (
               <div key={item.id} className="rd-menu-item card">
                 {item.imagen_url ? <img src={item.imagen_url} alt={item.nombre} className="rd-menu-img" /> :
@@ -1437,7 +1675,19 @@ export default function RestaurantDashboard() {
                     <div style={{ flex: 1 }}>
                       <h3>{item.nombre}</h3>
                       <p>{item.descripcion || ''}</p>
-                      <span className="badge badge-gray">{item.categoria || 'Sin categoría'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                        <span className="badge badge-gray">{item.categoria || 'Sin categoría'}</span>
+                        {item.maneja_stock && (
+                          <span className={`badge ${item.stock_actual <= item.stock_minimo ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
+                            Stock: {item.stock_actual}
+                          </span>
+                        )}
+                        {item.stock_base_id && (
+                          <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
+                            Pack ({item.unidades_por_venta} u.)
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     <div style={{ textAlign: 'right', minWidth: '120px' }}>
@@ -1499,8 +1749,14 @@ export default function RestaurantDashboard() {
                     </div>
                   </div>
                   <div className="rd-menu-bottom">
-                    <label className="toggle" onClick={() => handleToggleDisp(item.id, item.disponibilidad)}>
-                      <input type="checkbox" checked={item.disponibilidad === true} readOnly />
+                    <label className="toggle" onClick={() => {
+                      if (item.categoria === 'Base') {
+                        toast.error('Los productos base no pueden marcarse como disponibles/fuera de servicio. Su visibilidad depende del stock real.');
+                        return;
+                      }
+                      handleToggleDisp(item.id, item.disponibilidad);
+                    }}>
+                      <input type="checkbox" checked={item.disponibilidad === true} readOnly disabled={item.categoria === 'Base'} />
                       <span className="toggle-track" />
                       <span className="toggle-thumb" />
                     </label>
@@ -1520,7 +1776,9 @@ export default function RestaurantDashboard() {
         {view === 'addItem' && (
           <section className="animate-fade-in">
             <div className="card card-body">
-              <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>{editItem ? 'Editar Plato' : 'Nuevo Plato'}</h2>
+              <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>
+                {isBaseProductMode ? '🍞 Nuevo Producto Base' : (editItem ? (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Editar Artículo' : 'Editar Plato') : (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Nuevo Artículo' : 'Nuevo Plato'))}
+              </h2>
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1528,7 +1786,7 @@ export default function RestaurantDashboard() {
                       <input 
                         name="nombre" 
                         className="form-input" 
-                        placeholder="Nombre del plato" 
+                        placeholder={profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Nombre del artículo' : 'Nombre del plato'} 
                         value={editItem ? undefined : itemName}
                         defaultValue={editItem ? editItem.nombre : undefined}
                         onChange={(e) => {
@@ -1549,37 +1807,50 @@ export default function RestaurantDashboard() {
                   <select 
                     name="categoria" 
                     className="form-select" 
-                    defaultValue={editItem?.categoria || ''} 
+                    value={itemCategory || editItem?.categoria || ''} 
                     required 
+                    readOnly={isBaseProductMode || editItem?.categoria === 'Base'}
+                    disabled={isBaseProductMode || editItem?.categoria === 'Base'}
                     onChange={(e) => setItemCategory(e.target.value)}
                   >
                     <option value="">Categoría</option>
-                    <option value="Hamburguesas">Hamburguesas</option>
-                    <option value="Pizzas">Pizzas</option>
-                    <option value="Empanadas">Empanadas</option>
-                    <option value="Panchos">Panchos</option>
-                    <option value="Panadería">Panadería</option>
-                    <option value="Helados">Helados</option>
-                    <option value="Combos">Combos</option>
-                    <option value="Bebidas">Bebidas</option>
+                    {isBaseProductMode || editItem?.categoria === 'Base' ? (
+                      <option value="Base">Base (Inventario Interno)</option>
+                    ) : (
+                      (function() {
+                        const rubro = profileData?.rubro || 'Comida Rápida';
+                        let cats = [];
+                        if (rubro === 'Heladería') cats = ['Helados'];
+                        else if (rubro === 'Market') cats = ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Higiene', 'Promos'];
+                        else if (rubro === 'Farmacia') cats = ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'];
+                        else if (rubro === 'Panadería') cats = ['Pan', 'Facturas', 'Pastelería', 'Galletas', 'Salados', 'Desayuno/Merienda', 'Promos'];
+                        else cats = ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Panadería', 'Combos', 'Bebidas'];
+                        
+                        if (editItem && editItem.categoria && !cats.includes(editItem.categoria)) {
+                          cats.push(editItem.categoria);
+                        }
+                        return cats.map(cat => <option key={cat} value={cat}>{cat}</option>);
+                      })()
+                    )}
                   </select>
+                  {(isBaseProductMode || editItem?.categoria === 'Base') && <input type="hidden" name="categoria" value="Base" />}
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
                 
-                <div className="rd-form-row rd-form-row-3">
+                <div className="rd-form-row rd-form-row-3" style={ (isBaseProductMode || editItem?.categoria === 'Base') ? { opacity: 0.5, pointerEvents: 'none' } : {} }>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Precio Regular ($)</label>
-                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={editItem?.precio || ''} required />
+                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.precio || '')} required />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Descuento Ítem (%)</label>
-                    <input name="descuento" type="number" className="form-input" placeholder="Ej: 15" step="0.1" defaultValue={editItem?.descuento || 0} />
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Descuento (%)</label>
+                    <input name="descuento" type="number" className="form-input" placeholder="Ej: 15" step="0.1" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.descuento || 0)} />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Disponibilidad</label>
-                    <select name="disponibilidad" className="form-select" defaultValue={editItem ? (editItem.disponibilidad ? 'true' : 'false') : 'true'}>
-                      <option value="true">Disponible</option>
-                      <option value="false">No disponible</option>
+                    <select name="disponibilidad" className="form-select" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 'true' : (editItem ? (editItem.disponibilidad ? 'true' : 'false') : 'true')}>
+                      <option value="true">Disponible/Visible</option>
+                      <option value="false">Oculto/No disponible</option>
                     </select>
                   </div>
                 </div>
@@ -1666,10 +1937,85 @@ export default function RestaurantDashboard() {
                 )}
 
                 <input name="foto" type="file" className="form-input" accept="image/*" />
+                {/* ─── Gestión de Stock (Solo Panadería) ─── */}
+                {profileData?.rubro === 'Panadería' && (
+                  <div style={{ marginTop: 20, padding: 16, background: '#fff7ed', borderRadius: 12, border: '1px solid #ffedd5' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#9a3412', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      📦 Control de Inventario
+                    </h3>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                      <label className="switch">
+                        <input 
+                          type="checkbox" 
+                          name="maneja_stock" 
+                          checked={(isBaseProductMode || editItem?.categoria === 'Base') ? true : itemManejaStock} 
+                          readOnly={isBaseProductMode || editItem?.categoria === 'Base'}
+                          onChange={(e) => setItemManejaStock(e.target.checked)}
+                        />
+                        <span className="slider round"></span>
+                      </label>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#c2410c' }}>
+                        {(isBaseProductMode || editItem?.categoria === 'Base') ? 'Control de stock obligatorio para Productos Base' : 'Habilitar control de stock propio para este plato'}
+                      </span>
+                    </div>
+
+                    {((isBaseProductMode || editItem?.categoria === 'Base') || itemManejaStock) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div className="rd-form-row rd-form-row-3">
+                          {((isBaseProductMode || editItem?.categoria === 'Base')) ? (
+                            <>
+                              <div>
+                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Stock Actual</label>
+                                <input name="stock_actual" type="number" className="form-input" defaultValue={editItem?.stock_actual || 0} required />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Alerta Stock Bajo</label>
+                                <input name="stock_minimo" type="number" className="form-input" defaultValue={editItem?.stock_minimo || 10} />
+                              </div>
+                              <input type="hidden" name="unidades_por_venta" value="1" />
+                              <input type="hidden" name="stock_base_id" value="" />
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ gridColumn: 'span 2' }}>
+                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Vincular a Producto Base (Recomendado)</label>
+                                <select name="stock_base_id" className="form-select" defaultValue={editItem?.stock_base_id || ''}>
+                                  <option value="">-- Usar stock propio --</option>
+                                  {menuItems
+                                    .filter(mi => mi.categoria === 'Base' && mi.id !== editItem?.id)
+                                    .map(mi => (
+                                      <option key={mi.id} value={mi.id}>{mi.nombre} (Stock: {mi.stock_actual})</option>
+                                    ))
+                                  }
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Unidades por Venta</label>
+                                <input name="unidades_por_venta" type="number" className="form-input" placeholder="Ej: 1 o 6" defaultValue={editItem?.unidades_por_venta || 1} />
+                              </div>
+                              <div style={{ display: 'none' }}>
+                                <input name="stock_actual" type="number" defaultValue={0} />
+                                <input name="stock_minimo" type="number" defaultValue={0} />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        
+                        {!(isBaseProductMode || editItem?.categoria === 'Base') && (
+                          <p style={{ fontSize: '0.7rem', color: '#c2410c' }}>
+                            Al vincular un ítem base, el stock se descontará del producto original (Ej: Pack de 6 medialunas descuenta 6 del ítem base Medialuna).
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="rd-form-actions">
-                  <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); }}>Cancelar</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); setIsBaseProductMode(false); }}>Cancelar</button>
                   <button type="submit" className="btn btn-success" disabled={itemLoading}>
-                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : 'Guardar Plato')}
+                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Guardar Artículo' : 'Guardar Plato'))}
                   </button>
                 </div>
               </form>
@@ -1760,6 +2106,146 @@ export default function RestaurantDashboard() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ─── Settings View ─── */}
+        {view === 'settings' && (
+          <section className="animate-fade-in">
+            <div className="card card-body" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <h2 style={{ color: 'var(--red-600)', marginBottom: 20, textAlign: 'center' }}>⚙️ Configuración del Local</h2>
+              
+              <form onSubmit={handleSaveSettings}>
+                {/* Rubro Selection (Keep instant update logic but inside form UI) */}
+                <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: 'var(--gray-700)' }}>Rubro del Negocio</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
+                    Seleccioná el rubro de tu local para adaptar las opciones del panel.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
+                      <label key={r} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        padding: '12px 16px',
+                        background: 'white',
+                        borderRadius: 10,
+                        border: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? '2px solid var(--red-500)' : '1px solid var(--gray-200)',
+                        cursor: 'pointer'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <input 
+                            type="radio" 
+                            name="rubro" 
+                            checked={profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')} 
+                            onChange={async () => {
+                              try {
+                                const success = await api.updatePerfilLocal({ localId: restaurant.id, rubro: r });
+                                if (success) {
+                                  setProfileData({ ...profileData, rubro: r });
+                                  toast.success(`Rubro cambiado a ${r}`);
+                                }
+                              } catch (e) { toast.error('Error al cambiar rubro'); }
+                            }}
+                          />
+                          <span style={{ fontWeight: 600, color: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? 'var(--red-600)' : 'var(--gray-700)' }}>{r}</span>
+                        </div>
+                        {(profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) && <span style={{ color: 'var(--red-500)', fontWeight: 'bold' }}>✓</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Horarios */}
+                <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🕒 Horarios de Atención</h3>
+                  <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 0 }}>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
+                      <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData?.horario_apertura || '09:00'} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
+                      <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData?.horario_cierre || '23:00'} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
+                      <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
+                        <option value="true">Sí (Auto)</option>
+                        <option value="false">No (Manual)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Días */}
+                <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>📅 Días de Apertura</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                      const dayNorm = normalize(day);
+                      const isSelected = profileData?.dias_apertura?.some(d => normalize(d) === dayNorm);
+                      return (
+                        <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData?.dias_apertura} />
+                          {day}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Entrega */}
+                <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🛵 Métodos de Entrega</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
+                      🏪 Ofrecer Retiro en Local
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
+                      🛵 Ofrecer Envío a Domicilio
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rd-form-actions" style={{ marginBottom: 32 }}>
+                  <button type="submit" className="btn btn-success btn-full">Guardar Configuración</button>
+                </div>
+              </form>
+
+              {/* Mercado Pago connection (External to the main settings form) */}
+              <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
+              <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
+                  Cobros con Mercado Pago
+                </h3>
+                <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
+                  Conectá tu cuenta de Mercado Pago para recibir pagos online directamente en tu cuenta.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
+                    onClick={() => {
+                      const clientId = import.meta.env.VITE_MP_CLIENT_ID || '1234567890'; // Simplified for example
+                      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-oauth-callback`;
+                      const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                      window.location.href = authUrl;
+                    }}
+                  >
+                    Vincular MercadoPago
+                  </button>
+                  {profileData?.mp_access_token && (
+                    <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Vinculada</span>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -2026,89 +2512,12 @@ export default function RestaurantDashboard() {
                     <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
                     <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
                     
-                    <h3 style={{ marginTop: '24px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Horarios de Atención</h3>
-                    <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 16 }}>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
-                        <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData.horario_apertura || '09:00'} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
-                        <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData.horario_cierre || '23:00'} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
-                        <select name="modo_automatico" className="form-select" defaultValue={profileData.modo_automatico ? 'true' : 'false'}>
-                          <option value="true">Sí (Abrir/Cerrar auto)</option>
-                          <option value="false">No (Manual)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)', display: 'block', marginBottom: '8px' }}>Días de Apertura</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
-                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const dayNorm = normalize(day);
-                        const isSelected = profileData.dias_apertura?.some(d => normalize(d) === dayNorm);
-                        return (
-                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                            <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData.dias_apertura} />
-                            {day}
-                          </label>
-                        );
-                      })}
-                    </div>
-
-
-                    <h3 style={{ marginTop: '12px', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--gray-700)' }}>Métodos de Entrega Disponibles</h3>
-                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        <input type="checkbox" name="acepta_retiro" defaultChecked={profileData.acepta_retiro !== false} />
-                        🏪 Ofrecer Retiro en Local
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        <input type="checkbox" name="acepta_envio" defaultChecked={profileData.acepta_envio !== false} />
-                        🛵 Ofrecer Envío a Domicilio
-                      </label>
-                    </div>
-
-
                     <div className="rd-form-actions" style={{ marginTop: '24px' }}>
                       <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>
-                      <button type="submit" className="btn btn-success">Guardar Cambios</button>
+                      <button type="submit" className="btn btn-success">Guardar Perfil</button>
                     </div>
                   </form>
                 )}
-                
-                <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
-                <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
-                  <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
-                    Cobros con Mercado Pago
-                  </h3>
-                  <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
-                    Conectá tu cuenta de Mercado Pago para que tus clientes puedan abonar sus pedidos por transferencia o tarjeta directamente. El dinero irá a esta cuenta.
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <button 
-                      className="btn btn-primary" 
-                      style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
-                      onClick={() => {
-                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicación de Mercado Pago:");
-                        if (!clientId) return;
-                        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL || 'https://jskxfescamdjesdrcnkf.supabase.co'}/functions/v1/mp-oauth-callback`;
-                        const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-                        window.location.href = authUrl;
-                      }}
-                    >
-                      Vincular Cuenta de MercadoPago
-                    </button>
-                    {profileData?.mp_access_token && (
-                      <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Cuenta Vinculada</span>
-                    )}
-                  </div>
-                </div>
                 
                 {showAddressSelector && (
                   <AddressSelector 

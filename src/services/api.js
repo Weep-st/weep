@@ -503,7 +503,12 @@ export async function getPromos() {
     horario_cierre: i.locales?.horario_cierre,
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura || [],
-    variantes: i.variantes
+    variantes: i.variantes,
+    stock_actual: i.stock_actual,
+    maneja_stock: i.maneja_stock,
+    stock_base_id: i.stock_base_id,
+    unidades_por_venta: i.unidades_por_venta,
+    local_rubro: i.locales?.rubro || ''
   }));
 }
 
@@ -535,7 +540,7 @@ export async function getMenuByCategoria(categoria) {
 export async function getMenuByLocalId(localId) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, rubro)')
     .eq('local_id', localId)
     .order('nombre');
   return (data || []).map(i => ({
@@ -546,14 +551,27 @@ export async function getMenuByLocalId(localId) {
     disponibilidad: i.disponibilidad, variantes: i.variantes,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
-    local_dias_descuento: i.locales?.dias_descuento || [],
     local_descuento_general: i.locales?.descuento_general || 0,
+    local_rubro: i.locales?.rubro || '',
+    stock_actual: i.stock_actual,
+    maneja_stock: i.maneja_stock,
+    stock_base_id: i.stock_base_id,
+    unidades_por_venta: i.unidades_por_venta,
     estado: i.locales?.estado,
     horario_apertura: i.locales?.horario_apertura,
     horario_cierre: i.locales?.horario_cierre,
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura
   }));
+}
+
+export async function getBaseProductsStock(localIds) {
+  const { data } = await supabase
+    .from('menu')
+    .select('id, stock_actual')
+    .eq('categoria', 'Base')
+    .in('local_id', localIds);
+  return data || [];
 }
 
 export async function addMenuItem(params) {
@@ -567,6 +585,11 @@ export async function addMenuItem(params) {
     tamano: params.tamano_porcion || params.tamano || '', variantes: params.variantes,
     tiempo_preparacion: String(parseInt(params.tiempo_preparacion) || 30),
     imagen_url: params.imagen_url || '',
+    maneja_stock: params.maneja_stock || false,
+    stock_actual: params.stock_actual || 0,
+    stock_minimo: params.stock_minimo || 10,
+    unidades_por_venta: params.unidades_por_venta || 1,
+    stock_base_id: params.stock_base_id || null,
   });
   if (error) throw new Error(error.message);
   return { success: true };
@@ -584,6 +607,14 @@ export async function updateMenuItem(params) {
   if (params.variantes !== undefined) updates.variantes = params.variantes;
   if (params.tiempo_preparacion) updates.tiempo_preparacion = String(parseInt(params.tiempo_preparacion));
   if (params.imagen_url) updates.imagen_url = params.imagen_url;
+  
+  if (params.maneja_stock !== undefined) updates.maneja_stock = params.maneja_stock;
+  if (params.stock_actual !== undefined) updates.stock_actual = params.stock_actual;
+  if (params.stock_minimo !== undefined) updates.stock_minimo = params.stock_minimo;
+  if (params.unidades_por_venta !== undefined) updates.unidades_por_venta = params.unidades_por_venta;
+  if (params.stock_base_id !== undefined) updates.stock_base_id = params.stock_base_id;
+  if (params.ultima_confirmacion_stock !== undefined) updates.ultima_confirmacion_stock = params.ultima_confirmacion_stock;
+
   const { error } = await supabase.from('menu').update(updates).eq('id', params.itemId);
   if (error) throw new Error(error.message);
   return { success: true };
@@ -733,7 +764,7 @@ export async function validateOrderAvailability(localIds, itemIds) {
 // ═══════════════════════════════════════════════════
 // PEDIDOS
 // ═══════════════════════════════════════════════════
-export async function crearPedido({ userId, pedidoId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio, cuponId = null, descuentoCupon = 0 }) {
+export async function crearPedido({ userId, pedidoId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio, cuponId = null, descuentoCupon = 0, creditoWallet = 0 }) {
   const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
   const estado = estadoInicial || 'Pendiente';
 
@@ -759,6 +790,13 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
   if (error) {
     console.error("🚨 RPC ERROR DETALLADO:", error);
     throw new Error(error.message + " | Detalles: " + (error.details || ''));
+  }
+
+  // Update wallet credit if applicable
+  if (creditoWallet > 0) {
+    await supabase.from('pedidos_general')
+      .update({ credito_wallet: creditoWallet })
+      .eq('id', data.pedido_id);
   }
 
   // Actualizar el "total" (subtotal del local) en pedidos_locales
@@ -1313,6 +1351,10 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
      }
   }
 
+  if (status === 'Entregado') {
+     supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(console.error);
+  }
+
   return { success: true };
 }
 
@@ -1661,6 +1703,11 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
 
   const { error } = await supabase.from('pedidos_general').update(updateData).eq('id', pedidoId);
   if (error) return { success: false, error: error.message };
+
+  if (targetEstado === 'Entregado') {
+    // Wallet System: Credit earn logic (20% back)
+    supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(e => console.error("Wallet earn error:", e));
+  }
   
   if (nuevoEstado === 'Confirmado') {
     // Al aceptar el pedido, ponerlo Ocupado
@@ -2590,5 +2637,101 @@ export async function validateCupon(codigo, subtotal, localId = null) {
   }
 
   return { success: true, cupon: data };
+}
+
+// ═══════════════════════════════════════════════════
+// WALLET SYSTEM - API
+// ═══════════════════════════════════════════════════
+
+export async function getUserWalletBalance(userId) {
+  const { data, error } = await supabase
+    .from('user_wallets')
+    .select('balance')
+    .eq('user_id', userId)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') {
+     console.error("Error fetching wallet balance:", error);
+     return 0;
+  }
+  return data?.balance || 0;
+}
+
+export async function getWalletTransactions(userId) {
+  const { data, error } = await supabase
+    .from('wallet_transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getActiveWalletCampaigns() {
+  const { data, error } = await supabase
+    .from('wallet_campaigns')
+    .select('*')
+    .eq('active', true); // Simple version
+  
+  if (error) throw error;
+  return data || [];
+}
+
+export async function applyWalletCredit(userId, amount, orderId) {
+  const { data, error } = await supabase.rpc('spend_wallet_credit', {
+    p_user_id: userId,
+    p_amount: amount,
+    p_order_id: orderId
+  });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getAdminWalletStats() {
+  const { data: transactions } = await supabase
+    .from('wallet_transactions')
+    .select('type, amount');
+
+  const stats = {
+    totalEarned: 0,
+    totalSpent: 0
+  };
+
+  transactions?.forEach(t => {
+    if (t.type === 'earn') stats.totalEarned += Number(t.amount);
+    if (t.type === 'spend') stats.totalSpent += Number(t.amount);
+  });
+
+  return { ...stats, balance: stats.totalEarned - stats.totalSpent };
+}
+
+export async function adminGetWalletCampaigns() {
+  const { data, error } = await supabase
+    .from('wallet_campaigns')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminUpsertWalletCampaign(campaign) {
+  const { data, error } = await supabase
+    .from('wallet_campaigns')
+    .upsert(campaign)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function adminDeleteWalletCampaign(id) {
+  const { error } = await supabase
+    .from('wallet_campaigns')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+  return { success: true };
 }
 

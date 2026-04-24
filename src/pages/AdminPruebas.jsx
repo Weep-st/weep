@@ -495,7 +495,180 @@ const AdminPruebas = () => {
                     .pruebas-grid { grid-template-columns: 1fr; }
                 }
             `}} />
+            <WalletStatsDashboard />
+        <WalletCampaignManager />
         </div>
+    );
+};
+
+const WalletCampaignManager = () => {
+    const [campaigns, setCampaigns] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [editCamp, setEditCamp] = useState({
+        name: 'Promo 5% Reintegro',
+        type: 'earn',
+        value: 5,
+        min_order_amount: 8000,
+        expiry_days: 5,
+        active: true
+    });
+
+    const load = async () => {
+        setLoading(true);
+        try {
+            const res = await api.adminGetWalletCampaigns();
+            setCampaigns(res);
+        } catch (err) {
+            toast.error("Error al cargar campañas");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        load();
+    }, []);
+
+    const handleSave = async () => {
+        try {
+            await api.adminUpsertWalletCampaign(editCamp);
+            toast.success("Campaña guardada");
+            load();
+            setEditCamp({
+                name: '', type: 'earn', value: 0, min_order_amount: 0, expiry_days: 7, active: true
+            });
+        } catch (err) {
+            toast.error("Error al guardar");
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("¿Eliminar campaña?")) return;
+        try {
+            await api.adminDeleteWalletCampaign(id);
+            toast.success("Eliminado");
+            load();
+        } catch (err) {
+            toast.error("Error al eliminar");
+        }
+    };
+
+    const handleEdit = (c) => {
+        setEditCamp(c);
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    };
+
+    return (
+        <section className="pane-section wallet-config-box" style={{ marginTop: '25px', background: '#fff' }}>
+            <h3>⚙️ Configuración de Créditos (Marketing)</h3>
+            
+            <div className="campaign-form" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px', padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
+                <div className="input-group">
+                    <label>Nombre de la Campaña</label>
+                    <input type="text" value={editCamp.name} onChange={e => setEditCamp({...editCamp, name: e.target.value})} placeholder="Ej: Promo Reintegro 5%" />
+                </div>
+                <div className="input-group">
+                    <label>Porcentaje Reintegro (%)</label>
+                    <input type="number" value={editCamp.value} onChange={e => setEditCamp({...editCamp, value: Number(e.target.value)})} />
+                </div>
+                <div className="input-group">
+                    <label>Mínimo de Compra ($)</label>
+                    <input type="number" value={editCamp.min_order_amount} onChange={e => setEditCamp({...editCamp, min_order_amount: Number(e.target.value)})} />
+                </div>
+                <div className="input-group">
+                    <label>Tope máximo de reintegro ($)</label>
+                    <input type="number" value={editCamp.max_cap} onChange={e => setEditCamp({...editCamp, max_cap: Number(e.target.value)})} placeholder="Ej: 500" />
+                </div>
+                <div className="input-group">
+                    <label>Días de Vencimiento</label>
+                    <input type="number" value={editCamp.expiry_days} onChange={e => setEditCamp({...editCamp, expiry_days: Number(e.target.value)})} />
+                </div>
+                <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                    <input type="checkbox" checked={editCamp.active} onChange={e => setEditCamp({...editCamp, active: e.target.checked})} id="camp-active" />
+                    <label htmlFor="camp-active" style={{ marginBottom: 0 }}>Campaña Activa</label>
+                </div>
+                <div style={{ alignSelf: 'end' }}>
+                    <button className="btn btn-primary" onClick={handleSave} style={{ width: '100%', padding: '10px' }}>
+                        {editCamp.id ? 'Actualizar Campaña' : 'Crear Nueva Campaña'}
+                    </button>
+                    {editCamp.id && <button className="btn btn-link" onClick={() => setEditCamp({name: '', type: 'earn', value: 0, min_order_amount: 0, expiry_days: 7, active: true})}>Cancelar Edición</button>}
+                </div>
+            </div>
+
+            <div className="campaigns-list">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9' }}>
+                            <th style={{ padding: '10px' }}>Campaña</th>
+                            <th>Valor</th>
+                            <th>Mínimo</th>
+                            <th>Vencimiento</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {campaigns.map(c => (
+                            <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '10px' }}><strong>{c.name}</strong></td>
+                                <td>{c.value}%</td>
+                                <td>${c.min_order_amount?.toLocaleString()}</td>
+                                <td>{c.expiry_days} días</td>
+                                <td><span style={{ color: c.active ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>{c.active ? 'ACTIVA' : 'PAUSADA'}</span></td>
+                                <td>
+                                    <button className="btn-add" onClick={() => handleEdit(c)} style={{ marginRight: '5px' }}>✎</button>
+                                    <button className="btn-add" onClick={() => handleDelete(c.id)} style={{ color: '#ef4444' }}>🗑️</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    );
+};
+
+const WalletStatsDashboard = () => {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await api.getAdminWalletStats();
+                setStats(res);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, []);
+
+    if (loading) return null;
+
+    return (
+        <section className="pane-section wallet-admin-box" style={{ marginTop: '25px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
+            <h3 style={{ borderBottomColor: '#bbf7d0', color: '#166534' }}>📊 Métricas de Billetera (Total Sistema)</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
+                <div className="stat-card">
+                    <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 'bold' }}>Crédito Generado (Earn)</span>
+                    <p style={{ fontSize: '1.5rem', margin: 0, fontWeight: '800', color: '#166534' }}>${stats.totalEarned.toLocaleString('es-AR')}</p>
+                </div>
+                <div className="stat-card">
+                    <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 'bold' }}>Crédito Usado (Spend)</span>
+                    <p style={{ fontSize: '1.5rem', margin: 0, fontWeight: '800', color: '#ef4444' }}>${stats.totalSpent.toLocaleString('es-AR')}</p>
+                </div>
+                <div className="stat-card">
+                    <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 'bold' }}>Saldo en Billeteras</span>
+                    <p style={{ fontSize: '1.5rem', margin: 0, fontWeight: '800', color: '#10b981' }}>${stats.balance.toLocaleString('es-AR')}</p>
+                </div>
+            </div>
+            <p style={{ fontSize: '0.7rem', color: '#166534', marginTop: '15px', opacity: 0.8 }}>
+                * Estas métricas son globales de todos los usuarios usando el sistema de crédito.
+            </p>
+        </section>
     );
 };
 

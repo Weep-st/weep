@@ -277,9 +277,33 @@ export default function PruebasApp() {
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
     
-    // Cargar promociones
+    // Cargar promociones con resolución de stock base
     setLoadingPromos(true);
-    api.getPromos().then(d => setPromoItems(d || [])).catch(() => {}).finally(() => setLoadingPromos(false));
+    api.getPromos().then(async (items) => {
+      const promoList = items || [];
+      const panaderiaLocals = [...new Set(promoList.filter(i => i.local_rubro === 'Panadería').map(i => i.local_id))];
+      
+      if (panaderiaLocals.length > 0) {
+        try {
+          const baseStocks = await api.getBaseProductsStock(panaderiaLocals);
+          const stockMap = {};
+          baseStocks.forEach(bs => stockMap[bs.id] = bs.stock_actual);
+          
+          const resolvedPromos = promoList.map(item => {
+            if (item.stock_base_id && stockMap[item.stock_base_id] !== undefined) {
+              return { ...item, stock_actual: stockMap[item.stock_base_id] };
+            }
+            return item;
+          });
+          setPromoItems(resolvedPromos);
+        } catch (err) {
+          console.error("Error resolving promo stock:", err);
+          setPromoItems(promoList);
+        }
+      } else {
+        setPromoItems(promoList);
+      }
+    }).catch(() => {}).finally(() => setLoadingPromos(false));
 
     // Verificar repartidores al cargar
     api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
@@ -638,21 +662,43 @@ export default function PruebasApp() {
     }
 
     api.getMenuByLocalId(localId).then(d => {
-      let mapped = (d || [])
-        .filter(i => i.disponibilidad !== false)
-        .map(i => ({
-          ...i, 
-          local_nombre: local?.nombre || 'Local', 
-          local_logo: local?.logo || '',
-          local_disponible_desde: local?.disponible_desde || null,
-        }));
+      const allItems = d || [];
+      // Create a stock lookup map (including Base items)
+      const stockLookup = {};
+      allItems.forEach(i => {
+        if (i.categoria === 'Base' || i.maneja_stock) {
+          stockLookup[i.id] = i.stock_actual;
+        }
+      });
+
+      let mapped = allItems
+        .filter(i => i.disponibilidad !== false && i.categoria !== 'Base')
+        .map(i => {
+          // Resolve real stock from base product if linked
+          let resolvedStock = i.stock_actual;
+          if (i.stock_base_id && stockLookup[i.stock_base_id] !== undefined) {
+            resolvedStock = stockLookup[i.stock_base_id];
+          }
+          
+          return {
+            ...i, 
+            stock_actual: resolvedStock, // This will be used in handleAddToCart and the 'AGOTADO' badge
+            local_nombre: local?.nombre || 'Local', 
+            local_logo: local?.logo || '',
+            local_disponible_desde: local?.disponible_desde || null,
+          };
+        });
+
       if (catId) {
         mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
       }
       setMenus(mapped);
       setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `Menú de ${local?.nombre || 'Local'}`);
       setShowMenus(true);
-    }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
+    }).catch((err) => {
+      console.error("Error loading menu:", err);
+      toast.error('No pudimos cargar el menú');
+    }).finally(() => setLoadingMenus(false));
   }, [locals, filteredLocals]);
 
   const fetchByCategory = React.useCallback((cat) => {
@@ -661,7 +707,7 @@ export default function PruebasApp() {
       if (!user) { setModal('login'); return; }
       setLoadingMenus(true);
       api.getMenuCompleto().then(all => {
-        const favMenus = all.filter(m => favorites.includes(m.id));
+        const favMenus = all.filter(m => favorites.includes(m.id) && m.categoria !== 'Base');
         setMenus(favMenus);
         setMenuTitle('Mis Favoritos');
         setShowMenus(true);
@@ -897,6 +943,13 @@ export default function PruebasApp() {
   const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
   const handleAddToCart = async (menu) => {
+    // Validar Stock (especialmente para rubro Panadería)
+    const isOutOfStock = (menu.local_rubro === 'Panadería' || menu.maneja_stock) && (menu.stock_actual < (menu.unidades_por_venta || 1));
+    if (isOutOfStock) {
+      toast.error(`¡Agotado! No queda stock suficiente de ${menu.nombre}`);
+      return;
+    }
+
     // Red de seguridad: Verificar disponibilidad antes de cualquier acción
     const availabilityDate = menu.local_disponible_desde;
     if (availabilityDate) {
@@ -1441,7 +1494,7 @@ export default function PruebasApp() {
               </h2>
             </div>
             <div className="promos-scroll" style={{ display: 'flex', gap: '16px', overflowX: 'auto', padding: '4px 4px 16px 4px', scrollSnapType: 'x mandatory' }}>
-              {promoItems.map((item, i) => {
+              {promoItems.filter(i => i.categoria !== 'Base').map((item, i) => {
                 const discPrice = calculateDiscountedPrice(item);
                 const percent = Math.round((1 - discPrice / Number(item.precio)) * 100);
                 const localRef = locals.find(l => l.id === item.local_id);
@@ -1450,21 +1503,34 @@ export default function PruebasApp() {
                 return (
                   <div 
                     key={item.id} 
-                    className={`promo-item-card ${!open ? 'closed' : ''}`}
-                    onClick={() => open && handleAddToCart({ ...item, precio: discPrice })}
+                    className={`promo-item-card ${(!open || (item.stock_actual < (item.unidades_por_venta || 1))) ? 'closed' : ''}`}
+                    onClick={() => {
+                      if (!open) return;
+                      const isOutOfStock = (item.local_rubro === 'Panadería' || item.maneja_stock) && (item.stock_actual < (item.unidades_por_venta || 1));
+                      if (isOutOfStock) {
+                        toast.error(`¡Agotado! No queda stock de ${item.nombre}`);
+                        return;
+                      }
+                      handleAddToCart({ ...item, precio: discPrice });
+                    }}
                   >
                     <div className="promo-img-container">
                       <img 
                         src={item.imagen_url || 'https://placehold.co/240x140?text=Promo'} 
                         alt={item.nombre} 
                         className="promo-item-img"
+                        style={(item.stock_actual < (item.unidades_por_venta || 1)) ? { filter: 'grayscale(0.8)' } : {}}
                       />
                       <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--red-600)', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '800', boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)' }}>
                         {percent}% OFF
                       </div>
-                      {!open && (
+                      {!open ? (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.85rem' }}>
                           CERRADO
+                        </div>
+                      ) : (item.stock_actual < (item.unidades_por_venta || 1)) && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1rem', letterSpacing: '1px' }}>
+                          AGOTADO
                         </div>
                       )}
                     </div>
@@ -1778,6 +1844,25 @@ export default function PruebasApp() {
                         }
                         return null;
                       })()}
+                      
+                      {/* Stock Check Badge */}
+                      {(menu.local_rubro === 'Panadería' || menu.maneja_stock) && (menu.stock_actual < (menu.unidades_por_venta || 1)) && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '12px',
+                          right: '12px',
+                          background: 'rgba(0,0,0,0.8)',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold',
+                          letterSpacing: '0.5px',
+                          zIndex: 2
+                        }}>
+                          AGOTADO
+                        </div>
+                      )}
                     </div>
                     <div className="menu-card-body">
                       <div className="menu-card-local">
@@ -1843,10 +1928,21 @@ export default function PruebasApp() {
 
                             const itemCfg = typeof menu.variantes === 'string' ? JSON.parse(menu.variantes || '{}') : (menu.variantes || {});
                             const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas;
+                            
+                            const isOutOfStock = (menu.local_rubro === 'Panadería' || menu.maneja_stock) && (menu.stock_actual < (menu.unidades_por_venta || 1));
+
+                            if (isOutOfStock) {
+                               return (
+                                 <span style={{ fontSize: '0.85rem', color: 'var(--red-600)', fontWeight: '600' }}>
+                                   Sin stock
+                                 </span>
+                               );
+                            }
 
                             return (
                               <button 
                                 className="btn btn-primary btn-sm" 
+                                disabled={isOutOfStock}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) });
