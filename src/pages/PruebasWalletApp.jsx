@@ -101,6 +101,7 @@ export default function PruebasWalletApp() {
   const [useWallet, setUseWallet] = React.useState(false);
   const [walletConfig, setWalletConfig] = React.useState(null);
   const [loadingConfig, setLoadingConfig] = React.useState(false);
+  const [localCommission, setLocalCommission] = React.useState(0.15); // Default 15% (Despegue)
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -255,8 +256,6 @@ export default function PruebasWalletApp() {
   console.log("🚀 PruebasWalletApp: Logic functions defined");
 
   // --- Business Logic for Totals ---
-  const PLATFORM_COMMISSION = 0.08;
-  const MP_FEE_RATE = 0.0824;
 
   const calculateDiscountedPrice = React.useCallback((item) => {
     if (!item) return 0;
@@ -289,17 +288,22 @@ export default function PruebasWalletApp() {
   }, []);
 
   const calculateCheckoutTotals = React.useCallback((P, E, method) => {
-    const net_commission = P * PLATFORM_COMMISSION;
+    const net_commission = P * localCommission;
     const net_local = P - net_commission;
     const total_net = P + E;
     
     let result;
     if (method === 'transferencia') {
       const wepi_income = E + net_commission;
-      const surcharge = wepi_income * MP_FEE_RATE / (1 - MP_FEE_RATE);
+      
+      // La comision interna de mp solo debe cubrir la comision de la plataforma
+      // Usamos un rate de 10% para cubrir impuestos internos y evitar rupturas
+      const MP_SAFE_RATE = 0.10;
+      const surcharge = wepi_income * MP_SAFE_RATE / (1 - MP_SAFE_RATE);
       const total_paid = total_net + surcharge;
-      const FEE_ADJUSTMENT_FACTOR = 0.85; 
-      const marketplace_fee = wepi_income + (surcharge * FEE_ADJUSTMENT_FACTOR);
+      
+      // Solo a la plataforma debe llegar el neto (incluimos el recargo en la marketplace_fee)
+      const marketplace_fee = wepi_income + surcharge;
 
       result = {
         total: Math.round(total_paid),
@@ -599,8 +603,21 @@ export default function PruebasWalletApp() {
       api.getUserWalletBalance(user.id, localId)
         .then(setWalletBalance)
         .catch(console.error);
+
+      // Fetch dynamic commission for the local
+      api.getPlanInfo(localId)
+        .then(res => {
+          if (res.success && res.comision_actual) {
+            console.log(`📊 PruebasWalletApp: Comisión para local ${localId}: ${res.comision_actual}%`);
+            setLocalCommission(res.comision_actual / 100);
+          } else {
+            setLocalCommission(0.15); // Fallback to 15%
+          }
+        })
+        .catch(() => setLocalCommission(0.15));
     } else {
       setWalletConfig(null);
+      setLocalCommission(0.15);
       if (user?.id) {
         api.getUserWalletBalance(user.id).then(setWalletBalance).catch(console.error);
       }
