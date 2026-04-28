@@ -550,9 +550,8 @@ export default function DriverDashboard() {
       componentRestrictions: { country: 'AR' }
     }, (results, status) => {
       if (status === 'OK' && results[0]) {
-        const { lat, lng } = results[0].geometry.location;
-        const latVal = lat();
-        const lngVal = lng();
+        const latVal = results[0].geometry.location.lat();
+        const lngVal = results[0].geometry.location.lng();
 
         // VALIDACIÓN: Solo guardar si está en Santo Tomé (aprox)
         const isSafe = latVal <= -28.4 && latVal >= -28.7 && lngVal <= -55.9 && lngVal >= -56.2;

@@ -12,6 +12,7 @@ import HelpChatbot from '../components/HelpChatbot';
 import './PruebasWalletApp.css';
 
 export default function PruebasWalletApp() {
+  console.log("🚀 PruebasWalletApp: Initialization started");
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
@@ -105,7 +106,7 @@ export default function PruebasWalletApp() {
   const [showProfileAddressSelector, setShowProfileAddressSelector] = React.useState(false);
   
   const [addressData, setAddressData] = React.useState({
-    address: user?.direccion || '',
+    address: user?.address || '',
     lat: user?.lat || null,
     lng: user?.lng || null,
     reference: ''
@@ -249,6 +250,8 @@ export default function PruebasWalletApp() {
     }
     return false;
   }, []);
+
+  console.log("🚀 PruebasWalletApp: Logic functions defined");
 
   // --- Business Logic for Totals ---
   const PLATFORM_COMMISSION = 0.08;
@@ -479,6 +482,7 @@ export default function PruebasWalletApp() {
   }, [isLocalOpen]);
   // Load locals + drinks on mount
   React.useEffect(() => {
+    console.log("🚀 PruebasWalletApp: Main data useEffect running");
     // Tracking: Page View
     api.trackDemandSignal('page_view', sessionId).catch(() => {});
 
@@ -497,6 +501,7 @@ export default function PruebasWalletApp() {
       setLocals(allLocs);
       setDrinks(deks || []);
       setBanners(bans || []);
+      console.log("🚀 PruebasWalletApp: Data fetched successfully", { locs: !!locs, prms: !!prms });
       setPromoItems(prms || []);
       setBannersLoading(false);
       setLoadingPromos(false);

@@ -23,6 +23,7 @@
 
         var config = { name: "Weep", start: "/", title: "Weep" };
         if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Weep - Pedidos", start: "/pedir", title: "Weep - Pedidos" }; }
+        else if (path.startsWith('/pruebas')) { config = { name: "Weep - Pruebas", start: "/pruebas", title: "Weep - Pruebas" }; }
         else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Weep - Locales", start: "/locales", title: "Weep - Locales" }; }
         else if (path.startsWith('/admin')) { config = { name: "Weep - Admin", start: "/admin", title: "Weep - Admin" }; }
         else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }

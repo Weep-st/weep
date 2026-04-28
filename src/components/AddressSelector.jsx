@@ -61,7 +61,10 @@ const AddressSelector = ({
       const fullAddress = `${initialAddress}, Santo Tomé, Corrientes, Argentina`;
       geocoder.geocode({ address: fullAddress, componentRestrictions: { country: 'AR' } }, (results, status) => {
         if (status === 'OK' && results[0]) {
-          const newPos = { lat: lat(), lng: lng() };
+          const newPos = { 
+            lat: results[0].geometry.location.lat(), 
+            lng: results[0].geometry.location.lng() 
+          };
           setPosition(newPos);
           setAddress(results[0].formatted_address);
           lastResolvedAddress.current = results[0].formatted_address;
@@ -140,8 +143,10 @@ const AddressSelector = ({
             return;
           }
 
-          const { lat, lng } = results[0].geometry.location;
-          const newPos = { lat: lat(), lng: lng() };
+          const newPos = { 
+            lat: results[0].geometry.location.lat(), 
+            lng: results[0].geometry.location.lng() 
+          };
           
           setPosition(newPos);
           setAddress(fmtAddr);

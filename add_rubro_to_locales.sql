@@ -1,0 +1,1 @@
+ALTER TABLE locales ADD COLUMN IF NOT EXISTS rubro TEXT DEFAULT 'Comida Rápida';
