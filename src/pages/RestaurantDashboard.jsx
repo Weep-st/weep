@@ -567,10 +567,18 @@ export default function RestaurantDashboard() {
     }
   };
 
-  const handleSuscripPlan = async (planId) => {
+  const handleSuscripPlan = async (plan) => {
+    // Si el plan no es el básico, redirigir a WhatsApp
+    if (plan.nombre !== 'Básico') {
+      const message = `Hola! Me gustaría solicitar el cambio al plan ${plan.nombre} para mi local: ${restaurant?.nombre || 'Mi Local'}`;
+      const waUrl = `https://wa.me/5493756543610?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+      return;
+    }
+
     try {
       setAuthLoading(true);
-      await api.suscribirAPlan(restaurant.id, planId);
+      await api.suscribirAPlan(restaurant.id, plan.id);
       toast.success('¡Plan actualizado! Los cambios se verán reflejados en breve.');
       loadPlanInfo();
     } catch (err) {
@@ -1129,7 +1137,7 @@ export default function RestaurantDashboard() {
                 </ul>
 
                 {plan.nombre !== plan_nombre ? (
-                  <button className="btn btn-primary btn-full" onClick={() => handleSuscripPlan(plan.id)} style={{ padding: '12px', borderRadius: '12px', fontWeight: 700 }}>Elegir {plan.nombre}</button>
+                  <button className="btn btn-primary btn-full" onClick={() => handleSuscripPlan(plan)} style={{ padding: '12px', borderRadius: '12px', fontWeight: 700 }}>Elegir {plan.nombre}</button>
                 ) : (
                   <button className="btn btn-secondary btn-full" disabled style={{ padding: '12px', borderRadius: '12px', opacity: 0.7, background: '#f1f5f9', color: '#64748b' }}>Plan Activo</button>
                 )}

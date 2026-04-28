@@ -1310,7 +1310,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id')
+    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id')
     .order('created_at', { ascending: false });
   return data || [];
 }

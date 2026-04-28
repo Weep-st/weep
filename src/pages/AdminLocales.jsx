@@ -16,6 +16,7 @@ const AdminLocales = () => {
     const [selectedLocal, setSelectedLocal] = useState('');
     const [salesData, setSalesData] = useState({});
     const [salesLoading, setSalesLoading] = useState(false);
+    const [planes, setPlanes] = useState([]);
 
     const loadLocales = async () => {
         setLoading(true);
@@ -46,8 +47,28 @@ const AdminLocales = () => {
         }
     };
 
+    const loadPlanes = async () => {
+        try {
+            const data = await api.getDisponibilidadPlanes();
+            setPlanes(data);
+        } catch (err) {
+            console.error('Error al cargar planes:', err);
+        }
+    };
+
+    const handleUpdatePlan = async (localId, planId) => {
+        try {
+            await api.suscribirAPlan(localId, planId);
+            toast.success('Plan del local actualizado');
+            loadLocales();
+        } catch (err) {
+            toast.error('Error al actualizar plan');
+        }
+    };
+
     useEffect(() => {
         loadLocales();
+        loadPlanes();
     }, []);
 
     useEffect(() => {
@@ -156,6 +177,7 @@ const AdminLocales = () => {
                                 <th>Notif.</th>
                                 <th>Disponibilidad</th>
                                 <th>Estado Admin</th>
+                                <th>Plan Actual</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -217,6 +239,25 @@ const AdminLocales = () => {
                                             <span className={`badge ${local.admin_status?.toLowerCase()}`}>
                                                 {local.admin_status || 'Pendiente'}
                                             </span>
+                                        </td>
+                                        <td>
+                                            <select 
+                                                className="admin-select-sm"
+                                                value={local.plan_id || ''}
+                                                onChange={(e) => handleUpdatePlan(local.id, e.target.value)}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid #e2e8f0',
+                                                    fontSize: '0.875rem',
+                                                    width: '100%'
+                                                }}
+                                            >
+                                                <option value="">Sin Plan</option>
+                                                {planes.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                                                ))}
+                                            </select>
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
