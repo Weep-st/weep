@@ -2836,6 +2836,13 @@ export default function RestaurantDashboard() {
                           </div>
                           <button type="button" className="btn btn-ghost btn-xs" style={{ color: 'var(--blue-600)' }}>Cambiar</button>
                         </div>
+                        <input 
+                          name="direccion" 
+                          className="form-input" 
+                          placeholder="Dirección manual (opcional)" 
+                          value={profileAddress} 
+                          onChange={(e) => setProfileAddress(e.target.value)} 
+                        />
                         {(!profileLat || !profileLng) && (
                           <span style={{ fontSize: '0.75rem', color: 'var(--amber-600)', fontStyle: 'italic' }}>
                             ⚠️ Ubicación no configurada en el mapa
@@ -2845,6 +2852,34 @@ export default function RestaurantDashboard() {
                     </div>
                     <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
                     <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
+                    
+                    <div className="discount-config-section" style={{ marginTop: '16px', padding: '16px', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #eee' }}>
+                      <h4 style={{ marginBottom: '12px', fontSize: '0.95rem' }}>Configuración de Descuento General</h4>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ width: '120px' }}>
+                          <label className="form-label">Porcentaje %</label>
+                          <input name="descuento_general" type="number" className="form-input" defaultValue={profileData.descuento_general || 0} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <label className="form-label">Categoría</label>
+                          <select name="categoria_descuento" className="form-select" defaultValue={profileData.categoria_descuento || ''}>
+                            <option value="">Todo el menú</option>
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: '12px' }}>
+                        <label className="form-label">Días de aplicación</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                            <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'white', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.8rem', cursor: 'pointer' }}>
+                              <input type="checkbox" name={`desc_${day}`} defaultChecked={profileData?.dias_descuento?.includes(day)} />
+                              {day}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                     
                     <div className="rd-form-actions" style={{ marginTop: '24px' }}>
                       <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>
