@@ -2476,6 +2476,39 @@ export default function RestaurantDashboard() {
                     </div>
                   </div>
 
+                  {/* Enlace Compartible */}
+                  <div style={{ marginBottom: 24, padding: 16, background: '#f0f9ff', borderRadius: 12, border: '1px solid #bae6fd' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: '#0369a1' }}>🔗 Enlace Compartible</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#0c4a6e', marginBottom: 16 }}>
+                      Compartí este enlace con tus clientes para que accedan directamente a tu menú en Wepi.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input 
+                        className="form-input" 
+                        readOnly 
+                        value={`https://wepi.com.ar/pedir/${profileData?.slug || 'identificador-pendiente'}`} 
+                        style={{ flex: 1, marginBottom: 0, background: '#fff', fontSize: '0.85rem' }}
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-primary"
+                        style={{ background: '#0284c7' }}
+                        onClick={() => {
+                          const link = `https://wepi.com.ar/pedir/${profileData?.slug || 'identificador-pendiente'}`;
+                          navigator.clipboard.writeText(link);
+                          toast.success('¡Enlace copiado!', { icon: '📋' });
+                        }}
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                    {!profileData?.slug && (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--red-600)', marginTop: 8, fontWeight: 600 }}>
+                        ⚠️ Tu local aún no tiene un identificador único asignado.
+                      </p>
+                    )}
+                  </div>
+
                   {/* Horarios */}
                   <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🕒 Horarios de Atención</h3>

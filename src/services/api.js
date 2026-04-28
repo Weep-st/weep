@@ -436,7 +436,7 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, admin_status')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, admin_status, slug')
     .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
@@ -450,8 +450,36 @@ export async function getLocales() {
     categoria_descuento: l.categoria_descuento || '',
     plan_id: l.plan_id,
     rubro: l.rubro,
-    admin_status: l.admin_status
+    admin_status: l.admin_status,
+    slug: l.slug
   }));
+}
+
+export async function getLocalBySlug(slug) {
+  const { data, error } = await supabase
+    .from('locales')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, admin_status, slug')
+    .eq('slug', slug)
+    .maybeSingle();
+  
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return {
+    id: data.id, nombre: data.nombre, logo: data.foto_url || '',
+    estado: data.estado, direccion: data.direccion,
+    horario_apertura: data.horario_apertura, horario_cierre: data.horario_cierre,
+    modo_automatico: data.modo_automatico, dias_apertura: data.dias_apertura,
+    disponible_desde: data.disponible_desde,
+    acepta_retiro: data.acepta_retiro, acepta_envio: data.acepta_envio,
+    dias_descuento: data.dias_descuento || [],
+    descuento_general: data.descuento_general || 0,
+    categoria_descuento: data.categoria_descuento || '',
+    plan_id: data.plan_id,
+    rubro: data.rubro,
+    admin_status: data.admin_status,
+    slug: data.slug
+  };
 }
 
 // ═══════════════════════════════════════════════════
@@ -1310,7 +1338,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id')
+    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -1337,6 +1365,12 @@ export async function adminGetSalesByLocale() {
 
 export async function adminUpdateLocalStatus(localId, admin_status) {
   const { error } = await supabase.from('locales').update({ admin_status }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminUpdateLocalSlug(localId, slug) {
+  const { error } = await supabase.from('locales').update({ slug }).eq('id', localId);
   if (error) throw new Error(error.message);
   return { success: true };
 }

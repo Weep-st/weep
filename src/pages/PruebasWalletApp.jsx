@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useJsApiLoader } from '@react-google-maps/api';
@@ -12,6 +12,7 @@ import HelpChatbot from '../components/HelpChatbot';
 import './PruebasWalletApp.css';
 
 export default function PruebasWalletApp() {
+  const { slug } = useParams();
   console.log("🚀 PruebasWalletApp: Initialization started");
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -498,6 +499,8 @@ export default function PruebasWalletApp() {
       const boosted = getBoostedLocales(allLocs);
       
       const timeInfo = getTimeBasedTitle();
+      
+      
       setLocals(allLocs);
       setDrinks(deks || []);
       setBanners(bans || []);
@@ -576,6 +579,7 @@ export default function PruebasWalletApp() {
       setWalletBalance(0);
     }
   }, [user, sessionId, getBoostedLocales, getTimeBasedTitle]);
+
   
   // Fetch Wallet Config and applicable Balance when local changes
   React.useEffect(() => {
@@ -760,6 +764,33 @@ export default function PruebasWalletApp() {
       setShowMenus(true);
     }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
   }, [locals, filteredLocals]);
+
+  // Carga automática por slug (Landing Page de Local)
+  React.useEffect(() => {
+    if (slug) {
+      console.log("🔗 PruebasWalletApp: Slug detectado en URL:", slug);
+      api.getLocalBySlug(slug).then(local => {
+        if (local && local.admin_status === 'Aceptado') {
+          console.log("✅ PruebasWalletApp: Local encontrado y aceptado:", local.nombre);
+          fetchMenusByLocal(local.id);
+        } else if (local && local.admin_status !== 'Aceptado') {
+          console.warn("⚠️ PruebasWalletApp: Local no aceptado:", local.nombre);
+          toast.error("Este local aún no está habilitado.");
+          navigate('/pruebas');
+        } else {
+          console.warn("⚠️ PruebasWalletApp: Local no encontrado para el slug:", slug);
+          toast.error("El local solicitado no existe.");
+          navigate('/pruebas');
+        }
+      }).catch(err => {
+        console.error("❌ PruebasWalletApp: Error cargando local por slug:", err);
+        toast.error("Error al cargar el menú del local.");
+      });
+    } else {
+      setShowMenus(false);
+      setSelectedLocal(null);
+    }
+  }, [slug, navigate, fetchMenusByLocal]);
 
   const handleBannerClick = React.useCallback(async () => {
     const info = getTimeBasedTitle();

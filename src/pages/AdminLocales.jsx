@@ -131,6 +131,16 @@ const AdminLocales = () => {
         }
     };
 
+    const handleUpdateSlug = async (id, slug) => {
+        try {
+            await api.adminUpdateLocalSlug(id, slug);
+            toast.success('Identificador de URL actualizado');
+            loadLocales();
+        } catch (err) {
+            toast.error('Error al actualizar identificador');
+        }
+    };
+
     if (loading && activeTab === 'gestion') return <div className="loading-state">Cargando locales...</div>;
 
     return (
@@ -177,6 +187,7 @@ const AdminLocales = () => {
                                 <th>Notif.</th>
                                 <th>Disponibilidad</th>
                                 <th>Estado Admin</th>
+                                <th>Slug / URL</th>
                                 <th>Plan Actual</th>
                                 <th>Acciones</th>
                             </tr>
@@ -239,6 +250,37 @@ const AdminLocales = () => {
                                             <span className={`badge ${local.admin_status?.toLowerCase()}`}>
                                                 {local.admin_status || 'Pendiente'}
                                             </span>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                <input 
+                                                    type="text" 
+                                                    className="admin-slug-input"
+                                                    placeholder="ej: don-pepe"
+                                                    defaultValue={local.slug || ''}
+                                                    onBlur={(e) => handleUpdateSlug(local.id, e.target.value)}
+                                                    style={{
+                                                        padding: '4px 8px',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid #e2e8f0',
+                                                        fontSize: '0.75rem',
+                                                        width: '100px'
+                                                    }}
+                                                />
+                                                <button 
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={() => {
+                                                        if (!local.slug) return toast.error('Falta el slug');
+                                                        const link = `https://wepi.com.ar/pedir/${local.slug}`;
+                                                        navigator.clipboard.writeText(link);
+                                                        toast.success('¡Enlace copiado!', { icon: '📋' });
+                                                    }}
+                                                    style={{ padding: '4px 8px' }}
+                                                    title="Copiar enlace directo"
+                                                >
+                                                    🔗
+                                                </button>
+                                            </div>
                                         </td>
                                         <td>
                                             <select 

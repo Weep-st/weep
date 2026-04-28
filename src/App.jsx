@@ -211,6 +211,16 @@ export default function App() {
               <PruebasWalletApp />
             </MaintenanceGuard>
           } />
+          <Route path="/p/:slug" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasWalletApp />
+            </MaintenanceGuard>
+          } />
+          <Route path="/pedir/:slug" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasWalletApp />
+            </MaintenanceGuard>
+          } />
 
           <Route path="/confirmar-email" element={<ConfirmarEmail />} />
           <Route path="/admin" element={<AdminDashboard />} />
