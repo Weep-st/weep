@@ -216,7 +216,7 @@ export default function DriverDashboard() {
               subscriptionIds: [driverData.OneSignalId],
               title: '¡Sesión Finalizada! 🛵',
               message: '¿Vas a seguir trabajando? Tu sesión ha terminado. Conéctate de nuevo para seguir recibiendo pedidos.',
-              url: 'https://weep.com.ar/repartidores',
+              url: 'https://wepi.com.ar/repartidores',
               data: { type: 'session_expired' }
             });
           }
@@ -1571,7 +1571,7 @@ export default function DriverDashboard() {
             {isIOS ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <p style={{ fontSize: '1rem', color: 'var(--gray-700)', lineHeight: '1.5' }}>
-                  Para recibir <strong>ubicación y notificaciones</strong> correctamente en iOS, debes añadir Weep a tu inicio:
+                  Para recibir <strong>ubicación y notificaciones</strong> correctamente en iOS, debes añadir Wepi a tu inicio:
                 </p>
                 <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '12px', textAlign: 'left', border: '1px solid #eee' }}>
                   <p style={{ margin: '0 0 8px 0' }}>1. Presiona el botón <strong>Compartir</strong> <img src="https://i.postimg.cc/85zPzCH7/ios-share.png" alt="share" style={{ height: '20px', verticalAlign: 'middle' }} /> abajo en Safari.</p>
@@ -1626,7 +1626,7 @@ export default function DriverDashboard() {
     <div className="dd-page">
       <header className="dd-header">
         <Link to="/">
-          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="dd-logo" />
+          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Wepi" className="dd-logo" />
         </Link>
         <h1>Panel de Repartidores</h1>
       </header>
@@ -1671,7 +1671,7 @@ export default function DriverDashboard() {
           }}>
             <div style={{ position: 'relative', zIndex: 2 }}>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                📱 Instala Weep en tu iPhone
+                📱 Instala Wepi en tu iPhone
               </h4>
               <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.95, lineHeight: '1.4' }}>
                 Para <strong>recibir pedidos</strong> en tiempo real, debes anclar la app al inicio:
@@ -1709,7 +1709,7 @@ export default function DriverDashboard() {
               ) : (
                 <>
                   {isIOS && !isStandalone ? (
-                    <>🔔 <strong>Activa la App:</strong> Añade Weep al inicio para habilitar el GPS y alertas.</>
+                    <>🔔 <strong>Activa la App:</strong> Añade Wepi al inicio para habilitar el GPS y alertas.</>
                   ) : (
                     <>🔔 <strong>Activa las notificaciones:</strong> Para recibir pedidos al instante presiona el botón.</>
                   )}
@@ -2023,8 +2023,8 @@ export default function DriverDashboard() {
       )}
 
       <footer className="footer" style={{ background: 'var(--red-800)', color: 'white', borderTop: 'none', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
-        <p style={{ margin: 0 }}>© 2026 Weep - Todos los derechos reservados</p>
+        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
+        <p style={{ margin: 0 }}>© 2026 Wepi - Todos los derechos reservados</p>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>PWA optimizada para uso en moto • GPS en tiempo real</p>
         <button 
           onClick={() => setShowTerms(true)} 
@@ -2045,7 +2045,7 @@ export default function DriverDashboard() {
           <div className="dd-modal-content animate-slide-down" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Botón de Arrepentimiento</h4>
             <p style={{ fontSize: '0.92rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', maxHeight: '400px', marginBottom: '20px' }}>
-              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de repartidor permanentemente de Weep? <br/>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de repartidor permanentemente de Wepi? <br/>
               <strong>Esta acción no se puede deshacer.</strong>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2090,19 +2090,19 @@ export default function DriverDashboard() {
             <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
               <h5 style={{ color: 'red', marginTop: 0 }}>📄 3. REPARTIDORES – TÉRMINOS Y CONDICIONES</h5>
               <p><strong>1. Naturaleza</strong></p>
-              <p>El repartidor es un trabajador independiente, no tiene relación laboral con Weep y opera bajo su propio riesgo.</p>
+              <p>El repartidor es un trabajador independiente, no tiene relación laboral con Wepi y opera bajo su propio riesgo.</p>
               <p><strong>2. Autonomía</strong></p>
               <p>Puede aceptar/rechazar pedidos libremente, define sus propios horarios y no existe exclusividad.</p>
               <p><strong>3. Logística</strong></p>
-              <p>Weep solo facilita la asignación de pedidos. No dirige la actividad como empleador.</p>
+              <p>Wepi solo facilita la asignación de pedidos. No dirige la actividad como empleador.</p>
               <p><strong>4. Responsabilidad total</strong></p>
               <p>El repartidor es responsable de accidentes, daños, estado del vehículo y cumplimiento de normas viales.</p>
               <p><strong>5. Seguro</strong></p>
-              <p>Debe contar con seguro propio y cobertura médica. Weep no provee seguros.</p>
+              <p>Debe contar con seguro propio y cobertura médica. Wepi no provee seguros.</p>
               <p><strong>6. Exención de responsabilidad</strong></p>
-              <p>Weep no será responsable por accidentes, lesiones o daños a terceros durante la actividad.</p>
+              <p>Wepi no será responsable por accidentes, lesiones o daños a terceros durante la actividad.</p>
               <p><strong>7. Indemnidad</strong></p>
-              <p>El repartidor mantiene indemne a Weep ante cualquier reclamo de terceros.</p>
+              <p>El repartidor mantiene indemne a Wepi ante cualquier reclamo de terceros.</p>
               <p><strong>8. Conducta</strong></p>
               <p>Debe actuar de forma segura, legal y respetuosa.</p>
               <hr style={{ margin: '15px 0', borderColor: '#eee' }} />

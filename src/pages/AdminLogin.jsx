@@ -35,13 +35,13 @@ const AdminLogin = () => {
         <div className="admin-login-page">
             <div className="login-card animate-fade-in">
                 <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="login-logo" />
-                <h1>WEEP Admin</h1>
+                <h1>WEPI Admin</h1>
                 <p>Ingresa tus credenciales para gestionar la plataforma</p>
                 
                 <form onSubmit={handleSubmit} className="admin-form">
                     <div className="form-group">
                         <label>Email Corporativo</label>
-                        <input type="email" name="email" required className="form-control" placeholder="admin@weep.com.ar" />
+                        <input type="email" name="email" required className="form-control" placeholder="admin@wepi.com.ar" />
                     </div>
                     <div className="form-group">
                         <label>Contraseña</label>

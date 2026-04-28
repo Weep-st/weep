@@ -15,7 +15,7 @@ const AdminPruebas = () => {
     const [tipoEntrega, setTipoEntrega] = useState('Con Envío');
     const [cliente, setCliente] = useState({
         nombre: 'Cliente de Prueba',
-        email: 'prueba@weep.com.ar',
+        email: 'prueba@wepi.com.ar',
         direccion: 'Av. Corrientes 1234, CABA',
         telefono: '1122334455'
     });

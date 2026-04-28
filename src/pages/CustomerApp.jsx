@@ -528,7 +528,7 @@ export default function CustomerApp() {
     if (method === 'transferencia') {
       const weep_income = E + net_commission;
       
-      // El cliente paga un recargo calculado SOLO sobre la parte de Weep
+      // El cliente paga un recargo calculado SOLO sobre la parte de Wepi
       const surcharge = weep_income * MP_FEE_RATE / (1 - MP_FEE_RATE);
       const total_paid = total_net + surcharge;
       
@@ -928,14 +928,14 @@ export default function CustomerApp() {
         const loadingToast = toast.loading('Redirigiendo a Mercado Pago...');
         try {
           const extRef = pregeneratedId; 
-          const successUrl = window.location.origin + "/pedir";
+          const successUrl = "https://wepi.com.ar/pedir";
           
           const paymentData = {
             external_reference: extRef,
             back_urls: { success: successUrl, failure: successUrl, pending: successUrl },
             auto_return: "approved",
             items: [{
-              title: `Pedido Weep #${pregeneratedId}`,
+              title: `Pedido Wepi #${pregeneratedId}`,
               quantity: 1,
               currency_id: "ARS",
               unit_price: Number(exactTotal)
@@ -1023,7 +1023,7 @@ export default function CustomerApp() {
     <div className="customer-app">
       <header className="app-header">
         <Link to="/" className="app-logo-link">
-          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="app-logo" />
+          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Wepi" className="app-logo" />
         </Link>
         <div className="search-wrapper">
           <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
@@ -1958,21 +1958,21 @@ export default function CustomerApp() {
                 <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, maxHeight: '350px', overflowY: 'auto', paddingRight: '10px', textAlign: 'left' }}>
                   <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 1. USUARIOS – TÉRMINOS Y CONDICIONES</h3>
                   <p><strong>1. Naturaleza del servicio</strong></p>
-                  <p>Weep es una plataforma que Intermedia entre usuarios y comercios, facilita la gestión de pedidos y coordina la logística de entrega. Weep no elabora ni comercializa productos.</p>
+                  <p>Wepi es una plataforma que Intermedia entre usuarios y comercios, facilita la gestión de pedidos y coordina la logística de entrega. Wepi no elabora ni comercializa productos.</p>
                   <p><strong>2. Relación contractual</strong></p>
-                  <p>El usuario acepta que la compra es con el comercio, la entrega es realizada por repartidores independientes, y Weep no es parte directa de dichas relaciones.</p>
+                  <p>El usuario acepta que la compra es con el comercio, la entrega es realizada por repartidores independientes, y Wepi no es parte directa de dichas relaciones.</p>
                   <p><strong>3. Productos</strong></p>
-                  <p>Los comercios son los únicos responsables de Calidad, Ingredientes, Higiene y Estado. Weep no garantiza los productos.</p>
+                  <p>Los comercios son los únicos responsables de Calidad, Ingredientes, Higiene y Estado. Wepi no garantiza los productos.</p>
                   <p><strong>4. Entregas</strong></p>
-                  <p>Weep coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logística.</p>
+                  <p>Wepi coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logística.</p>
                   <p><strong>5. Limitación de responsabilidad</strong></p>
-                  <p>Weep no será responsable por intoxicaciones, problemas de salud, daños derivados del producto, demoras razonables o fallas de terceros.</p>
+                  <p>Wepi no será responsable por intoxicaciones, problemas de salud, daños derivados del producto, demoras razonables o fallas de terceros.</p>
                   <p><strong>6. Pagos</strong></p>
-                  <p>Los pagos se procesan mediante Mercado Pago. Weep no es entidad financiera, no fija precios y puede aplicar comisiones.</p>
+                  <p>Los pagos se procesan mediante Mercado Pago. Wepi no es entidad financiera, no fija precios y puede aplicar comisiones.</p>
                   <p><strong>7. Cancelaciones</strong></p>
                   <p>Dependen del comercio y estado del pedido.</p>
                   <p><strong>8. Indemnidad</strong></p>
-                  <p>El usuario mantiene indemne a Weep ante reclamos derivados del uso.</p>
+                  <p>El usuario mantiene indemne a Wepi ante reclamos derivados del uso.</p>
                   <p><strong>9. Aceptación</strong></p>
                   <p>Mediante registro y confirmación electrónica.</p>
                   <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
@@ -2281,8 +2281,8 @@ export default function CustomerApp() {
 
 
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '80px', objectFit: 'contain' }} />
-        <p>© 2026 <strong>Weep</strong> — Plataforma de Pedidos y Delivery</p>
+        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Wepi" style={{ height: '80px', objectFit: 'contain' }} />
+        <p>© 2026 <strong>Wepi</strong> — Plataforma de Pedidos y Delivery</p>
         <p>
           <Link to="/locales">Registrá tu local</Link> •{' '}
           <button className="footer-link" style={{ color: 'white' }} onClick={() => setModal('terms')}>Términos</button> •{' '}
@@ -2303,7 +2303,7 @@ export default function CustomerApp() {
           <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
             <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
-              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta permanentemente de Weep? <br/>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta permanentemente de Wepi? <br/>
               <strong>Esta acción no se puede deshacer.</strong>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

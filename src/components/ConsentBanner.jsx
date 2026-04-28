@@ -50,7 +50,7 @@ const ConsentBanner = () => {
         <div className="consent-text">
           <h3>Tu privacidad importa</h3>
           <p>
-            En Weep utilizamos cookies para mejorar tu experiencia, analizar el tráfico y personalizar la publicidad. 
+            En Wepi utilizamos cookies para mejorar tu experiencia, analizar el tráfico y personalizar la publicidad. 
             Puedes aceptar todo o seguir navegando con las cookies opcionales desactivadas. 
             Consulta nuestra <a href="/terminos" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.
           </p>

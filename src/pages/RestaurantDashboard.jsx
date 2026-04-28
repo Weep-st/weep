@@ -146,7 +146,7 @@ export default function RestaurantDashboard() {
         <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
           <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
           <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
-            ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Weep? <br/>
+            ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Wepi? <br/>
             <strong>Esta acción eliminará todos tus productos y datos.</strong>
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -192,13 +192,13 @@ export default function RestaurantDashboard() {
           <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
             <h5 style={{ color: 'red', marginTop: 0 }}>📄 2. COMERCIOS – TÉRMINOS Y CONDICIONES</h5>
             <p><strong>1. Relación</strong></p>
-            <p>El comercio utiliza Weep como plataforma de visibilidad y gestión de pedidos. No existe relación societaria ni laboral.</p>
+            <p>El comercio utiliza Wepi como plataforma de visibilidad y gestión de pedidos. No existe relación societaria ni laboral.</p>
             <p><strong>2. Calidad</strong></p>
             <p>El local es el único responsable por el estado, higiene y veracidad de los productos entregados.</p>
             <p><strong>3. Gestión de Pedidos</strong></p>
             <p>El comercio debe mantener su menú actualizado y responder a los pedidos en tiempo y forma.</p>
             <p><strong>4. Comisiones</strong></p>
-            <p>Weep percibirá una comisión acordada sobre las ventas realizadas a través de la plataforma.</p>
+            <p>Wepi percibirá una comisión acordada sobre las ventas realizadas a través de la plataforma.</p>
             <p><strong>5. Cancelaciones</strong></p>
             <p>El comercio debe informar inmediatamente si no puede cumplir con un pedido aceptado.</p>
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
@@ -982,7 +982,7 @@ export default function RestaurantDashboard() {
   // ─── Tutorial Mock Data logic ───
   const tutorialSampleDish = {
     id: 'sample-dish-1',
-    nombre: 'Hamburguesa Weep (Muestra)',
+    nombre: 'Hamburguesa Wepi (Muestra)',
     categoria: 'Hamburguesas',
     descripcion: 'Doble carne, mucho cheddar y bacon crocante.',
     precio: 4500,
@@ -994,7 +994,7 @@ export default function RestaurantDashboard() {
     idPedidoLocal: 'sample-order-1',
     idPedido: 'SAMPLE-1',
     estadoActual: tutorialSampleOrderState,
-    items: [[null, null, 'sample-dish-1', 1, 'Hamburguesa Weep (Muestra)', '', 1, 4500]],
+    items: [[null, null, 'sample-dish-1', 1, 'Hamburguesa Wepi (Muestra)', '', 1, 4500]],
     direccion: 'Calle Falsa 123 (Muestra)',
     observaciones: 'Sin cebolla por favor',
     metodoPago: 'Efectivo',
@@ -1195,7 +1195,7 @@ export default function RestaurantDashboard() {
     <div className="rd-page">
       <header className="rd-header">
         <Link to="/">
-          <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" className="rd-logo" />
+          <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="rd-logo" />
         </Link>
         <h1>Panel de Gestión</h1>
       </header>
@@ -1276,8 +1276,8 @@ export default function RestaurantDashboard() {
         </div>
       </main>
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
-        <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
+        <p>© 2026 <strong>Wepi</strong> — Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'var(--red-500)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
@@ -1304,7 +1304,7 @@ export default function RestaurantDashboard() {
 
     const steps = [
       {
-        title: "¡Bienvenido a Weep!",
+        title: "¡Bienvenido a Wepi!",
         text: "Soy tu guía. En este panel gestionarás todo tu negocio de forma simple.",
         position: "bottom-right"
       },
@@ -1458,7 +1458,7 @@ export default function RestaurantDashboard() {
       <header className="rd-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <Link to="/">
-            <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" className="rd-logo" />
+            <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="rd-logo" />
           </Link>
         </div>
         
@@ -2570,7 +2570,7 @@ export default function RestaurantDashboard() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
                   <a 
                     href="/download/weep-printer-latest.exe" 
-                    download={`Weep_${restaurant?.localId || restaurant?.id || 'LOCAL'}.exe`}
+                    download={`Wepi_${restaurant?.localId || restaurant?.id || 'LOCAL'}.exe`}
                     className="btn btn-primary btn-full"
                     style={{ padding: '16px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                   >
@@ -2601,7 +2601,7 @@ export default function RestaurantDashboard() {
                   <h4 style={{ marginBottom: '16px' }}>Pasos para configurar:</h4>
                   <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--gray-600)' }}>
                     <li><strong>Descargá e instalá</strong> el programa en la computadora que tiene conectada la impresora.</li>
-                    <li><strong>Abrí Weep Desktop</strong> e ingresá tu ID de Local (arriba).</li>
+                    <li><strong>Abrí Wepi Desktop</strong> e ingresá tu ID de Local (arriba).</li>
                     <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
                     <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
                   </ol>
@@ -2689,7 +2689,7 @@ export default function RestaurantDashboard() {
             {profileSubView === 'cobros' && (
               <div className="card card-body">
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Pagos</h2>
-                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Weep {planInfo?.comision_actual || 15}% • Abona tu saldo pendiente por transferencia</p>
+                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Wepi {planInfo?.comision_actual || 15}% • Abona tu saldo pendiente por transferencia</p>
                 
                 {cobrosLoading || !cobrosData ? (
                   <div className="loading-state"><div className="spinner" /> Cargando...</div>
@@ -2934,8 +2934,8 @@ export default function RestaurantDashboard() {
       </main>
 
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '60px 20px', background: 'var(--red-800)', color: 'white' }}>
-        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-        <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+        <p>© 2026 <strong>Wepi</strong> — Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}

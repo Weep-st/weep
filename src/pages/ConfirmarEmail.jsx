@@ -129,7 +129,7 @@ export default function ConfirmarEmail() {
       }}>
         <img 
           src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" 
-          alt="Weep" 
+          alt="Wepi" 
           style={{ width: '100px', marginBottom: '30px' }} 
         />
         
@@ -199,7 +199,7 @@ export default function ConfirmarEmail() {
             <h2 style={{ color: 'var(--gray-900)', marginBottom: '10px' }}>¡Email Confirmado!</h2>
             <p style={{ color: 'var(--gray-600)', marginBottom: '35px' }}>{message}</p>
             <button className="btn btn-primary btn-full" onClick={handleGoHome} style={{ padding: '15px' }}>
-              Comenzar a usar Weep
+              Comenzar a usar Wepi
             </button>
           </div>
         )}

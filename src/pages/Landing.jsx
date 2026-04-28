@@ -26,7 +26,7 @@ export default function Landing() {
       <header className="landing-header">
         <img
           src="https://i.postimg.cc/kGf1B318/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
-          alt="Weep"
+          alt="Wepi"
           className="landing-logo"
         />
       </header>
@@ -35,7 +35,7 @@ export default function Landing() {
         <div className="hub-container">
           
           <div className="hub-hero animate-fade-in">
-            <h1 className="hub-title">Todo lo que buscás, <span>está en Weep.</span></h1>
+            <h1 className="hub-title">Todo lo que buscás, <span>está en Wepi.</span></h1>
             <p className="hub-subtitle">
               Pedí de tus locales favoritos o gestioná tu negocio desde un solo lugar.
             </p>
@@ -64,7 +64,7 @@ export default function Landing() {
       </main>
 
       <footer className="footer">
-        <p>© 2026 <strong>Weep</strong> — Plataforma de Pedidos y Delivery</p>
+        <p>© 2026 <strong>Wepi</strong> — Plataforma de Pedidos y Delivery</p>
         <p>Santo Tomé, Corrientes</p>
       </footer>
     </div>

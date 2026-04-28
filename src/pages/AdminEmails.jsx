@@ -25,7 +25,7 @@ const AdminEmails = () => {
             const htmlBody = `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" style="width: 120px; height: auto;">
+                        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" style="width: 120px; height: auto;">
                     </div>
                     <div style="background-color: #6366f1; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
                     <h1 style="color: #1e293b; font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 20px;">${subject}</h1>
@@ -40,11 +40,11 @@ ${message}
                     </div>
                     ` : ''}
                     <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <h3 style="color: #6366f1; margin-bottom: 10px; font-size: 18px;">WEEP — Plataforma de pedidos y delivery</h3>
+                        <h3 style="color: #6366f1; margin-bottom: 10px; font-size: 18px;">WEPI — Plataforma de pedidos y delivery</h3>
                     </div>
                     <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} WEEP. Todos los derechos reservados.</p>
-                        <p>Este es un mensaje institucional enviado desde la plataforma oficial de Weep.</p>
+                        <p>© ${new Date().getFullYear()} WEPI. Todos los derechos reservados.</p>
+                        <p>Este es un mensaje institucional enviado desde la plataforma oficial de Wepi.</p>
                     </div>
                 </div>
             `;
@@ -156,7 +156,7 @@ ${message}
                             value={buttonUrl} 
                             onChange={(e) => setButtonUrl(e.target.value)} 
                             className="form-control" 
-                            placeholder="https://weep.com.ar/..."
+                            placeholder="https://wepi.com.ar/..."
                         />
                     </div>
                 </div>

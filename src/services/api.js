@@ -195,13 +195,13 @@ export async function repartidorRegister(params) {
 // ─── Email Confirmation Logic ───
 async function sendConfirmationEmail(email, code, tipo, nombre) {
   const isProd = window.location.hostname !== 'localhost';
-  const baseUrl = isProd ? 'https://weep.com.ar' : window.location.origin;
+  const baseUrl = isProd ? 'https://wepi.com.ar' : window.location.origin;
   const link = `${baseUrl}/confirmar-email?email=${encodeURIComponent(email)}&tipo=${tipo}`;
   
   const htmlBody = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; borderRadius: 10px; background-color: #ffffff;">
       <h2 style="color: #e63946; text-align: center;">¡Hola ${nombre}!</h2>
-      <p style="font-size: 16px; color: #333; text-align: center;">Gracias por registrarte en <strong>WEEP</strong>. Para completar tu registro, ingresá el siguiente código de confirmación:</p>
+      <p style="font-size: 16px; color: #333; text-align: center;">Gracias por registrarte en <strong>WEPI</strong>. Para completar tu registro, ingresá el siguiente código de confirmación:</p>
       <div style="text-align: center; margin: 30px 0;">
         <span style="font-size: 42px; font-weight: bold; color: #e63946; letter-spacing: 10px; border: 2px dashed #e63946; padding: 10px 20px; border-radius: 10px;">${code}</span>
       </div>
@@ -2106,7 +2106,7 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
         const htmlBody = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
             <div style="text-align: center; margin: 20px 0;">
-              <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
+              <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" width="120" style="border-radius:12px;">
             </div>
             <h2 style="color: #9b1913;">¡Nuevo Pedido para ${localData.nombre}!</h2>
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -2134,7 +2134,7 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
             <h3 style="text-align: right; color: #2e7d32;">Total Local: $${group.subtotal.toLocaleString('es-AR')}</h3>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://weep.com.ar/locales" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <a href="https://wepi.com.ar/locales" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 Ir a mis pedidos de locales 🖥️
               </a>
             </div>
@@ -2144,8 +2144,8 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
             </p>
 
             <p style="margin-top: 15px; font-size: 14px; color: #666; text-align: center;">
-              Por favor, revisa el panel de administración de Weep para preparar el pedido.<br>
-              <strong>Weep Delivery</strong>
+              Por favor, revisa el panel de administración de Wepi para preparar el pedido.<br>
+              <strong>Wepi Delivery</strong>
             </p>
           </div>
         `;
@@ -2156,7 +2156,7 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
         await supabase.functions.invoke('send-email', {
           body: {
             to: localData.email,
-            subject: `¡Nuevo Pedido #${pedidoId} en Weep! 🛵`,
+            subject: `¡Nuevo Pedido #${pedidoId} en Wepi! 🛵`,
             htmlBody
           }
         });
@@ -2190,7 +2190,7 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="text-align: center; margin: 20px 0;">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
+          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" width="120" style="border-radius:12px;">
         </div>
         <h2 style="color: #9b1913;">¡Pedido Confirmado! #${pedidoId}</h2>
         <p>Hola <strong>${nombreCliente}</strong>, hemos recibido tu pedido correctamente.</p>
@@ -2211,7 +2211,7 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
 
         <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
           Podés seguir el estado de tu pedido desde la sección "Mis Pedidos" en la app.<br>
-          <strong>¡Gracias por elegir Weep Delivery!</strong>
+          <strong>¡Gracias por elegir Wepi Delivery!</strong>
         </p>
       </div>
     `;
@@ -2219,7 +2219,7 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     await supabase.functions.invoke('send-email', {
       body: {
         to: emailCliente,
-        subject: `Confirmación de Pedido #${pedidoId} - Weep 🛵`,
+        subject: `Confirmación de Pedido #${pedidoId} - Wepi 🛵`,
         htmlBody
       }
     });
@@ -2267,7 +2267,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="text-align:center; margin: 20px 0;">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Weep" width="120" style="border-radius:12px;">
+          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" width="120" style="border-radius:12px;">
         </div>
         <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
         <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>
@@ -2286,7 +2286,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
         
         <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
           Por favor, dirígete a la dirección lo antes posible.<br>
-          <strong>¡Gracias por ser parte de Weep!</strong>
+          <strong>¡Gracias por ser parte de Wepi!</strong>
         </p>
       </div>
     `;
@@ -2294,7 +2294,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     await supabase.functions.invoke('send-email', {
       body: {
         to: repartidorEmail,
-        subject: `🚚 PEDIDO ASIGNADO #${pedidoId} - Weep`,
+        subject: `🚚 PEDIDO ASIGNADO #${pedidoId} - Wepi`,
         htmlBody
       }
     });
@@ -2313,7 +2313,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
 const LOGO_HTML = `
   <div style="text-align: center; margin: 20px 0 30px 0;">
       <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png"
-            alt="Weep" width="120" style="border-radius:12px;">
+            alt="Wepi" width="120" style="border-radius:12px;">
   </div>
   <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">
 `;
@@ -2373,7 +2373,7 @@ export async function notifyOrderEntregado(pedido) {
       <h2 style="color:#2e7d32; text-align:center;">¡Pedido Entregado!</h2>
       <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
       <p>Tu pedido ha sido marcado como entregado. Esperamos que lo disfrutes.</p>
-      <p>¡Gracias por elegir Weep!</p>
+      <p>¡Gracias por elegir Wepi!</p>
     `;
 
     await supabase.functions.invoke('send-email', { body: { to, subject, htmlBody } });
@@ -2657,7 +2657,7 @@ export async function broadcastOrderToDrivers(pedidoId, total) {
       subscriptionIds: ids,
       title: '¡Nuevo Pedido Disponible! 🛵',
       message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo ahora mismo!`,
-      url: 'https://weep.com.ar/repartidores',
+      url: 'https://wepi.com.ar/repartidores',
       data: { pedidoId, type: 'new_order_broadcast' }
     });
   } catch (err) {
@@ -2681,7 +2681,7 @@ export async function notifyDriverAboutPaymentApproved(pedidoId, driverId) {
         subscriptionIds: [driver.onesignal_id],
         title: '✅ ¡Pago Confirmado! 🚀',
         message: `El cliente ya pagó el pedido #${pedidoId.split('-').pop()}. Ya puedes ver los datos y retirar el pedido.`,
-        url: 'https://weep.com.ar/repartidores',
+        url: 'https://wepi.com.ar/repartidores',
         data: { pedidoId, type: 'payment_confirmed' }
       });
     }

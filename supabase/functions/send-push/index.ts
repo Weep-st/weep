@@ -32,14 +32,14 @@ Deno.serve(async (req) => {
       app_id: onesignalAppId,
       include_subscription_ids: subscriptionIds,
       headings: { 
-        "es": title || "Weep",
-        "en": title || "Weep" 
+        "es": title || "Wepi",
+        "en": title || "Wepi" 
       },
       contents: { 
         "es": message || "Tienes una nueva actualización",
         "en": message || "You have a new update"
       },
-      url: url || "https://weep.com.ar/repartidores",
+      url: url || "https://wepi.com.ar/repartidores",
       data: data || {},
     };
 

@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const masterToken = 'APP_USR-595288641172928-010710-d915bce4137b3ee26e0c6e04873f1ac1-695835795';
     const accessToken = localData?.mp_access_token || Deno.env.get('MP_ACCESS_TOKEN_GLOBAL') || masterToken;
 
-    const successUrl = "https://weep.com.ar/pedir";
+    const successUrl = "https://wepi.com.ar/pedir";
     const safeBackUrls = {
       success: successUrl,
       failure: successUrl,

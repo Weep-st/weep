@@ -1489,7 +1489,7 @@ export default function PruebasWalletApp() {
       if (!pendingRaw) throw new Error('No se encontró la información del pedido');
       
       const pendingData = JSON.parse(pendingRaw);
-      const successUrl = window.location.origin + "/pruebas";
+      const successUrl = "https://wepi.com.ar/pedir";
       
       const paymentData = {
         external_reference: pendingData.pedidoId,
