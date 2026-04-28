@@ -20,9 +20,36 @@ const getLevelName = (lvl) => {
 };
 
 const planBenefits = {
-  'Visible': ['Apareces en el listado general', 'Soporte estándar', 'Gestión de menú básica'],
-  'Recomendado': ['Prioridad MEDIA en búsquedas', 'Etiqueta de Recomendado', 'Soporte prioritario', 'Métricas avanzadas'],
-  'Destacado': ['Prioridad MÁXIMA (Top de lista)', 'Banner destacado en Home', 'Soporte 24/7 VIP', 'Publicidad en redes Weep']
+  'Visible': [
+    'Visibilidad en la plataforma',
+    'Pedidos automáticos',
+    'Gestión de menú en tiempo real',
+    'Acceso a soporte vía email'
+  ],
+  'Básico': [
+    'Visibilidad en la plataforma',
+    'Pedidos automáticos',
+    'Gestión de menú en tiempo real',
+    'Acceso a soporte vía email'
+  ],
+  'Plan Básico': [
+    'Visibilidad en la plataforma',
+    'Pedidos automáticos',
+    'Gestión de menú en tiempo real',
+    'Acceso a soporte vía email'
+  ],
+  'Recomendado': [
+    'Prioridad MEDIA en búsquedas',
+    'Seccion Locales Recomendados',
+    'Soporte prioritario',
+    'Publicidad básica'
+  ],
+  'Destacado': [
+    'Prioridad MÁXIMA (Top de lista)',
+    'Banner destacado en Home',
+    'Seccion Locales Recomendados',
+    'Publicidad en redes Wepi'
+  ]
 };
 
 export default function RestaurantDashboard() {
@@ -1066,12 +1093,12 @@ export default function RestaurantDashboard() {
           <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '20px' }}>
             Tu plan de visibilidad determina qué tan arriba apareces en la aplicación y qué beneficios publicitarios tienes.
           </p>
-          <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginTop: '32px' }}>
+          <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '32px' }}>
             {availablePlans.map(plan => (
               <div key={plan.id} className={`plan-select-card card ${plan.nombre === plan_nombre ? 'current' : ''}`} style={{ 
-                padding: '32px', borderRadius: '20px', border: plan.nombre === plan_nombre ? '2px solid #c62828' : '1px solid #e2e8f0',
+                padding: '24px 16px', borderRadius: '20px', border: plan.nombre === plan_nombre ? '2px solid #c62828' : '1px solid #e2e8f0',
                 position: 'relative', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease',
-                background: plan.nombre === plan_nombre ? '#fff' : '#fff'
+                background: '#fff', minHeight: '100%'
               }}>
                 {plan.nombre === plan_nombre && (
                   <div className="current-label" style={{ 

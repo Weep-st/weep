@@ -1068,23 +1068,34 @@ export default function PruebaDashboard() {
 
     const planBenefits = {
       'Visible': [
-        'Costo mensual accesible',
-        'Presencia básica en la plataforma',
-        'Pedidos automatizados',
-        'Acceso a red de repartidores'
+        'Visibilidad en la plataforma',
+        'Pedidos automáticos',
+        'Gestión de menú en tiempo real',
+        'Acceso a soporte vía email'
+      ],
+      'Básico': [
+        'Visibilidad en la plataforma',
+        'Pedidos automáticos',
+        'Gestión de menú en tiempo real',
+        'Acceso a soporte vía email'
+      ],
+      'Plan Básico': [
+        'Visibilidad en la plataforma',
+        'Pedidos automáticos',
+        'Gestión de menú en tiempo real',
+        'Acceso a soporte vía email'
       ],
       'Recomendado': [
-        'Mejor posición en búsqueda',
-        'Etiqueta "Recomendado"',
-        'Más visibilidad en sección categorías',
-        'Acceso a promociones simples'
+        'Prioridad MEDIA en búsquedas',
+        'Seccion Locales Recomendados',
+        'Soporte prioritario',
+        'Publicidad básica'
       ],
       'Destacado': [
-        'Prioridad máxima en toda la plataforma',
-        'Aparición en sección "Destacados" / carrusel',
-        'Badge "Top" / "Más pedidos"',
-        'Máxima visibilidad en sección categorías',
-        'Promociones destacadas en home (banners)'
+        'Prioridad MÁXIMA (Top de lista)',
+        'Banner destacado en Home',
+        'Seccion Locales Recomendados',
+        'Publicidad en redes Wepi'
       ]
     };
 

@@ -697,12 +697,12 @@
 
 .plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 .plan-select-card {
-  padding: 24px;
+  padding: 24px 16px;
   text-align: center;
   border: 2px solid transparent;
   transition: all 0.3s ease;
