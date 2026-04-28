@@ -1100,6 +1100,12 @@ export default function PruebasWalletApp() {
 
     // Calculate final price once here
     const discountedPrice = calculateDiscountedPrice(menu);
+    console.log("🛒 handleAddToCart: Price calculation", { 
+      name: menu.nombre, 
+      original: menu.precio, 
+      final: discountedPrice 
+    });
+    
     const itemToAdd = {
       ...menu,
       precio: discountedPrice,
