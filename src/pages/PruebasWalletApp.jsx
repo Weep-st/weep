@@ -250,6 +250,174 @@ export default function PruebasWalletApp() {
     return false;
   }, []);
 
+  // --- Business Logic for Totals ---
+  const PLATFORM_COMMISSION = 0.08;
+  const MP_FEE_RATE = 0.0824;
+
+  const calculateDiscountedPrice = React.useCallback((item) => {
+    if (!item) return 0;
+    let price = Number(item.precio);
+    
+    // 1. Item Discount (%) - Takes precedence
+    if (item.descuento > 0) {
+      price = price * (1 - Number(item.descuento) / 100);
+    } else {
+      // 2. General Local Discount (Percentage)
+      const discountDays = item.local_dias_descuento || item.dias_descuento || [];
+      const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+      const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
+      
+      if (generalDiscount > 0 && discountDays.length > 0) {
+        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const todayNorm = normalize(today);
+        
+        const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+        const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+
+        if (isCorrectDay && isCorrectCategory) {
+          price = price * (1 - generalDiscount / 100);
+        }
+      }
+    }
+    
+    return Math.round(price);
+  }, []);
+
+  const calculateCheckoutTotals = React.useCallback((P, E, method) => {
+    const net_commission = P * PLATFORM_COMMISSION;
+    const net_local = P - net_commission;
+    const total_net = P + E;
+    
+    let result;
+    if (method === 'transferencia') {
+      const wepi_income = E + net_commission;
+      const surcharge = wepi_income * MP_FEE_RATE / (1 - MP_FEE_RATE);
+      const total_paid = total_net + surcharge;
+      const FEE_ADJUSTMENT_FACTOR = 0.85; 
+      const marketplace_fee = wepi_income + (surcharge * FEE_ADJUSTMENT_FACTOR);
+
+      result = {
+        total: Math.round(total_paid),
+        product_total: P,
+        delivery_fee: E,
+        commission: Math.round(net_commission),
+        mp_fee: Math.round(surcharge),
+        merchant_payout: Math.round(total_paid - marketplace_fee),
+        platform_gross: Math.round(marketplace_fee),
+        platform_net: Math.round(wepi_income)
+      };
+    } else {
+      // Default (Efectivo)
+      result = {
+        total: Math.round(P + E),
+        product_total: P,
+        delivery_fee: E,
+        commission: Math.round(net_commission),
+        mp_fee: 0,
+        merchant_payout: Math.round(net_local),
+        platform_gross: 0,
+        platform_net: Math.round(net_commission + E)
+      };
+    }
+
+    // Validation result for UI
+    let walletValidation = { canUse: true, reason: null };
+
+    // Apply Wallet Discount
+    if (walletBalance > 0) {
+      let maxDiscount = walletBalance;
+      
+      // Respetar configuración de uso
+      if (walletConfig) {
+        // Valida compra mínima para uso
+        if (P < (walletConfig.compra_minima_uso || 0)) {
+           walletValidation = { 
+             canUse: false, 
+             reason: `Compra mínima de $${walletConfig.compra_minima_uso.toLocaleString()} para usar crédito` 
+           };
+           maxDiscount = 0;
+        } 
+        
+        // Validar si es acumulable con promociones
+        if (walletValidation.canUse && walletConfig.acumulable_promos === false) {
+           const hasPromos = cart.items.some(i => {
+             const hasDirectDiscount = Number(i.descuento) > 0;
+             const generalDiscount = Number(i.local_descuento_general || i.descuento_general || 0);
+             const discountDays = i.local_dias_descuento || i.dias_descuento || [];
+             const categoryDiscount = i.local_categoria_descuento || i.categoria_descuento || '';
+             const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+             const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+             const isCorrectDay = discountDays.some(d => normalize(d) === normalize(today));
+             const isCorrectCategory = !categoryDiscount || categoryDiscount === i.categoria;
+             const hasGeneralDiscountApplied = generalDiscount > 0 && isCorrectDay && isCorrectCategory;
+             const isDiscounted = i.precio_original && Number(i.precio) < Number(i.precio_original);
+             return hasDirectDiscount || hasGeneralDiscountApplied || isDiscounted;
+           });
+           
+           if (hasPromos) {
+             walletValidation = { 
+               canUse: false, 
+               reason: "No acumulable con otros descuentos o promociones" 
+             };
+             maxDiscount = 0;
+           }
+        }
+
+        if (walletValidation.canUse) {
+           // Tope 1: % máximo del saldo disponible
+           const percSaldo = walletConfig.porcentaje_maximo_uso_saldo || 100;
+           maxDiscount = Math.min(maxDiscount, Math.round(walletBalance * (percSaldo / 100)));
+
+           // Tope 2: % máximo del total del pedido
+           const percPedido = walletConfig.max_porcentaje_pedido || 100;
+           maxDiscount = Math.min(maxDiscount, Math.round(result.total * (percPedido / 100)));
+
+           // Validar uso mínimo de crédito
+           if (maxDiscount < (walletConfig.uso_minimo_credito || 0)) {
+             walletValidation = { 
+               canUse: false, 
+               reason: `Uso mínimo de crédito: $${walletConfig.uso_minimo_credito.toLocaleString()}` 
+             };
+             maxDiscount = 0;
+           }
+        }
+      }
+
+      if (useWallet && walletValidation.canUse) {
+        const discount = Math.min(result.total, maxDiscount);
+        result.total -= discount;
+        result.walletDiscount = discount;
+      }
+      
+      result.maxAvailableDiscount = maxDiscount;
+    }
+
+    result.walletValidation = walletValidation;
+
+    // Potential Credit Calculation respecting walletConfig
+    let perc = walletConfig?.porcentaje_ganancia || 0;
+    if (useWallet && walletConfig) {
+      if (walletConfig.genera_credito_sobre_credito && walletConfig.porcentaje_reducido_recompra) {
+        perc = walletConfig.porcentaje_reducido_recompra;
+      } else if (!walletConfig.genera_credito_sobre_credito) {
+        perc = 0;
+      }
+    }
+
+    let earned = Math.round(P * (perc / 100));
+    if (walletConfig?.tope_maximo_ganancia && earned > walletConfig.tope_maximo_ganancia) {
+      earned = walletConfig.tope_maximo_ganancia;
+    }
+    if (P < (walletConfig?.compra_minima_generar || 0)) {
+      earned = 0;
+    }
+
+    result.potentialCredit = earned;
+    
+    return result;
+  }, [walletBalance, walletConfig, useWallet, cart.items]);
+
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
@@ -804,145 +972,6 @@ export default function PruebasWalletApp() {
     setAuthLoading(false);
   };
 
-  // --- Business Logic for Totals ---
-  const PLATFORM_COMMISSION = 0.08;
-  const MP_FEE_RATE = 0.0824;
-
-  const calculateCheckoutTotals = (P, E, method) => {
-    const net_commission = P * PLATFORM_COMMISSION;
-    const net_local = P - net_commission;
-    const total_net = P + E;
-    
-    let result;
-    if (method === 'transferencia') {
-      const wepi_income = E + net_commission;
-      const surcharge = wepi_income * MP_FEE_RATE / (1 - MP_FEE_RATE);
-      const total_paid = total_net + surcharge;
-      const FEE_ADJUSTMENT_FACTOR = 0.85; 
-      const marketplace_fee = wepi_income + (surcharge * FEE_ADJUSTMENT_FACTOR);
-
-      result = {
-        total: Math.round(total_paid),
-        product_total: P,
-        delivery_fee: E,
-        commission: Math.round(net_commission),
-        mp_fee: Math.round(surcharge),
-        merchant_payout: Math.round(total_paid - marketplace_fee),
-        platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(wepi_income)
-      };
-    } else {
-      // Default (Efectivo)
-      result = {
-        total: Math.round(P + E),
-        product_total: P,
-        delivery_fee: E,
-        commission: Math.round(net_commission),
-        mp_fee: 0,
-        merchant_payout: Math.round(net_local),
-        platform_gross: 0,
-        platform_net: Math.round(net_commission + E)
-      };
-    }
-
-    // Validation result for UI
-    let walletValidation = { canUse: true, reason: null };
-
-    // Apply Wallet Discount
-    if (walletBalance > 0) {
-      let maxDiscount = walletBalance;
-      
-      // Respetar configuración de uso
-      if (walletConfig) {
-        // Valida compra mínima para uso
-        if (P < (walletConfig.compra_minima_uso || 0)) {
-           walletValidation = { 
-             canUse: false, 
-             reason: `Compra mínima de $${walletConfig.compra_minima_uso.toLocaleString()} para usar crédito` 
-           };
-           maxDiscount = 0;
-        } 
-        
-        // Validar si es acumulable con promociones
-        if (walletValidation.canUse && walletConfig.acumulable_promos === false) {
-           const hasPromos = cart.items.some(i => {
-             const hasDirectDiscount = Number(i.descuento) > 0;
-             const generalDiscount = Number(i.local_descuento_general || i.descuento_general || 0);
-             const discountDays = i.local_dias_descuento || i.dias_descuento || [];
-             const categoryDiscount = i.local_categoria_descuento || i.categoria_descuento || '';
-             const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-             const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-             const isCorrectDay = discountDays.some(d => normalize(d) === normalize(today));
-             const isCorrectCategory = !categoryDiscount || categoryDiscount === i.categoria;
-             const hasGeneralDiscountApplied = generalDiscount > 0 && isCorrectDay && isCorrectCategory;
-             const isDiscounted = i.precio_original && Number(i.precio) < Number(i.precio_original);
-             return hasDirectDiscount || hasGeneralDiscountApplied || isDiscounted;
-           });
-           
-           if (hasPromos) {
-             walletValidation = { 
-               canUse: false, 
-               reason: "No acumulable con otros descuentos o promociones" 
-             };
-             maxDiscount = 0;
-           }
-        }
-
-        if (walletValidation.canUse) {
-           // Tope 1: % máximo del saldo disponible
-           const percSaldo = walletConfig.porcentaje_maximo_uso_saldo || 100;
-           maxDiscount = Math.min(maxDiscount, Math.round(walletBalance * (percSaldo / 100)));
-
-           // Tope 2: % máximo del total del pedido
-           const percPedido = walletConfig.max_porcentaje_pedido || 100;
-           maxDiscount = Math.min(maxDiscount, Math.round(result.total * (percPedido / 100)));
-
-           // Validar uso mínimo de crédito
-           if (maxDiscount < (walletConfig.uso_minimo_credito || 0)) {
-             walletValidation = { 
-               canUse: false, 
-               reason: `Uso mínimo de crédito: $${walletConfig.uso_minimo_credito.toLocaleString()}` 
-             };
-             maxDiscount = 0;
-           }
-        }
-      }
-
-      if (useWallet && walletValidation.canUse) {
-        const discount = Math.min(result.total, maxDiscount);
-        result.total -= discount;
-        result.walletDiscount = discount;
-      }
-      
-      result.maxAvailableDiscount = maxDiscount;
-    }
-
-    result.walletValidation = walletValidation;
-
-    // Potential Credit Calculation respecting walletConfig
-    let perc = walletConfig?.porcentaje_ganancia || 0;
-    if (useWallet && walletConfig) {
-      if (walletConfig.genera_credito_sobre_credito && walletConfig.porcentaje_reducido_recompra) {
-        perc = walletConfig.porcentaje_reducido_recompra;
-      } else if (!walletConfig.genera_credito_sobre_credito) {
-        perc = 0;
-      }
-    }
-
-    let earned = Math.round(P * (perc / 100));
-    if (walletConfig?.tope_maximo_ganancia && earned > walletConfig.tope_maximo_ganancia) {
-      earned = walletConfig.tope_maximo_ganancia;
-    }
-    if (P < (walletConfig?.compra_minima_generar || 0)) {
-      earned = 0;
-    }
-
-    result.potentialCredit = earned;
-    
-    return result;
-  };
-
-  const checkoutTotals = calculateCheckoutTotals(cart.subtotal, cart.shippingCost, metodoPago);
   const totalConComision = checkoutTotals.total;
   const visibleMpFee = checkoutTotals.mp_fee;
   
@@ -971,35 +1000,6 @@ export default function PruebasWalletApp() {
   const walletDiscountUI = checkoutTotals.walletDiscount || 0;
   const visibleShipping = cart.deliveryType === 'envio' ? cart.shippingCost : 0;
 
-  const calculateDiscountedPrice = React.useCallback((item) => {
-    if (!item) return 0;
-    let price = Number(item.precio);
-    
-    // 1. Item Discount (%) - Takes precedence
-    if (item.descuento > 0) {
-      price = price * (1 - Number(item.descuento) / 100);
-    } else {
-      // 2. General Local Discount (Percentage)
-      const discountDays = item.local_dias_descuento || item.dias_descuento || [];
-      const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
-      const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
-      
-      if (generalDiscount > 0 && discountDays.length > 0) {
-        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        const todayNorm = normalize(today);
-        
-        const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
-        const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
-
-        if (isCorrectDay && isCorrectCategory) {
-          price = price * (1 - generalDiscount / 100);
-        }
-      }
-    }
-    
-    return Math.round(price);
-  }, []);
 
 
   const handleAddToCart = async (menu) => {
