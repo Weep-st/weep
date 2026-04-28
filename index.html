@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weep - Plataforma de Pedidos y Delivery</title>
+    <title>Wepi | Pedidos y Delivery</title>
     <meta name="description" content="La forma más fácil y rápida de pedir comida en Santo Tomé. Pedí, te lo llevamos." />
     <meta name="theme-color" content="#c62828" />
 
-    <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
     <script>
       (function() {
         var l = window.location;
@@ -21,28 +21,28 @@
           path = search.split('p=')[1].split('&')[0].replace(/~and~/g, '&');
         }
 
-        var config = { name: "Weep", start: "/", title: "Weep" };
-        if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Weep - Pedidos", start: "/pedir", title: "Weep - Pedidos" }; }
-        else if (path.startsWith('/pruebas')) { config = { name: "Weep - Pruebas", start: "/pruebas", title: "Weep - Pruebas" }; }
-        else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Weep - Locales", start: "/locales", title: "Weep - Locales" }; }
-        else if (path.startsWith('/admin')) { config = { name: "Weep - Admin", start: "/admin", title: "Weep - Admin" }; }
-        else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }
+        var config = { name: "Wepi", start: "/", title: "Wepi" };
+        if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Wepi - Pedidos", start: "/pedir", title: "Wepi - Pedidos" }; }
+        else if (path.startsWith('/pruebas')) { config = { name: "Wepi - Pruebas", start: "/pruebas", title: "Wepi - Pruebas" }; }
+        else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Wepi - Locales", start: "/locales", title: "Wepi - Locales" }; }
+        else if (path.startsWith('/admin')) { config = { name: "Wepi - Admin", start: "/admin", title: "Wepi - Admin" }; }
+        else if (path.startsWith('/repartidores')) { config = { name: "Wepi - Repartidores", start: "/repartidores", title: "Wepi - Repartidores" }; }
         
         // URL Robusta para start_url (usa el truco de ?p= para evitar recortes de Safari)
-        var pwaStartUrl = l.origin + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
+        var pwaStartUrl = 'https://wepi.com.ar' + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
 
         var manifest = {
-          "name": config.name,
-          "short_name": "Weep",
-          "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
+          "name": "Wepi | Pedidos y Delivery",
+          "short_name": "Wepi",
+          "description": "Plataforma de Pedidos y Delivery",
           "start_url": pwaStartUrl,
           "scope": "/",
           "display": "standalone",
           "background_color": "#ffffff",
           "theme_color": "#c62828",
           "icons": [
-            { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-            { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "512x512", "type": "image/png" }
+            { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+            { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
           ]
         };
 

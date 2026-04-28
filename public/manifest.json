@@ -1,21 +1,21 @@
 {
-  "name": "Weep",
-  "short_name": "Weep",
-  "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
-  "start_url": "/",
+  "name": "Wepi | Pedidos y Delivery",
+  "short_name": "Wepi",
+  "description": "Plataforma de Pedidos y Delivery",
+  "start_url": "https://wepi.com.ar/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#c62828",
   "icons": [
     {
-      "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

@@ -122,27 +122,27 @@ export default function App() {
     const existingLink = document.getElementById('manifest-link');
     const path = location.pathname;
     
-    let config = { name: "Weep", start: "/", title: "Weep" };
-    if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Weep - Pedidos", start: "/pedir", title: "Weep - Pedidos" }; }
-    else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Weep - Locales", start: "/locales", title: "Weep - Locales" }; }
-    else if (path.startsWith('/admin')) { config = { name: "Weep - Admin", start: "/admin", title: "Weep - Admin" }; }
-    else if (path.startsWith('/repartidores')) { config = { name: "Weep - Repartidores", start: "/repartidores", title: "Weep - Repartidores" }; }
+    let config = { name: "Wepi", start: "/", title: "Wepi" };
+    if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Wepi - Pedidos", start: "/pedir", title: "Wepi - Pedidos" }; }
+    else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Wepi - Locales", start: "/locales", title: "Wepi - Locales" }; }
+    else if (path.startsWith('/admin')) { config = { name: "Wepi - Admin", start: "/admin", title: "Wepi - Admin" }; }
+    else if (path.startsWith('/repartidores')) { config = { name: "Wepi - Repartidores", start: "/repartidores", title: "Wepi - Repartidores" }; }
 
     // URL Robusta para start_url (usa el truco de ?p= para evitar recortes de Safari)
-    const pwaStartUrl = window.location.origin + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
+    const pwaStartUrl = 'https://wepi.com.ar' + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
 
     const manifestData = {
-      "name": config.name,
-      "short_name": "Weep",
-      "description": "Plataforma de Pedidos y Delivery en Santo Tomé",
+      "name": "Wepi | Pedidos y Delivery",
+      "short_name": "Wepi",
+      "description": "Plataforma de Pedidos y Delivery",
       "start_url": pwaStartUrl, 
       "scope": "/",
       "display": "standalone",
       "background_color": "#ffffff",
       "theme_color": "#c62828",
       "icons": [
-        { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-        { "src": "https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png", "sizes": "512x512", "type": "image/png" }
+        { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+        { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
       ]
     };
 
