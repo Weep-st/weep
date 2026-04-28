@@ -972,6 +972,10 @@ export default function PruebasWalletApp() {
     setAuthLoading(false);
   };
 
+  const checkoutTotals = React.useMemo(() => {
+    return calculateCheckoutTotals(cart.subtotal, cart.shippingCost, metodoPago);
+  }, [calculateCheckoutTotals, cart.subtotal, cart.shippingCost, metodoPago]);
+
   const totalConComision = checkoutTotals.total;
   const visibleMpFee = checkoutTotals.mp_fee;
   
