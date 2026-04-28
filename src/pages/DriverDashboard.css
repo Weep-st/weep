@@ -8,6 +8,7 @@
 }
 
 .dd-header {
+  position: relative;
   background: var(--red-800);
   color: white;
   padding: 24px 20px 32px;
@@ -19,7 +20,14 @@
 .dd-logo {
   height: 60px;
   object-fit: contain;
-  margin-bottom: 8px;
+}
+
+.dd-header-top {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .dd-header h1 {
@@ -27,6 +35,28 @@
   font-weight: 700;
   color: white;
   margin: 0;
+}
+
+.dd-header-menu-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  backdrop-filter: blur(4px);
+}
+
+.dd-header-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.dd-header-menu-btn:active {
+  transform: translateY(0);
 }
 
 .dd-main {

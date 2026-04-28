@@ -1625,9 +1625,14 @@ export default function DriverDashboard() {
   return (
     <div className="dd-page">
       <header className="dd-header">
-        <Link to="/">
-          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Wepi" className="dd-logo" />
-        </Link>
+        <div className="dd-header-top">
+          <Link to="/">
+            <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="dd-logo" />
+          </Link>
+          {driver && (
+            <button className="dd-header-menu-btn" onClick={() => setProfileMenuOpen(true)}>☰ Menú</button>
+          )}
+        </div>
         <h1>Panel de Repartidores</h1>
       </header>
 
@@ -1763,7 +1768,6 @@ export default function DriverDashboard() {
               </div>
               <div className="dd-topbar-actions">
                 <button className="btn btn-secondary btn-sm" onClick={iniciarGPS}>📍 GPS</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setProfileMenuOpen(true)}>☰ Menú</button>
               </div>
             </div>
 
@@ -2023,7 +2027,7 @@ export default function DriverDashboard() {
       )}
 
       <footer className="footer" style={{ background: 'var(--red-800)', color: 'white', borderTop: 'none', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
         <p style={{ margin: 0 }}>© 2026 Wepi - Todos los derechos reservados</p>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>PWA optimizada para uso en moto • GPS en tiempo real</p>
         <button 
