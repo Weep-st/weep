@@ -7,7 +7,7 @@ const WHATSAPP_NUMBER = "5493756543610";
 const HelpChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: "¡Hola! 👋 Soy tu asistente de Weep. ¿En qué puedo ayudarte hoy?", isBot: true }
+    { id: 1, text: "¡Hola! 👋 Soy tu asistente de Wepi. ¿En qué puedo ayudarte hoy?", isBot: true }
   ]);
   const [showButtons, setShowButtons] = useState(true);
   const chatEndRef = useRef(null);
@@ -47,19 +47,19 @@ const HelpChatbot = () => {
           botResponse = "Podés ver la ubicación de tu repartidor ingresando a 'Mis Pedidos', seleccionando tu pedido activo y presionando en 'Ver Seguimiento'.";
           break;
         case 'sugerencias':
-          botResponse = "¡Nos encanta escucharte! Por favor, envíanos tu sugerencia por WhatsApp para que podamos seguir mejorando Weep.";
-          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, tengo una sugerencia para mejorar Weep: `, '_blank');
+          botResponse = "¡Nos encanta escucharte! Por favor, envíanos tu sugerencia por WhatsApp para que podamos seguir mejorando Wepi.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, tengo una sugerencia para mejorar Wepi: `, '_blank');
           break;
         case 'pago':
           botResponse = "Si tuviste problemas con Mercado Pago o transferencia, por favor envíanos una captura del comprobante por WhatsApp para verificarlo.";
           action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, tuve un problema con el pago de mi pedido.`, '_blank');
           break;
         case 'local':
-          botResponse = "¡Excelente! Puedes registrar tu local ingresando a weep.com.ar/locales y siguiendo los pasos de registro.";
+          botResponse = "¡Excelente! Puedes registrar tu local ingresando a wepi.com.ar/locales y siguiendo los pasos de registro.";
           break;
         case 'soporte':
           botResponse = "Para cualquier otro inconveniente técnico o duda, podés escribirnos directamente aquí.";
-          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, necesito soporte con la plataforma Weep.`, '_blank');
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, necesito soporte con la plataforma Wepi.`, '_blank');
           break;
         default:
           botResponse = "Un representante se pondrá en contacto contigo a la brevedad via WhatsApp.";
@@ -100,7 +100,7 @@ const HelpChatbot = () => {
             <div className="assistant-info">
               <img src={ASSISTANT_IMAGE} alt="Assistant" />
               <div>
-                <h4>Asistente Weep</h4>
+                <h4>Asistente Wepi</h4>
                 <span>En línea</span>
               </div>
             </div>

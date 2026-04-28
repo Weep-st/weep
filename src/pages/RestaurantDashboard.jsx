@@ -11,6 +11,20 @@ import './RestaurantDashboard.css';
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 // V2.2 - Reset Modals Cache Fix
+const getLevelName = (lvl) => {
+  if (lvl === 1) return 'Despegue';
+  if (lvl === 2) return 'Crecimiento';
+  if (lvl === 3) return 'Experto en ventas';
+  if (lvl === 4) return 'Nivel pro';
+  return 'Despegue';
+};
+
+const planBenefits = {
+  'Visible': ['Apareces en el listado general', 'Soporte estándar', 'Gestión de menú básica'],
+  'Recomendado': ['Prioridad MEDIA en búsquedas', 'Etiqueta de Recomendado', 'Soporte prioritario', 'Métricas avanzadas'],
+  'Destacado': ['Prioridad MÁXIMA (Top de lista)', 'Banner destacado en Home', 'Soporte 24/7 VIP', 'Publicidad en redes Weep']
+};
+
 export default function RestaurantDashboard() {
   const { restaurant, loginAsRestaurant, logoutRestaurant } = useAuth();
 
@@ -47,6 +61,8 @@ export default function RestaurantDashboard() {
   const [deleting, setDeleting] = React.useState(false);
   const [hasRepartidores, setHasRepartidores] = React.useState(false);
   const [loadingRepartidores, setLoadingRepartidores] = React.useState(false);
+  const [planInfo, setPlanInfo] = React.useState(null);
+  const [availablePlans, setAvailablePlans] = React.useState([]);
   
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
@@ -84,6 +100,9 @@ export default function RestaurantDashboard() {
   const [needsStockConfirmation, setNeedsStockConfirmation] = React.useState(false);
   const [stockToConfirm, setStockToConfirm] = React.useState([]);
   const [showStockModal, setShowStockModal] = React.useState(false);
+  const [showDiscountPanel, setShowDiscountPanel] = React.useState(false);
+  const [menuAddOpen, setMenuAddOpen] = React.useState(false);
+  const [showGamification, setShowGamification] = React.useState(false);
 
   React.useEffect(() => {
     if (editItem) {
@@ -387,6 +406,7 @@ export default function RestaurantDashboard() {
     loadEstado();
     loadProfile();
     loadOrders();
+    loadPlanInfo();
 
     // Sync Edit Item to Burger States
     if (editItem && view === 'addItem') {
@@ -504,6 +524,34 @@ export default function RestaurantDashboard() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [profileMenuOpen, addMenuOpen]);
+  
+  const loadPlanInfo = async () => {
+    if (!restaurant) return;
+    try {
+      const info = await api.getPlanInfo(restaurant.id);
+      if (info.success) {
+        console.log("Plan Info Loaded:", info);
+        setPlanInfo(info);
+      }
+      const allPlanes = await api.getDisponibilidadPlanes();
+      setAvailablePlans(allPlanes);
+    } catch (e) {
+      console.error("Error loading plan info:", e);
+    }
+  };
+
+  const handleSuscripPlan = async (planId) => {
+    try {
+      setAuthLoading(true);
+      await api.suscribirAPlan(restaurant.id, planId);
+      toast.success('¡Plan actualizado! Los cambios se verán reflejados en breve.');
+      loadPlanInfo();
+    } catch (err) {
+      toast.error('Error al cambiar de plan: ' + err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
 
   const loadCobros = async () => {
@@ -832,17 +880,30 @@ export default function RestaurantDashboard() {
       const params = { localId: restaurant.id };
       if (fd.has('nombre')) params.nombre = fd.get('nombre');
       if (fd.has('email')) params.email = email;
-      if (fd.has('direccion')) {
+      
+      // Manejo de Dirección
+      if (fd.has('direccion') || fd.has('update_address')) {
         params.direccion = profileAddress;
         params.lat = profileLat;
         params.lng = profileLng;
+      }
+
+      // Manejo de Descuentos
+      if (fd.has('descuento_general')) {
+        params.descuento_general = parseFloat(fd.get('descuento_general')) || 0;
+        params.categoria_descuento = fd.get('categoria_descuento') || '';
+        const discountDays = [];
+        ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+          if (fd.get(`desc_${day}`) === 'on') discountDays.push(day);
+        });
+        params.dias_descuento = discountDays;
       }
       
       const pass = fd.get('password');
       if (pass) params.password = pass;
       if (fotoUrl) params.foto_url = fotoUrl;
 
-      // Compatibility for legacy fields if they are still in the form
+      // Compatibilidad con campos heredados
       if (fd.has('horario_apertura')) params.horario_apertura = fd.get('horario_apertura');
       if (fd.has('horario_cierre')) params.horario_cierre = fd.get('horario_cierre');
       if (fd.has('modo_automatico')) params.modo_automatico = fd.get('modo_automatico') === 'true';
@@ -851,6 +912,7 @@ export default function RestaurantDashboard() {
       if (success) {
         toast.success('Perfil actualizado correctamente');
         setProfileData(prev => ({ ...prev, ...params }));
+        if (fd.has('descuento_general')) loadMenu();
       }
     } catch { toast.error('Error al guardar perfil'); }
   };
@@ -961,6 +1023,119 @@ export default function RestaurantDashboard() {
   const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
   const processOrders = orders.filter(o => ['Pendiente', 'Confirmado', 'Aceptado', 'Listo'].includes(o.estadoActual));
+  // ─── Renderizado de Planes y Niveles ───
+  const renderPlansView = () => {
+    if (!planInfo) return <div className="loading-state"><div className="spinner" /> Cargando info de planes...</div>;
+    const { plan_nombre, nivel_actual, comision_actual, metricas_mes, proximo_nivel } = planInfo;
+
+    return (
+      <section className="animate-fade-in" style={{ paddingBottom: '40px' }}>
+        <div className="plans-hero card" style={{ 
+          background: 'linear-gradient(135deg, #c62828 0%, #b71c1c 100%)', 
+          color: 'white', padding: '32px', borderRadius: '24px', marginBottom: '32px',
+          boxShadow: '0 10px 25px rgba(198, 40, 40, 0.2)', position: 'relative', overflow: 'hidden'
+        }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <h2 style={{ fontSize: '2.2rem', marginBottom: '8px', fontWeight: 800 }}>Tu Crecimiento</h2>
+            <p style={{ opacity: 0.9, fontSize: '1.1rem' }}>Gestioná tu visibilidad y niveles de comisión</p>
+            
+            <div className="plans-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px', marginTop: '32px' }}>
+              <div className="plan-stat-card" style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
+                <span className="stat-label" style={{ display: 'block', fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Nivel Actual</span>
+                <span className="stat-value" style={{ fontSize: '1.5rem', fontWeight: 800 }}>🚀 {getLevelName(nivel_actual)}</span>
+              </div>
+              <div className="plan-stat-card" style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
+                <span className="stat-label" style={{ display: 'block', fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Comisión</span>
+                <span className="stat-value" style={{ fontSize: '1.5rem', fontWeight: 800 }}>{comision_actual}%</span>
+              </div>
+              <div className="plan-stat-card" style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
+                <span className="stat-label" style={{ display: 'block', fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Ventas (30d)</span>
+                <span className="stat-value" style={{ fontSize: '1.5rem', fontWeight: 800 }}>{metricas_mes.pedidos}</span>
+              </div>
+            </div>
+          </div>
+          {/* Círculos decorativos */}
+          <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', bottom: '-30px', left: '10%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+        </div>
+
+        <div className="card" style={{ padding: '32px', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: '1.5rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.8rem' }}>🌟</span> Planes de Visibilidad
+          </h3>
+          <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '20px' }}>
+            Tu plan de visibilidad determina qué tan arriba apareces en la aplicación y qué beneficios publicitarios tienes.
+          </p>
+          <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginTop: '32px' }}>
+            {availablePlans.map(plan => (
+              <div key={plan.id} className={`plan-select-card card ${plan.nombre === plan_nombre ? 'current' : ''}`} style={{ 
+                padding: '32px', borderRadius: '20px', border: plan.nombre === plan_nombre ? '2px solid #c62828' : '1px solid #e2e8f0',
+                position: 'relative', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease',
+                background: plan.nombre === plan_nombre ? '#fff' : '#fff'
+              }}>
+                {plan.nombre === plan_nombre && (
+                  <div className="current-label" style={{ 
+                    position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
+                    background: '#c62828', color: 'white', padding: '4px 16px', borderRadius: '20px',
+                    fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px'
+                  }}>ACTUAL</div>
+                )}
+                
+                {plan.nombre === 'Destacado' && (
+                  <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Icono Destacado" style={{ height: '40px', marginBottom: '12px', objectFit: 'contain' }} />
+                )}
+                {plan.nombre === 'Recomendado' && (
+                  <img src="https://i.postimg.cc/K8dcHQg5/descarga-(31)-(4).png" alt="Icono Recomendado" style={{ height: '40px', marginBottom: '12px', objectFit: 'contain' }} />
+                )}
+
+                <h4 style={{ fontSize: '1.4rem', marginBottom: '8px' }}>{plan.nombre}</h4>
+                <p className="plan-price" style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '24px' }}>
+                  ${plan.precio_mensual.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 400, color: '#64748b' }}>/ mes</span>
+                </p>
+                
+                <ul className="plan-advantages" style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', textAlign: 'left', flex: 1 }}>
+                  {(planBenefits[plan.nombre] || []).map((benefit, i) => (
+                    <li key={i} style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '12px', display: 'flex', gap: '10px' }}>
+                      <span style={{ color: '#059669', fontWeight: 'bold' }}>✓</span> {benefit}
+                    </li>
+                  ))}
+                </ul>
+
+                {plan.nombre !== plan_nombre ? (
+                  <button className="btn btn-primary btn-full" onClick={() => handleSuscripPlan(plan.id)} style={{ padding: '12px', borderRadius: '12px', fontWeight: 700 }}>Elegir {plan.nombre}</button>
+                ) : (
+                  <button className="btn btn-secondary btn-full" disabled style={{ padding: '12px', borderRadius: '12px', opacity: 0.7, background: '#f1f5f9', color: '#64748b' }}>Plan Activo</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabla de Referencia de Comisiones */}
+        <div style={{ marginTop: '48px', padding: '32px', background: '#f8fafc', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '1.2rem' }}>Escala de Comisiones por Ventas</h4>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '24px' }}>
+            Las comisiones se ajustan dinámicamente según tu volumen de ventas en los últimos 30 días.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            {[
+              { n: 'Despegue', c: '15%', t: '0+' },
+              { n: 'Crecimiento', c: '12%', t: '15+' },
+              { n: 'Experto', c: '10%', t: '30+' },
+              { n: 'Nivel Pro', c: '8%', t: '50+' },
+            ].map((tier, i) => (
+              <div key={i} style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{tier.n}</p>
+                <p style={{ margin: '8px 0', fontSize: '1.5rem', fontWeight: 800, color: '#c62828' }}>{tier.c}</p>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{tier.t} ventas / 30d</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   const finishedOrders = orders.filter(o => o.estadoActual === 'Entregado');
   
   const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
@@ -993,7 +1168,7 @@ export default function RestaurantDashboard() {
     <div className="rd-page">
       <header className="rd-header">
         <Link to="/">
-          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="rd-logo" />
+          <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" className="rd-logo" />
         </Link>
         <h1>Panel de Gestión</h1>
       </header>
@@ -1074,7 +1249,7 @@ export default function RestaurantDashboard() {
         </div>
       </main>
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
@@ -1253,11 +1428,55 @@ export default function RestaurantDashboard() {
     <div className="rd-page">
       {renderTutorial()}
       {renderStockModal()}
-      <header className="rd-header">
-        <Link to="/">
-          <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="rd-logo" />
-        </Link>
-        <h1>Panel de Gestión</h1>
+      <header className="rd-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <Link to="/">
+            <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" className="rd-logo" />
+          </Link>
+        </div>
+        
+        <h1 className="rd-header-title">
+          Panel de Gestión
+        </h1>
+
+        <div className="rd-topbar-right" style={{ border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {profileData?.foto_url && <img src={profileData.foto_url} alt="" className="rd-avatar" />}
+          
+          <div className="rd-dropdown-container">
+            <button 
+              className={`btn btn-ghost btn-sm ${view === 'profile' ? 'active' : ''}`} 
+              onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
+              style={{ color: 'white' }}
+            >
+              Mi Perfil ▾
+            </button>
+            
+            {profileMenuOpen && (
+              <div className="rd-dropdown-menu animate-fade-in" style={{ right: 0, left: 'auto' }}>
+                <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('ventas'); loadOrders(); setProfileMenuOpen(false); }}>
+                  💰 Mis Ventas
+                </button>
+                <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); setProfileMenuOpen(false); }}>
+                  🏦 Gestión de Pagos
+                </button>
+                <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); setProfileMenuOpen(false); }}>
+                  👤 Editar Perfil
+                </button>
+                <button className="rd-dropdown-item" onClick={() => { setView('settings'); setProfileSubView('edit'); setProfileMenuOpen(false); }}>
+                  ⚙️ Configuración
+                </button>
+                <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }}>
+                  📖 Ver tutorial
+                </button>
+                <div style={{ borderTop: '1px solid var(--gray-100)', marginTop: '8px', paddingTop: '8px' }}>
+                  <button className="rd-dropdown-item" style={{ color: 'var(--red-500)' }} onClick={() => { logoutRestaurant(); window.location.reload(); }}>
+                    🚪 Salir
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
       <main className="rd-main">
@@ -1320,8 +1539,8 @@ export default function RestaurantDashboard() {
         )}
 
         {/* Top bar */}
-        <div className="rd-topbar animate-fade-in">
-          <div className="rd-topbar-left">
+        <div className="rd-topbar animate-fade-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="rd-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <label className="toggle" onClick={toggleEstado}>
               <input type="checkbox" checked={localOpen} readOnly />
               <span className="toggle-track" />
@@ -1329,56 +1548,33 @@ export default function RestaurantDashboard() {
             </label>
             <span className={`rd-status ${localOpen ? 'open' : ''}`}>{localOpen ? 'Abierto' : 'Cerrado'}</span>
             
-            <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid #ddd', paddingLeft: '16px' }}>
-               <div style={{ 
-                 width: '10px', 
-                 height: '10px', 
-                 borderRadius: '50%', 
-                 backgroundColor: hasRepartidores ? '#00e676' : '#ffa000',
-                 boxShadow: hasRepartidores ? '0 0 8px #00e676' : '0 0 8px #ffa000'
-               }}></div>
-               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasRepartidores ? 'var(--green-600)' : 'var(--amber-600)' }}>
-                 REPARTIDORES: {hasRepartidores ? 'ACTIVOS' : 'NO DISPONIBLES'}
-               </span>
-            </div>
           </div>
-          <div className="rd-topbar-right">
-            {profileData?.foto_url && <img src={profileData.foto_url} alt="" className="rd-avatar" />}
-            
-            <div className="rd-dropdown-container">
-              <button 
-                className={`btn btn-ghost btn-sm ${view === 'profile' ? 'active' : ''}`} 
-                onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
-              >
-                Mi Perfil ▾
-              </button>
-              
-              {profileMenuOpen && (
-                <div className="rd-dropdown-menu animate-fade-in">
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('ventas'); loadOrders(); }}>
-                    💰 Mis Ventas
-                  </button>
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); }}>
-                    🏦 Gestión de Pagos
-                  </button>
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); }}>
-                    👤 Editar Perfil
-                  </button>
-                  <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }} style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>
-                    📖 Ver tutorial
-                  </button>
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('printing'); setProfileMenuOpen(false); }} style={{ color: 'var(--green-600)', fontWeight: 'bold' }}>
-                    🖨️ Impresión Ticket
-                  </button>
+
+          {planInfo && (
+            <div 
+              style={{ 
+                marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid #ddd', 
+                paddingLeft: '16px', cursor: 'pointer' 
+              }}
+              onClick={() => setShowGamification(!showGamification)}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '80px' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#64748b' }}>VENTAS</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--red-600)' }}>{planInfo?.metricas_mes?.pedidos ?? 0}/50</span>
                 </div>
-              )}
+                <div style={{ width: '80px', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ 
+                    width: `${Math.min(100, ((planInfo?.metricas_mes?.pedidos || 0) / 50) * 100)}%`, 
+                    height: '100%', background: 'var(--red-600)' 
+                  }}></div>
+                </div>
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{showGamification ? '▲' : '▼'}</span>
             </div>
-
-
-
-            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red-500)' }} onClick={() => { logoutRestaurant(); window.location.reload(); }}>Salir</button>
-          </div>
+          )}
         </div>
+
 
         {/* Persistent Alerts for Missing Configs */}
         {profileData && (
@@ -1414,6 +1610,62 @@ export default function RestaurantDashboard() {
           </div>
         )}
 
+        {planInfo && showGamification && (
+          <div className="gamification-pill card animate-slide-up" onClick={() => setView('plans')} style={{ 
+            cursor: 'pointer', display: 'flex', flexDirection: 'column', padding: '16px', margin: '0 16px 16px', 
+            background: 'linear-gradient(135deg, #fff 0%, #fffafa 100%)', borderLeft: '4px solid #e63946',
+            boxShadow: '0 4px 15px rgba(230, 57, 70, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '1.5rem' }}>💎</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Plan {planInfo?.plan_nombre || 'Visible'}
+                    <button className="btn btn-xs" style={{ background: 'var(--red-600)', color: 'white', fontSize: '0.65rem', padding: '1px 6px', borderRadius: '20px', border: 'none', fontWeight: 600 }}>Aumentar Visibilidad</button>
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 700 }}>Nivel {getLevelName(planInfo?.nivel_actual) || 'Despegue'} • {planInfo?.comision_actual ?? '--'}% comisión</p>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{planInfo?.metricas_mes?.pedidos ?? 0} pedidos</span>
+                <p style={{ margin: 0, fontSize: '0.65rem', color: '#64748b' }}>últimos 30 d</p>
+              </div>
+            </div>
+
+            {/* Barra de Progreso Multi-Nivel */}
+            <div style={{ width: '100%', marginTop: '4px' }}>
+              <div style={{ position: 'relative', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ 
+                  width: `${Math.min(100, ((planInfo?.metricas_mes?.pedidos || 0) / 50) * 100)}%`, 
+                  height: '100%', background: 'linear-gradient(90deg, #e63946 0%, #ff4d4f 100%)', 
+                  borderRadius: '5px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' 
+                  }}></div>
+                
+                <div style={{ position: 'absolute', left: '30%', top: 0, width: '2px', height: '100%', background: 'rgba(255,255,255,0.4)' }}></div>
+                <div style={{ position: 'absolute', left: '60%', top: 0, width: '2px', height: '100%', background: 'rgba(255,255,255,0.4)' }}></div>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <span style={{ color: planInfo.nivel_actual >= 1 ? '#e63946' : 'inherit' }}>Despegue</span>
+                <span style={{ color: planInfo.nivel_actual >= 2 ? '#e63946' : 'inherit', marginLeft: '10%' }}>Crecimiento</span>
+                <span style={{ color: planInfo.nivel_actual >= 3 ? '#e63946' : 'inherit', marginLeft: '10%' }}>Experto</span>
+                <span style={{ color: planInfo.nivel_actual >= 4 ? '#e63946' : 'inherit' }}>Nivel Pro</span>
+              </div>
+            </div>
+
+            {planInfo?.proximo_nivel ? (
+              <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
+                Faltan <strong>{planInfo.proximo_nivel.falta_pedidos} pedidos</strong> para llegar a <strong>{planInfo.proximo_nivel.nombre}</strong>. ¡Bajá a <strong>{planInfo.proximo_nivel.comision}%</strong> de comisión!
+              </p>
+            ) : (
+              <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#059669', textAlign: 'center', fontWeight: 700 }}>
+                ¡Has alcanzado el máximo nivel! 🏆 Beneficio: {planInfo?.comision_actual ?? '--'}% comisión
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="rd-nav animate-slide-up" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
           <button className={`rd-nav-btn ${view === 'orders' ? 'active' : ''}`} onClick={() => { setView('orders'); loadOrders(); }}>
@@ -1426,34 +1678,6 @@ export default function RestaurantDashboard() {
           </button>
           <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
           
-          <div className="rd-dropdown-container">
-            <button 
-              className={`rd-nav-btn ${(view === 'addItem' || view === 'sabores') ? 'active' : ''}`} 
-              onClick={(e) => { e.stopPropagation(); setAddMenuOpen(!addMenuOpen); }}
-            >
-              ➕ Añadir ▾
-            </button>
-            {addMenuOpen && (
-              <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, right: 'auto' }}>
-                <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory(''); setAddMenuOpen(false); setIsBaseProductMode(false); }}>
-                  {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
-                </button>
-                {(profileData?.rubro === 'Panadería') && (
-                  <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setAddMenuOpen(false); setIsBaseProductMode(true); }} style={{ color: '#c2410c', fontWeight: 'bold' }}>
-                    🍞 Nuevo Producto Base
-                  </button>
-                )}
-                {(profileData?.rubro === 'Heladería') && (
-                  <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setAddMenuOpen(false); }}>
-                    🍦 Sabores y Adicionales
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          <button className={`rd-nav-btn ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')}>
-            ⚙️ Configuración
-          </button>
         </nav>
 
         {/* ─── Orders View ─── */}
@@ -1514,71 +1738,118 @@ export default function RestaurantDashboard() {
         {/* ─── Menu View ─── */}
         {view === 'menu' && (
           <section className="animate-fade-in">
-            <div className="card card-body" style={{ marginBottom: 24, border: '1px solid #feb2b2', background: '#fff5f5' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20 }}>
-                <div style={{ flex: 1, minWidth: '300px' }}>
-                  <h3 style={{ color: 'var(--red-600)', marginBottom: 12, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>🎁 Descuento General del Local</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#742a2a', marginBottom: 12 }}>Este descuento se aplica automáticamente a todos tus platos los días seleccionados (excepto a los platos que ya tengan un descuento propio).</p>
-                  
-                  <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <input 
-                          name="descuento_general" 
-                          type="number" 
-                          className="form-input" 
-                          style={{ width: '80px', marginBottom: 0 }} 
-                          defaultValue={profileData?.descuento_general || 0} 
-                        />
-                        <span style={{ fontWeight: 700, color: 'var(--red-600)' }}>% OFF</span>
-                        <button type="submit" className="btn btn-success btn-sm">Guardar %</button>
-                     </div>
-                     
-                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
-                          const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                          const isSelected = profileData?.dias_descuento?.some(d => normalize(d) === normalize(day));
-                          return (
-                            <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, backgroundColor: 'white', padding: '4px 10px', borderRadius: '8px', border: '1px solid #feb2b2', fontSize: '0.8rem', cursor: 'pointer' }}>
-                              <input type="checkbox" name={`desc_${day}`} defaultChecked={isSelected} onChange={() => {
-                                  // We trigger form submit on checkbox change for convenience
-                                  // but keep the hidden inputs for other profile fields
-                              }} />
-                              {day}
-                            </label>
-                          );
-                        })}
-                        <button type="submit" className="btn btn-ghost btn-xs" style={{ color: 'var(--red-600)', textDecoration: 'underline' }}>Guardar Días</button>
-                     </div>
-
-                     {/* Hidden profile fields for handleSaveProfile compatibility */}
-                     <div style={{ display: 'none' }}>
-                        <input name="nombre" defaultValue={profileData?.nombre} />
-                        <input name="email" defaultValue={profileData?.email} />
-                        <input name="horario_apertura" defaultValue={profileData?.horario_apertura} />
-                        <input name="horario_cierre" defaultValue={profileData?.horario_cierre} />
-                        <input name="modo_automatico" defaultValue={profileData?.modo_automatico ? 'true' : 'false'} />
-                        <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
-                        <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
-                        {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
-                          <input key={day} type="checkbox" name={`day_${day}`} defaultChecked={profileData?.dias_apertura?.some(d => d.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === day.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())} />
-                        ))}
-                     </div>
-                  </form>
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-                   <button className="btn btn-success" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); }}>+ {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Nuevo Artículo' : 'Nuevo Plato'}</button>
-                   <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 600 }}>
-                      Estado hoy: {(() => {
-                        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const isPromo = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
-                        return isPromo ? <span style={{ color: 'var(--red-600)' }}>🔥 PROMO {profileData?.descuento_general}% OFF</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
-                      })()}
+            {/* Header Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 12 }}>
+                   {/* Dropdown Añadir */}
+                   <div style={{ position: 'relative' }}>
+                      <button className="btn btn-success" onClick={() => {
+                        const needsDropdown = profileData?.rubro === 'Panadería' || profileData?.rubro === 'Heladería';
+                        if (needsDropdown) {
+                          setMenuAddOpen(!menuAddOpen);
+                        } else {
+                          setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
+                        }
+                      }}>
+                        + Añadir { (profileData?.rubro === 'Panadería' || profileData?.rubro === 'Heladería') && '▾' }
+                      </button>
+                      
+                      {menuAddOpen && (
+                        <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, top: '100%', display: 'block', zIndex: 100 }}>
+                           <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMenuAddOpen(false); }}>
+                             {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
+                           </button>
+                           {(profileData?.rubro === 'Panadería') && (
+                             <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setIsBaseProductMode(true); setMenuAddOpen(false); }}>
+                               🍞 Nuevo Producto Base
+                             </button>
+                           )}
+                           {(profileData?.rubro === 'Heladería') && (
+                             <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setMenuAddOpen(false); }}>
+                               🍦 Sabores y Adicionales
+                             </button>
+                           )}
+                        </div>
+                      )}
                    </div>
+
+                   <button className={`btn ${showDiscountPanel ? 'btn-primary' : 'btn-outline'}`} onClick={() => setShowDiscountPanel(!showDiscountPanel)}>
+                     🎁 Descuentos
+                   </button>
+                </div>
+
+                <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 600 }}>
+                   Estado hoy: {(() => {
+                     const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+                     const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                     const isPromo = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
+                     return isPromo ? <span style={{ color: 'var(--red-600)' }}>🔥 PROMO {profileData?.descuento_general}% OFF {profileData?.categoria_descuento ? `en ${profileData.categoria_descuento}` : 'en todo el menú'}</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
+                   })()}
+                </div>
+            </div>
+
+            {showDiscountPanel && (
+              <div className="card card-body animate-slide-up" style={{ marginBottom: 24, border: '1px solid #feb2b2', background: '#fff5f5' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20 }}>
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    <h3 style={{ color: 'var(--red-600)', marginBottom: 12, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>🎁 Descuento General del Local</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#742a2a', marginBottom: 12 }}>Este descuento se aplica automáticamente a todos tus platos los días seleccionados (excepto a los platos que ya tengan un descuento propio).</p>
+                    
+                    <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <input 
+                            name="descuento_general" 
+                            type="number" 
+                            className="form-input" 
+                            style={{ width: '80px', marginBottom: 0 }} 
+                            defaultValue={profileData?.descuento_general || 0} 
+                          />
+                          <span style={{ fontWeight: 700, color: 'var(--red-600)' }}>% OFF</span>
+                          <span style={{ fontSize: '0.85rem', color: '#742a2a', marginLeft: '10px' }}>en</span>
+                          <select 
+                            name="categoria_descuento" 
+                            className="form-select" 
+                            style={{ width: '180px', marginBottom: 0, marginLeft: '6px' }}
+                            defaultValue={profileData?.categoria_descuento || ''}
+                          >
+                            <option value="">Todo el menú</option>
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <button type="submit" className="btn btn-success btn-sm" style={{ marginLeft: '10px' }}>Guardar Configuración</button>
+                       </div>
+                       
+                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                            const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                            const isSelected = profileData?.dias_descuento?.some(d => normalize(d) === normalize(day));
+                            return (
+                              <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, backgroundColor: 'white', padding: '4px 10px', borderRadius: '8px', border: '1px solid #feb2b2', fontSize: '0.8rem', cursor: 'pointer' }}>
+                                <input type="checkbox" name={`desc_${day}`} defaultChecked={isSelected} />
+                                {day}
+                              </label>
+                            );
+                          })}
+                          <button type="submit" className="btn btn-ghost btn-xs" style={{ color: 'var(--red-600)', textDecoration: 'underline' }}>Guardar Días</button>
+                       </div>
+  
+                       {/* Hidden profile fields for handleSaveProfile compatibility */}
+                       <div style={{ display: 'none' }}>
+                          <input name="nombre" defaultValue={profileData?.nombre} />
+                          <input name="email" defaultValue={profileData?.email} />
+                          <input name="horario_apertura" defaultValue={profileData?.horario_apertura} />
+                          <input name="horario_cierre" defaultValue={profileData?.horario_cierre} />
+                          <input name="modo_automatico" defaultValue={profileData?.modo_automatico ? 'true' : 'false'} />
+                          <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
+                          <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
+                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                            <input key={day} type="checkbox" name={`day_${day}`} defaultChecked={profileData?.dias_apertura?.some(d => d.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === day.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())} />
+                          ))}
+                       </div>
+                    </form>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
             {/* ─── Panel de Stock Rápido (Solo Panadería) ─── */}
             {profileData?.rubro === 'Panadería' && (
@@ -1698,7 +1969,8 @@ export default function RestaurantDashboard() {
                          const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                          const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
                          const isPromoDay = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
-                         const generalDiscountPercent = isPromoDay ? Number(profileData?.descuento_general || 0) : 0;
+                         const categoryMatch = !profileData?.categoria_descuento || profileData?.categoria_descuento === item.categoria;
+                         const generalDiscountPercent = (isPromoDay && categoryMatch) ? Number(profileData?.descuento_general || 0) : 0;
                          
                          // EXCLUSIVE LOGIC: Item discount OR General discount
                          let finalPrice = basePrice;
@@ -2114,142 +2386,206 @@ export default function RestaurantDashboard() {
         {/* ─── Settings View ─── */}
         {view === 'settings' && (
           <section className="animate-fade-in">
-            <div className="card card-body" style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <h2 style={{ color: 'var(--red-600)', marginBottom: 20, textAlign: 'center' }}>⚙️ Configuración del Local</h2>
-              
-              <form onSubmit={handleSaveSettings}>
-                {/* Rubro Selection (Keep instant update logic but inside form UI) */}
-                <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: 'var(--gray-700)' }}>Rubro del Negocio</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
-                    Seleccioná el rubro de tu local para adaptar las opciones del panel.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
-                      <label key={r} style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'space-between',
-                        padding: '12px 16px',
-                        background: 'white',
-                        borderRadius: 10,
-                        border: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? '2px solid var(--red-500)' : '1px solid var(--gray-200)',
-                        cursor: 'pointer'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <input 
-                            type="radio" 
-                            name="rubro" 
-                            checked={profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')} 
-                            onChange={async () => {
-                              try {
-                                const success = await api.updatePerfilLocal({ localId: restaurant.id, rubro: r });
-                                if (success) {
-                                  setProfileData({ ...profileData, rubro: r });
-                                  toast.success(`Rubro cambiado a ${r}`);
-                                }
-                              } catch (e) { toast.error('Error al cambiar rubro'); }
-                            }}
-                          />
-                          <span style={{ fontWeight: 600, color: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? 'var(--red-600)' : 'var(--gray-700)' }}>{r}</span>
-                        </div>
-                        {(profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) && <span style={{ color: 'var(--red-500)', fontWeight: 'bold' }}>✓</span>}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+            <div className="rd-tabs" style={{ gap: 8, marginBottom: 24 }}>
+              <button className={profileSubView === 'edit' ? 'active' : ''} onClick={() => setProfileSubView('edit')}>
+                ⚙️ Configuración
+              </button>
+              <button className={profileSubView === 'printing' ? 'active' : ''} onClick={() => setProfileSubView('printing')}>
+                🖨️ Impresión Ticket
+              </button>
+            </div>
 
-                {/* Horarios */}
-                <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🕒 Horarios de Atención</h3>
-                  <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 0 }}>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
-                      <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData?.horario_apertura || '09:00'} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
-                      <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData?.horario_cierre || '23:00'} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
-                      <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
-                        <option value="true">Sí (Auto)</option>
-                        <option value="false">No (Manual)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Días */}
-                <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>📅 Días de Apertura</h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
-                      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                      const dayNorm = normalize(day);
-                      const isSelected = profileData?.dias_apertura?.some(d => normalize(d) === dayNorm);
-                      return (
-                        <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                          <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData?.dias_apertura} />
-                          {day}
+            {profileSubView === 'edit' && (
+              <div className="card card-body" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, textAlign: 'center' }}>⚙️ Configuración del Local</h2>
+                
+                <form onSubmit={handleSaveSettings}>
+                  {/* Rubro Selection (Keep instant update logic but inside form UI) */}
+                  <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: 'var(--gray-700)' }}>Rubro del Negocio</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
+                      Seleccioná el rubro de tu local para adaptar las opciones del panel.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
+                        <label key={r} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          padding: '12px 16px',
+                          background: 'white',
+                          borderRadius: 10,
+                          border: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? '2px solid var(--red-500)' : '1px solid var(--gray-200)',
+                          cursor: 'pointer'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <input 
+                              type="radio" 
+                              name="rubro" 
+                              checked={profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')} 
+                              onChange={async () => {
+                                try {
+                                  const success = await api.updatePerfilLocal({ localId: restaurant.id, rubro: r });
+                                  if (success) {
+                                    setProfileData({ ...profileData, rubro: r });
+                                    toast.success(`Rubro cambiado a ${r}`);
+                                  }
+                                } catch (e) { toast.error('Error al cambiar rubro'); }
+                              }}
+                            />
+                            <span style={{ fontWeight: 600, color: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? 'var(--red-600)' : 'var(--gray-700)' }}>{r}</span>
+                          </div>
+                          {(profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) && <span style={{ color: 'var(--red-500)', fontWeight: 'bold' }}>✓</span>}
                         </label>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Entrega */}
-                <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🛵 Métodos de Entrega</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
-                      🏪 Ofrecer Retiro en Local
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
-                      🛵 Ofrecer Envío a Domicilio
-                    </label>
+                  {/* Horarios */}
+                  <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🕒 Horarios de Atención</h3>
+                    <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 0 }}>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
+                        <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData?.horario_apertura || '09:00'} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
+                        <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData?.horario_cierre || '23:00'} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
+                        <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
+                          <option value="true">Sí (Auto)</option>
+                          <option value="false">No (Manual)</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="rd-form-actions" style={{ marginBottom: 32 }}>
-                  <button type="submit" className="btn btn-success btn-full">Guardar Configuración</button>
-                </div>
-              </form>
+                  {/* Días */}
+                  <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>📅 Días de Apertura</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                        const dayNorm = normalize(day);
+                        const isSelected = profileData?.dias_apertura?.some(d => normalize(d) === dayNorm);
+                        return (
+                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData?.dias_apertura} />
+                            {day}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              {/* Mercado Pago connection (External to the main settings form) */}
-              <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
-              <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
-                <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
-                  Cobros con Mercado Pago
-                </h3>
-                <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Conectá tu cuenta de Mercado Pago para recibir pagos online directamente en tu cuenta.
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <button 
-                    className="btn btn-primary" 
-                    style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
-                    onClick={() => {
-                      const clientId = import.meta.env.VITE_MP_CLIENT_ID || '1234567890'; // Simplified for example
-                      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-oauth-callback`;
-                      const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-                      window.location.href = authUrl;
-                    }}
-                  >
-                    Vincular MercadoPago
-                  </button>
-                  {profileData?.mp_access_token && (
-                    <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Vinculada</span>
-                  )}
+                  {/* Entrega */}
+                  <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🛵 Métodos de Entrega</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem' }}>
+                        <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
+                        🏪 Ofrecer Retiro en Local
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem' }}>
+                        <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
+                        🛵 Ofrecer Envío a Domicilio
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="rd-form-actions" style={{ marginBottom: 32 }}>
+                    <button type="submit" className="btn btn-success btn-full">Guardar Configuración</button>
+                  </div>
+                </form>
+
+                {/* Mercado Pago connection (External to the main settings form) */}
+                <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid var(--gray-200)' }} />
+                <div style={{ backgroundColor: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                  <h3 style={{ color: '#0369a1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <img src="https://i.postimg.cc/k47vV4h3/mercadopago.png" alt="MP" style={{ height: 24 }} onError={(e) => e.target.style.display = 'none'} />
+                    Cobros con Mercado Pago
+                  </h3>
+                  <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.5 }}>
+                    Conectá tu cuenta de Mercado Pago para recibir pagos online directamente en tu cuenta.
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
+                      onClick={() => {
+                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || '1234567890'; // Simplified for example
+                        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-oauth-callback`;
+                        const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                        window.location.href = authUrl;
+                      }}
+                    >
+                      Vincular MercadoPago
+                    </button>
+                    {profileData?.mp_access_token && (
+                      <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>✓ Vinculada</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {profileSubView === 'printing' && (
+              <div className="card card-body animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🖨️</div>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Impresión Automática de Tickets</h2>
+                <p style={{ color: 'var(--gray-600)', maxWidth: '500px', margin: '0 auto 32px', lineHeight: 1.6 }}>
+                  Optimizá tu local con nuestra aplicación de escritorio. Imprime tickets automáticamente en tu comandera térmica apenas recibís un pedido.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
+                  <a 
+                    href="/download/weep-printer-latest.exe" 
+                    download={`Weep_${restaurant?.localId || restaurant?.id || 'LOCAL'}.exe`}
+                    className="btn btn-primary btn-full"
+                    style={{ padding: '16px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                  >
+                    🚀 Descargar instalador para Windows
+                  </a>
+                  
+                  <div className="card" style={{ padding: '24px', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', marginTop: '20px' }}>
+                    <h3 style={{ fontSize: '0.9rem', color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Tu ID de Configuración</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                      <code style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--gray-800)', background: 'white', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--gray-300)' }}>
+                        {restaurant?.id}
+                      </code>
+                      <button 
+                        className="btn btn-sm btn-ghost" 
+                        onClick={() => { navigator.clipboard.writeText(restaurant?.id); toast.success('ID Copiado'); }}
+                        style={{ padding: '8px' }}
+                      >
+                        📋 Copiar
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '16px' }}>
+                      Copiá este ID y pegalo en la aplicación de escritorio para vincular tu local.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '40px', borderTop: '1px solid var(--gray-100)', paddingTop: '40px', textAlign: 'left', maxWidth: '600px', margin: '40px auto 0' }}>
+                  <h4 style={{ marginBottom: '16px' }}>Pasos para configurar:</h4>
+                  <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--gray-600)' }}>
+                    <li><strong>Descargá e instalá</strong> el programa en la computadora que tiene conectada la impresora.</li>
+                    <li><strong>Abrí Weep Desktop</strong> e ingresá tu ID de Local (arriba).</li>
+                    <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
+                    <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
+                  </ol>
+                </div>
+              </div>
+            )}
           </section>
         )}
+
+        {/* ─── Planes y Comisiones View ─── */}
+        {view === 'plans' && renderPlansView()}
 
         {/* ─── Profile ─── */}
         {view === 'profile' && (
@@ -2263,9 +2599,6 @@ export default function RestaurantDashboard() {
               </button>
               <button className={profileSubView === 'edit' ? 'active' : ''} onClick={() => setProfileSubView('edit')}>
                 👤 Editar Perfil
-              </button>
-              <button className={profileSubView === 'printing' ? 'active' : ''} onClick={() => setProfileSubView('printing')}>
-                🖨️ Impresión Ticket
               </button>
             </div>
 
@@ -2329,7 +2662,7 @@ export default function RestaurantDashboard() {
             {profileSubView === 'cobros' && (
               <div className="card card-body">
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Pagos</h2>
-                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Weep 8% • Abona tu saldo pendiente por transferencia</p>
+                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Weep {planInfo?.comision_actual || 15}% • Abona tu saldo pendiente por transferencia</p>
                 
                 {cobrosLoading || !cobrosData ? (
                   <div className="loading-state"><div className="spinner" /> Cargando...</div>
@@ -2342,7 +2675,7 @@ export default function RestaurantDashboard() {
                         <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem' }}>${cobrosData.totalVentas}</h3>
                       </div>
                       <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total (8%)</p>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total ({planInfo?.comision_actual || 15}%)</p>
                         <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: 'var(--amber-600)' }}>${cobrosData.comisionTotal}</h3>
                       </div>
 
@@ -2478,6 +2811,7 @@ export default function RestaurantDashboard() {
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Editar Perfil del Local</h2>
                 {profileData && (
                   <form onSubmit={handleSaveProfile} className="rd-item-form">
+                    <input type="hidden" name="update_address" value="true" />
                     {profileData.foto_url && <img src={profileData.foto_url} alt="" style={{ width: 120, borderRadius: 12, margin: '0 auto 16px', display: 'block' }} />}
                     <input name="foto" type="file" className="form-input" accept="image/*" />
                     <div className="rd-form-row">
@@ -2533,72 +2867,22 @@ export default function RestaurantDashboard() {
                 )}
               </div>
             )}
-
-            {profileSubView === 'printing' && (
-              <div className="card card-body animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🖨️</div>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Impresión Automática de Tickets</h2>
-                <p style={{ color: 'var(--gray-600)', maxWidth: '500px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-                  Optimizá tu local con nuestra aplicación de escritorio. Imprime tickets automáticamente en tu comandera térmica apenas recibís un pedido.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
-                  <a 
-                    href="/download/weep-printer-latest.exe" 
-                    download={`Weep_${restaurant?.localId || restaurant?.id || 'LOCAL'}.exe`}
-                    className="btn btn-primary btn-full"
-                    style={{ padding: '16px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                  >
-                    🚀 Descargar instalador para Windows
-                  </a>
-                  
-                  <div className="card" style={{ padding: '24px', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', marginTop: '20px' }}>
-                    <h3 style={{ fontSize: '0.9rem', color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Tu ID de Configuración</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                      <code style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--gray-800)', background: 'white', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--gray-300)' }}>
-                        {restaurant?.id}
-                      </code>
-                      <button 
-                        className="btn btn-sm btn-ghost" 
-                        onClick={() => { navigator.clipboard.writeText(restaurant?.id); toast.success('ID Copiado'); }}
-                        style={{ padding: '8px' }}
-                      >
-                        📋 Copiar
-                      </button>
-                    </div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '16px' }}>
-                      Copiá este ID y pegalo en la aplicación de escritorio para vincular tu local.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '40px', borderTop: '1px solid var(--gray-100)', paddingTop: '40px', textAlign: 'left', maxWidth: '600px', margin: '40px auto 0' }}>
-                  <h4 style={{ marginBottom: '16px' }}>Pasos para configurar:</h4>
-                  <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--gray-600)' }}>
-                    <li><strong>Descargá e instalá</strong> el programa en la computadora que tiene conectada la impresora.</li>
-                    <li><strong>Abrí Weep Desktop</strong> e ingresá tu ID de Local (arriba).</li>
-                    <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
-                    <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
-                  </ol>
-                </div>
-              </div>
-            )}
           </section>
         )}
       </main>
 
-      <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
-        <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
+      <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '60px 20px', background: 'var(--red-800)', color: 'white' }}>
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
         <p>© 2026 <strong>Weep</strong> — Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
-          style={{ background: 'none', border: 'none', color: 'var(--red-500)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
+          style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
         >
           Ver Términos y Condiciones
         </button>
         <button 
           onClick={() => setShowRegretModal(true)} 
-          style={{ background: 'none', border: 'none', color: 'var(--red-600)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}
+          style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}
         >
           Botón de Arrepentimiento
         </button>

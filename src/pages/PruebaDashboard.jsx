@@ -11,6 +11,14 @@ import './PruebaDashboard.css';
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 // V2.2 - Reset Modals Cache Fix
+const getLevelName = (lvl) => {
+  if (lvl === 1) return 'Despegue';
+  if (lvl === 2) return 'Crecimiento';
+  if (lvl === 3) return 'Experto en ventas';
+  if (lvl === 4) return 'Nivel pro';
+  return 'Despegue';
+};
+
 export default function PruebaDashboard() {
   const { restaurant, loginAsRestaurant, logoutRestaurant } = useAuth();
 
@@ -560,6 +568,7 @@ export default function PruebaDashboard() {
     try {
       const info = await api.getPlanInfo(restaurant.id);
       if (info.success) {
+        console.log("Plan Info Loaded:", info);
         setPlanInfo(info);
       }
       const allPlanes = await api.getDisponibilidadPlanes();
@@ -1057,23 +1066,21 @@ export default function PruebaDashboard() {
     const { plan_nombre, nivel_actual, comision_actual, metricas_mes, proximo_nivel } = planInfo;
     const progress = proximo_nivel ? Math.min(100, (metricas_mes.pedidos / (metricas_mes.pedidos + proximo_nivel.falta_pedidos)) * 100) : 100;
 
-    const getLevelName = (lvl) => lvl === 1 ? 'Ventas activas' : 'Top en ventas';
-
     const planBenefits = {
-      'Freemium': [
-        'Sin costo mensual',
-        'Presencia en la plataforma',
+      'Visible': [
+        'Costo mensual accesible',
+        'Presencia básica en la plataforma',
         'Pedidos automatizados',
         'Acceso a red de repartidores'
       ],
-      'Plus': [
+      'Recomendado': [
         'Mejor posición en búsqueda',
         'Etiqueta "Recomendado"',
         'Más visibilidad en sección categorías',
         'Acceso a promociones simples'
       ],
-      'Pro': [
-        'Prioridad en toda la plataforma',
+      'Destacado': [
+        'Prioridad máxima en toda la plataforma',
         'Aparición en sección "Destacados" / carrusel',
         'Badge "Top" / "Más pedidos"',
         'Máxima visibilidad en sección categorías',
@@ -1083,21 +1090,26 @@ export default function PruebaDashboard() {
 
     return (
       <section className="plans-dashboard animate-fade-in">
-        <div className="plans-hero card">
-          <div className="plans-hero-content">
-            <h2 className="plans-title">Mi Plan: <span className={`plan-badge ${plan_nombre.toLowerCase()}`}>{plan_nombre}</span></h2>
-            <div className="plan-stats-grid">
-              <div className="plan-stat-card">
-                <span className="stat-label">Estado Actual</span>
-                <span className="stat-value">🚀 {getLevelName(nivel_actual)}</span>
-              </div>
-              <div className="plan-stat-card">
-                <span className="stat-label">Comisión</span>
-                <span className="stat-value">{comision_actual}%</span>
-              </div>
-              <div className="plan-stat-card">
-                <span className="stat-label">Ventas Mes</span>
-                <span className="stat-value">${metricas_mes.facturacion.toLocaleString()}</span>
+        {/* Sección de Comisión - Basada en Ventas */}
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ margin: '0 0 16px', color: 'var(--gray-800)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.4rem' }}>📈</span> Mi Nivel de Comisión
+          </h3>
+          <div className="plans-hero card" style={{ background: 'linear-gradient(135deg, #475569 0%, #1e293b 100%)', boxShadow: '0 10px 25px rgba(30, 41, 59, 0.2)' }}>
+            <div className="plans-hero-content">
+              <div className="plan-stats-grid">
+                <div className="plan-stat-card">
+                  <span className="stat-label">Nivel Actual</span>
+                  <span className="stat-value">🚀 {getLevelName(nivel_actual)}</span>
+                </div>
+                <div className="plan-stat-card">
+                  <span className="stat-label">Comisión</span>
+                  <span className="stat-value">{comision_actual}%</span>
+                </div>
+                <div className="plan-stat-card">
+                  <span className="stat-label">Ventas (30 días)</span>
+                  <span className="stat-value">{metricas_mes.pedidos} pedidos</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1115,45 +1127,73 @@ export default function PruebaDashboard() {
               </div>
             </div>
             <div className="next-level-footer">
-              <p>Te faltan <strong>{proximo_nivel.falta_pedidos} pedidos</strong> o <strong>${proximo_nivel.falta_facturacion.toLocaleString()}</strong> en ventas para subir de nivel.</p>
+              <p>Te faltan <strong>{proximo_nivel.falta_pedidos} pedidos</strong> para subir de nivel.</p>
               <p className="motivational-msg">¡Sigue así! Estás cada vez más cerca de maximizar tus ganancias. 🎯</p>
             </div>
           </div>
         )}
 
-        <h3 style={{ margin: '32px 0 16px', color: 'var(--gray-800)' }}>Explorar Planes</h3>
-        <div className="plans-grid">
-          {availablePlans.map(plan => (
-            <div key={plan.id} className={`plan-select-card card ${plan.nombre === plan_nombre ? 'current' : ''}`}>
-              {plan.nombre === plan_nombre && <div className="current-label">ACTUAL</div>}
-              <h4>{plan.nombre}</h4>
-              <p className="plan-price">${plan.precio_mensual.toLocaleString()} / mes</p>
-              
-              <ul className="plan-advantages" style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', textAlign: 'left' }}>
-                {(planBenefits[plan.nombre] || []).map((benefit, i) => (
-                  <li key={i} style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '8px', display: 'flex', gap: '8px' }}>
-                    <span style={{ color: 'var(--green-500)' }}>✔</span> {benefit}
-                  </li>
-                ))}
-              </ul>
+        {/* Sección de Visibilidad - Basada en Suscripción */}
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ margin: '32px 0 16px', color: 'var(--gray-800)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.4rem' }}>💎</span> Plan de Visibilidad
+          </h3>
+          <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '20px' }}>
+            Tu plan de visibilidad determina qué tan arriba apareces en la aplicación y qué beneficios publicitarios tienes.
+          </p>
+          <div className="plans-grid">
+            {availablePlans.map(plan => (
+              <div key={plan.id} className={`plan-select-card card ${plan.nombre === plan_nombre ? 'current' : ''}`}>
+                {plan.nombre === plan_nombre && <div className="current-label">ACTUAL</div>}
+                
+                {plan.nombre === 'Destacado' && (
+                  <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Icono Destacado" style={{ height: '40px', marginBottom: '12px' }} />
+                )}
+                {plan.nombre === 'Recomendado' && (
+                  <img src="https://i.postimg.cc/K8dcHQg5/descarga-(31)-(4).png" alt="Icono Recomendado" style={{ height: '40px', marginBottom: '12px' }} />
+                )}
 
-              <div className="divider" style={{ height: '1px', background: '#eee', margin: '16px 0' }} />
+                <h4>{plan.nombre}</h4>
+                <p className="plan-price">${plan.precio_mensual.toLocaleString()} / mes</p>
+                
+                <ul className="plan-advantages" style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', textAlign: 'left' }}>
+                  {(planBenefits[plan.nombre] || []).map((benefit, i) => (
+                    <li key={i} style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                      <span style={{ color: 'var(--green-500)' }}>✔</span> {benefit}
+                    </li>
+                  ))}
+                </ul>
 
-              <ul className="plan-features">
-                {plan.planes_niveles.sort((a,b)=>a.nivel-b.nivel).map(nv => (
-                  <li key={nv.id}>
-                    {getLevelName(nv.nivel)}: <strong>{nv.comision_porcentaje}%</strong> 
-                    {nv.threshold_pedidos > 0 && ` (+${nv.threshold_pedidos} pedidos)`}
-                  </li>
-                ))}
-              </ul>
-              {plan.nombre !== plan_nombre ? (
-                <button className="btn btn-primary btn-full" onClick={() => handleSuscripPlan(plan.id)}>Elegir {plan.nombre}</button>
-              ) : (
-                <button className="btn btn-secondary btn-full" disabled>Plan Activo</button>
-              )}
-            </div>
-          ))}
+                {plan.nombre !== plan_nombre ? (
+                  <button className="btn btn-primary btn-full" onClick={() => handleSuscripPlan(plan.id)}>Elegir {plan.nombre}</button>
+                ) : (
+                  <button className="btn btn-secondary btn-full" disabled>Plan Activo</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabla de Referencia de Comisiones */}
+        <div style={{ marginTop: '48px', padding: '24px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 16px', color: '#1e293b' }}>Resumen de Escalas de Comisión</h4>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
+            Las comisiones se ajustan automáticamente al inicio de cada mes según tu volumen de ventas.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+            {[
+              { n: 'Despegue', c: '15%', t: '0+' },
+              { n: 'Crecimiento', c: '12%', t: '15+' },
+              { n: 'Experto', c: '10%', t: '30+' },
+              { n: 'Nivel Pro', c: '8%', t: '50+' },
+            ].map((tier, i) => (
+              <div key={i} style={{ padding: '12px', background: 'white', borderRadius: '8px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e63946', marginBottom: '4px' }}>{tier.n}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>{tier.c}</div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{tier.t} pedidos</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -1445,26 +1485,54 @@ export default function PruebaDashboard() {
           <section className="animate-fade-in">
             {planInfo && (
               <div className="gamification-pill card" onClick={() => setView('plans')} style={{ 
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', margin: '0 0 16px', 
-                background: 'linear-gradient(90deg, #fff 0%, #fff5f5 100%)', borderLeft: '4px solid #e63946' 
+                cursor: 'pointer', display: 'flex', flexDirection: 'column', padding: '16px', margin: '0 0 16px', 
+                background: 'linear-gradient(135deg, #fff 0%, #fffafa 100%)', borderLeft: '4px solid #e63946',
+                boxShadow: '0 4px 15px rgba(230, 57, 70, 0.08)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '1.2rem' }}>💎</span>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--red-600)' }}>{planInfo.plan_nombre} - Nivel {planInfo.nivel_actual}</p>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)' }}>Comisión actual: {planInfo.comision_actual}%</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>💎</span>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>Plan {planInfo?.plan_nombre || 'Visible'}</p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 700 }}>Nivel {getLevelName(planInfo?.nivel_actual) || 'Despegue'} • {planInfo?.comision_actual ?? '--'}% comisión</p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{planInfo?.metricas_mes?.pedidos ?? 0} pedidos</span>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: '#64748b' }}>últimos 30 d</p>
                   </div>
                 </div>
-                {planInfo.proximo_nivel && (
-                   <div style={{ textAlign: 'right' }}>
-                     <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600 }}>Próximo Objetivo: {planInfo.proximo_nivel.comision}%</p>
-                     <div style={{ width: '100px', height: '6px', background: '#eee', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
-                       <div style={{ 
-                         width: `${Math.min(100, (planInfo.metricas_mes.pedidos / (planInfo.metricas_mes.pedidos + planInfo.proximo_nivel.falta_pedidos)) * 100)}%`, 
-                         height: '100%', background: '#e63946' 
-                       }}></div>
-                     </div>
-                   </div>
+
+                {/* Barra de Progreso Multi-Nivel */}
+                <div style={{ width: '100%', marginTop: '4px' }}>
+                  <div style={{ position: 'relative', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{ 
+                      width: `${Math.min(100, ((planInfo?.metricas_mes?.pedidos || 0) / 50) * 100)}%`, 
+                      height: '100%', background: 'linear-gradient(90deg, #e63946 0%, #ff4d4f 100%)', 
+                      borderRadius: '5px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' 
+                    }}></div>
+                    
+                    {/* Marcadores de niveles */}
+                    <div style={{ position: 'absolute', left: '30%', top: 0, width: '2px', height: '100%', background: 'rgba(255,255,255,0.4)' }}></div>
+                    <div style={{ position: 'absolute', left: '60%', top: 0, width: '2px', height: '100%', background: 'rgba(255,255,255,0.4)' }}></div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <span style={{ color: planInfo.nivel_actual >= 1 ? '#e63946' : 'inherit' }}>Despegue</span>
+                    <span style={{ color: planInfo.nivel_actual >= 2 ? '#e63946' : 'inherit', marginLeft: '10%' }}>Crecimiento</span>
+                    <span style={{ color: planInfo.nivel_actual >= 3 ? '#e63946' : 'inherit', marginLeft: '10%' }}>Experto</span>
+                    <span style={{ color: planInfo.nivel_actual >= 4 ? '#e63946' : 'inherit' }}>Nivel Pro</span>
+                  </div>
+                </div>
+
+                {planInfo?.proximo_nivel ? (
+                  <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
+                    Faltan <strong>{planInfo.proximo_nivel.falta_pedidos} pedidos</strong> para llegar a <strong>{planInfo.proximo_nivel.nombre}</strong>. ¡Bajá a <strong>{planInfo.proximo_nivel.comision}%</strong> de comisión!
+                  </p>
+                ) : (
+                  <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#059669', textAlign: 'center', fontWeight: 700 }}>
+                    ¡Has alcanzado el máximo nivel! 🏆 Beneficio: {planInfo?.comision_actual ?? '--'}% comisión
+                  </p>
                 )}
               </div>
             )}
@@ -1992,7 +2060,7 @@ export default function PruebaDashboard() {
             {profileSubView === 'cobros' && (
               <div className="card card-body">
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Pagos</h2>
-                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Weep 8% • Abona tu saldo pendiente por transferencia</p>
+                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Weep {planInfo?.comision_actual || 8}% • Abona tu saldo pendiente por transferencia</p>
                 
                 {cobrosLoading || !cobrosData ? (
                   <div className="loading-state"><div className="spinner" /> Cargando...</div>
@@ -2005,7 +2073,7 @@ export default function PruebaDashboard() {
                         <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem' }}>${cobrosData.totalVentas}</h3>
                       </div>
                       <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total (8%)</p>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total ({planInfo?.comision_actual || 8}%)</p>
                         <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: 'var(--amber-600)' }}>${cobrosData.comisionTotal}</h3>
                       </div>
 

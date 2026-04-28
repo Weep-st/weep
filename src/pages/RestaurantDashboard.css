@@ -26,6 +26,53 @@
   margin: 0;
 }
 
+.rd-header-title {
+  margin: 0;
+  font-size: 1.2rem;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 600px) {
+  .rd-header {
+    padding: 12px !important;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: space-between !important;
+  }
+
+  .rd-header-title {
+    position: static;
+    transform: none;
+    font-size: 1.1rem;
+    left: auto;
+    pointer-events: auto;
+    width: 100%;
+    order: 3; /* Move to bottom */
+    text-align: center;
+    margin-top: 4px;
+    font-weight: 700;
+  }
+  
+  .rd-logo {
+    height: 50px !important; /* Restore some size */
+    order: 1;
+  }
+  
+  .rd-topbar-right {
+    order: 2;
+  }
+  
+  .rd-avatar {
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
 .rd-main {
   flex: 1;
   max-width: 900px;

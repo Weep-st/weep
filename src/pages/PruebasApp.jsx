@@ -70,14 +70,6 @@ export default function PruebasApp() {
   const [bannersLoading, setBannersLoading] = React.useState(true);
   const [promoItems, setPromoItems] = React.useState([]);
   const [loadingPromos, setLoadingPromos] = React.useState(false);
-
-  // States for Searching Driver
-  const [searchingDriver, setSearchingDriver] = React.useState(false);
-  const [foundDriver, setFoundDriver] = React.useState(null);
-  const [driverSearchTimeout, setDriverSearchTimeout] = React.useState(false);
-  const [searchSeconds, setSearchSeconds] = React.useState(0);
-  const [pendingOrderId, setPendingOrderId] = React.useState(null);
-  const [estimatedTime, setEstimatedTime] = React.useState(null);
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -89,16 +81,9 @@ export default function PruebasApp() {
     lng: user?.lng || null,
     reference: ''
   });
+
   const [unavailableLocal, setUnavailableLocal] = React.useState(null);
   const [selectedLocal, setSelectedLocal] = React.useState(null);
-  const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
-  const [showNotificationActivation, setShowNotificationActivation] = React.useState(false);
-  const [notificationStatus, setNotificationStatus] = React.useState('default');
-
-  // Coupon States
-  const [appliedCupon, setAppliedCupon] = React.useState(null);
-  const [cuponCode, setCuponCode] = React.useState('');
-  const [validatingCupon, setValidatingCupon] = React.useState(false);
 
   // Actualizar addressData cuando el usuario carga (login)
   React.useEffect(() => {
@@ -110,10 +95,7 @@ export default function PruebasApp() {
         lng: user.lng || null
       }));
     }
-  }, []);
-
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  }, [user]);
 
   // Session ID for demand tracking
   const sessionId = React.useMemo(() => {
@@ -126,6 +108,7 @@ export default function PruebasApp() {
   }, []);
 
   const searchTimeout = React.useRef(null);
+  
   const isClosedToday = React.useCallback((local) => {
     if (!local || !local.modo_automatico) return false;
     const { dias_apertura } = local;
@@ -189,82 +172,6 @@ export default function PruebasApp() {
     return insideTime;
   }, []);
 
-  // Sync OneSignal for users
-  React.useEffect(() => {
-    if (user && isStandalone && window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async (OneSignal) => {
-        const subId = OneSignal.User.PushSubscription.id;
-        const currentPerm = OneSignal.Notifications.permission;
-        setNotificationStatus(currentPerm ? 'granted' : (OneSignal.Notifications.permissionNative === 'denied' ? 'denied' : 'default'));
-        
-        if (subId) {
-          api.usuarioUpdateOneSignalId(user.id, subId).catch(console.error);
-        }
-      });
-    }
-  }, [user, isStandalone]);
-
-  const handleNotificationClick = async () => {
-    if (!user) { setModal('login'); return; }
-
-    
-
-    if (window.OneSignal) {
-      try {
-        await window.OneSignal.Notifications.requestPermission();
-        const subId = window.OneSignal.User.PushSubscription.id;
-        if (subId) {
-          await api.usuarioUpdateOneSignalId(user.id, subId);
-          setNotificationStatus('granted');
-          setShowNotificationActivation(false);
-          toast.success('¡Notificaciones activadas correctamente! 🔔');
-        } else {
-          toast.error('No se pudo obtener el ID de suscripción.');
-        }
-      } catch (err) {
-        console.error("Error activating notifications:", err);
-        toast.error('Error al activar notificaciones');
-      }
-    } else if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async (OneSignal) => {
-        await OneSignal.Notifications.requestPermission();
-        const subId = OneSignal.User.PushSubscription.id;
-        if (subId) {
-          await api.usuarioUpdateOneSignalId(user.id, subId);
-          setNotificationStatus('granted');
-          setShowNotificationActivation(false);
-          toast.success('¡Notificaciones activadas! 🔔');
-        }
-      });
-    }
-  };
-
-  const handleUnsubscribe = async () => {
-    if (window.OneSignal) {
-      try {
-        await window.OneSignal.User.PushSubscription.optOut();
-        if (user) {
-          await api.usuarioUpdateOneSignalId(user.id, null);
-        }
-        setNotificationStatus('default');
-        toast.success('Notificaciones desactivadas 🔕');
-      } catch (err) {
-        console.error("Error unsubscribing:", err);
-        toast.error('Error al desactivar notificaciones');
-      }
-    }
-  };
-
-  const onNotificationBellClick = () => {
-    if (!user) { setModal('login'); return; }
-    
-    if (notificationStatus === 'granted') {
-      handleUnsubscribe();
-    } else {
-      setShowNotificationActivation(true);
-    }
-  };
-
   // Load locals + drinks on mount
   React.useEffect(() => {
     // La limpieza de inactividad ahora es manejada por el CRON de la BD.
@@ -277,33 +184,9 @@ export default function PruebasApp() {
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
     api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
     
-    // Cargar promociones con resolución de stock base
+    // Cargar promociones
     setLoadingPromos(true);
-    api.getPromos().then(async (items) => {
-      const promoList = items || [];
-      const panaderiaLocals = [...new Set(promoList.filter(i => i.local_rubro === 'Panadería').map(i => i.local_id))];
-      
-      if (panaderiaLocals.length > 0) {
-        try {
-          const baseStocks = await api.getBaseProductsStock(panaderiaLocals);
-          const stockMap = {};
-          baseStocks.forEach(bs => stockMap[bs.id] = bs.stock_actual);
-          
-          const resolvedPromos = promoList.map(item => {
-            if (item.stock_base_id && stockMap[item.stock_base_id] !== undefined) {
-              return { ...item, stock_actual: stockMap[item.stock_base_id] };
-            }
-            return item;
-          });
-          setPromoItems(resolvedPromos);
-        } catch (err) {
-          console.error("Error resolving promo stock:", err);
-          setPromoItems(promoList);
-        }
-      } else {
-        setPromoItems(promoList);
-      }
-    }).catch(() => {}).finally(() => setLoadingPromos(false));
+    api.getPromos().then(d => setPromoItems(d || [])).catch(() => {}).finally(() => setLoadingPromos(false));
 
     // Verificar repartidores al cargar
     api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
@@ -330,7 +213,17 @@ export default function PruebasApp() {
     }
   }, [user]);
   
-  // El sistema de envío siempre está habilitado para incentivar repartidores
+  // Forzar cambio a retiro si no hay repartidores y está seleccionado envio
+  React.useEffect(() => {
+    if (hasRepartidores === false && cart.deliveryType === 'envio') {
+      // Intentar obtener el local del primer item del carrito si selectedLocal es null
+      const localRef = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+      const puedeRetirar = localRef?.acepta_retiro === true;
+      if (puedeRetirar) {
+        cart.setDeliveryType('retiro');
+      }
+    }
+  }, [hasRepartidores, cart.deliveryType, selectedLocal, cart, locals]);
 
   // MP Return URL Parse
   React.useEffect(() => {
@@ -346,6 +239,29 @@ export default function PruebasApp() {
           const pendingData = JSON.parse(pendingRaw);
           if (status === 'approved') {
             toast.success(`¡Pago confirmado! Tu pedido #${pendingData.pedidoId} está siendo procesado.`);
+            
+            // Actualizar estado del pedido en la base de datos
+            api.markOrderAsPaid(
+              pendingData.pedidoId, 
+              payment_id, 
+              preference_id, 
+              pendingData.externalReference
+            ).then(async (res) => {
+              if (res.success) {
+                // Si el pedido tiene un repartidor asignado, notificarlo
+                try {
+                  const orderRes = await api.getOrderDetail(user.id, pendingData.pedidoId);
+                  if (orderRes.success && orderRes.detalle.repartidor_id) {
+                    await api.notifyDriverAboutPaymentApproved(
+                      pendingData.pedidoId, 
+                      orderRes.detalle.repartidor_id
+                    );
+                  }
+                } catch (err) {
+                  console.error("Error al notificar al repartidor:", err);
+                }
+              }
+            }).catch(e => console.error("Error al marcar pedido como pagado:", e));
             
             // Facebook Pixel: Purchase
             if (window.fbq) {
@@ -367,51 +283,17 @@ export default function PruebasApp() {
                   item_id: i.id,
                   item_name: i.nombre,
                   quantity: i.qty,
-                  price: i.precio
+                  price: i.price || i.precio
                 }))
               });
             }
-            
-            // 3. Update order state via RPC
-            (async () => {
-              try {
-                // Primero marcar como pagado en la BD
-                const resPaid = await api.markOrderAsPaid(
-                  pendingData.pedidoId, 
-                  payment_id, 
-                  preference_id, 
-                  pendingData.pedidoId // External reference is the ID here
-                );
 
-                if (resPaid.success) {
-                  // Obtener info actual del pedido (especialmente el repartidor)
-                  const { data: currentOrder } = await api.supabase
-                    .from('pedidos_general')
-                    .select('estado, repartidor_id')
-                    .eq('id', pendingData.pedidoId)
-                    .single();
-                  
-                  // Si tiene repartidor asignado, notificarlo
-                  if (currentOrder?.repartidor_id) {
-                    api.notifyDriverAboutPaymentApproved(pendingData.pedidoId, currentOrder.repartidor_id).catch(console.error);
-                  }
-
-                  // 4. Notificar a los locales (aunque el estado ya haya cambiado en la BD, necesitamos disparar el email)
-                  api.notifyLocalsAboutNewOrder(
-                    pendingData.pedidoId, pendingData.cart,
-                    pendingData.direccion, pendingData.tipoEntrega,
-                    pendingData.observaciones, pendingData.metodoPago
-                  ).catch(e => console.error("Error notificando locales (MP Success):", e));
-                } else {
-                  console.error("Error en markOrderAsPaid:", resPaid.error);
-                  // Fallback manual por si falla la RPC pero queremos intentar que el pedido avance
-                  await api.supabase.from('pedidos_general').update({ estado: 'Confirmado' }).eq('id', pendingData.pedidoId);
-                  await api.supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', pendingData.pedidoId);
-                }
-              } catch (err) {
-                console.error("Error activating order after payment:", err);
-              }
-            })();
+            // Notificar a los locales sobre el nuevo pedido pagado
+            api.notifyLocalsAboutNewOrder(
+              pendingData.pedidoId, pendingData.cart,
+              pendingData.direccion, pendingData.tipoEntrega,
+              pendingData.observaciones, pendingData.metodoPago
+            ).catch(e => console.error("Error notificando locales (MP Success):", e));
 
             cart.clearCart();
           } else if (status === 'pending') {
@@ -454,196 +336,6 @@ export default function PruebasApp() {
     }
   }, [search]);
 
-  // Effect to handle search timer
-  React.useEffect(() => {
-    let timer;
-    if (searchingDriver && !foundDriver && !driverSearchTimeout) {
-      timer = setInterval(() => {
-        setSearchSeconds(prev => {
-          if (prev >= 60) { // After 1 minute of UNACCEPTED search
-            setDriverSearchTimeout(true);
-            return 60; // Keep it at 60 until reset
-          }
-          
-          // Re-enviar Push cada 20 segundos para incentivar (en 20s y 40s)
-          if (prev > 0 && prev % 20 === 0 && pendingOrderId) {
-            console.log("📣 Re-enviando push de incentivo...");
-            api.broadcastOrderToDrivers(pendingOrderId, cart.total);
-          }
-          
-          return prev + 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [searchingDriver, foundDriver, driverSearchTimeout, pendingOrderId, cart.total]);
-
-  // Effect to listen for driver acceptance via Realtime + Polling Fallback
-  React.useEffect(() => {
-    if (!pendingOrderId || !searchingDriver || foundDriver) return;
-
-    console.log("📡 Subscribing to order updates for:", pendingOrderId);
-
-    const checkStatus = async () => {
-      try {
-        const { data } = await api.supabase
-          .from('pedidos_general')
-          .select('estado, repartidor_id')
-          .eq('id', pendingOrderId)
-          .single();
-          
-        if (data && (data.estado === 'Pendiente de Pago' || data.estado === 'Confirmado') && !foundDriver) {
-          console.log("✅ Order accepted (Detected via Polling/Initial Check)!");
-          handleDriverFound(data);
-          return true;
-        }
-      } catch (err) {
-        console.error("Error checking order status:", err);
-      }
-      return false;
-    };
-
-    // 1. Initial Check
-    checkStatus();
-
-    // 2. Realtime Listener
-    const channel = api.supabase
-      .channel(`order_status_${pendingOrderId}`)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'pedidos_general',
-        filter: `id=eq.${pendingOrderId}`
-      }, (payload) => {
-        const newOrder = payload.new;
-        console.log("🔄 Realtime update:", newOrder.id, newOrder.estado);
-        if ((newOrder.estado === 'Pendiente de Pago' || newOrder.estado === 'Confirmado') && !foundDriver) {
-          handleDriverFound(newOrder);
-        }
-      })
-      .subscribe((status) => {
-        console.log("📡 Subscription status:", status);
-        if (status === 'CHANNEL_ERROR') {
-          console.warn("⚠️ Realtime disabled for this table. Using Polling fallback...");
-        }
-      });
-
-    // 3. Polling Fallback (Every 3 seconds)
-    const pollInterval = setInterval(() => {
-      if (!foundDriver) {
-        checkStatus();
-      } else {
-        clearInterval(pollInterval);
-      }
-    }, 3000);
-
-    return () => {
-      clearInterval(pollInterval);
-      api.supabase.removeChannel(channel);
-    };
-  }, [pendingOrderId, searchingDriver, foundDriver]);
-
-  const handleDriverFound = async (orderData) => {
-    // 1. Get driver info
-    try {
-      const { data: rep } = await api.supabase
-        .from('repartidores')
-        .select('nombre, foto_url')
-        .eq('id', orderData.repartidor_id)
-        .single();
-      
-      setFoundDriver(rep || { nombre: 'Repartidor' });
-      
-      // Calculate estimated time (Base 20m + 5m per km or items)
-      // For now, let's use a dynamic range
-      setEstimatedTime('25-40 min');
-      
-      toast.success('¡Repartidor encontrado! 🚀');
-      
-      // 2. Clear flags after showing success for a while
-      setTimeout(async () => {
-        const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
-        if (pendingRaw) {
-          const pendingData = JSON.parse(pendingRaw);
-          if (pendingData.metodoPago === 'efectivo') {
-            // Confirm immediately for cash
-            try {
-              await api.supabase.from('pedidos_general').update({ estado: 'Confirmado' }).eq('id', pendingData.pedidoId);
-              await api.supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', pendingData.pedidoId);
-              
-
-              api.notifyLocalsAboutNewOrder(
-                pendingData.pedidoId, pendingData.cart,
-                pendingData.direccion, pendingData.tipoEntrega,
-                pendingData.observaciones, pendingData.metodoPago
-              ).catch(console.error);
-
-              toast.success('¡Pedido confirmado! El repartidor ya está en camino al local.');
-              setSearchingDriver(false);
-              setFoundDriver(null);
-              setPendingOrderId(null);
-              localStorage.removeItem('pendingOrderDataPruebas');
-            } catch (err) {
-              console.error("Error confirming cash order:", err);
-              toast.error('Error al confirmar el pedido');
-            }
-          } else {
-            // Trigger Mercado Pago Checkout for transfers
-            triggerMPCheckout(orderData);
-          }
-        }
-      }, 3500);
-
-    } catch (e) {
-      console.error("Error fetching driver info:", e);
-    }
-  };
-
-  const triggerMPCheckout = async (originalOrder) => {
-    const loadingToast = toast.loading('Abriendo Mercado Pago...');
-    try {
-      const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
-      if (!pendingRaw) throw new Error('No se encontró la información del pedido');
-      
-      const pendingData = JSON.parse(pendingRaw);
-      
-      const successUrl = window.location.origin + "/pruebas";
-      
-      const paymentData = {
-        external_reference: pendingData.pedidoId,
-        back_urls: { success: successUrl, failure: successUrl, pending: successUrl },
-        auto_return: "approved",
-        items: [{
-          title: `Pedido Weep #${pendingData.pedidoId}`,
-          quantity: 1,
-          currency_id: "ARS",
-          unit_price: Number(pendingData.total)
-        }],
-        local_id: pendingData.localId,
-        marketplace_fee: pendingData.marketplace_fee
-      };
-
-      const paymentResponse = await iniciarPagoMercadoPago(paymentData);
-
-      if (paymentResponse?.init_point) {
-        toast.dismiss(loadingToast);
-        
-        // Update pendingData with preferenceId
-        pendingData.preferenceId = paymentResponse.id;
-        localStorage.setItem('pendingOrderData', JSON.stringify(pendingData)); // Use the standard key for return handling
-        localStorage.removeItem('pendingOrderDataPruebas');
-        
-        window.location.href = paymentResponse.init_point;
-      } else {
-        throw new Error(paymentResponse?.error || 'No se pudo generar el link de pago');
-      }
-    } catch (err) {
-      toast.dismiss(loadingToast);
-      toast.error('Error al iniciar Mercado Pago: ' + err.message);
-      setSearchingDriver(false);
-    }
-  };
-
   const fetchMenusByLocal = React.useCallback((localId, catId = null) => {
     setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
@@ -662,43 +354,21 @@ export default function PruebasApp() {
     }
 
     api.getMenuByLocalId(localId).then(d => {
-      const allItems = d || [];
-      // Create a stock lookup map (including Base items)
-      const stockLookup = {};
-      allItems.forEach(i => {
-        if (i.categoria === 'Base' || i.maneja_stock) {
-          stockLookup[i.id] = i.stock_actual;
-        }
-      });
-
-      let mapped = allItems
-        .filter(i => i.disponibilidad !== false && i.categoria !== 'Base')
-        .map(i => {
-          // Resolve real stock from base product if linked
-          let resolvedStock = i.stock_actual;
-          if (i.stock_base_id && stockLookup[i.stock_base_id] !== undefined) {
-            resolvedStock = stockLookup[i.stock_base_id];
-          }
-          
-          return {
-            ...i, 
-            stock_actual: resolvedStock, // This will be used in handleAddToCart and the 'AGOTADO' badge
-            local_nombre: local?.nombre || 'Local', 
-            local_logo: local?.logo || '',
-            local_disponible_desde: local?.disponible_desde || null,
-          };
-        });
-
+      let mapped = (d || [])
+        .filter(i => i.disponibilidad !== false)
+        .map(i => ({
+          ...i, 
+          local_nombre: local?.nombre || 'Local', 
+          local_logo: local?.logo || '',
+          local_disponible_desde: local?.disponible_desde || null,
+        }));
       if (catId) {
         mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
       }
       setMenus(mapped);
       setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `Menú de ${local?.nombre || 'Local'}`);
       setShowMenus(true);
-    }).catch((err) => {
-      console.error("Error loading menu:", err);
-      toast.error('No pudimos cargar el menú');
-    }).finally(() => setLoadingMenus(false));
+    }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
   }, [locals, filteredLocals]);
 
   const fetchByCategory = React.useCallback((cat) => {
@@ -707,7 +377,7 @@ export default function PruebasApp() {
       if (!user) { setModal('login'); return; }
       setLoadingMenus(true);
       api.getMenuCompleto().then(all => {
-        const favMenus = all.filter(m => favorites.includes(m.id) && m.categoria !== 'Base');
+        const favMenus = all.filter(m => favorites.includes(m.id));
         setMenus(favMenus);
         setMenuTitle('Mis Favoritos');
         setShowMenus(true);
@@ -851,20 +521,9 @@ export default function PruebasApp() {
   const MP_FEE_RATE = 0.0824;
 
   const calculateCheckoutTotals = (P, E, method) => {
-    let couponDiscount = 0;
-    if (appliedCupon) {
-        if (appliedCupon.tipo === 'porcentaje') {
-            couponDiscount = P * (Number(appliedCupon.valor) / 100);
-        } else {
-            couponDiscount = Number(appliedCupon.valor);
-        }
-        if (couponDiscount > P) couponDiscount = P;
-    }
-
-    const discountedP = P - couponDiscount;
-    const net_commission = discountedP * PLATFORM_COMMISSION;
-    const net_local = discountedP - net_commission;
-    const total_net = discountedP + E;
+    const net_commission = P * PLATFORM_COMMISSION;
+    const net_local = P - net_commission;
+    const total_net = P + E;
 
     if (method === 'transferencia') {
       const weep_income = E + net_commission;
@@ -880,9 +539,8 @@ export default function PruebasApp() {
 
       return {
         total: Math.round(total_paid),
-        product_total: discountedP,
+        product_total: P,
         delivery_fee: E,
-        coupon_discount: Math.round(couponDiscount),
         commission: Math.round(net_commission),
         mp_fee: Math.round(surcharge),
         merchant_payout: Math.round(total_paid - marketplace_fee),
@@ -893,10 +551,9 @@ export default function PruebasApp() {
 
     // Default (Efectivo)
     return {
-      total: Math.round(discountedP + E),
-      product_total: discountedP,
+      total: Math.round(P + E),
+      product_total: P,
       delivery_fee: E,
-      coupon_discount: Math.round(couponDiscount),
       commission: Math.round(net_commission),
       mp_fee: 0,
       merchant_payout: Math.round(net_local),
@@ -920,13 +577,17 @@ export default function PruebasApp() {
       // 2. General Local Discount (Percentage)
       const discountDays = item.local_dias_descuento || item.dias_descuento || [];
       const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+      const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
       
       if (generalDiscount > 0 && discountDays.length > 0) {
         const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
         const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const todayNorm = normalize(today);
         
-        if (discountDays.some(d => normalize(d) === todayNorm)) {
+        const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+        const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+
+        if (isCorrectDay && isCorrectCategory) {
           price = price * (1 - generalDiscount / 100);
         }
       }
@@ -943,13 +604,6 @@ export default function PruebasApp() {
   const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
   const handleAddToCart = async (menu) => {
-    // Validar Stock (especialmente para rubro Panadería)
-    const isOutOfStock = (menu.local_rubro === 'Panadería' || menu.maneja_stock) && (menu.stock_actual < (menu.unidades_por_venta || 1));
-    if (isOutOfStock) {
-      toast.error(`¡Agotado! No queda stock suficiente de ${menu.nombre}`);
-      return;
-    }
-
     // Red de seguridad: Verificar disponibilidad antes de cualquier acción
     const availabilityDate = menu.local_disponible_desde;
     if (availabilityDate) {
@@ -1037,7 +691,13 @@ export default function PruebasApp() {
     api.trackDemandSignal('add_to_cart', sessionId).catch(() => {});
 
     // Default addition for other items
-    cart.addItem(menu);
+    const discountedPrice = calculateDiscountedPrice(menu);
+    const itemToAdd = {
+      ...menu,
+      precio: discountedPrice,
+      precioOriginal: menu.precioOriginal || menu.precio
+    };
+    cart.addItem(itemToAdd);
     toast((t) => (
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         ¡{menu.nombre} agregado! ✓
@@ -1048,44 +708,72 @@ export default function PruebasApp() {
     ), { duration: 3000, style: { padding: '12px 16px' } });
   };
 
-  const handleApplyCupon = async () => {
-    if (!cuponCode) return;
-    setValidatingCupon(true);
-    try {
-      const currentLocalId = cart.items[0]?.local_id;
-      const res = await api.validateCupon(cuponCode, cart.subtotal, currentLocalId);
-      if (res.success) {
-        setAppliedCupon(res.cupon);
-        toast.success('¡Cupón aplicado correctamente!');
-      } else {
-        toast.error(res.error || 'Error al validar cupón');
-      }
-    } catch (err) {
-      toast.error('Error al validar cupón');
-    } finally {
-      setValidatingCupon(false);
-    }
-  };
-
-  const removeCupon = () => {
-    setAppliedCupon(null);
-    setCuponCode('');
-    toast('Cupón removido');
-  };
-
   const handleCheckout = async (e) => {
     e.preventDefault();
-    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-
     if (!user) { setModal('login'); return; }
     if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
     const fd = new FormData(e.target);
-    const mp = metodoPago; 
+    const mp = metodoPago; // Use state instead of FormData
     const dir = addressData.address;
     if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
 
+    // Validación de dirección correcta (no solo el nombre de la ciudad)
+    if (cart.deliveryType === 'envio') {
+      const lowerAddr = dir.toLowerCase();
+      const cityStrings = [
+        'santo tomé, corrientes', 
+        'santo tomé', 
+        'santo tome, corrientes', 
+        'santo tome',
+        'santo tomé, corrientes province',
+        'santo tome, corrientes province',
+        'santo tomé, provincia de corrientes',
+        'santo tome, provincia de corrientes'
+      ];
+      const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 60;
+
+      if (isJustCity) {
+        toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
+        setShowAddressSelector(true);
+        return;
+      }
+    }
+
     if (!mp) { toast.error('Seleccioná un método de pago'); return; }
     
+    // Facebook Pixel: InitiateCheckout
+    if (window.fbq) {
+      window.fbq('track', 'InitiateCheckout');
+    }
+
+    // Google Analytics: begin_checkout
+    if (window.gtag) {
+      window.gtag('event', 'begin_checkout', {
+        currency: 'ARS',
+        value: cart.subtotal,
+        items: cart.items.map(i => ({
+          item_id: i.id,
+          item_name: i.nombre,
+          price: i.precio,
+          quantity: i.qty
+        }))
+      });
+    }
+
+    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+
+    // Check repartidores active strictly before proceeding if envio is selected
+    if (cart.deliveryType === 'envio') {
+      const freshRiders = await api.checkActiveRepartidores();
+      if (!freshRiders.hasActive) {
+        setHasRepartidores(false);
+        const puedeRetirar = currentLocal?.acepta_retiro === true;
+        if (puedeRetirar) {
+          cart.setDeliveryType('retiro');
+        }
+        return;
+      }
+    }
 
     if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
       toast.error('Este local no ofrece la opción de retiro en el local.');
@@ -1094,6 +782,7 @@ export default function PruebasApp() {
 
     // Validación de primer pedido por transferencia
     if (mp === 'efectivo' && (orderCount === 0 || orderCount === null)) {
+      // Si es null, por seguridad asumimos que es el primero si ya logramos obtener user e intentamos cargar orderCount
       toast.error('Por seguridad, tu primer pedido debe ser por transferencia / Mercado Pago.');
       setMetodoPago('transferencia');
       return;
@@ -1101,113 +790,201 @@ export default function PruebasApp() {
 
     setCheckoutLoading(true);
     try {
-      // 1. Real-time availability check
+      // --- NUEVA VALIDACIÓN DE DISPONIBILIDAD EN TIEMPO REAL ---
       const uniqueLocalIds = [...new Set(cart.items.map(i => i.local_id).filter(Boolean))];
       const uniqueItemIds = [...new Set(cart.items.map(i => i.menuId || i.id))];
+
       const availability = await api.validateOrderAvailability(uniqueLocalIds, uniqueItemIds);
 
+      // 1. Validar Locales
       for (const localId of uniqueLocalIds) {
         const freshLocal = availability.locales.find(l => l.id === localId);
-        if (!freshLocal || !isLocalOpen(freshLocal)) {
-          toast.error("El local ya no está disponible o acaba de cerrar.");
-          setCheckoutLoading(false); return;
+        if (!freshLocal) {
+          toast.error("Uno de los locales ya no está disponible.");
+          setCheckoutLoading(false);
+          return;
+        }
+        if (!isLocalOpen(freshLocal)) {
+          toast.error(`El local "${freshLocal.nombre}" acaba de cerrar o no está aceptando pedidos en este momento.`);
+          setCheckoutLoading(false);
+          return;
         }
       }
 
+      // 2. Validar Platos
       for (const item of cart.items) {
         const freshItem = availability.items.find(i => i.id === (item.menuId || item.id));
         if (!freshItem || !freshItem.disponibilidad) {
           toast.error(`El plato "${item.nombre}" ya no está disponible.`);
-          setCheckoutLoading(false); return;
+          setCheckoutLoading(false);
+          return;
         }
       }
+      // --- FIN VALIDACIÓN ---
 
-      // 2. Calculate Totals
+      // 7. Calculate exact prices using new logic
       const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
+      const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
+      // [PAUSED] Lógica de envío gratis con bebida desactivada temporalmente.
+      // const shipping = (cart.deliveryType === 'envio' && !tieneBebida) ? 1800 : 0;
       const shipping = cart.deliveryType === 'envio' ? cart.COSTO_ENVIO : 0;
+      
       const finalTotals = calculateCheckoutTotals(calcSubtotal, shipping, mp);
       const exactTotal = finalTotals.total;
 
       const orderItems = cart.items.map(i => ({
-        id: i.menuId || i.id,
+        id: i.menuId || i.id, // Use original menu item ID for database
         nombre: i.descripcion ? `${i.nombre} (${i.descripcion})` : i.nombre,
         precio: Number(i.precio),
         cantidad: i.qty, local_id: i.local_id || '',
       }));
 
-      // 3. Handle Flow
-      // UNIFIED FLOW: Both Cash and Transfer wait for driver before proceeding
-      const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
-      
-      const orderInfo = {
-        direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
-        tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
-        metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
-        emailCliente: user.email, nombreCliente: user.name,
-        totalCalculado: exactTotal,
-        lat: addressData.lat, lng: addressData.lng, precioEnvio: shipping
-      };
+      // Rama Efectivo
+      if (mp === 'efectivo') {
+        const response = await api.crearPedido({
+          userId: user.id,
+          direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
+          tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
+          metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
+          items: orderItems,
+          emailCliente: user.email, nombreCliente: user.name,
+          estadoInicial: 'Pendiente',
+          totalCalculado: exactTotal,
+          lat: addressData.lat,
+          lng: addressData.lng,
+          precioEnvio: shipping
+        });
 
-      // Create order in "Buscando Repartidor" (or Pendiente if already confirmed for pickup)
-      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Pendiente' : 'Pendiente de Pago');
-
-      const response = await api.crearPedido({
-        userId: user.id,
-        pedidoId: pregeneratedId,
-        direccion: orderInfo.direccion,
-        tipoEntrega: orderInfo.tipoEntrega,
-        metodoPago: mp, observaciones: orderInfo.observaciones,
-        items: orderItems,
-        emailCliente: user.email, nombreCliente: user.name,
-        estadoInicial: initialState,
-        totalCalculado: exactTotal,
-        lat: addressData.lat,
-        lng: addressData.lng,
-        precioEnvio: shipping,
-        cuponId: appliedCupon?.id,
-        descuentoCupon: finalTotals.coupon_discount || 0
-      });
-
-      if (response.success) {
-        // Store data for secondary steps
-        localStorage.setItem('pendingOrderDataPruebas', JSON.stringify({
-          pedidoId: response.pedidoId,
-          total: exactTotal,
-          localId: cart.items[0]?.local_id,
-          marketplace_fee: finalTotals.platform_gross,
-          direccion: orderInfo.direccion,
-          tipoEntrega: orderInfo.tipoEntrega,
-          observaciones: orderInfo.observaciones,
-          cart: cart.items,
-          metodoPago: mp,
-          orderItems: orderItems // Original items format
-        }));
-
-        if (cart.deliveryType === 'envio') {
-          setPendingOrderId(response.pedidoId);
-          setSearchingDriver(true);
-          setFoundDriver(null);
-          setDriverSearchTimeout(false);
-          setSearchSeconds(0);
-          setCartOpen(false);
-
-          // Notify drivers via Push
-          api.broadcastOrderToDrivers(response.pedidoId, exactTotal).catch(console.error);
-        } else {
-          // Pickup Flow
-          if (mp === 'efectivo') {
-            toast.success(`¡Pedido #${response.pedidoId} registrado!`);
-            api.notifyLocalsAboutNewOrder(response.pedidoId, cart.items, orderInfo.direccion, orderInfo.tipoEntrega, orderInfo.observaciones, mp).catch(console.error);
-            cart.clearCart(); setCartOpen(false);
-          } else {
-            triggerMPCheckout(response);
-          }
+        toast.success(`¡Pedido #${response.pedidoId} registrado exitosamente!`);
+        
+        // Facebook Pixel: Purchase (Cash)
+        if (window.fbq) {
+          window.fbq('track', 'Purchase', {
+            value: exactTotal,
+            currency: 'ARS',
+            content_ids: [response.pedidoId],
+            content_type: 'product_group'
+          });
         }
-      } else {
-        throw new Error('No se pudo crear el pedido.');
+
+        // Google Analytics: purchase (Cash)
+        if (window.gtag) {
+          window.gtag('event', 'purchase', {
+            transaction_id: response.pedidoId,
+            value: exactTotal,
+            currency: 'ARS',
+            items: cart.items.map(i => ({
+              item_id: i.id,
+              item_name: i.nombre,
+              quantity: i.qty,
+              price: i.precio
+            }))
+          });
+        }
+
+        api.notifyLocalsAboutNewOrder(
+          response.pedidoId, cart.items, 
+          cart.deliveryType === 'envio' ? dir : 'Retiro en local', 
+          cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar', 
+          fd.get('observaciones') || '', mp
+        ).catch(e => console.error(e));
+
+        // El correo de confirmación al cliente ahora se envía cuando el local acepta el pedido (en RestaurantDashboard)
+        /*
+        api.notifyCustomerAboutNewOrder(
+          response.pedidoId, cart.items,
+          cart.deliveryType === 'envio' ? dir : 'Retiro en local', 
+          cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar', 
+          response.numConfirmacion, user.email, user.name
+        ).catch(e => console.error(e));
+        */
+
+        cart.clearCart();
+        setCartOpen(false);
+        e.target.reset();
+      } 
+      // Rama Transferencia / MP
+      else if (mp === 'transferencia') {
+        const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
+        
+        const orderInfo = {
+          direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
+          tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
+          metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
+          emailCliente: user.email, nombreCliente: user.name,
+          totalCalculado: exactTotal,
+          lat: addressData.lat,
+          lng: addressData.lng,
+          precioEnvio: shipping
+        };
+
+        await api.crearPedidoTemporal({
+          pedidoId: pregeneratedId,
+          userId: user.id,
+          cart: orderItems,
+          orderInfo: orderInfo
+        });
+
+        const loadingToast = toast.loading('Redirigiendo a Mercado Pago...');
+        try {
+          const extRef = pregeneratedId; 
+          const successUrl = window.location.origin + "/pedir";
+          
+          const paymentData = {
+            external_reference: extRef,
+            back_urls: { success: successUrl, failure: successUrl, pending: successUrl },
+            auto_return: "approved",
+            items: [{
+              title: `Pedido Weep #${pregeneratedId}`,
+              quantity: 1,
+              currency_id: "ARS",
+              unit_price: Number(exactTotal)
+            }],
+            local_id: cart.items[0]?.local_id,
+            marketplace_fee: finalTotals.platform_gross
+          };
+
+          const paymentResponse = await iniciarPagoMercadoPago(paymentData);
+
+          if (paymentResponse?.init_point) {
+            toast.dismiss(loadingToast);
+            const pendingData = {
+              pedidoId: pregeneratedId,
+              userId: user.id,
+              fecha: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+              direccion: orderInfo.direccion,
+              metodoPago: 'Transferencia / Mercado Pago',
+              observaciones: orderInfo.observaciones,
+              envioGratis: shipping === 0,
+              tipoEntrega: orderInfo.tipoEntrega,
+              cart: cart.items,
+              total: exactTotal,
+              preferenceId: paymentResponse.id,
+              externalReference: extRef,
+              emailCliente: user.email,
+              nombreCliente: user.name
+            };
+            localStorage.setItem('pendingOrderData', JSON.stringify(pendingData));
+            
+            window.location.href = paymentResponse.init_point;
+            return;
+          } else {
+            throw new Error(paymentResponse?.error || 'No se pudo generar el link de pago');
+          }
+        } catch (err) {
+          toast.dismiss(loadingToast);
+          
+          let errorMsg = err.message;
+          if (errorMsg.includes('non-2xx status code')) {
+             errorMsg = 'El local no tiene configurado Mercado Pago o hubo un problema de conexión.';
+          }
+          
+          toast.error('No pudimos iniciar el pago: ' + errorMsg);
+        }
       }
     } catch (err) { 
-      toast.error('Error: ' + err.message); 
+      toast.error('Error al realizar el pedido: ' + err.message); 
+      console.error("DETALLE ERROR CHECKOUT:", err);
     }
     setCheckoutLoading(false);
   };
@@ -1240,89 +1017,10 @@ export default function PruebasApp() {
   ];
 
   // Show drinks carousel when no drink in cart and delivery is envio
-  const renderPWAInstructionsModal = () => {
-    if (!showPWAInstructions) return null;
-
-    return (
-      <div className="modal-overlay" style={{ zIndex: 100001 }} onClick={() => setShowPWAInstructions(false)}>
-        <div className="modal-box animate-scale-in" style={{ maxWidth: '400px', textAlign: 'center', padding: '24px' }} onClick={e => e.stopPropagation()}>
-          <button className="modal-close" onClick={() => setShowPWAInstructions(false)}>✕</button>
-          
-          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
-          <h2 style={{ fontSize: '1.4rem', marginBottom: '12px', color: 'var(--red-600)', fontWeight: 800 }}>
-            Seguí tu pedido en tiempo real
-          </h2>
-          <p style={{ color: 'var(--gray-600)', marginBottom: '24px', lineHeight: '1.5', fontSize: '0.9rem' }}>
-            Para que podamos enviarte <strong>notificaciones push</strong> con el seguimiento de tu pedido y avisos de llegada, instala Weep en tu inicio:
-          </p>
-          
-          <div style={{ textAlign: 'left', background: '#f8fafc', padding: '16px', borderRadius: '16px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
-            <div style={{ margin: '0 0 16px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ background: 'var(--red-600)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>1</span>
-              <span>Presioná el botón <img src="https://i.postimg.cc/T3yKbZy3/png-transparent-share-icon-computer-icons-button-graphical-user-interface-safari-button-angle-rectan.png" alt="compartir" style={{ height: '18px', verticalAlign: 'middle' }} /> <strong>compartir</strong>.</span>
-            </div>
-            <div style={{ margin: '0 0 16px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ background: 'var(--red-600)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>2</span>
-              <span>Buscá y elegí <strong>"Agregar a inicio"</strong>.</span>
-            </div>
-            <div style={{ margin: 0, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ background: 'var(--red-600)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>3</span>
-              <span>Abrí la app y activá las notificaciones.</span>
-            </div>
-          </div>
-
-          <button className="btn btn-primary btn-full" style={{ height: '50px', borderRadius: '12px' }} onClick={() => setShowPWAInstructions(false)}>
-            ¡Entendido!
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderNotificationActivationModal = () => {
-    if (!showNotificationActivation) return null;
-
-    return (
-      <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={() => setShowNotificationActivation(false)}>
-        <div className="modal-box animate-scale-in" style={{ maxWidth: '380px', textAlign: 'center', padding: '24px' }} onClick={e => e.stopPropagation()}>
-          <button className="modal-close" onClick={() => setShowNotificationActivation(false)}>✕</button>
-          
-          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔔</div>
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '16px', color: '#333', fontWeight: 800 }}>
-            Activar Notificaciones
-          </h2>
-          <p style={{ color: 'var(--gray-600)', marginBottom: '24px', lineHeight: '1.5', fontSize: '1rem' }}>
-            Para activar las notificaciones debes anclar Weep al inicio de pantalla.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button 
-              className="btn btn-outline btn-full" 
-              style={{ height: '50px', borderRadius: '12px', fontWeight: 'bold' }} 
-              onClick={() => {
-                setShowNotificationActivation(false);
-                setShowPWAInstructions(true);
-              }}
-            >
-              📱 Anclar al inicio
-            </button>
-            <button 
-              className="btn btn-primary btn-full" 
-              style={{ height: '50px', borderRadius: '12px', fontWeight: '800' }} 
-              onClick={handleNotificationClick}
-            >
-              ✅ Confirmar suscribir
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const showDrinks = cart.items.length > 0 && cart.deliveryType === 'envio' && !cart.hasDrink && drinks.length > 0;
 
   return (
     <div className="customer-app">
-      {renderPWAInstructionsModal()}
-      {renderNotificationActivationModal()}
       <header className="app-header">
         <Link to="/" className="app-logo-link">
           <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="app-logo" />
@@ -1332,52 +1030,10 @@ export default function PruebasApp() {
           <input type="text" placeholder="Buscar menús o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         </div>
         <div className="header-actions">
-
-          <button 
-            className="profile-btn" 
-            onClick={onNotificationBellClick}
-            title={notificationStatus === 'granted' ? "Desactivar Notificaciones" : "Activar Notificaciones"}
-            style={{ 
-              marginRight: '8px',
-              opacity: 1,
-              position: 'relative'
-            }}
-          >
-            <img src="https://i.postimg.cc/fRRSkmTY/descarga-(26)-(1).png" alt="Notificaciones" className="profile-avatar-img" />
-            {notificationStatus === 'granted' && (
-              <span style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                fontSize: '1.2rem',
-                color: 'rgba(255, 0, 0, 0.8)',
-                fontWeight: 'bold',
-                pointerEvents: 'none',
-                textShadow: '0 0 2px white'
-              }}>
-                ✖
-              </span>
-            )}
-            {notificationStatus !== 'granted' && isStandalone && (
-              <span style={{
-                position: 'absolute',
-                top: '-2px',
-                right: '-2px',
-                width: '10px',
-                height: '10px',
-                background: '#ff5252',
-                borderRadius: '50%',
-                border: '2px solid white'
-              }}></span>
-            )}
-          </button>
-
           <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
             <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
             <span className="hide-mobile">{user ? 'Mi Perfil' : 'Ingresar'}</span>
           </button>
-          
           <button className="cart-btn" onClick={openCart}>
             <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito" className="cart-icon-img" />
             {cart.totalItems > 0 && <span className="cart-badge">{cart.totalItems}</span>}
@@ -1385,6 +1041,23 @@ export default function PruebasApp() {
         </div>
       </header>
 
+      {!hasRepartidores && (
+          <div className="no-drivers-alert animate-fade-in" style={{
+            backgroundColor: '#fffbeb',
+            borderBottom: '1px solid #fef3c7',
+            padding: '10px 20px',
+            textAlign: 'center',
+            color: '#92400e',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <span>⚠️</span> No hay repartidores disponibles en este momento, vuelve intentar en unos minutos. Solo retiro en local disponible.
+          </div>
+        )}
 
       <main className="app-main">
         <div className="banners-container" style={{ marginBottom: '20px' }}>
@@ -1406,45 +1079,25 @@ export default function PruebasApp() {
               zIndex: 90
             }}>
               <span>🛵 ¡Tienes un pedido en proceso!</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  onClick={() => navigate('/mis-pedidos')} 
-                  style={{
-                    background: 'white',
-                    color: '#ff9800',
-                    border: 'none',
-                    padding: '6px 14px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  Ver Pedido
-                </button>
-                {isIOS && !isStandalone && (
-                  <button 
-                    onClick={() => setShowPWAInstructions(true)} 
-                    style={{
-                      background: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      border: '1px solid white',
-                      padding: '6px 14px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '700',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    🔔 Avisarme cuando llega
-                  </button>
-                )}
-              </div>
+              <button 
+                onClick={() => navigate('/mis-pedidos')} 
+                style={{
+                  background: 'white',
+                  color: '#ff9800',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+              >
+                Ver Mis Pedidos
+              </button>
             </div>
           )}
         </div>
-        
         
         {/* ─── Banners Carousel ─── */}
         {!bannersLoading && banners.length > 0 && (
@@ -1494,7 +1147,7 @@ export default function PruebasApp() {
               </h2>
             </div>
             <div className="promos-scroll" style={{ display: 'flex', gap: '16px', overflowX: 'auto', padding: '4px 4px 16px 4px', scrollSnapType: 'x mandatory' }}>
-              {promoItems.filter(i => i.categoria !== 'Base').map((item, i) => {
+              {promoItems.map((item, i) => {
                 const discPrice = calculateDiscountedPrice(item);
                 const percent = Math.round((1 - discPrice / Number(item.precio)) * 100);
                 const localRef = locals.find(l => l.id === item.local_id);
@@ -1503,34 +1156,21 @@ export default function PruebasApp() {
                 return (
                   <div 
                     key={item.id} 
-                    className={`promo-item-card ${(!open || (item.stock_actual < (item.unidades_por_venta || 1))) ? 'closed' : ''}`}
-                    onClick={() => {
-                      if (!open) return;
-                      const isOutOfStock = (item.local_rubro === 'Panadería' || item.maneja_stock) && (item.stock_actual < (item.unidades_por_venta || 1));
-                      if (isOutOfStock) {
-                        toast.error(`¡Agotado! No queda stock de ${item.nombre}`);
-                        return;
-                      }
-                      handleAddToCart({ ...item, precio: discPrice });
-                    }}
+                    className={`promo-item-card ${!open ? 'closed' : ''}`}
+                    onClick={() => open && handleAddToCart(item)}
                   >
                     <div className="promo-img-container">
                       <img 
                         src={item.imagen_url || 'https://placehold.co/240x140?text=Promo'} 
                         alt={item.nombre} 
                         className="promo-item-img"
-                        style={(item.stock_actual < (item.unidades_por_venta || 1)) ? { filter: 'grayscale(0.8)' } : {}}
                       />
                       <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'var(--red-600)', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '800', boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)' }}>
                         {percent}% OFF
                       </div>
-                      {!open ? (
+                      {!open && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.85rem' }}>
                           CERRADO
-                        </div>
-                      ) : (item.stock_actual < (item.unidades_por_venta || 1)) && (
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1rem', letterSpacing: '1px' }}>
-                          AGOTADO
                         </div>
                       )}
                     </div>
@@ -1827,7 +1467,7 @@ export default function PruebasApp() {
                     key={menu.id || i} 
                     className="menu-card card card-hover" 
                     style={{ animationDelay: `${i * 0.05}s`, cursor: 'pointer' }}
-                    onClick={() => handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) })}
+                    onClick={() => handleAddToCart(menu)}
                   >
                     <div className="menu-card-img-container">
                       <img
@@ -1844,25 +1484,6 @@ export default function PruebasApp() {
                         }
                         return null;
                       })()}
-                      
-                      {/* Stock Check Badge */}
-                      {(menu.local_rubro === 'Panadería' || menu.maneja_stock) && (menu.stock_actual < (menu.unidades_por_venta || 1)) && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '12px',
-                          right: '12px',
-                          background: 'rgba(0,0,0,0.8)',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.7rem',
-                          fontWeight: 'bold',
-                          letterSpacing: '0.5px',
-                          zIndex: 2
-                        }}>
-                          AGOTADO
-                        </div>
-                      )}
                     </div>
                     <div className="menu-card-body">
                       <div className="menu-card-local">
@@ -1928,24 +1549,13 @@ export default function PruebasApp() {
 
                             const itemCfg = typeof menu.variantes === 'string' ? JSON.parse(menu.variantes || '{}') : (menu.variantes || {});
                             const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas;
-                            
-                            const isOutOfStock = (menu.local_rubro === 'Panadería' || menu.maneja_stock) && (menu.stock_actual < (menu.unidades_por_venta || 1));
-
-                            if (isOutOfStock) {
-                               return (
-                                 <span style={{ fontSize: '0.85rem', color: 'var(--red-600)', fontWeight: '600' }}>
-                                   Sin stock
-                                 </span>
-                               );
-                            }
 
                             return (
                               <button 
                                 className="btn btn-primary btn-sm" 
-                                disabled={isOutOfStock}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) });
+                                  handleAddToCart(menu);
                                 }}
                               >
                                 {needsCustomization ? 'Elegir' : 'Agregar'}
@@ -1985,46 +1595,70 @@ export default function PruebasApp() {
           <h2>Tu Carrito</h2>
           <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
         </div>
-        
-        {isIOS && !isStandalone && (
-          <div 
-            className="cart-pwa-tip animate-fade-in"
-            onClick={() => setShowPWAInstructions(true)}
-            style={{
-              margin: '0 20px 16px',
-              padding: '12px',
-              background: '#fdf2f2',
-              border: '1px solid #fee2e2',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-          >
-            <div style={{ fontSize: '1.2rem' }}>📱</div>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--red-600)' }}>Instala la App para seguir tu pedido</p>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>Recibe avisos de llegada y mensajes en tiempo real.</p>
-            </div>
-            <span style={{ color: 'var(--red-400)' }}>➔</span>
-          </div>
-        )}
-
         <div className="cart-body-content">
+          {!hasRepartidores && (
+            <div 
+              className="no-drivers-cart-top-notice animate-fade-in" 
+              style={{
+                background: '#fffbeb',
+                color: '#92400e',
+                fontSize: '0.9rem',
+                padding: '16px',
+                borderRadius: '12px',
+                marginBottom: '20px',
+                fontWeight: '700',
+                border: '2px solid #fef3c7',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(251, 191, 36, 0.1)'
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🚫</div>
+              No hay repartidores disponibles en este momento.
+              <p style={{ fontWeight: '400', fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>
+                Vuelve a intentar en unos minutos para envíos a domicilio.
+              </p>
+            </div>
+          )}
+
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="form-label">Tipo de entrega</label>
             <select 
               className="form-select" 
               value={cart.deliveryType} 
-              onChange={e => cart.setDeliveryType(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                cart.setDeliveryType(val);
+
+                if (val === 'envio') {
+                  api.checkActiveRepartidores().then(fresh => {
+                    setHasRepartidores(fresh.hasActive);
+                    if (!fresh.hasActive) {
+                      // Si al final no había, revertimos a retiro (si se permite)
+                      const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+                      if (currentLocal?.acepta_retiro === true) {
+                        cart.setDeliveryType('retiro');
+                      }
+                    }
+                  }).catch(() => {});
+                }
+              }}
+              style={{ 
+                borderColor: !hasRepartidores ? 'var(--amber-400)' : '',
+                backgroundColor: !hasRepartidores ? '#fff9f0' : ''
+              }}
             >
               {(() => {
                 const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
                 return (
                   <>
                     {(currentLocal?.acepta_envio !== false) && (
-                      <option value="envio">🛵 Con envío a domicilio</option>
+                      <option 
+                        value="envio" 
+                        disabled={!hasRepartidores}
+                        style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
+                      >
+                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (sin repartidores disponibles)'}
+                      </option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (
                       <option value="retiro">🥡 Retirar en local</option>
@@ -2117,54 +1751,10 @@ export default function PruebasApp() {
                     <span>+${(metodoPago === 'transferencia' && cart.deliveryType !== 'retiro' ? (visibleMpFee + visibleShipping) : visibleMpFee).toLocaleString('es-AR')}</span>
                   </div>
                 )}
-                {checkoutTotals.coupon_discount > 0 && (
-                  <div className="cart-line" style={{ color: 'var(--red-600)', fontWeight: 600 }}>
-                    <span>Descuento cupón</span>
-                    <span>-${checkoutTotals.coupon_discount.toLocaleString('es-AR')}</span>
-                  </div>
-                )}
                 <div className="cart-line total-line">
                   <span>Total</span>
                   <span>${totalConComision.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                 </div>
-              </div>
-
-
-
-              {/* Coupon Section */}
-              <div className="coupon-section" style={{ marginTop: '16px', marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '8px', display: 'block' }}>¿Tenés un cupón de descuento?</label>
-                {!appliedCupon ? (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="Ingresá el código" 
-                      value={cuponCode}
-                      onChange={e => setCuponCode(e.target.value.toUpperCase())}
-                      style={{ fontSize: '0.85rem', flex: 1, textTransform: 'uppercase' }}
-                    />
-                    <button 
-                      type="button" 
-                      className="btn btn-primary" 
-                      style={{ padding: '0 16px', fontSize: '0.85rem' }}
-                      onClick={handleApplyCupon}
-                      disabled={validatingCupon || !cuponCode}
-                    >
-                      {validatingCupon ? '...' : 'Aplicar'}
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--red-100)' }}>
-                    <div>
-                      <span style={{ fontWeight: 700, color: 'var(--red-600)', fontSize: '0.85rem' }}>{appliedCupon.codigo}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginLeft: '8px' }}>
-                        (-{appliedCupon.tipo === 'porcentaje' ? `${appliedCupon.valor}%` : `$${appliedCupon.valor}`})
-                      </span>
-                    </div>
-                    <button type="button" onClick={removeCupon} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-                  </div>
-                )}
               </div>
 
               <form onSubmit={handleCheckout} className="checkout-form">
@@ -2785,190 +2375,6 @@ export default function PruebasApp() {
 
       {/* Chatbot de Ayuda */}
       <HelpChatbot />
-
-      {/* Modal de Búsqueda de Repartidor */}
-      {searchingDriver && (
-        <div className="searching-modal-overlay">
-          <div className="searching-modal-card">
-            {!foundDriver ? (
-              <>
-                <div className="searching-animation">
-                  <div className="radar"></div>
-                  <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Buscando" className="moving-moto" />
-                </div>
-                <h2>Confirmando pedido...</h2>
-                <div className="searching-status-pill">
-                  {searchSeconds < 10 ? 'Iniciando búsqueda...' : 
-                   searchSeconds < 30 ? 'Notificando a repartidores cercanos...' :
-                   searchSeconds < 60 ? 'Estamos esperando una aceptación...' :
-                   'Ampliando zona de búsqueda...'}
-                </div>
-                <p className="searching-description">
-                  Estamos buscando al mejor repartidor disponible para llevar tu pedido. Esto puede demorar unos minutos.
-                </p>
-                <div style={{
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  color: '#dc2626',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  marginTop: '10px',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <span>⚠️</span> 
-                  <span><strong>NO CIERRES ESTA VENTANA:</strong> Una vez que encontremos repartidor, deberás realizar el pago para confirmar tu pedido.</span>
-                </div>
-                <div className="searching-timer">
-                  Buscando repartidor... 
-                  <span style={{ fontWeight: 800, color: 'var(--red-600)', marginLeft: '8px', fontSize: '1.1rem' }}>
-                    0{Math.floor((60 - searchSeconds) / 60)}:{( (60 - searchSeconds) % 60 ).toString().padStart(2, '0')}
-                  </span>
-                </div>
-                <button 
-                  className="searching-cancel-btn"
-                  onClick={async () => {
-                    const orderIdToCancel = pendingOrderId;
-                    setSearchingDriver(false);
-                    setPendingOrderId(null);
-                    localStorage.removeItem('pendingOrderDataPruebas');
-                    
-                    if (orderIdToCancel) {
-                      try {
-                        // Mark as rejected/cancelled so it disappears for drivers AND locals
-                        await Promise.all([
-                          api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
-                          api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
-                        ]);
-                        toast.success('Búsqueda cancelada');
-                      } catch (e) {
-                        console.error("Error cancelling order:", e);
-                      }
-                    }
-                  }}
-                >
-                  Cancelar búsqueda
-                </button>
-              </>
-            ) : (
-              <div className="found-driver-animation">
-                <div className="success-check">
-                  <span className="check-icon">🚀</span>
-                </div>
-                <h2>¡Repartidor encontrado!</h2>
-                <p className="success-msg">Ya encontramos un repartidor para llevar tu pedido.</p>
-                
-                <div className="found-driver-info">
-                  <img src={foundDriver.foto_url || 'https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png'} alt={foundDriver.nombre} className="driver-img" />
-                  <div className="driver-details">
-                    <span className="driver-name">{foundDriver.nombre}</span>
-                    <span className="estimated-tag">Llega en {estimatedTime}</span>
-                  </div>
-                </div>
-
-                <div className="opening-mp">
-                  <div className="spinner-small"></div>
-                  <span>Abriendo checkout de Mercado Pago...</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {driverSearchTimeout && (
-        <div className="searching-modal-overlay">
-          <div className="searching-modal-card animate-slide-up">
-            <div className="timeout-icon">📣</div>
-            <h2>Seguimos buscando...</h2>
-            <p>Los repartidores están un poco ocupados en este momento. ¿Quieres seguir esperando un poco más? Seguiremos notificándolos.</p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '20px' }}>
-              <button 
-                className="btn btn-primary btn-full"
-                onClick={() => {
-                  setDriverSearchTimeout(false);
-                  setSearchSeconds(0); 
-                  // Re-enviar push de inmediato al reintentar
-                  api.broadcastOrderToDrivers(pendingOrderId, cart.total);
-                  toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
-                }}
-              >
-                ✅ Sí, seguir esperando
-              </button>
-              <button 
-                className="btn btn-outline btn-full"
-                onClick={async () => {
-                  const orderIdToCancel = pendingOrderId;
-                  setDriverSearchTimeout(false);
-                  setSearchingDriver(false);
-                  setPendingOrderId(null);
-                  localStorage.removeItem('pendingOrderDataPruebas');
-                  
-                  if (orderIdToCancel) {
-                    try {
-                      await Promise.all([
-                        api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
-                        api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
-                      ]);
-                      toast.success('Búsqueda cancelada');
-                    } catch (e) {
-                      console.error("Error cancelling order:", e);
-                    }
-                  }
-                }}
-              >
-                ✖ No, cancelar pedido
-              </button>
-
-              <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #eee' }} />
-              
-              <button 
-                className="btn btn-ghost btn-full"
-                style={{ color: 'var(--blue-600)', background: 'var(--blue-50)', fontWeight: 'bold' }}
-                onClick={async () => {
-                  const orderIdToCancel = pendingOrderId;
-                  // 1. Cancel order
-                  if (orderIdToCancel) {
-                    await Promise.all([
-                      api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
-                      api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
-                    ]).catch(console.error);
-                  }
-                  
-                  // 2. Subscribe to push
-                  try {
-                    const OneSignal = window.OneSignal;
-                    if (OneSignal) {
-                      await OneSignal.Notifications.requestPermission();
-                      const subId = OneSignal.User.PushSubscription.id;
-                      if (subId) {
-                        await api.subscribeToDriverAvailability(subId, user?.id);
-                        toast.success('🚀 ¡Perfecto! Te avisaremos apenas se conecte un repartidor.');
-                      } else {
-                        toast.error('No pudimos activar las notificaciones. Asegúrate de tener la App instalada.');
-                      }
-                    }
-                  } catch (e) {
-                    console.error("Error subscribing to demand recovery:", e);
-                    toast.error('Ocurrió un error al agendar el aviso.');
-                  }
-
-                  // 3. Close everything
-                  setDriverSearchTimeout(false);
-                  setSearchingDriver(false);
-                  setPendingOrderId(null);
-                }}
-              >
-                🔔 Avisarme cuando haya repartidores
-              </button>
-           </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

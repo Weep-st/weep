@@ -39,6 +39,15 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback((menu) => {
     setItems(prev => {
+      // Validar local único
+      if (prev.length > 0) {
+        const existingLocalId = prev[0].local_id;
+        if (existingLocalId && menu.local_id && existingLocalId !== menu.local_id) {
+          toast.error('Tu carrito ya tiene productos de otro local. Finalizá ese pedido para comprar en éste.');
+          return prev;
+        }
+      }
+
       const existing = prev.find(i => i.id === menu.id);
       if (existing) {
         return prev.map(i => i.id === menu.id ? { ...i, qty: i.qty + 1 } : i);

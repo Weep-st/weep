@@ -129,7 +129,8 @@ export async function getPerfilLocal(localId) {
     success: true, 
     ...data,
     dias_descuento: data.dias_descuento || [],
-    descuento_general: data.descuento_general || 0
+    descuento_general: data.descuento_general || 0,
+    categoria_descuento: data.categoria_descuento || ''
   };
 }
 
@@ -435,7 +436,7 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, admin_status')
     .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
@@ -445,7 +446,11 @@ export async function getLocales() {
     disponible_desde: l.disponible_desde,
     acepta_retiro: l.acepta_retiro, acepta_envio: l.acepta_envio,
     dias_descuento: l.dias_descuento || [],
-    descuento_general: l.descuento_general || 0
+    descuento_general: l.descuento_general || 0,
+    categoria_descuento: l.categoria_descuento || '',
+    plan_id: l.plan_id,
+    rubro: l.rubro,
+    admin_status: l.admin_status
   }));
 }
 
@@ -455,7 +460,7 @@ export async function getLocales() {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, plan_id)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
@@ -470,6 +475,7 @@ export async function getMenuCompleto() {
     local_acepta_envio: i.locales?.acepta_envio,
     local_dias_descuento: i.locales?.dias_descuento || [],
     local_descuento_general: i.locales?.descuento_general || 0,
+    local_categoria_descuento: i.locales?.categoria_descuento || '',
     estado: i.locales?.estado,
     horario_apertura: i.locales?.horario_apertura,
     horario_cierre: i.locales?.horario_cierre,
@@ -481,9 +487,10 @@ export async function getMenuCompleto() {
 export async function getPromos() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
+    .select('*, locales!inner(*)')
     .eq('disponibilidad', true)
-    .gt('descuento', 0)
+    .eq('locales.admin_status', 'Aceptado')
+    .or('descuento.gt.0,categoria.eq.Combos,categoria.eq.Promos')
     .order('descuento', { ascending: false });
 
   return (data || []).map(i => ({
@@ -498,6 +505,7 @@ export async function getPromos() {
     local_acepta_envio: i.locales?.acepta_envio,
     local_dias_descuento: i.locales?.dias_descuento || [],
     local_descuento_general: i.locales?.descuento_general || 0,
+    local_categoria_descuento: i.locales?.categoria_descuento || '',
     estado: i.locales?.estado,
     horario_apertura: i.locales?.horario_apertura,
     horario_cierre: i.locales?.horario_cierre,
@@ -508,7 +516,8 @@ export async function getPromos() {
     maneja_stock: i.maneja_stock,
     stock_base_id: i.stock_base_id,
     unidades_por_venta: i.unidades_por_venta,
-    local_rubro: i.locales?.rubro || ''
+    local_rubro: i.locales?.rubro || '',
+    local_plan_id: i.locales?.plan_id
   }));
 }
 
@@ -529,6 +538,7 @@ export async function getMenuByCategoria(categoria) {
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_dias_descuento: i.locales?.dias_descuento || [],
     local_descuento_general: i.locales?.descuento_general || 0,
+    local_categoria_descuento: i.locales?.categoria_descuento || '',
     estado: i.locales?.estado,
     horario_apertura: i.locales?.horario_apertura,
     horario_cierre: i.locales?.horario_cierre,
@@ -540,7 +550,7 @@ export async function getMenuByCategoria(categoria) {
 export async function getMenuByLocalId(localId) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, rubro)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, rubro)')
     .eq('local_id', localId)
     .order('nombre');
   return (data || []).map(i => ({
@@ -551,7 +561,9 @@ export async function getMenuByLocalId(localId) {
     disponibilidad: i.disponibilidad, variantes: i.variantes,
     local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
+    local_dias_descuento: i.locales?.dias_descuento || [],
     local_descuento_general: i.locales?.descuento_general || 0,
+    local_categoria_descuento: i.locales?.categoria_descuento || '',
     local_rubro: i.locales?.rubro || '',
     stock_actual: i.stock_actual,
     maneja_stock: i.maneja_stock,
@@ -563,6 +575,74 @@ export async function getMenuByLocalId(localId) {
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura
   }));
+}
+
+export async function getExploreItems(limit = 24) {
+  const { data } = await supabase
+    .from('menu')
+    .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, rubro, admin_status)')
+    .eq('disponibilidad', true)
+    .eq('locales.admin_status', 'Aceptado')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  return (data || []).map(i => ({
+    id: i.id, nombre: i.nombre, categoria: i.categoria,
+    descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
+    imagen_url: i.imagen_url, local_id: i.local_id,
+    variantes: i.variantes,
+    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
+    local_dias_descuento: i.locales?.dias_descuento || [],
+    local_descuento_general: i.locales?.descuento_general || 0,
+    local_categoria_descuento: i.locales?.categoria_descuento || '',
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura,
+    local_rubro: i.locales?.rubro || ''
+  }));
+}
+
+export async function getMostOrderedItems(limit = 12) {
+  const { data: items } = await supabase
+    .from('pedidos_items')
+    .select('item_id')
+    .order('created_at', { ascending: false })
+    .limit(1000);
+
+  if (!items || items.length === 0) return [];
+
+  const counts = {};
+  items.forEach(i => {
+    counts[i.item_id] = (counts[i.item_id] || 0) + 1;
+  });
+
+  const sortedIds = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, limit);
+
+  const { data: menuData } = await supabase
+    .from('menu')
+    .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, rubro, admin_status)')
+    .eq('locales.admin_status', 'Aceptado')
+    .in('id', sortedIds);
+
+  return (menuData || []).map(i => ({
+    id: i.id, nombre: i.nombre, categoria: i.categoria,
+    descripcion: i.descripcion, precio: i.precio,
+    descuento: i.descuento || 0,
+    imagen_url: i.imagen_url, local_id: i.local_id,
+    variantes: i.variantes,
+    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    local_disponible_desde: i.locales?.disponible_desde || null,
+    estado: i.locales?.estado,
+    horario_apertura: i.locales?.horario_apertura,
+    horario_cierre: i.locales?.horario_cierre,
+    modo_automatico: i.locales?.modo_automatico,
+    dias_apertura: i.locales?.dias_apertura,
+    local_rubro: i.locales?.rubro || ''
+  })).sort((a, b) => sortedIds.indexOf(a.id) - sortedIds.indexOf(b.id));
 }
 
 export async function getBaseProductsStock(localIds) {
@@ -792,11 +872,23 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
     throw new Error(error.message + " | Detalles: " + (error.details || ''));
   }
 
-  // Update wallet credit if applicable
+  // Deduct wallet credit if applicable
   if (creditoWallet > 0) {
-    await supabase.from('pedidos_general')
-      .update({ credito_wallet: creditoWallet })
-      .eq('id', data.pedido_id);
+    try {
+      const { data: spendRes, error: spendErr } = await supabase.rpc('spend_wallet_credit', {
+        p_user_id: userId,
+        p_amount: creditoWallet,
+        p_order_id: data.pedido_id
+      });
+      if (spendErr) console.error("🚨 Error deducing wallet credit:", spendErr);
+      
+      // Also update the tracking column in pedidos_general
+      await supabase.from('pedidos_general')
+        .update({ credito_wallet: creditoWallet })
+        .eq('id', data.pedido_id);
+    } catch (err) {
+      console.error("Error in wallet deduction flow:", err);
+    }
   }
 
   // Actualizar el "total" (subtotal del local) en pedidos_locales
@@ -1146,10 +1238,36 @@ export async function getRepartidoresActivosCount(excludeDriverId) {
   return count || 0;
 }
 
+export async function getLocalesByRubro(rubro) {
+  const { data } = await supabase
+    .from('locales')
+    .select('*')
+    .eq('rubro', rubro)
+    .eq('admin_status', 'Aceptado');
+
+  return (data || []).map(l => ({
+    local_id: l.id,
+    nombre_local: l.nombre,
+    logo_url: l.foto_url || '',
+    estado: l.estado || 'Inactivo',
+    precio_min_categoria: 0,
+    horario_apertura: l.horario_apertura,
+    horario_cierre: l.horario_cierre,
+    modo_automatico: l.modo_automatico,
+    dias_apertura: l.dias_apertura,
+    disponible_desde: l.disponible_desde,
+    acepta_retiro: l.acepta_retiro,
+    acepta_envio: l.acepta_envio,
+    dias_descuento: l.dias_descuento || [],
+    descuento_general: l.descuento_general || 0,
+    plan_id: l.plan_id
+  }));
+}
+
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, plan_id)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -1172,9 +1290,11 @@ export async function getLocalesByCategoria(categoria) {
         dias_apertura: item.locales?.dias_apertura,
         disponible_desde: item.locales?.disponible_desde,
         acepta_retiro: item.locales?.acepta_retiro,
+        plan_id: item.locales?.plan_id,
         acepta_envio: item.locales?.acepta_envio,
         dias_descuento: item.locales?.dias_descuento || [],
-        descuento_general: item.locales?.descuento_general || 0
+        descuento_general: item.locales?.descuento_general || 0,
+        plan_id: item.locales?.plan_id
       };
     } else {
       if (item.precio < groupedMap[lid].precio_min_categoria) {
@@ -1536,9 +1656,17 @@ export async function getCobrosByLocal(localId) {
     }
   }
 
-  const comisionTotal = totalVentas * 0.08;
-  const comisionSaldada = totalTransf * 0.08;
-  const comisionPendiente = totalEfectivo * 0.08;
+  // Get current commission percentage from RPC instead of hardcoding 8%
+  let comisionPct = 8;
+  const planInfo = await getPlanInfo(localId);
+  if (planInfo.success) {
+    comisionPct = planInfo.comision_actual;
+  }
+  
+  const comisionFactor = comisionPct / 100;
+  const comisionTotal = totalVentas * comisionFactor;
+  const comisionSaldada = totalTransf * comisionFactor;
+  const comisionPendiente = totalEfectivo * comisionFactor;
 
   const { data: historial } = await supabase.from('gestion_cobros')
     .select('*').eq('local_id', localId).eq('tipo', 'Solicitud')
@@ -2643,18 +2771,28 @@ export async function validateCupon(codigo, subtotal, localId = null) {
 // WALLET SYSTEM - API
 // ═══════════════════════════════════════════════════
 
-export async function getUserWalletBalance(userId) {
-  const { data, error } = await supabase
-    .from('user_wallets')
-    .select('balance')
-    .eq('user_id', userId)
-    .single();
+export async function getUserWalletBalance(userId, localId = null) {
+  if (!userId) return 0;
   
-  if (error && error.code !== 'PGRST116') {
-     console.error("Error fetching wallet balance:", error);
-     return 0;
+  // Using RPC to bypass RLS and handle local restriction
+  const { data, error } = await supabase.rpc('get_applicable_wallet_balance', {
+    p_user_id: userId,
+    p_local_id: localId
+  });
+  
+  if (error) {
+     console.error("Error fetching wallet balance via RPC:", error);
+     // Fallback to direct query if RPC doesn't exist yet
+     const { data: directData } = await supabase
+       .from('user_wallets')
+       .select('balance')
+       .eq('user_id', userId)
+       .maybeSingle();
+     return directData?.balance || 0;
   }
-  return data?.balance || 0;
+  
+  console.log(`DEBUG: Applicable balance for ${userId} in ${localId || 'Global'} is ${data}`);
+  return data || 0;
 }
 
 export async function getWalletTransactions(userId) {
@@ -2733,5 +2871,58 @@ export async function adminDeleteWalletCampaign(id) {
     .eq('id', id);
   if (error) throw error;
   return { success: true };
+}
+
+// ──────────────────────────────────────────────────
+// ADVANCED WALLET CONFIG (PER-LOCAL)
+// ──────────────────────────────────────────────────
+
+export async function adminGetWalletConfigs() {
+  const { data, error } = await supabase
+    .from('wallet_config_locales')
+    .select('*')
+    .order('local_id', { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminSaveWalletConfig(config) {
+  const { data, error } = await supabase
+    .from('wallet_config_locales')
+    .upsert(config)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function adminDeleteWalletConfig(id) {
+  const { error } = await supabase
+    .from('wallet_config_locales')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
+/**
+ * Obtiene la configuración de créditos aplicable a un local específico.
+ * Prioriza la del local, de lo contrario la global (null).
+ */
+export async function getWalletConfigForLocal(localId) {
+  const { data, error } = await supabase
+    .from('wallet_config_locales')
+    .select('*')
+    .or(`local_id.eq.${localId},local_id.is.null`)
+    .eq('activo', true)
+    .order('local_id', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching wallet config for local:", error);
+    return null;
+  }
+  return data;
 }
 

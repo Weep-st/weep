@@ -867,9 +867,16 @@ export default function PruebasWalletApp() {
         if (walletValidation.canUse && walletConfig.acumulable_promos === false) {
            const hasPromos = cart.items.some(i => {
              const hasDirectDiscount = Number(i.descuento) > 0;
-             const hasGeneralDiscount = Number(i.local_descuento_general || i.descuento_general) > 0;
+             const generalDiscount = Number(i.local_descuento_general || i.descuento_general || 0);
+             const discountDays = i.local_dias_descuento || i.dias_descuento || [];
+             const categoryDiscount = i.local_categoria_descuento || i.categoria_descuento || '';
+             const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+             const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+             const isCorrectDay = discountDays.some(d => normalize(d) === normalize(today));
+             const isCorrectCategory = !categoryDiscount || categoryDiscount === i.categoria;
+             const hasGeneralDiscountApplied = generalDiscount > 0 && isCorrectDay && isCorrectCategory;
              const isDiscounted = i.precio_original && Number(i.precio) < Number(i.precio_original);
-             return hasDirectDiscount || hasGeneralDiscount || isDiscounted;
+             return hasDirectDiscount || hasGeneralDiscountApplied || isDiscounted;
            });
            
            if (hasPromos) {
@@ -975,13 +982,17 @@ export default function PruebasWalletApp() {
       // 2. General Local Discount (Percentage)
       const discountDays = item.local_dias_descuento || item.dias_descuento || [];
       const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+      const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
       
       if (generalDiscount > 0 && discountDays.length > 0) {
         const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
         const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const todayNorm = normalize(today);
         
-        if (discountDays.some(d => normalize(d) === todayNorm)) {
+        const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+        const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+
+        if (isCorrectDay && isCorrectCategory) {
           price = price * (1 - generalDiscount / 100);
         }
       }
@@ -1078,8 +1089,16 @@ export default function PruebasWalletApp() {
     // Tracking: Add to Cart
     api.trackDemandSignal('add_to_cart', sessionId).catch(() => {});
 
+    // Calculate final price once here
+    const discountedPrice = calculateDiscountedPrice(menu);
+    const itemToAdd = {
+      ...menu,
+      precio: discountedPrice,
+      precioOriginal: menu.precioOriginal || menu.precio
+    };
+
     // Default addition for other items
-    cart.addItem(menu);
+    cart.addItem(itemToAdd);
     toast((t) => (
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         ¡{menu.nombre} agregado! ✓
@@ -1712,7 +1731,7 @@ export default function PruebasWalletApp() {
                           <div 
                             key={item.id} 
                             className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'}`}
-                            onClick={() => open && handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio })}
+                            onClick={() => open && handleAddToCart(item)}
                           >
                             <div className="promo-vertical-img">
                               <img src={item.imagen_url} alt={item.nombre} />
@@ -1730,12 +1749,12 @@ export default function PruebasWalletApp() {
                               <span className="promo-item-name">{item.nombre}</span>
                               <div className="promo-price-row">
                                 <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
-                                {item.descuento > 0 && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
+                                {calculateDiscountedPrice(item) < Number(item.precio) && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span className="promo-local-label">{item.local_nombre}</span>
                                 {open ? (
-                                  <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio }); }}>+</button>
+                                  <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                 ) : (
                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>Cerrado</span>
                                 )}
@@ -1785,7 +1804,7 @@ export default function PruebasWalletApp() {
                         <div 
                           key={item.id} 
                           className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'}`} 
-                          onClick={() => open && handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio })}
+                          onClick={() => open && handleAddToCart(item)}
                         >
                            <div className="promo-vertical-img">
                               <img src={item.imagen_url} alt={item.nombre} />
@@ -1804,11 +1823,16 @@ export default function PruebasWalletApp() {
                               <span className="promo-item-name">{item.nombre}</span>
                               <div className="promo-price-row">
                                  <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
+                                  {calculateDiscountedPrice(item) < Number(item.precio) && (
+                                    <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)', marginLeft: '8px' }}>
+                                      ${Number(item.precio).toLocaleString()}
+                                    </span>
+                                  )}
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                  <span className="promo-local-label">{item.local_nombre}</span>
                                  {open ? (
-                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio }); }}>+</button>
+                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                  ) : (
                                    <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>Cerrado</span>
                                  )}
@@ -1929,14 +1953,18 @@ export default function PruebasWalletApp() {
                           <div className="menu-card-footer">
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span className="menu-card-price" style={{ color: 'inherit' }}>${calculateDiscountedPrice(item).toLocaleString()}</span>
-                              {item.descuento > 0 && <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>${Number(item.precio).toLocaleString()}</span>}
+                              {calculateDiscountedPrice(item) < Number(item.precio) && (
+                                <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                                  ${Number(item.precio).toLocaleString()}
+                                </span>
+                              )}
                             </div>
                             <div className="menu-card-actions">
                               {(() => {
                                 const loc = locals.find(l => l.id === item.local_id);
                                 if (loc && isLocalOpen(loc)) {
                                   return (
-                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio }); }}>
+                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
                                       Agregar
                                     </button>
                                   );
@@ -2065,13 +2093,17 @@ export default function PruebasWalletApp() {
                             <div className="menu-card-footer">
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <span className="menu-card-price">${calculateDiscountedPrice(item).toLocaleString()}</span>
-                                {item.descuento > 0 && <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>${Number(item.precio).toLocaleString()}</span>}
+                                {calculateDiscountedPrice(item) < Number(item.precio) && (
+                                  <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                                    ${Number(item.precio).toLocaleString()}
+                                  </span>
+                                )}
                               </div>
                               {(() => {
                                 const loc = locals.find(l => l.id === item.local_id);
                                 if (loc && isLocalOpen(loc)) {
                                   return (
-                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio }); }}>
+                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
                                       Agregar
                                     </button>
                                   );
@@ -2127,7 +2159,7 @@ export default function PruebasWalletApp() {
                                  key={item.id} 
                                  className="menu-card card card-hover" 
                                  style={{ cursor: 'pointer' }}
-                                 onClick={() => handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio })}
+                                 onClick={() => handleAddToCart(item)}
                                >
                                  <div className="menu-card-img-container">
                                    <img src={item.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'} alt={item.nombre} className="menu-card-img" />
@@ -2157,7 +2189,7 @@ export default function PruebasWalletApp() {
                                      </div>
                                      <div className="menu-card-actions">
                                        {isLocalOpen(selectedLocal) ? (
-                                         <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart({...item, precio: calculateDiscountedPrice(item), precio_original: item.precio }); }}>
+                                         <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
                                            {needsCustomization ? 'Elegir' : 'Agregar'}
                                          </button>
                                        ) : (

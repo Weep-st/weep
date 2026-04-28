@@ -577,13 +577,17 @@ export default function CustomerApp() {
       // 2. General Local Discount (Percentage)
       const discountDays = item.local_dias_descuento || item.dias_descuento || [];
       const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+      const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
       
       if (generalDiscount > 0 && discountDays.length > 0) {
         const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
         const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const todayNorm = normalize(today);
         
-        if (discountDays.some(d => normalize(d) === todayNorm)) {
+        const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+        const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+
+        if (isCorrectDay && isCorrectCategory) {
           price = price * (1 - generalDiscount / 100);
         }
       }
@@ -687,7 +691,13 @@ export default function CustomerApp() {
     api.trackDemandSignal('add_to_cart', sessionId).catch(() => {});
 
     // Default addition for other items
-    cart.addItem(menu);
+    const discountedPrice = calculateDiscountedPrice(menu);
+    const itemToAdd = {
+      ...menu,
+      precio: discountedPrice,
+      precioOriginal: menu.precioOriginal || menu.precio
+    };
+    cart.addItem(itemToAdd);
     toast((t) => (
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         ¡{menu.nombre} agregado! ✓
@@ -1147,7 +1157,7 @@ export default function CustomerApp() {
                   <div 
                     key={item.id} 
                     className={`promo-item-card ${!open ? 'closed' : ''}`}
-                    onClick={() => open && handleAddToCart({ ...item, precio: discPrice })}
+                    onClick={() => open && handleAddToCart(item)}
                   >
                     <div className="promo-img-container">
                       <img 
@@ -1457,7 +1467,7 @@ export default function CustomerApp() {
                     key={menu.id || i} 
                     className="menu-card card card-hover" 
                     style={{ animationDelay: `${i * 0.05}s`, cursor: 'pointer' }}
-                    onClick={() => handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) })}
+                    onClick={() => handleAddToCart(menu)}
                   >
                     <div className="menu-card-img-container">
                       <img
@@ -1545,7 +1555,7 @@ export default function CustomerApp() {
                                 className="btn btn-primary btn-sm" 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleAddToCart({ ...menu, precio: calculateDiscountedPrice(menu) });
+                                  handleAddToCart(menu);
                                 }}
                               >
                                 {needsCustomization ? 'Elegir' : 'Agregar'}
