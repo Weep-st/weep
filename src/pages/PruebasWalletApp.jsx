@@ -477,6 +477,7 @@ export default function PruebasWalletApp() {
 
   const getLocalStatusText = React.useCallback((local) => {
     if (!local) return '';
+    if (local.nombre?.toUpperCase() === 'FULL') return 'Próximamente';
     const isOpen = isLocalOpen(local);
     if (!isOpen) {
       if (local.horario_apertura) return `abre ${local.horario_apertura}`;
@@ -1076,7 +1077,11 @@ export default function PruebasWalletApp() {
     // Verificar si el local está abierto
     const localRef = selectedLocal || locals.find(l => l.id === menu.local_id) || menu;
     if (!isLocalOpen(localRef)) {
-      toast.error('Este local está cerrado por el momento');
+      if (localRef.nombre?.toUpperCase() === 'FULL') {
+        toast.error('Este local estará disponible próximamente');
+      } else {
+        toast.error('Este local está cerrado por el momento');
+      }
       return;
     }
 
@@ -1819,7 +1824,9 @@ export default function PruebasWalletApp() {
                                 {open ? (
                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                 ) : (
-                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>Cerrado</span>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
+                                    {item.local_nombre?.toUpperCase() === 'FULL' ? 'Próximamente' : 'Cerrado'}
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -1897,7 +1904,9 @@ export default function PruebasWalletApp() {
                                  {open ? (
                                    <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                  ) : (
-                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>Cerrado</span>
+                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
+                                     {item.local_nombre?.toUpperCase() === 'FULL' ? 'Próximamente' : 'Cerrado'}
+                                   </span>
                                  )}
                               </div>
                            </div>
@@ -2032,7 +2041,11 @@ export default function PruebasWalletApp() {
                                     </button>
                                   );
                                 }
-                                return <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>CERRADO</span>;
+                                return (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                                    {loc?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                                  </span>
+                                );
                               })()}
                               <button 
                                 className={`fav-btn ${favorites.includes(item.id) ? 'active' : ''}`}
@@ -2084,7 +2097,7 @@ export default function PruebasWalletApp() {
                 {loadingLocals ? (
                   <div className="loading-state-premium">Buscando los mejores locales...</div>
                 ) : filteredLocals.length === 0 ? (
-                  <div className="empty-state-premium">No encontramos locales en esta categoría {' :('}</div>
+                  <div className="empty-state-premium">Próximamente en Wepi</div>
                 ) : (
                   <div className="locals-scroll" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '16px' }}>
                     {filteredLocals.map((local) => {
@@ -2107,7 +2120,9 @@ export default function PruebasWalletApp() {
                                 <span className="precio-min">desde ${local.precio_min || '10'}</span>
                               </div>
                             ) : (
-                              <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>CERRADO</div>
+                              <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                {local.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                              </div>
                             )}
                           </div>
                           {open && <span className="open-dot" style={{ position: 'absolute', top: '5px', right: '5px', width: '12px', height: '12px', borderRadius: '50%', background: '#00c853', border: '2px solid white' }} />}
@@ -2171,7 +2186,11 @@ export default function PruebasWalletApp() {
                                     </button>
                                   );
                                 }
-                                return <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>CERRADO</span>;
+                                return (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                                    {loc?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                                  </span>
+                                );
                               })()}
                             </div>
                           </div>
@@ -2256,7 +2275,9 @@ export default function PruebasWalletApp() {
                                            {needsCustomization ? 'Elegir' : 'Agregar'}
                                          </button>
                                        ) : (
-                                         <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold' }}>CERRADO</span>
+                                         <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                                           {selectedLocal?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                                         </span>
                                        )}
                                        <button 
                                           className={`fav-btn ${favorites.includes(item.id) ? 'active' : ''}`}
