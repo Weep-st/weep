@@ -66,6 +66,16 @@ const AdminLocales = () => {
         }
     };
 
+    const handleUpdateCommission = async (localId, habilitada, valor) => {
+        try {
+            await api.adminUpdateLocalCommission(localId, habilitada, valor);
+            toast.success('Configuración de comisión actualizada');
+            loadLocales();
+        } catch (err) {
+            toast.error('Error al actualizar comisión');
+        }
+    };
+
     useEffect(() => {
         loadLocales();
         loadPlanes();
@@ -141,6 +151,14 @@ const AdminLocales = () => {
         }
     };
 
+    const isTrialPeriod = (createdAt) => {
+        if (!createdAt) return false;
+        const created = new Date(createdAt);
+        const now = new Date();
+        const diffDays = (now - created) / (1000 * 60 * 60 * 24);
+        return diffDays < 14;
+    };
+
     if (loading && activeTab === 'gestion') return <div className="loading-state">Cargando locales...</div>;
 
     return (
@@ -189,6 +207,7 @@ const AdminLocales = () => {
                                 <th>Estado Admin</th>
                                 <th>Slug / URL</th>
                                 <th>Plan Actual</th>
+                                <th>Comisión (%)</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -300,6 +319,46 @@ const AdminLocales = () => {
                                                     <option key={p.id} value={p.id}>{p.nombre}</option>
                                                 ))}
                                             </select>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '110px' }}>
+                                                {isTrialPeriod(local.created_at) && !local.comision_personalizada_habilitada && (
+                                                    <span className="badge" style={{ fontSize: '0.65rem', background: '#fff3e0', color: '#e65100', border: '1px solid #ffe0b2' }}>
+                                                        ✨ Período Prueba (8%)
+                                                    </span>
+                                                )}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        title="Habilitar comisión personalizada"
+                                                        checked={local.comision_personalizada_habilitada || false}
+                                                        onChange={(e) => handleUpdateCommission(local.id, e.target.checked, local.comision_personalizada_valor)}
+                                                    />
+                                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                        <input 
+                                                            type="number"
+                                                            placeholder="%"
+                                                            disabled={!local.comision_personalizada_habilitada}
+                                                            defaultValue={local.comision_personalizada_valor || ''}
+                                                            onBlur={(e) => handleUpdateCommission(local.id, local.comision_personalizada_habilitada, e.target.value)}
+                                                            style={{ 
+                                                                width: '55px', 
+                                                                padding: '2px 4px',
+                                                                fontSize: '0.85rem',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #e2e8f0',
+                                                                textAlign: 'right'
+                                                            }}
+                                                        />
+                                                        <span style={{ marginLeft: '4px', fontSize: '0.85rem', color: '#64748b' }}>%</span>
+                                                    </div>
+                                                </div>
+                                                {local.comision_personalizada_habilitada && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 600 }}>
+                                                        Fija Personalizada
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>

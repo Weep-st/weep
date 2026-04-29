@@ -1338,7 +1338,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug')
+    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -1383,6 +1383,17 @@ export async function adminUpdateLocalAvailability(localId, disponibleDesde) {
 
 export async function adminUpdateLocalEstado(localId, estado) {
   const { error } = await supabase.from('locales').update({ estado: estado }).eq('id', localId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminUpdateLocalCommission(localId, habilitada, valor) {
+  const { error } = await supabase.from('locales')
+    .update({ 
+      comision_personalizada_habilitada: habilitada, 
+      comision_personalizada_valor: valor 
+    })
+    .eq('id', localId);
   if (error) throw new Error(error.message);
   return { success: true };
 }
