@@ -457,7 +457,7 @@ export default function PruebasWalletApp() {
       if (!normalizedDays.includes(normalizedCurrentDay)) return false;
     }
 
-    // Verificar horario
+    // Verificar horario (Turno 1)
     const [hA, mA] = horario_apertura.split(':').map(Number);
     const [hC, mC] = horario_cierre.split(':').map(Number);
     const minApertura = hA * 60 + mA;
@@ -472,6 +472,20 @@ export default function PruebasWalletApp() {
       insideTime = current >= minApertura || current <= minCierre;
     }
 
+    // Verificar horario (Turno 2) si no está abierto en el primero
+    if (!insideTime && local.horario_apertura2 && local.horario_cierre2) {
+      const [hA2, mA2] = local.horario_apertura2.split(':').map(Number);
+      const [hC2, mC2] = local.horario_cierre2.split(':').map(Number);
+      const minApertura2 = hA2 * 60 + mA2;
+      const minCierre2 = hC2 * 60 + mC2;
+
+      if (minApertura2 < minCierre2) {
+        insideTime = current >= minApertura2 && current <= minCierre2;
+      } else {
+        insideTime = current >= minApertura2 || current <= minCierre2;
+      }
+    }
+
     return insideTime;
   }, []);
 
@@ -479,11 +493,44 @@ export default function PruebasWalletApp() {
     if (!local) return '';
     if (local.nombre?.toUpperCase() === 'FULL') return 'Próximamente';
     const isOpen = isLocalOpen(local);
+    
+    const now = new Date();
+    const current = now.getHours() * 60 + now.getMinutes();
+
     if (!isOpen) {
-      if (local.horario_apertura) return `abre ${local.horario_apertura}`;
+      // Determinar cuál es el próximo horario de apertura
+      let nextApertura = local.horario_apertura;
+      if (local.horario_apertura2 && local.horario_apertura) {
+        const [hA, mA] = local.horario_apertura.split(':').map(Number);
+        const minApertura = hA * 60 + mA;
+        const [hA2, mA2] = local.horario_apertura2.split(':').map(Number);
+        const minApertura2 = hA2 * 60 + mA2;
+
+        // Si ya pasó el primer turno o estamos más cerca del segundo
+        if (current > minApertura && current < minApertura2) {
+          nextApertura = local.horario_apertura2;
+        }
+      }
+      
+      if (nextApertura) return `abre ${nextApertura}`;
       return 'Cerrado';
     }
-    if (local.horario_cierre) return `cierra ${local.horario_cierre}`;
+
+    // Si está abierto, determinar cuál es el próximo horario de cierre
+    let nextCierre = local.horario_cierre;
+    if (local.horario_apertura2 && local.horario_cierre2) {
+      const [hA2, mA2] = local.horario_apertura2.split(':').map(Number);
+      const minApertura2 = hA2 * 60 + mA2;
+      const [hC2, mC2] = local.horario_cierre2.split(':').map(Number);
+      const minCierre2 = hC2 * 60 + mC2;
+
+      // Si estamos en el rango del segundo turno
+      if (current >= minApertura2 || (minApertura2 > minCierre2 && current <= minCierre2)) {
+        nextCierre = local.horario_cierre2;
+      }
+    }
+
+    if (nextCierre) return `cierra ${nextCierre}`;
     return 'Abierto';
   }, [isLocalOpen]);
   // Load locals + drinks on mount

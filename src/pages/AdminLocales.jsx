@@ -17,6 +17,8 @@ const AdminLocales = () => {
     const [salesData, setSalesData] = useState({});
     const [salesLoading, setSalesLoading] = useState(false);
     const [planes, setPlanes] = useState([]);
+    const [editingLocal, setEditingLocal] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const loadLocales = async () => {
         setLoading(true);
@@ -148,6 +150,33 @@ const AdminLocales = () => {
             loadLocales();
         } catch (err) {
             toast.error('Error al actualizar identificador');
+        }
+    };
+
+    const handleSaveLocalDetails = async (e) => {
+        e.preventDefault();
+        setIsSaving(true);
+        const fd = new FormData(e.target);
+        
+        try {
+            const updates = {
+                localId: editingLocal.id,
+                nombre: fd.get('nombre'),
+                horario_apertura: fd.get('horario_apertura'),
+                horario_cierre: fd.get('horario_cierre'),
+                horario_apertura2: fd.get('horario_apertura2'),
+                horario_cierre2: fd.get('horario_cierre2'),
+                modo_automatico: fd.get('modo_automatico') === 'true'
+            };
+            
+            await api.updatePerfilLocal(updates);
+            toast.success('Local actualizado correctamente');
+            setEditingLocal(null);
+            loadLocales();
+        } catch (err) {
+            toast.error('Error al actualizar local');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -376,6 +405,13 @@ const AdminLocales = () => {
                                                 >
                                                     Rechazar
                                                 </button>
+                                                <button 
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={() => setEditingLocal(local)}
+                                                    title="Editar Horarios y Perfil"
+                                                >
+                                                    ⚙️
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -514,8 +550,69 @@ const AdminLocales = () => {
                         </tfoot>
                     </table>
                 </div>
-            ) : (
+            ) : activeTab === 'cobros' ? (
                 <AdminPagos tipo="Local" />
+            ) : null}
+
+            {/* Modal de Edición */}
+            {editingLocal && (
+                <div className="modal-overlay" onClick={() => setEditingLocal(null)}>
+                    <div className="modal-content admin-modal" onClick={e => e.stopPropagation()}>
+                        <header className="modal-header">
+                            <h3>Configuración de {editingLocal.nombre}</h3>
+                            <button className="close-btn" onClick={() => setEditingLocal(null)}>✕</button>
+                        </header>
+                        <form onSubmit={handleSaveLocalDetails} className="admin-edit-form">
+                            <div className="form-group">
+                                <label>Nombre del Local</label>
+                                <input name="nombre" defaultValue={editingLocal.nombre} required />
+                            </div>
+                            
+                            <div className="form-section">
+                                <h4>Turno 1</h4>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Apertura</label>
+                                        <input name="horario_apertura" type="time" defaultValue={editingLocal.horario_apertura || '09:00'} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cierre</label>
+                                        <input name="horario_cierre" type="time" defaultValue={editingLocal.horario_cierre || '14:00'} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-section">
+                                <h4>Turno 2 (Opcional)</h4>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Apertura</label>
+                                        <input name="horario_apertura2" type="time" defaultValue={editingLocal.horario_apertura2 || ''} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cierre</label>
+                                        <input name="horario_cierre2" type="time" defaultValue={editingLocal.horario_cierre2 || ''} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Modo de Apertura</label>
+                                <select name="modo_automatico" defaultValue={editingLocal.modo_automatico ? 'true' : 'false'}>
+                                    <option value="true">Automático (Según Horario)</option>
+                                    <option value="false">Manual (Controlado por Admin/Local)</option>
+                                </select>
+                            </div>
+
+                            <div className="modal-actions">
+                                <button type="button" className="btn btn-secondary" onClick={() => setEditingLocal(null)}>Cancelar</button>
+                                <button type="submit" className="btn btn-success" disabled={isSaving}>
+                                    {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

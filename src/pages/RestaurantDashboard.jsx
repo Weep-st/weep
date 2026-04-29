@@ -272,7 +272,7 @@ export default function RestaurantDashboard() {
   }, [restaurant]);
 
   /* ─── Modo Automático ─── */
-  const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura) => {
+  const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura, apertura2, cierre2) => {
     if (!apertura || !cierre) return false;
     
     // Verificar días de apertura si existen
@@ -289,25 +289,36 @@ export default function RestaurantDashboard() {
       }
     }
 
-    const [hA, mA] = apertura.split(':').map(Number);
-    const [hC, mC] = cierre.split(':').map(Number);
-    const minApertura = hA * 60 + mA;
-    const minCierre = hC * 60 + mC;
-    
-    const now = new Date();
-    const current = now.getHours() * 60 + now.getMinutes();
+    const checkRange = (start, end) => {
+      if (!start || !end) return false;
+      const [hA, mA] = start.split(':').map(Number);
+      const [hC, mC] = end.split(':').map(Number);
+      const minApertura = hA * 60 + mA;
+      const minCierre = hC * 60 + mC;
+      const now = new Date();
+      const current = now.getHours() * 60 + now.getMinutes();
 
-    if (minApertura < minCierre) {
-      return current >= minApertura && current <= minCierre;
-    } else {
-      return current >= minApertura || current <= minCierre;
+      if (minApertura < minCierre) {
+        return current >= minApertura && current <= minCierre;
+      } else {
+        return current >= minApertura || current <= minCierre;
+      }
+    };
+
+    let inside = checkRange(apertura, cierre);
+    if (!inside && apertura2 && cierre2) {
+      inside = checkRange(apertura2, cierre2);
     }
+    
+    return inside;
   }, []);
 
   const verificarEstadoAutomatico = React.useCallback(() => {
-    if (!profileData || !profileData.modo_automatico || !profileData.horario_apertura || !profileData.horario_cierre) return;
-    
-    const shouldBeOpen = estaDentroDeHorario(profileData.horario_apertura, profileData.horario_cierre, profileData.dias_apertura);
+    const shouldBeOpen = estaDentroDeHorario(
+      profileData.horario_apertura, profileData.horario_cierre, 
+      profileData.dias_apertura,
+      profileData.horario_apertura2, profileData.horario_cierre2
+    );
     
     if (localOpenRef.current !== shouldBeOpen) {
       const nuevoEstado = shouldBeOpen ? 'Activo' : 'Inactivo';
@@ -941,6 +952,8 @@ export default function RestaurantDashboard() {
       // Compatibilidad con campos heredados
       if (fd.has('horario_apertura')) params.horario_apertura = fd.get('horario_apertura');
       if (fd.has('horario_cierre')) params.horario_cierre = fd.get('horario_cierre');
+      if (fd.has('horario_apertura2')) params.horario_apertura2 = fd.get('horario_apertura2');
+      if (fd.has('horario_cierre2')) params.horario_cierre2 = fd.get('horario_cierre2');
       if (fd.has('modo_automatico')) params.modo_automatico = fd.get('modo_automatico') === 'true';
 
       const success = await api.updatePerfilLocal(params);
@@ -966,6 +979,8 @@ export default function RestaurantDashboard() {
         localId: restaurant.id, 
         horario_apertura: fd.get('horario_apertura'),
         horario_cierre: fd.get('horario_cierre'),
+        horario_apertura2: fd.get('horario_apertura2'),
+        horario_cierre2: fd.get('horario_cierre2'),
         modo_automatico: fd.get('modo_automatico') === 'true',
         dias_apertura: selectedDays,
         acepta_retiro: fd.get('acepta_retiro') === 'on',
@@ -1633,13 +1648,13 @@ export default function RestaurantDashboard() {
             {(!profileData.mp_access_token) && (
               <div style={{ backgroundColor: '#fffbe6', border: '1px solid #ffe58f', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#d48800', fontWeight: '500' }}>⚠️ <strong>Mercado Pago desvinculado:</strong> Vinculá tu cuenta para recibir pagos online.</span>
-                <button className="btn btn-sm" style={{ backgroundColor: '#faad14', color: '#fff', border: 'none' }} onClick={() => { setView('profile'); loadProfile(); }}>Vincular</button>
+                <button className="btn btn-sm" style={{ backgroundColor: '#faad14', color: '#fff', border: 'none' }} onClick={() => { setView('settings'); setProfileSubView('edit'); }}>Vincular</button>
               </div>
             )}
             {(!profileData.horario_apertura || !profileData.horario_cierre) && (
               <div style={{ backgroundColor: '#fff1f0', border: '1px solid #ffa39e', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#cf1322', fontWeight: '500' }}>⏰ <strong>Horarios sin configurar:</strong> Establecé el horario de cierre de cocina para gestionar pedidos automáticos.</span>
-                <button className="btn btn-sm" style={{ backgroundColor: '#ff4d4f', color: '#fff', border: 'none' }} onClick={() => { setView('profile'); loadProfile(); }}>Configurar</button>
+                <button className="btn btn-sm" style={{ backgroundColor: '#ff4d4f', color: '#fff', border: 'none' }} onClick={() => { setView('settings'); setProfileSubView('edit'); }}>Configurar</button>
               </div>
             )}
           </div>
@@ -2442,39 +2457,28 @@ export default function RestaurantDashboard() {
                       Seleccioná el rubro de tu local para adaptar las opciones del panel.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
-                        <label key={r} style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between',
-                          padding: '12px 16px',
-                          background: 'white',
-                          borderRadius: 10,
-                          border: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? '2px solid var(--red-500)' : '1px solid var(--gray-200)',
-                          cursor: 'pointer'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <input 
-                              type="radio" 
-                              name="rubro" 
-                              checked={profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')} 
-                              onChange={async () => {
-                                try {
-                                  const success = await api.updatePerfilLocal({ localId: restaurant.id, rubro: r });
-                                  if (success) {
-                                    setProfileData({ ...profileData, rubro: r });
-                                    toast.success(`Rubro cambiado a ${r}`);
-                                  }
-                                } catch (e) { toast.error('Error al cambiar rubro'); }
-                              }}
-                            />
-                            <span style={{ fontWeight: 600, color: (profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) ? 'var(--red-600)' : 'var(--gray-700)' }}>{r}</span>
-                          </div>
-                          {(profileData?.rubro === r || (!profileData?.rubro && r === 'Comida Rápida')) && <span style={{ color: 'var(--red-500)', fontWeight: 'bold' }}>✓</span>}
-                        </label>
-                      ))}
+                      <select 
+                        className="form-select" 
+                        style={{ padding: '12px', fontSize: '1rem' }}
+                        value={profileData?.rubro || 'Comida Rápida'}
+                        onChange={async (e) => {
+                          const r = e.target.value;
+                          try {
+                            const success = await api.updatePerfilLocal({ localId: restaurant.id, rubro: r });
+                            if (success) {
+                              setProfileData({ ...profileData, rubro: r });
+                              toast.success(`Rubro cambiado a ${r}`);
+                            }
+                          } catch (e) { toast.error('Error al cambiar rubro'); }
+                        }}
+                      >
+                        {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
+
 
                   {/* Enlace Compartible */}
                   <div style={{ marginBottom: 24, padding: 16, background: '#f0f9ff', borderRadius: 12, border: '1px solid #bae6fd' }}>
@@ -2512,22 +2516,41 @@ export default function RestaurantDashboard() {
                   {/* Horarios */}
                   <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🕒 Horarios de Atención</h3>
-                    <div className="rd-form-row rd-form-row-3" style={{ marginBottom: 0 }}>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Apertura</label>
-                        <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData?.horario_apertura || '09:00'} />
+                    
+                    <div style={{ marginBottom: 16 }}>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: 8, fontWeight: 600 }}>Primer Turno (Mañana/Mediodía)</p>
+                      <div className="rd-form-row" style={{ marginBottom: 0, gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Apertura</label>
+                          <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData?.horario_apertura || '09:00'} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Cierre</label>
+                          <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData?.horario_cierre || '14:00'} />
+                        </div>
                       </div>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Cierre</label>
-                        <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData?.horario_cierre || '23:00'} />
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: 8, fontWeight: 600 }}>Segundo Turno (Tarde/Noche - Opcional)</p>
+                      <div className="rd-form-row" style={{ marginBottom: 0, gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Apertura</label>
+                          <input name="horario_apertura2" type="time" className="form-input" defaultValue={profileData?.horario_apertura2 || ''} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Cierre</label>
+                          <input name="horario_cierre2" type="time" className="form-input" defaultValue={profileData?.horario_cierre2 || ''} />
+                        </div>
                       </div>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Modo Automático</label>
-                        <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
-                          <option value="true">Sí (Auto)</option>
-                          <option value="false">No (Manual)</option>
-                        </select>
-                      </div>
+                    </div>
+
+                    <div style={{ padding: '12px', background: 'var(--gray-50)', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
+                      <label style={{ fontSize: '0.85rem', color: 'var(--gray-600)', display: 'block', marginBottom: 8 }}>Gestión de Estado</label>
+                      <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
+                        <option value="true">Modo Automático (Abrir/Cerrar según horario)</option>
+                        <option value="false">Modo Manual (Yo controlo el botón de Abrir/Cerrar)</option>
+                      </select>
                     </div>
                   </div>
 
@@ -2921,33 +2944,7 @@ export default function RestaurantDashboard() {
                     <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
                     <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
                     
-                    <div className="discount-config-section" style={{ marginTop: '16px', padding: '16px', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #eee' }}>
-                      <h4 style={{ marginBottom: '12px', fontSize: '0.95rem' }}>Configuración de Descuento General</h4>
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ width: '120px' }}>
-                          <label className="form-label">Porcentaje %</label>
-                          <input name="descuento_general" type="number" className="form-input" defaultValue={profileData.descuento_general || 0} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                          <label className="form-label">Categoría</label>
-                          <select name="categoria_descuento" className="form-select" defaultValue={profileData.categoria_descuento || ''}>
-                            <option value="">Todo el menú</option>
-                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <div style={{ marginTop: '12px' }}>
-                        <label className="form-label">Días de aplicación</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
-                            <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'white', padding: '4px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.8rem', cursor: 'pointer' }}>
-                              <input type="checkbox" name={`desc_${day}`} defaultChecked={profileData?.dias_descuento?.includes(day)} />
-                              {day}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+
                     
                     <div className="rd-form-actions" style={{ marginTop: '24px' }}>
                       <button type="button" className="btn btn-ghost" onClick={() => setView('orders')}>Cancelar</button>
