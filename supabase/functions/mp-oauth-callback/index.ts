@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     if (!tokenResponse.ok) {
       console.error('Error de Mercado Pago:', tokenData)
-      return Response.redirect(`${frontendUrl}/?mpoauth=error&message=token_exchange_failed`, 302)
+      return Response.redirect(`${frontendUrl}/locales?mpoauth=error&message=token_exchange_failed`, 302)
     }
 
     // Actualizar el local en la base de datos
@@ -63,11 +63,11 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Error guardando en Supabase:', updateError)
-      return Response.redirect(`${frontendUrl}/?mpoauth=error&message=db_update_failed`, 302)
+      return Response.redirect(`${frontendUrl}/locales?mpoauth=error&message=db_update_failed`, 302)
     }
 
     // Redirigir al frontend con éxito
-    return Response.redirect(`${frontendUrl}/?mpoauth=success`, 302)
+    return Response.redirect(`${frontendUrl}/locales?mpoauth=success`, 302)
 
   } catch (err) {
     console.error('Error en oauth callback:', err)

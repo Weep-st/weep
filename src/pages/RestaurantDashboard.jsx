@@ -217,6 +217,7 @@ export default function RestaurantDashboard() {
     setIsIOS(isIOSDevice);
   }, []);
 
+
   // Location State
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
   const [profileAddress, setProfileAddress] = React.useState('');
@@ -270,6 +271,21 @@ export default function RestaurantDashboard() {
       }
     } catch {}
   }, [restaurant]);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mpoauth = params.get('mpoauth');
+    if (mpoauth === 'success') {
+      toast.success('¡Mercado Pago vinculado con éxito!', { icon: '💳', duration: 5000 });
+      // Limpiar URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      loadProfile(); // Refrescar datos para mostrar el badge
+    } else if (mpoauth === 'error') {
+      const msg = params.get('message');
+      toast.error(`Error al vincular Mercado Pago: ${msg || 'Error desconocido'}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [loadProfile]);
 
   /* ─── Modo Automático ─── */
   const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura, apertura2, cierre2) => {
@@ -2607,8 +2623,9 @@ export default function RestaurantDashboard() {
                       className="btn btn-primary" 
                       style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 24px', fontWeight: 600 }}
                       onClick={() => {
-                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || '1234567890'; // Simplified for example
-                        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-oauth-callback`;
+                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicación de Mercado Pago:");
+                        if (!clientId) return;
+                        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL || 'https://jskxfescamdjesdrcnkf.supabase.co'}/functions/v1/mp-oauth-callback`;
                         const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
                         window.location.href = authUrl;
                       }}
