@@ -641,10 +641,14 @@ export default function PruebasWalletApp() {
           promosOfDay: (prms || []).filter(p => {
             const l = allLocs.find(loc => loc.id === p.local_id);
             if (!l || !isLocalOpen(l)) return false;
+
+            const cfg = configMap[p.local_id] || configMap['global'];
+            const earnsCredit = cfg && cfg.activo && Number(cfg.porcentaje_ganancia) > 0 && calculateDiscountedPrice(p) >= Number(cfg.compra_minima_generar || 0);
+
             const hasBaseDiscount = p.descuento > 0;
             const isSpecialCategory = p.categoria === 'Combos' || p.categoria === 'Promos';
             const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
-            return hasBaseDiscount || isSpecialCategory || hasDayDiscount;
+            return hasBaseDiscount || isSpecialCategory || hasDayDiscount || earnsCredit;
           }).sort((a, b) => {
             const locA = allLocs.find(l => l.id === a.local_id);
             const locB = allLocs.find(l => l.id === b.local_id);
@@ -2672,13 +2676,13 @@ export default function PruebasWalletApp() {
                   <div className="potential-credit-banner animate-pulse" style={{
                     marginTop: '12px',
                     padding: '8px 12px',
-                    background: 'linear-gradient(90deg, #fef3c7, #fffbeb)',
+                    background: 'linear-gradient(90deg, #f0f9ff, #e0f2fe)',
                     borderRadius: '8px',
                     fontSize: '0.78rem',
-                    color: '#92400e',
+                    color: '#0284c7',
                     fontWeight: '800',
                     textAlign: 'center',
-                    border: '1px solid #fde68a'
+                    border: '1px solid #bae6fd'
                   }}>
                     ✨ ¡Sumarás <strong>${potentialCredit.toLocaleString()}</strong> de crédito con este pedido!
                   </div>
