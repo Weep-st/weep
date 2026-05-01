@@ -2989,3 +2989,19 @@ export async function getWalletConfigForLocal(localId) {
   return data;
 }
 
+/**
+ * Obtiene todas las configuraciones de crédito activas para todos los locales.
+ */
+export async function getAllWalletConfigs() {
+  const { data, error } = await supabase
+    .from('wallet_config_locales')
+    .select('*')
+    .eq('activo', true);
+  
+  if (error) {
+    console.error("Error fetching all wallet configs:", error);
+    return [];
+  }
+  return data || [];
+}
+

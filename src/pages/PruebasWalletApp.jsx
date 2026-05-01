@@ -100,6 +100,7 @@ export default function PruebasWalletApp() {
   const [walletBalance, setWalletBalance] = React.useState(null);
   const [useWallet, setUseWallet] = React.useState(false);
   const [walletConfig, setWalletConfig] = React.useState(null);
+  const [allWalletConfigs, setAllWalletConfigs] = React.useState({});
   const [loadingConfig, setLoadingConfig] = React.useState(false);
   const [localCommission, setLocalCommission] = React.useState(0.15); // Default 15% (Despegue)
   
@@ -255,8 +256,6 @@ export default function PruebasWalletApp() {
 
   console.log("🚀 PruebasWalletApp: Logic functions defined");
 
-  // --- Business Logic for Totals ---
-
   const calculateDiscountedPrice = React.useCallback((item) => {
     if (!item) return 0;
     let price = Number(item.precio);
@@ -286,6 +285,46 @@ export default function PruebasWalletApp() {
     
     return Math.round(price);
   }, []);
+
+  const renderCreditBadge = React.useCallback((item, isPremium = false) => {
+    if (!item) return null;
+    const lid = item.local_id;
+    const cfg = allWalletConfigs[lid] || allWalletConfigs['global'];
+    
+    if (!cfg || !cfg.activo || Number(cfg.porcentaje_ganancia) <= 0) return null;
+    
+    const price = calculateDiscountedPrice(item);
+    const minToEarn = Number(cfg.compra_minima_generar || 0);
+    
+    if (price < minToEarn) return null;
+    
+    let earned = Math.round(price * (Number(cfg.porcentaje_ganancia) / 100));
+    const maxEarn = cfg.tope_maximo_ganancia ? Number(cfg.tope_maximo_ganancia) : null;
+    
+    if (maxEarn !== null && earned > maxEarn) {
+      earned = maxEarn;
+    }
+    
+    if (earned <= 0) return null;
+    
+    if (isPremium) {
+      const isLocalRestricted = cfg.uso_local_exclusivo === true;
+      const localName = item.local_nombre || selectedLocal?.nombre || '';
+      const locationText = isLocalRestricted ? ` en ${localName}` : '';
+      
+      return (
+        <div className="credit-earn-label animate-fade-in" style={{ fontSize: '0.7rem', opacity: 0.9, marginTop: '-2px', marginBottom: '4px' }}>
+          Ganás ${earned.toLocaleString()} de credito para tu proxima compra{locationText}
+        </div>
+      );
+    }
+
+    return (
+      <div className="credit-earn-label animate-fade-in">
+        Ganás ${earned.toLocaleString()}
+      </div>
+    );
+  }, [allWalletConfigs, calculateDiscountedPrice, selectedLocal]);
 
   const calculateCheckoutTotals = React.useCallback((P, E, method) => {
     const net_commission = P * localCommission;
@@ -545,14 +584,24 @@ export default function PruebasWalletApp() {
       api.getBanners(),
       api.getPromos(),
       api.getMostOrderedItems(),
-      api.getExploreItems()
-    ]).then(([locs, deks, bans, prms, most, expl]) => {
+      api.getExploreItems(),
+      api.getAllWalletConfigs()
+    ]).then(([locs, deks, bans, prms, most, expl, wcfgs]) => {
       const allLocs = locs || [];
       const boosted = getBoostedLocales(allLocs);
       
       const timeInfo = getTimeBasedTitle();
       
-      
+      // Map wallet configs by local_id
+      const configMap = {};
+      if (Array.isArray(wcfgs)) {
+        wcfgs.forEach(c => {
+          if (c.local_id) configMap[c.local_id] = c;
+          else configMap['global'] = c;
+        });
+      }
+      setAllWalletConfigs(configMap);
+
       setLocals(allLocs);
       setDrinks(deks || []);
       setBanners(bans || []);
@@ -580,7 +629,7 @@ export default function PruebasWalletApp() {
           dynamicLocales: boosted.filter(l => timeInfo.rubros.includes(l.rubro)).slice(0, 15),
           promosOfDay: (prms || []).filter(p => {
             const l = allLocs.find(loc => loc.id === p.local_id);
-            if (!l) return false;
+            if (!l || !isLocalOpen(l)) return false;
             const hasBaseDiscount = p.descuento > 0;
             const isSpecialCategory = p.categoria === 'Combos' || p.categoria === 'Promos';
             const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
@@ -1862,6 +1911,7 @@ export default function PruebasWalletApp() {
                             </div>
                             <div className="promo-vertical-info">
                               <span className="promo-item-name">{item.nombre}</span>
+                              {renderCreditBadge(item)}
                               <div className="promo-price-row">
                                 <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
                                 {calculateDiscountedPrice(item) < Number(item.precio) && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
@@ -1938,6 +1988,7 @@ export default function PruebasWalletApp() {
                            </div>
                            <div className="promo-vertical-info">
                               <span className="promo-item-name">{item.nombre}</span>
+                              {renderCreditBadge(item)}
                               <div className="promo-price-row">
                                  <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
                                   {calculateDiscountedPrice(item) < Number(item.precio) && (
@@ -1967,7 +2018,7 @@ export default function PruebasWalletApp() {
              {homeLayout.newFreemiumLocales.length > 0 && (
                <section className="home-section new-locales-home">
                   <div className="section-header-simple">
-                    <h2>Nuevos locales <img src="https://i.postimg.cc/0249zZZy/descarga-(31)-(5).png" style={{ height: '26px', marginLeft: '10px', verticalAlign: 'middle' }} alt="" /></h2>
+                    <h2>Otros locales <img src="https://i.postimg.cc/0249zZZy/descarga-(31)-(5).png" style={{ height: '26px', marginLeft: '10px', verticalAlign: 'middle' }} alt="" /></h2>
                   </div>
                   <div className="horizontal-scroll-premium">
                     {homeLayout.newFreemiumLocales.map((local) => {
@@ -2068,6 +2119,7 @@ export default function PruebasWalletApp() {
                             <span>{item.local_nombre}</span>
                           </div>
                           <h3>{item.nombre}</h3>
+                          {renderCreditBadge(item)}
                           {item.descripcion && <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', margin: '4px 0', lineClamp: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.descripcion}</p>}
                           <div className="menu-card-footer">
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -2215,6 +2267,7 @@ export default function PruebasWalletApp() {
                               <span>{item.local_nombre}</span>
                             </div>
                             <h3>{item.nombre}</h3>
+                            {renderCreditBadge(item)}
                             <div className="menu-card-footer">
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <span className="menu-card-price">${calculateDiscountedPrice(item).toLocaleString()}</span>
@@ -2306,6 +2359,7 @@ export default function PruebasWalletApp() {
                                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)' }}>{item.categoria}</span>
                                    </div>
                                    <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '4px' }}>{item.nombre}</h3>
+                                   {renderCreditBadge(item, true)}
                                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '8px', lineHeight: '1.2' }}>{item.descripcion}</p>
                                    <div className="menu-card-footer">
                                      <div style={{ display: 'flex', flexDirection: 'column' }}>

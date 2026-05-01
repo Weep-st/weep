@@ -520,9 +520,16 @@
 }
 
 @media (max-width: 480px) {
-  .menu-card-img-container { width: 90px; height: 90px; }
-  .menu-card-body { padding: 8px 10px; }
   .menu-discount-badge { font-size: 0.65rem; padding: 3px 6px; }
+}
+
+.credit-earn-label {
+  color: #0284c7; /* Azul/Celeste vibrante */
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin: 2px 0;
+  display: block;
+  letter-spacing: -0.2px;
 }
 
 /* ─── Cart Sidebar ─── */
