@@ -14,6 +14,13 @@ const AdminRepartidores = () => {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [generatedMessage, setGeneratedMessage] = useState('');
 
+    // Priority Modal State
+    const [showPriorityModal, setShowPriorityModal] = useState(false);
+    const [selectedRep, setSelectedRep] = useState(null);
+    const [allLocales, setAllLocales] = useState([]);
+    const [tempPriorities, setTempPriorities] = useState([]);
+    const [isSavingPriority, setIsSavingPriority] = useState(false);
+
     const loadRepartidores = async () => {
         setLoading(true);
         try {
@@ -33,6 +40,7 @@ const AdminRepartidores = () => {
 
     useEffect(() => {
         loadRepartidores();
+        loadLocales();
         if (activeTab === 'finanzas') {
             loadSettlements();
         }
@@ -40,6 +48,15 @@ const AdminRepartidores = () => {
         const interval = setInterval(loadRepartidores, 30000);
         return () => clearInterval(interval);
     }, [activeTab]);
+
+    const loadLocales = async () => {
+        try {
+            const data = await api.getLocales();
+            setAllLocales(data);
+        } catch (err) {
+            console.error("Error loading locales:", err);
+        }
+    };
 
     const loadSettlements = async () => {
         setSettlementsLoading(true);
@@ -149,6 +166,34 @@ const AdminRepartidores = () => {
         }
     };
 
+    const handleOpenPriorityModal = (rep) => {
+        setSelectedRep(rep);
+        setTempPriorities(rep.locales_prioridad || []);
+        setShowPriorityModal(true);
+    };
+
+    const handleTogglePriority = (localId) => {
+        setTempPriorities(prev => 
+            prev.includes(localId) 
+                ? prev.filter(id => id !== localId) 
+                : [...prev, localId]
+        );
+    };
+
+    const handleSavePriorities = async () => {
+        setIsSavingPriority(true);
+        try {
+            await api.adminUpdateRepartidorPrioridad(selectedRep.id, tempPriorities);
+            toast.success('Prioridades actualizadas correctamente');
+            setShowPriorityModal(false);
+            loadRepartidores();
+        } catch (err) {
+            toast.error('Error al guardar prioridades');
+        } finally {
+            setIsSavingPriority(false);
+        }
+    };
+
     const isOnline = (rep) => {
         if (!rep.ultima_actividad) return false;
         // La DB guarda en UTC. Comparamos directamente.
@@ -213,6 +258,7 @@ const AdminRepartidores = () => {
                             <th>Disponibilidad</th>
                             <th>Activo</th>
                             <th>Estado Admin</th>
+                            <th>Prioridad</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -303,6 +349,21 @@ const AdminRepartidores = () => {
                                                 {rep.estado === 'Inactivo' ? 'Marcar Activo' : 'Forzar Inactivo'}
                                             </button>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <button 
+                                            className="btn btn-sm"
+                                            style={{ 
+                                                background: (rep.locales_prioridad?.length > 0) ? '#6366f1' : '#f1f5f9',
+                                                color: (rep.locales_prioridad?.length > 0) ? 'white' : '#64748b',
+                                                fontSize: '0.75rem',
+                                                padding: '6px 12px',
+                                                border: '1px solid #e2e8f0'
+                                            }}
+                                            onClick={() => handleOpenPriorityModal(rep)}
+                                        >
+                                            🛡️ {rep.locales_prioridad?.length || 0} Locales
+                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -493,6 +554,73 @@ const AdminRepartidores = () => {
                                 onClick={() => setShowInvoiceModal(false)}
                             >
                                 Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Prioridad */}
+            {showPriorityModal && (
+                <div className="modal-overlay" onClick={() => setShowPriorityModal(false)} style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', zIndex: 1000, padding: '20px'
+                }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+                        background: 'white', padding: '2rem', borderRadius: '12px',
+                        maxWidth: '500px', width: '100%', maxHeight: '80vh', overflowY: 'auto'
+                    }}>
+                        <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0 }}>🛡️ Prioridad: {selectedRep?.nombre}</h3>
+                            <button onClick={() => setShowPriorityModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+                        </header>
+                        
+                        <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                            Selecciona los locales donde este repartidor tendrá <b>20 segundos de prioridad</b> sobre los demás.
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '2rem' }}>
+                            {allLocales.map(local => (
+                                <label key={local.id} style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '12px', 
+                                    padding: '10px', 
+                                    borderRadius: '8px', 
+                                    background: tempPriorities.includes(local.id) ? '#f0f7ff' : '#f8fafc',
+                                    border: '1px solid',
+                                    borderColor: tempPriorities.includes(local.id) ? '#3b82f6' : '#e2e8f0',
+                                    cursor: 'pointer'
+                                }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={tempPriorities.includes(local.id)}
+                                        onChange={() => handleTogglePriority(local.id)}
+                                    />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <img src={local.logo || 'https://placehold.co/40x40'} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{local.nombre}</span>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button 
+                                className="btn btn-secondary" 
+                                style={{ flex: 1 }}
+                                onClick={() => setShowPriorityModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                className="btn btn-primary" 
+                                style={{ flex: 1 }}
+                                onClick={handleSavePriorities}
+                                disabled={isSavingPriority}
+                            >
+                                {isSavingPriority ? 'Guardando...' : 'Guardar Prioridades'}
                             </button>
                         </div>
                     </div>

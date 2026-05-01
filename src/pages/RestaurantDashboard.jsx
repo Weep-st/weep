@@ -1313,6 +1313,9 @@ export default function RestaurantDashboard() {
             )}
           </div>
         </div>
+        <div style={{ maxWidth: '450px', margin: '24px auto 0' }}>
+          <img src="https://i.postimg.cc/bYKLG203/Tarde-de-superclasico-(4).png" alt="Banner" style={{ width: '100%', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+        </div>
       </main>
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
         <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />

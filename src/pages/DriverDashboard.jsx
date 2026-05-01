@@ -450,7 +450,7 @@ export default function DriverDashboard() {
         fetchPedidos();
         if (isActive) checkAvailability();
         fetchActiveLocales();
-      }, 30000);
+      }, 15000);
 
       // 3. Lógica solo si está ACTIVO (Interacción y Heartbeat)
       if (isActive) {

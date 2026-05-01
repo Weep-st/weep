@@ -25,7 +25,7 @@ export default function Landing() {
     <div className="landing">
       <header className="landing-header">
         <img
-          src="https://i.postimg.cc/kGf1B318/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png"
+          src="https://i.postimg.cc/RhctJq4F/buscamos-repartidores-(40)-(4).png"
           alt="Wepi"
           className="landing-logo"
         />
@@ -60,10 +60,15 @@ export default function Landing() {
             </Link>
           </div>
 
+          <div className="animate-fade-in animate-delay-2">
+             <img src="https://i.postimg.cc/bYKLG203/Tarde-de-superclasico-(4).png" alt="Superclasico" style={{ width: '100%', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', marginTop: '8px' }} />
+          </div>
+
         </div>
       </main>
 
-      <footer className="footer">
+      <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '40px', objectFit: 'contain' }} />
         <p>© 2026 <strong>Wepi</strong> — Plataforma de Pedidos y Delivery</p>
         <p>Santo Tomé, Corrientes</p>
       </footer>

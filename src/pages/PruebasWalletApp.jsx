@@ -1554,7 +1554,7 @@ export default function PruebasWalletApp() {
             setCartOpen(false);
 
             // Iniciamos el broadcast centralizado
-            await api.broadcastOrderToDrivers(pregeneratedId, exactTotal).catch(console.error);
+            await api.broadcastOrderToDrivers(pregeneratedId, exactTotal, cart.items[0]?.local_id).catch(console.error);
             return;
          } else {
             // RETIRO + EFECTIVO
@@ -1605,8 +1605,8 @@ export default function PruebasWalletApp() {
           
           // Re-enviar Push cada 25 segundos para incentivar
           if (prev > 0 && prev % 25 === 0 && pendingOrderId) {
-            console.log("ðŸ“£ Re-enviando push de incentivo...");
-            api.broadcastOrderToDrivers(pendingOrderId, cart.total).catch(console.error);
+            console.log("📢 Re-enviando push de incentivo...");
+            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id).catch(console.error);
           }
           
           return prev + 1;
@@ -3425,7 +3425,7 @@ export default function PruebasWalletApp() {
                 onClick={() => {
                   setDriverSearchTimeout(false);
                   setSearchSeconds(0); 
-                  api.broadcastOrderToDrivers(pendingOrderId, cart.total);
+                  api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id);
                   toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
                 }}
               >

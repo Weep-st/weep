@@ -1442,9 +1442,17 @@ export async function adminUpdateDriverPaymentStatus(pedidoId, status) {
 // ═══════════════════════════════════════════════════
 export async function adminGetRepartidores() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado, ultima_actividad, onesignal_id')
+    .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado, ultima_actividad, onesignal_id, locales_prioridad')
     .order('created_at', { ascending: false });
   return data || [];
+}
+
+export async function adminUpdateRepartidorPrioridad(repId, localesIds) {
+  const { error } = await supabase.from('repartidores')
+    .update({ locales_prioridad: localesIds })
+    .eq('id', repId);
+  if (error) throw new Error(error.message);
+  return { success: true };
 }
 
 export async function adminUpdateRepartidorStatus(repId, admin_status) {
@@ -1808,8 +1816,35 @@ export async function assignRepartidor(pedidoId) {
 }
 
 export async function getPedidosDisponibles(repartidorId) {
-  // 1. Pedidos asignados al repartidor (Confirmados o Retirados)
-  // 2. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
+  // 1. Obtener datos del repartidor para ver sus prioridades
+  const { data: repData, error: repError } = await supabase.from('repartidores')
+    .select('locales_prioridad')
+    .eq('id', repartidorId)
+    .single();
+
+  if (repError) {
+    console.error("Error fetching driver priority:", repError);
+  }
+
+  const misPrioridades = repData?.locales_prioridad || [];
+
+  // 2. Obtener todos los repartidores que tienen ALGUNA prioridad
+  // Esto sirve para saber si un local tiene repartidores prioritarios asignados
+  const { data: todosLosPrioritarios } = await supabase.from('repartidores')
+    .select('locales_prioridad')
+    .not('locales_prioridad', 'eq', '{}');
+
+  const localesConPrioridad = new Set();
+  if (todosLosPrioritarios) {
+    todosLosPrioritarios.forEach(r => {
+      if (r.locales_prioridad) {
+        r.locales_prioridad.forEach(lId => localesConPrioridad.add(lId));
+      }
+    });
+  }
+
+  // 3. Pedidos asignados al repartidor (Confirmados o Retirados)
+  // 4. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
     .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono)')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor"),tipo_entrega.eq."Con Envío")`)
@@ -1821,23 +1856,45 @@ export async function getPedidosDisponibles(repartidorId) {
     return { success: false, error: error.message };
   }
 
-  return { success: true, data: (data || []).map(p => ({
-    id: p.id, 
-    cliente: p.usuario_id, 
-    nombre_cliente: p.nombre_cliente || 'Cliente', 
-    telefono_cliente: p.usuarios?.telefono || '',
-    direccion: p.direccion || 'Sin dirección',
-    monto: +p.total || 0,
-    precio_envio: +p.precio_envio || 0,
-    pago: p.metodo_pago || 'Efectivo',
-    estado: p.estado, 
-    observaciones: p.observaciones || '', 
-    envio: p.tipo_entrega || 'envio',
-    local_id: p.local_id, 
-    lat: p.lat, 
-    lng: p.lng,
-    esBroadcast: !p.repartidor_id // Flag para identificar en UI
-  })) };
+  // 4. Filtrar por prioridad de 20 segundos
+  const ahora = Date.now();
+  const delayMs = 20000;
+
+  const filtered = (data || []).filter(p => {
+    // Si el pedido ya tiene repartidor asignado (y soy yo), lo muestro
+    if (p.repartidor_id) return true;
+
+    // Si el pedido es del local prioritario del repartidor, lo muestro inmediatamente
+    if (misPrioridades.includes(p.local_id)) return true;
+
+    // REGLA NUEVA: Si el local NO tiene repartidores prioritarios asignados, se muestra a todos al instante
+    if (!localesConPrioridad.has(p.local_id)) return true;
+
+    // Si NO es prioritario para mí, pero EL LOCAL TIENE prioritarios asignados, verificamos si ya pasaron los 20 segundos
+    const createdTime = new Date(p.created_at).getTime();
+    return (ahora - createdTime) >= delayMs;
+  });
+
+  return { 
+    success: true, 
+    data: filtered.map(p => ({
+      id: p.id, 
+      cliente: p.usuario_id, 
+      nombre_cliente: p.nombre_cliente || 'Cliente', 
+      telefono_cliente: p.usuarios?.telefono || '',
+      direccion: p.direccion || 'Sin dirección',
+      monto: +p.total || 0,
+      precio_envio: +p.precio_envio || 0,
+      pago: p.metodo_pago || 'Efectivo',
+      estado: p.estado, 
+      observaciones: p.observaciones || '', 
+      envio: p.tipo_entrega || 'envio',
+      local_id: p.local_id, 
+      lat: p.lat, 
+      lng: p.lng,
+      esBroadcast: !p.repartidor_id // Flag para identificar en UI
+    })) 
+  };
 }
 
 export async function aceptarPedidoBroadcast(pedidoId, repartidorId) {
@@ -2699,12 +2756,12 @@ export async function suscribirAPlan(localId, planId) {
     return { success: true };
 }
 
-export async function broadcastOrderToDrivers(pedidoId, total) {
+export async function broadcastOrderToDrivers(pedidoId, total, localId = null) {
   try {
-    console.log("⚡ Broadcasting order push to all accepted drivers...");
+    console.log(`⚡ Broadcasting order push to all accepted drivers... (Local: ${localId})`);
     const { data: drivers } = await supabase
       .from('repartidores')
-      .select('onesignal_id')
+      .select('onesignal_id, locales_prioridad')
       .eq('admin_status', 'Aceptado')
       .not('onesignal_id', 'is', null);
 
@@ -2713,16 +2770,38 @@ export async function broadcastOrderToDrivers(pedidoId, total) {
       return { success: false, message: 'No hay repartidores con OneSignalId' };
     }
 
-    const ids = drivers.map(d => d.onesignal_id).filter(Boolean);
-    console.log(`🔔 Sending push to ${ids.length} drivers:`, ids);
+    const priorityDrivers = localId ? drivers.filter(d => d.locales_prioridad?.includes(localId)) : [];
+    const otherDrivers = drivers.filter(d => !priorityDrivers.includes(d));
 
-    return await sendPushNotification({
-      subscriptionIds: ids,
-      title: '¡Nuevo Pedido Disponible! 🛵',
-      message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo ahora mismo!`,
-      url: 'https://wepi.com.ar/repartidores',
-      data: { pedidoId, type: 'new_order_broadcast' }
-    });
+    const sendPush = async (recipients) => {
+      const ids = recipients.map(d => d.onesignal_id).filter(Boolean);
+      if (ids.length === 0) return;
+      
+      return await sendPushNotification({
+        subscriptionIds: ids,
+        title: '¡Nuevo Pedido Disponible! 🛵',
+        message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo ahora mismo!`,
+        url: 'https://wepi.com.ar/repartidores',
+        data: { pedidoId, type: 'new_order_broadcast' }
+      });
+    };
+
+    // Lógica de envío:
+    if (priorityDrivers.length > 0) {
+      console.log(`🔔 Sending IMMEDIATE push to ${priorityDrivers.length} priority drivers`);
+      await sendPush(priorityDrivers);
+      
+      // Delay 20s para el resto
+      console.log(`⏳ Delaying push 20s for ${otherDrivers.length} other drivers...`);
+      setTimeout(() => {
+        sendPush(otherDrivers).catch(e => console.error("Error in delayed push:", e));
+      }, 20000);
+      
+      return { success: true, message: 'Notificación enviada a prioritarios, resto en 20s' };
+    } else {
+      console.log(`🔔 No priority drivers for local ${localId}, sending to all ${drivers.length} drivers`);
+      return await sendPush(drivers);
+    }
   } catch (err) {
     console.error("Error in broadcastOrderToDrivers:", err);
     return { success: false, error: err.message };
