@@ -325,6 +325,17 @@ export default function PruebasWalletApp() {
       </div>
     );
   }, [allWalletConfigs, calculateDiscountedPrice, selectedLocal]);
+  
+  const doesItemEarnCredit = React.useCallback((item) => {
+    if (!item) return false;
+    const lid = item.local_id;
+    const cfg = allWalletConfigs[lid] || allWalletConfigs['global'];
+    if (!cfg || !cfg.activo || Number(cfg.porcentaje_ganancia) <= 0) return false;
+    const price = calculateDiscountedPrice(item);
+    const minToEarn = Number(cfg.compra_minima_generar || 0);
+    return price >= minToEarn;
+  }, [allWalletConfigs, calculateDiscountedPrice]);
+
 
   const calculateCheckoutTotals = React.useCallback((P, E, method) => {
     const net_commission = P * localCommission;
@@ -1272,6 +1283,71 @@ export default function PruebasWalletApp() {
       </span>
     ), { duration: 3000, style: { padding: '12px 16px' } });
   };
+
+  const renderMenuItem = React.useCallback((item) => {
+    const itemCfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes || '{}') : (item.variantes || {});
+    const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas;
+    
+    return (
+      <div 
+        key={item.id} 
+        className="menu-card card card-hover" 
+        style={{ cursor: 'pointer' }}
+        onClick={() => handleAddToCart(item)}
+      >
+        <div className="menu-card-img-container">
+          <img src={item.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'} alt={item.nombre} className="menu-card-img" />
+          {(() => {
+            const discountedPrice = calculateDiscountedPrice(item);
+            if (discountedPrice < Number(item.precio)) {
+              const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+              return <div className="menu-discount-badge">{percent}% OFF</div>;
+            }
+            return null;
+          })()}
+          </div>
+        <div className="menu-card-body">
+          <div className="menu-card-local" style={{ marginBottom: '2px' }}>
+             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)' }}>{item.categoria}</span>
+          </div>
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '4px' }}>{item.nombre}</h3>
+          {renderCreditBadge(item, true)}
+          <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '8px', lineHeight: '1.2' }}>{item.descripcion}</p>
+          <div className="menu-card-footer">
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="menu-card-price">${calculateDiscountedPrice(item).toLocaleString()}</span>
+              {calculateDiscountedPrice(item) < Number(item.precio) && (
+                <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                  ${Number(item.precio).toLocaleString()}
+                </span>
+              )}
+            </div>
+            <div className="menu-card-actions">
+              {isLocalOpen(selectedLocal) ? (
+                <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
+                  {needsCustomization ? 'Elegir' : 'Agregar'}
+                </button>
+              ) : (
+                <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                  {selectedLocal?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                </span>
+              )}
+              <button 
+                 className={`fav-btn ${favorites.includes(item.id) ? 'active' : ''}`}
+                 onClick={(e) => { e.stopPropagation(); toggleFav(item.id); }}
+              >
+                 <img 
+                   src={favorites.includes(item.id) ? "https://i.postimg.cc/BZYZmSz1/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find.png" : "https://i.postimg.cc/W4Gb8MRV/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find(1).png"} 
+                   style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+                   alt="Favorito" 
+                 />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }, [calculateDiscountedPrice, handleAddToCart, renderCreditBadge, selectedLocal, isLocalOpen, favorites, toggleFav]);
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -2318,7 +2394,15 @@ export default function PruebasWalletApp() {
                  <>
                    {/* Categorías del Local */}
                    <div className="local-categories-nav">
-                     {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
+                                           {menus.some(m => doesItemEarnCredit(m)) && (
+                        <button className="local-cat-chip" style={{ background: 'var(--sky-50)', color: 'var(--sky-700)', borderColor: 'var(--sky-200)', fontWeight: 'bold' }} onClick={() => {
+                          document.getElementById(`cat-credito`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}>
+                          Ganá créditos 💰
+                        </button>
+                      )}
+                      {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
+
                        <button key={cat} className="local-cat-chip" onClick={() => {
                          document.getElementById(`cat-${cat}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                        }}>
@@ -2328,77 +2412,32 @@ export default function PruebasWalletApp() {
                    </div>
 
                    {/* Listado de Productos Agrupados */}
-                   {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
-                     <section key={cat} id={`cat-${cat}`} className="menu-category-section">
-                        <h3 className="category-group-title">{cat}</h3>
-                        <div className="menu-list-wallet" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                           {menus.filter(m => m.categoria === cat).map((item) => {
-                             const itemCfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes || '{}') : (item.variantes || {});
-                             const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas;
-                             
-                             return (
-                               <div 
-                                 key={item.id} 
-                                 className="menu-card card card-hover" 
-                                 style={{ cursor: 'pointer' }}
-                                 onClick={() => handleAddToCart(item)}
-                               >
-                                 <div className="menu-card-img-container">
-                                   <img src={item.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'} alt={item.nombre} className="menu-card-img" />
-                                   {(() => {
-                                     const discountedPrice = calculateDiscountedPrice(item);
-                                     if (discountedPrice < Number(item.precio)) {
-                                       const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
-                                       return <div className="menu-discount-badge">{percent}% OFF</div>;
-                                     }
-                                     return null;
-                                   })()}
-                                   </div>
-                                 <div className="menu-card-body">
-                                   <div className="menu-card-local" style={{ marginBottom: '2px' }}>
-                                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)' }}>{item.categoria}</span>
-                                   </div>
-                                   <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '4px' }}>{item.nombre}</h3>
-                                   {renderCreditBadge(item, true)}
-                                   <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '8px', lineHeight: '1.2' }}>{item.descripcion}</p>
-                                   <div className="menu-card-footer">
-                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                       <span className="menu-card-price">${calculateDiscountedPrice(item).toLocaleString()}</span>
-                                       {calculateDiscountedPrice(item) < Number(item.precio) && (
-                                         <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
-                                           ${Number(item.precio).toLocaleString()}
-                                         </span>
-                                       )}
-                                     </div>
-                                     <div className="menu-card-actions">
-                                       {isLocalOpen(selectedLocal) ? (
-                                         <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
-                                           {needsCustomization ? 'Elegir' : 'Agregar'}
-                                         </button>
-                                       ) : (
-                                         <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
-                                           {selectedLocal?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
-                                         </span>
-                                       )}
-                                       <button 
-                                          className={`fav-btn ${favorites.includes(item.id) ? 'active' : ''}`}
-                                          onClick={(e) => { e.stopPropagation(); toggleFav(item.id); }}
-                                       >
-                                          <img 
-                                            src={favorites.includes(item.id) ? "https://i.postimg.cc/BZYZmSz1/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find.png" : "https://i.postimg.cc/W4Gb8MRV/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find(1).png"} 
-                                            style={{ width: '22px', height: '22px', objectFit: 'contain' }}
-                                            alt="Favorito" 
-                                          />
-                                       </button>
-                                     </div>
-                                   </div>
-                                 </div>
-                               </div>
-                             );
-                           })}
-                        </div>
-                     </section>
-                   ))}
+                                       {/* Sección Especial: Ganá Créditos */}
+                    {menus.some(m => doesItemEarnCredit(m)) && (
+                      <section id="cat-credito" className="menu-category-section">
+                         <h3 className="category-group-title" style={{ color: 'var(--sky-700)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           Ganá créditos 💰
+                         </h3>
+                         <div className="menu-list-wallet" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {menus
+                              .filter(m => doesItemEarnCredit(m))
+                              .map((item) => renderMenuItem(item))}
+                         </div>
+                      </section>
+                    )}
+
+                    {/* Listado de Productos Agrupados */}
+                    {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
+                      <section key={cat} id={`cat-${cat}`} className="menu-category-section">
+                         <h3 className="category-group-title">{cat}</h3>
+                         <div className="menu-list-wallet" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {menus
+                              .filter(m => m.categoria === cat)
+                              .sort((a, b) => (doesItemEarnCredit(b) ? 1 : 0) - (doesItemEarnCredit(a) ? 1 : 0))
+                              .map((item) => renderMenuItem(item))}
+                         </div>
+                      </section>
+                    ))}
                  </>
                )}
              </div>
