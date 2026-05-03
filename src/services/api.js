@@ -986,20 +986,38 @@ export async function getPedidoGeneral(pedidoId) {
 }
 
 export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
+  // 1. Actualizar tabla local
   const { error } = await supabase.from('pedidos_locales').update({ estado }).eq('id', pedidoLocalId);
   if (error) throw new Error(error.message);
-  if (estado === 'Rechazado') {
-    const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).single();
-    if (pl) {
-      const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pl.pedido_id).single();
-      if (pg && pg.repartidor_id) {
-        await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
+
+  // 2. Sincronizar con tabla general
+  try {
+    const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).maybeSingle();
+    if (pl?.pedido_id) {
+      await supabase.from('pedidos_general').update({ estado }).eq('id', pl.pedido_id);
+
+      // Efectos secundarios según el estado
+      if (estado === 'Rechazado' || estado === 'Cancelado') {
+        const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pl.pedido_id).maybeSingle();
+        if (pg?.repartidor_id && pg.repartidor_id.length > 20) {
+          await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
+        }
       }
-      await supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', pl.pedido_id);
+      
+      if (estado === 'Entregado') {
+        const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pl.pedido_id).maybeSingle();
+        if (pg?.usuario_id && pg.usuario_id.length > 20) {
+          await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+        }
+      }
     }
+  } catch (e) {
+    console.warn("Error en sincronización general desde local:", e.message);
   }
+  
   return { success: true };
 }
+
 
 // ═══════════════════════════════════════════════════
 // LANZAMIENTO
