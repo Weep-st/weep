@@ -1528,34 +1528,33 @@ export async function adminGetPedidoDetalle(pedidoId) {
 // ADMIN — Update Pedido Status (Global + Local)
 // ═══════════════════════════════════════════════════
 export async function adminUpdatePedidoStatus(pedidoId, status) {
-  // 1. Update general
-  const { error: e1 } = await supabase.from('pedidos_general').update({ estado: status }).eq('id', pedidoId);
-  if (e1) throw new Error(e1.message);
+  const { error: errGen } = await supabase.from('pedidos_general').update({ estado: status }).eq('id', pedidoId);
+  if (errGen) throw errGen;
+  await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
 
-  // 2. Update all associated local orders
-  const { error: e2 } = await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
-  if (e2) throw new Error(e2.message);
+  try {
+    if (status === 'Rechazado' || status === 'Cancelado') {
+      const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pedidoId).maybeSingle();
+      if (pg?.repartidor_id && pg.repartidor_id.length > 20) {
+        await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
+      }
+    }
+  } catch (e) { console.warn("Driver release skipped:", e.message); }
 
-  // 3. Side effects (e.g. freeing driver if rejected)
-  if (status === 'Rechazado' || status === 'Cancelado') {
-     const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pedidoId).single();
-     if (pg && pg.repartidor_id) {
-       await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
-     }
-  }
-
-  if (status === 'Entregado') {
-     supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(console.error);
-     
-     // Marcar usuario como "ya realizó pedidos" de forma permanente
-     const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).single();
-     if (pg?.usuario_id) {
-       await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
-     }
-  }
-
+  try {
+    if (status === 'Entregado') {
+      supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(console.error);
+      const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).maybeSingle();
+      if (pg?.usuario_id && pg.usuario_id.length > 20) {
+        await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+      }
+    }
+  } catch (e) { console.warn("Post-delivery tasks skipped:", e.message); }
+  
   return { success: true };
 }
+
+// ══════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════
 
@@ -2003,37 +2002,60 @@ export async function getHistorialCierresLocales(localId = null) {
 
 
 export async function adminForceDeleteOrders({ status, startDate, endDate } = {}) {
-  let query = supabase.from('pedidos_general').select('id');
+  // 1. Obtener IDs candidatos según estado y fecha
+  let query = supabase.from('pedidos_general').select('id, cierre_caja, cobro_repartidor_procesado');
   
   if (status) {
     query = query.eq('estado', status);
-    // Si es entregado, obligamos a que esté cerrado y pagado para no romper la contabilidad
-    if (status === 'Entregado') {
-      query = query.eq('cierre_caja', true).eq('cobro_repartidor_procesado', true);
-    }
   } else {
-    // Comportamiento por defecto (legacy): solo entregados cerrados y pagados
-    query = query.eq('estado', 'Entregado').eq('cierre_caja', true).eq('cobro_repartidor_procesado', true);
+    query = query.eq('estado', 'Entregado');
   }
 
   if (startDate) query = query.gte('created_at', `${startDate}T00:00:00Z`);
   if (endDate) query = query.lte('created_at', `${endDate}T23:59:59Z`);
 
-  const { data: toDelete, error: errSelect } = await query;
-
+  const { data: candidates, error: errSelect } = await query;
   if (errSelect) throw new Error(errSelect.message);
-  
-  const ids = (toDelete || []).map(o => o.id);
-  if (ids.length === 0) return { success: true, count: 0 };
+  if (!candidates || candidates.length === 0) return { success: true, count: 0 };
 
-  // Eliminación en cascada
-  await supabase.from('pedidos_items').delete().in('pedido_id', ids);
-  await supabase.from('pedidos_locales').delete().in('pedido_id', ids);
-  const { error: errDel } = await supabase.from('pedidos_general').delete().in('id', ids);
+  const candidateIds = candidates.map(c => c.id);
+
+  // 2. Si es 'Entregado', verificar que REALMENTE estén cerrados en los locales
+  // Esto soluciona el problema de desincronización
+  let idsToDelete = candidateIds;
+  
+  if (!status || status === 'Entregado') {
+    // Consultar el estado de cierre en pedidos_locales para estos IDs
+    const { data: localesStatus } = await supabase
+      .from('pedidos_locales')
+      .select('pedido_id, cierre_caja')
+      .in('pedido_id', candidateIds);
+    
+    // Un pedido es borrable si:
+    // (Está marcado como cerrado en General) O (Todos sus locales asociados están cerrados)
+    // Y (El cobro al repartidor está procesado)
+    idsToDelete = candidates.filter(c => {
+      const orderLocales = localesStatus?.filter(l => l.pedido_id === c.id) || [];
+      const allLocalesClosed = orderLocales.length > 0 && orderLocales.every(l => l.cierre_caja === true);
+      
+      const isClosed = c.cierre_caja === true || allLocalesClosed;
+      const isPaid = c.cobro_repartidor_procesado === true;
+      
+      return isClosed && isPaid;
+    }).map(c => c.id);
+  }
+
+  if (idsToDelete.length === 0) return { success: true, count: 0 };
+
+  // 3. Eliminación en cascada
+  await supabase.from('pedidos_items').delete().in('pedido_id', idsToDelete);
+  await supabase.from('pedidos_locales').delete().in('pedido_id', idsToDelete);
+  const { error: errDel } = await supabase.from('pedidos_general').delete().in('id', idsToDelete);
 
   if (errDel) throw new Error(errDel.message);
-  return { success: true, count: ids.length };
+  return { success: true, count: idsToDelete.length };
 }
+
 
 
 // ═══════════════════════════════════════════════════

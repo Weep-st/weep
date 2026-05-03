@@ -62,8 +62,10 @@ const AdminPedidos = () => {
             setPedidoDetalle(prev => ({ ...prev, estado: newStatus }));
             loadPedidos();
         } catch (err) {
-            toast.error('Error al actualizar estado');
+            console.error(err);
+            toast.error('Error al actualizar estado: ' + (err.message || 'Error desconocido'));
         }
+
     };
 
     const formatFecha = (fechaStr) => {
