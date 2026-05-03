@@ -2002,18 +2002,31 @@ export async function getHistorialCierresLocales(localId = null) {
 }
 
 
-export async function adminForceDeleteOrders() {
-  const { data: toDelete, error: errSelect } = await supabase
-    .from('pedidos_general')
-    .select('id')
-    .eq('cierre_caja', true)
-    .eq('cobro_repartidor_procesado', true);
+export async function adminForceDeleteOrders({ status, startDate, endDate } = {}) {
+  let query = supabase.from('pedidos_general').select('id');
+  
+  if (status) {
+    query = query.eq('estado', status);
+    // Si es entregado, obligamos a que esté cerrado y pagado para no romper la contabilidad
+    if (status === 'Entregado') {
+      query = query.eq('cierre_caja', true).eq('cobro_repartidor_procesado', true);
+    }
+  } else {
+    // Comportamiento por defecto (legacy): solo entregados cerrados y pagados
+    query = query.eq('estado', 'Entregado').eq('cierre_caja', true).eq('cobro_repartidor_procesado', true);
+  }
+
+  if (startDate) query = query.gte('created_at', `${startDate}T00:00:00Z`);
+  if (endDate) query = query.lte('created_at', `${endDate}T23:59:59Z`);
+
+  const { data: toDelete, error: errSelect } = await query;
 
   if (errSelect) throw new Error(errSelect.message);
   
   const ids = (toDelete || []).map(o => o.id);
   if (ids.length === 0) return { success: true, count: 0 };
 
+  // Eliminación en cascada
   await supabase.from('pedidos_items').delete().in('pedido_id', ids);
   await supabase.from('pedidos_locales').delete().in('pedido_id', ids);
   const { error: errDel } = await supabase.from('pedidos_general').delete().in('id', ids);
@@ -2021,6 +2034,7 @@ export async function adminForceDeleteOrders() {
   if (errDel) throw new Error(errDel.message);
   return { success: true, count: ids.length };
 }
+
 
 // ═══════════════════════════════════════════════════
 // ANALYTICS — Basados en Cierre de Caja (Inmunes a borrados)

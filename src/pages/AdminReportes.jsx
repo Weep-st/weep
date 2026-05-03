@@ -15,6 +15,12 @@ const AdminReportes = () => {
         end: new Date().toISOString().split('T')[0]
     });
     const [statsData, setStatsData] = useState(null);
+    const [deleteParams, setDeleteParams] = useState({
+        status: 'Rechazado',
+        start: '',
+        end: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Por defecto hasta hace una semana
+    });
+
 
 
     useEffect(() => {
@@ -108,18 +114,27 @@ const AdminReportes = () => {
     };
 
     const handleForceDelete = async () => {
-        if (!window.confirm('⚠️ ATENCIÓN: Esta acción eliminará permanentemente los pedidos que ya fueron CERRADOS y PAGADOS a los repartidores. Esta acción no se puede deshacer. ¿Continuar?')) return;
+        const msg = deleteParams.status === 'Entregado' 
+            ? '⚠️ ATENCIÓN: Se eliminarán los pedidos ENTREGADOS que ya fueron CERRADOS y PAGADOS.' 
+            : `⚠️ ATENCIÓN: Se eliminarán permanentemente los pedidos en estado "${deleteParams.status}" del periodo seleccionado.`;
+            
+        if (!window.confirm(`${msg}\n\n¿Estás seguro? Esta acción no se puede deshacer.`)) return;
         
         try {
             setLoading(true);
-            const res = await api.adminForceDeleteOrders();
-            toast.success(`Se eliminaron ${res.count} pedidos obsoletos con éxito.`);
+            const res = await api.adminForceDeleteOrders({
+                status: deleteParams.status,
+                startDate: deleteParams.start,
+                endDate: deleteParams.end
+            });
+            toast.success(`Se eliminaron ${res.count} pedidos con éxito.`);
         } catch (err) {
             toast.error('Error al eliminar pedidos');
         } finally {
             setLoading(false);
         }
     };
+
 
 
     return (
@@ -160,13 +175,13 @@ const AdminReportes = () => {
                             📊 Estadísticas Globales
                         </button>
                         <button 
-                            className="btn btn-sm btn-ghost" 
-                            onClick={handleForceDelete}
-                            style={{ fontSize: '0.75rem', color: 'var(--red-600)' }}
-                            title="Limpiar almacenamiento (Eliminar pedidos cerrados)"
+                            className={`btn btn-sm ${activeTab === 'maintenance' ? 'btn-primary' : 'btn-ghost'}`} 
+                            onClick={() => setActiveTab('maintenance')}
+                            style={{ fontSize: '0.75rem', color: activeTab === 'maintenance' ? 'white' : 'var(--red-600)' }}
                         >
-                            🗑️ Forzar Eliminar
+                            🗑️ Limpieza
                         </button>
+
                     </div>
 
                 </div>
@@ -404,7 +419,70 @@ const AdminReportes = () => {
                         </div>
                     )}
                 </div>
+            ) : activeTab === 'maintenance' ? (
+                <div className="report-content" style={{ padding: '20px' }}>
+                    <div className="card card-body" style={{ maxWidth: '600px', margin: '0 auto', border: '1px solid var(--red-200)', background: '#fff5f5' }}>
+                        <h3 style={{ color: 'var(--red-600)', marginBottom: '15px' }}>🗑️ Mantenimiento de Base de Datos</h3>
+                        <p style={{ fontSize: '0.9rem', color: '#7f1d1d', marginBottom: '25px' }}>
+                            Utiliza esta herramienta para eliminar pedidos antiguos o fallidos y liberar espacio. 
+                            <strong> Nota:</strong> Los pedidos "Entregados" solo se eliminarán si ya han sido liquidados.
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Estado de los pedidos a eliminar:</label>
+                                <select 
+                                    className="form-select" 
+                                    value={deleteParams.status}
+                                    onChange={(e) => setDeleteParams({...deleteParams, status: e.target.value})}
+                                >
+                                    <option value="Rechazado">❌ Rechazados</option>
+                                    <option value="Cancelado">🚫 Cancelados</option>
+                                    <option value="Pendiente">⏳ Pendientes (Huérfanos)</option>
+                                    <option value="Entregado">✅ Entregados (Cerrados y Pagados)</option>
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Desde:</label>
+                                    <input 
+                                        type="date" 
+                                        className="form-input" 
+                                        value={deleteParams.start}
+                                        onChange={(e) => setDeleteParams({...deleteParams, start: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Hasta (inclusive):</label>
+                                    <input 
+                                        type="date" 
+                                        className="form-input" 
+                                        value={deleteParams.end}
+                                        onChange={(e) => setDeleteParams({...deleteParams, end: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '20px', padding: '15px', background: 'white', borderRadius: '8px', border: '1px solid var(--red-100)', fontSize: '0.85rem' }}>
+                                <p style={{ margin: 0, color: 'var(--red-600)' }}>
+                                    ⚠️ <strong>IMPORTANTE:</strong> Se eliminarán registros de <code>pedidos_general</code>, <code>pedidos_locales</code> y <code>pedidos_items</code> que coincidan con los filtros.
+                                </p>
+                            </div>
+
+                            <button 
+                                className="btn btn-danger btn-full" 
+                                style={{ background: 'var(--red-600)', marginTop: '10px' }}
+                                onClick={handleForceDelete}
+                                disabled={loading}
+                            >
+                                {loading ? 'Procesando...' : `Eliminar Pedidos "${deleteParams.status}"`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             ) : (
+
                 <div className="report-content" style={{ padding: '20px' }}>
                     <div className="table-responsive">
                         <table className="admin-table">
