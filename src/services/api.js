@@ -1554,6 +1554,37 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
   return { success: true };
 }
 
+// ═══════════════════════════════════════════════════
+// ADMIN — Gestión de Usuarios
+// ═══════════════════════════════════════════════════
+export async function adminGetUsuarios() {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminToggleBloqueoUsuario(userId, blockedStatus) {
+  const { error } = await supabase
+    .from('usuarios')
+    .update({ bloqueado: blockedStatus })
+    .eq('id', userId);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function deleteUsuarioAccount(userId) {
+  const { error } = await supabase
+    .from('usuarios')
+    .delete()
+    .eq('id', userId);
+  if (error) throw error;
+  return { success: true };
+}
+
+
 // ══════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════
