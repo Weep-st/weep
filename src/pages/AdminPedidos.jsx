@@ -238,14 +238,15 @@ const AdminPedidos = () => {
                                                 <p style={{ margin: '2px 0 0 0', fontSize: '0.9rem' }}><strong>Teléfono:</strong> {pedidoDetalle.repartidores.telefono || 'No disponible'}</p>
                                             </div>
                                         )}
-                                        {pedidoDetalle.mercadopago_payment_id && (
+                                        {pedidoDetalle.payment_id && (
                                             <div className="mp-info">
-                                                <p><strong>MP ID:</strong> {pedidoDetalle.mercadopago_payment_id}</p>
+                                                <p><strong>MP ID:</strong> {pedidoDetalle.payment_id}</p>
                                                 {pedidoDetalle.payment_metadata && (
                                                     <p><strong>Tarjeta:</strong> {pedidoDetalle.payment_metadata.card_brand} **** {pedidoDetalle.payment_metadata.last_four}</p>
                                                 )}
                                             </div>
                                         )}
+
                                     </section>
                                 </div>
 

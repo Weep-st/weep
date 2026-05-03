@@ -1048,13 +1048,15 @@ export async function buscarMenu(query) {
 
 export async function getUserOrderCount(userId) {
   if (!userId) return 0;
-  const { count, error } = await supabase
-    .from('pedidos_general')
-    .select('id', { count: 'exact', head: true })
-    .eq('usuario_id', userId)
-    .eq('estado', 'Entregado');
+  // Usamos el flag persistente ya que las rows de pedidos pueden ser borradas
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('ya_realizo_pedidos')
+    .eq('id', userId)
+    .single();
+    
   if (error) return 0;
-  return count || 0;
+  return data?.ya_realizo_pedidos ? 1 : 0; // 1 significa que ya pidió
 }
 
 // ═══════════════════════════════════════════════════
@@ -1544,35 +1546,19 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
 
   if (status === 'Entregado') {
      supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(console.error);
+     
+     // Marcar usuario como "ya realizó pedidos" de forma permanente
+     const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).single();
+     if (pg?.usuario_id) {
+       await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+     }
   }
 
   return { success: true };
 }
 
-// ═══════════════════════════════════════════════════
-// ADMIN — Usuarios
-// ═══════════════════════════════════════════════════
-export async function adminGetUsuarios() {
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw new Error(error.message);
-  return data || [];
-}
+// ══════════════════════════════════════════════════
 
-export async function adminToggleBloqueoUsuario(userId, bloqueado) {
-  const { error } = await supabase
-    .from('usuarios')
-    .update({ bloqueado })
-    .eq('id', userId);
-  if (error) throw new Error(error.message);
-  return { success: true };
-}
-
-// ═══════════════════════════════════════════════════
-// ADMIN — Menú Completo (Sin filtros)
-// ═══════════════════════════════════════════════════
 export async function adminGetMenuCompleto() {
   const { data } = await supabase
     .from('menu')
@@ -1642,6 +1628,104 @@ export async function getAdminTasks() {
   const { data } = await supabase.from('admin_tasks').select('*').order('created_at', { ascending: false });
   return data || [];
 }
+
+export async function getLocalCierreReport(localId, options = {}) {
+  const { fecha, inicio, fin, pendientes } = options;
+  
+  // 1. Configurar query base
+  let query = supabase
+    .from('pedidos_locales')
+    .select('*')
+    .eq('local_id', localId)
+    .eq('estado', 'Entregado')
+    .eq('cierre_caja', false);
+
+  // 2. Aplicar filtros según el modo
+  if (pendientes) {
+    // Sin filtro de fecha, trae todo lo que no esté cerrado
+  } else if (fecha) {
+    const startOfDay = `${fecha}T00:00:00Z`;
+    const endOfDay = `${fecha}T23:59:59Z`;
+    query = query.gte('created_at', startOfDay).lte('created_at', endOfDay);
+  } else if (inicio && fin) {
+    const start = `${inicio}T00:00:00Z`;
+    const end = `${fin}T23:59:59Z`;
+    query = query.gte('created_at', start).lte('created_at', end);
+  }
+
+  query = query.order('created_at', { ascending: true });
+
+  const { data: pedidosLocales, error: errPL } = await query;
+
+
+
+  if (errPL) throw new Error(errPL.message);
+  
+  if (!pedidosLocales || pedidosLocales.length === 0) {
+    return { subtotal: 0, transferencia: 0, efectivo: 0, pedidos: [], comisiones: 0, neto: 0, comisionPct: 0 };
+  }
+
+  // 2. Obtener datos complementarios de pedidos_general (nombre_cliente, nro_operacion, etc.)
+  const pedidoIds = pedidosLocales.map(p => p.pedido_id);
+  const { data: pedidosGeneral, error: errPG } = await supabase
+    .from('pedidos_general')
+    .select('id, nombre_cliente, metodo_pago, payment_id, created_at')
+    .in('id', pedidoIds);
+
+
+  if (errPG) throw new Error(errPG.message);
+
+  // Crear mapa para cruce de datos
+  const pgMap = new Map(pedidosGeneral?.map(pg => [pg.id, pg]) || []);
+
+  const planInfo = await getPlanInfo(localId);
+  const comisionPct = planInfo.success ? planInfo.comision_actual : 8;
+
+  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0;
+  const detalles = pedidosLocales.map(p => {
+    const pg = pgMap.get(p.pedido_id) || {};
+    const totalPedido = Number(p.total) || 0;
+    subtotal += totalPedido;
+    
+    // Usar comisión persistente si existe, si no, usar la actual como fallback
+    const montoComision = Number(p.comision_monto) || (totalPedido * (comisionPct / 100));
+    totalComisiones += montoComision;
+
+    const metodo = (p.metodo_pago || pg.metodo_pago || '').toLowerCase();
+    if (metodo.includes('efectivo')) efectivo += totalPedido;
+    else transferencia += totalPedido;
+
+    return {
+      id: p.pedido_id,
+      cliente: pg.nombre_cliente || 'Desconocido',
+      metodo: p.metodo_pago || pg.metodo_pago || 'Desconocido',
+      total: totalPedido,
+      comision_pct: p.comision_pct || comisionPct,
+      comision_monto: montoComision.toFixed(2),
+      nro_operacion: pg.payment_id || 'N/A',
+      hora: pg.created_at || p.created_at
+    };
+  });
+
+  const neto = subtotal - totalComisiones;
+
+  // Asegurar que siempre devolvemos una fecha de referencia para el registro del cierre
+  const finalFecha = fecha || inicio || new Date().toISOString().split('T')[0];
+
+  return {
+    subtotal: subtotal.toFixed(2),
+    transferencia: transferencia.toFixed(2),
+    efectivo: efectivo.toFixed(2),
+    pedidos: detalles,
+    comisiones: totalComisiones.toFixed(2),
+    neto: neto.toFixed(2),
+    comisionPct, 
+    fecha: finalFecha,
+    success: true
+  };
+}
+
+
 
 export async function createAdminTask(tarea, tipo = 'GENERAL', fecha_finalizacion = null, prioridad = 'Media') {
   const { data, error } = await supabase.from('admin_tasks')
@@ -1793,6 +1877,200 @@ export async function solicitarCobro(localId, monto, comprobanteUrl = '') {
   }
   return { success: true, idSolicitud: id, monto, estado: 'Pendiente' };
 }
+
+export async function saveLocalCierre(data) {
+
+  const { error } = await supabase.from('cierre_caja').insert({
+    local_id: data.localId,
+    fecha: data.fecha,
+    total_subtotal: data.subtotal,
+    total_comisiones: data.comisiones,
+    total_neto_local: data.neto,
+    total_transferencia: data.transferencia,
+    total_efectivo: data.efectivo,
+    num_pedidos: (data.pedidos || []).length,
+    datos_detallados: data.pedidos
+  });
+
+
+  if (error) throw new Error(error.message);
+
+  const pedidoIds = (data.pedidos || []).map(p => p.id);
+  if (pedidoIds.length > 0) {
+    await supabase.from('pedidos_locales')
+      .update({ cierre_caja: true })
+      .in('pedido_id', pedidoIds)
+      .eq('local_id', data.localId);
+  }
+  return { success: true };
+}
+
+export async function getAdminCierreReport(fecha, localId = null) {
+  let query = supabase.from('pedidos_general')
+    .select('*, repartidores:repartidor_id(nombre)')
+    .eq('estado', 'Entregado')
+    .eq('cierre_caja', false)
+    .gte('created_at', `${fecha}T00:00:00Z`)
+    .lte('created_at', `${fecha}T23:59:59Z`);
+
+  if (localId && localId !== 'Todos') {
+    const { data: pLocales, error: errIds } = await supabase
+      .from('pedidos_locales')
+      .select('pedido_id')
+      .eq('local_id', localId);
+    
+    if (errIds) throw new Error(errIds.message);
+    const pedidoIds = (pLocales || []).map(pl => pl.pedido_id);
+    if (pedidoIds.length === 0) return { success: true, pedidos: [], repartidores: [] };
+    query = query.in('id', pedidoIds);
+  }
+
+  const { data: dataGeneral, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const pedidoIds = (dataGeneral || []).map(p => p.id);
+  const { data: dataLocales } = await supabase.from('pedidos_locales').select('*').in('pedido_id', pedidoIds);
+
+  const data = (dataGeneral || []).map(p => {
+    const pLocales = (dataLocales || []).filter(pl => pl.pedido_id === p.id);
+    const totalComision = pLocales.reduce((acc, pl) => acc + (Number(pl.comision_monto) || 0), 0);
+    return {
+      ...p,
+      pedidos_locales: pLocales,
+      total_comision: totalComision
+    };
+  });
+
+
+  const repartidoresStats = {};
+  data.forEach(p => {
+    if (p.repartidor_id) {
+      if (!repartidoresStats[p.repartidor_id]) {
+        repartidoresStats[p.repartidor_id] = {
+          id: p.repartidor_id,
+          nombre: p.repartidores?.nombre || 'Desconocido',
+          entregados: 0,
+          monto_envio: 0,
+          ids: []
+        };
+      }
+      repartidoresStats[p.repartidor_id].entregados++;
+      repartidoresStats[p.repartidor_id].monto_envio += Number(p.precio_envio) || 0;
+      repartidoresStats[p.repartidor_id].ids.push(p.id);
+    }
+  });
+
+  return { success: true, pedidos: data, repartidores: Object.values(repartidoresStats) };
+}
+
+export async function saveRepartidorCierre(data) {
+  const { error } = await supabase.from('cierre_repartidores').insert({
+    fecha_cierre: data.fecha,
+    total_saldado: data.totalSaldado,
+    total_adeudado: data.totalAdeudado,
+    num_pedidos: data.numPedidos,
+    detalles_por_repartidor: data.detalles,
+    datos_pedidos: data.pedidos
+  });
+  if (error) throw new Error(error.message);
+  const pedidoIds = (data.pedidos || []).map(p => p.id);
+  if (pedidoIds.length > 0) {
+    await supabase.from('pedidos_general').update({ cierre_caja: true }).in('id', pedidoIds);
+  }
+  return { success: true };
+}
+
+export async function getHistorialCierresRepartidores() {
+  const { data, error } = await supabase.from('cierre_repartidores').select('*').order('fecha_cierre', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function getHistorialCierresLocales(localId = null) {
+
+  let query = supabase.from('cierre_caja')
+    .select('*, locales(nombre)')
+    .order('fecha', { ascending: false });
+
+  if (localId && localId !== 'Todos') {
+    query = query.eq('local_id', localId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+
+export async function adminForceDeleteOrders() {
+  const { data: toDelete, error: errSelect } = await supabase
+    .from('pedidos_general')
+    .select('id')
+    .eq('cierre_caja', true)
+    .eq('cobro_repartidor_procesado', true);
+
+  if (errSelect) throw new Error(errSelect.message);
+  
+  const ids = (toDelete || []).map(o => o.id);
+  if (ids.length === 0) return { success: true, count: 0 };
+
+  await supabase.from('pedidos_items').delete().in('pedido_id', ids);
+  await supabase.from('pedidos_locales').delete().in('pedido_id', ids);
+  const { error: errDel } = await supabase.from('pedidos_general').delete().in('id', ids);
+
+  if (errDel) throw new Error(errDel.message);
+  return { success: true, count: ids.length };
+}
+
+// ═══════════════════════════════════════════════════
+// ANALYTICS — Basados en Cierre de Caja (Inmunes a borrados)
+// ═══════════════════════════════════════════════════
+
+export async function getLocalAnalytics(localId, startDate, endDate) {
+  const { data, error } = await supabase
+    .from('cierre_caja')
+    .select('*')
+    .eq('local_id', localId)
+    .gte('fecha', startDate)
+    .lte('fecha', endDate)
+    .order('fecha', { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  const totals = (data || []).reduce((acc, c) => ({
+    totalVentas: acc.totalVentas + Number(c.total_subtotal),
+    totalComisiones: acc.totalComisiones + Number(c.total_comisiones),
+    totalNeto: acc.totalNeto + Number(c.total_neto_local),
+    totalPedidos: acc.totalPedidos + (c.num_pedidos || 0),
+    totalEfectivo: acc.totalEfectivo + Number(c.total_efectivo),
+    totalTransferencia: acc.totalTransferencia + Number(c.total_transferencia)
+  }), { totalVentas: 0, totalComisiones: 0, totalNeto: 0, totalPedidos: 0, totalEfectivo: 0, totalTransferencia: 0 });
+
+  return { totals, history: data };
+}
+
+export async function getAdminAnalytics(startDate, endDate) {
+  const { data, error } = await supabase
+    .from('cierre_caja')
+    .select('*, locales(nombre)')
+    .gte('fecha', startDate)
+    .lte('fecha', endDate)
+    .order('fecha', { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  const totals = (data || []).reduce((acc, c) => ({
+    totalVentas: acc.totalVentas + Number(c.total_subtotal),
+    totalComisiones: acc.totalComisiones + Number(c.total_comisiones),
+    totalNetoLocales: acc.totalNetoLocales + Number(c.total_neto_local),
+    totalPedidos: acc.totalPedidos + (c.num_pedidos || 0)
+  }), { totalVentas: 0, totalComisiones: 0, totalNetoLocales: 0, totalPedidos: 0 });
+
+  return { totals, rawData: data };
+}
+
+
+
 
 
 // ═══════════════════════════════════════════════════
@@ -1998,6 +2276,12 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     
     const { data: d } = await supabase.from('repartidores').select('pedidos_hoy').eq('id', repartidorId).single();
     if (d) await supabase.from('repartidores').update({ pedidos_hoy: (d.pedidos_hoy || 0) + 1 }).eq('id', repartidorId);
+
+    // Marcar usuario como "ya realizó pedidos"
+    const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).single();
+    if (pg?.usuario_id) {
+      await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+    }
   }
   return { success: true, mensaje: `Estado actualizado a "${nuevoEstado}"` };
 }
@@ -2133,6 +2417,9 @@ export async function getMenuItemById(itemId) {
 // MERCADO PAGO — Client helpers
 // ═══════════════════════════════════════════════════
 export async function createPendingMercadoPagoOrder({ userId, direccion, total, observaciones, cart, emailCliente, nombreCliente }) {
+  // Al intentar pagar con MP, ya marcamos al usuario (si el pago falla no importa, ya tuvo intención de pagar seguro)
+  await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', userId);
+
   const pedidoId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
   const now = new Date();
   now.setHours(now.getHours() - 3);

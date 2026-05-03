@@ -90,6 +90,24 @@ export default function RestaurantDashboard() {
   const [loadingRepartidores, setLoadingRepartidores] = React.useState(false);
   const [planInfo, setPlanInfo] = React.useState(null);
   const [availablePlans, setAvailablePlans] = React.useState([]);
+
+  // Cierre de Caja State
+  const [cierreFecha, setCierreFecha] = React.useState(new Date().toISOString().split('T')[0]);
+  const [cierreMode, setCierreMode] = React.useState('pendientes'); // 'dia', 'intervalo', 'pendientes'
+  const [cierreFechaInicio, setCierreFechaInicio] = React.useState(new Date().toISOString().split('T')[0]);
+  const [cierreFechaFin, setCierreFechaFin] = React.useState(new Date().toISOString().split('T')[0]);
+  const [cierreReport, setCierreReport] = React.useState(null);
+  const [cierreLoading, setCierreLoading] = React.useState(false);
+  const [cierreSubTab, setCierreSubTab] = React.useState('generar'); // generar, historial, estadisticas
+  const [hideStatsInCierre, setHideStatsInCierre] = React.useState(false);
+
+  const [statsDates, setStatsDates] = React.useState({ 
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+  const [statsData, setStatsData] = React.useState(null);
+  const [historialCierres, setHistorialCierres] = React.useState([]);
+
   
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
@@ -615,7 +633,6 @@ export default function RestaurantDashboard() {
     }
   };
 
-
   const loadCobros = async () => {
     if (!restaurant) return;
     setCobrosLoading(true);
@@ -625,6 +642,68 @@ export default function RestaurantDashboard() {
     } catch { toast.error('Error al cargar cobros'); }
     setCobrosLoading(false);
   };
+
+  const loadCierreReport = async () => {
+    if (!restaurant) return;
+    setCierreLoading(true);
+    try {
+      let options = {};
+      if (cierreMode === 'dia') options = { fecha: cierreFecha };
+      else if (cierreMode === 'intervalo') options = { inicio: cierreFechaInicio, fin: cierreFechaFin };
+      else options = { pendientes: true };
+
+      const res = await api.getLocalCierreReport(restaurant.id, options);
+      if (res.success) {
+        setCierreReport(res);
+      }
+    } catch (e) {
+      toast.error('Error al generar informe: ' + e.message);
+    } finally {
+      setCierreLoading(false);
+    }
+  };
+
+
+  const handleSaveCierre = async () => {
+    try {
+      setCierreLoading(true);
+      await api.saveLocalCierre({ ...cierreReport, localId: restaurant.id });
+      toast.success('Cierre de caja guardado con éxito');
+    } catch (e) {
+      toast.error('Error al guardar: ' + e.message);
+    } finally {
+      setCierreLoading(false);
+    }
+  };
+
+  const loadHistorialCierres = async () => {
+    if (!restaurant) return;
+    setCierreLoading(true);
+    try {
+      const data = await api.getHistorialCierresLocales(restaurant.id);
+      setHistorialCierres(data);
+    } catch (e) {
+      toast.error('Error al cargar historial');
+    } finally {
+      setCierreLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    if (!restaurant) return;
+    setCierreLoading(true);
+    try {
+      const data = await api.getLocalAnalytics(restaurant.id, statsDates.start, statsDates.end);
+      setStatsData(data);
+    } catch (e) {
+      toast.error('Error al cargar estadísticas');
+    } finally {
+      setCierreLoading(false);
+    }
+  };
+
+
+
 
   const handleSolicitarCobro = async (monto) => {
     try {
@@ -1537,6 +1616,7 @@ export default function RestaurantDashboard() {
                 <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }}>
                   📖 Ver tutorial
                 </button>
+
                 <div style={{ borderTop: '1px solid var(--gray-100)', marginTop: '8px', paddingTop: '8px' }}>
                   <button className="rd-dropdown-item" style={{ color: 'var(--red-500)' }} onClick={() => { logoutRestaurant(); window.location.reload(); }}>
                     🚪 Salir
@@ -1752,15 +1832,24 @@ export default function RestaurantDashboard() {
         {/* ─── Orders View ─── */}
         {view === 'orders' && (
           <section className="animate-fade-in">
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: 12, flexWrap: 'wrap' }}>
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="🔍 Buscar por ID de pedido (#...)" 
+                placeholder="🔍 Buscar pedido..." 
+                style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
               />
+              <button 
+                className="btn btn-primary" 
+                style={{ background: 'var(--gray-800)', borderColor: 'var(--gray-800)', gap: '8px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}
+                onClick={() => { setView('cierre'); setCierreSubTab('generar'); setHideStatsInCierre(true); }}
+              >
+                🧾 Cerrar Turno / Caja
+              </button>
             </div>
+
             <div className="rd-tabs" style={{ gap: 8 }}>
               <button className={currentTab === 'pendientes' ? 'active' : ''} onClick={() => setCurrentTab('pendientes')} style={{ position: 'relative' }}>
                 Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}</span>
@@ -2452,6 +2541,367 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
+        {/* ─── Cierre View ─── */}
+        {view === 'cierre' && (
+          <section className="animate-fade-in" style={{ padding: '0 20px 40px' }}>
+            <div className="card card-body" style={{ maxWidth: '800px', margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+                <h2 style={{ color: 'var(--red-600)', margin: 0 }}>🧾 Cierre de Caja</h2>
+                
+                <div className="rd-tabs" style={{ background: '#f1f5f9', padding: '4px', borderRadius: '8px', display: 'flex', gap: '4px' }}>
+                  <button 
+                    className={`btn btn-sm ${cierreSubTab === 'generar' ? 'btn-primary' : 'btn-ghost'}`} 
+                    onClick={() => setCierreSubTab('generar')}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    Generar Nuevo
+                  </button>
+                  <button 
+                    className={`btn btn-sm ${cierreSubTab === 'historial' ? 'btn-primary' : 'btn-ghost'}`} 
+                    onClick={() => { setCierreSubTab('historial'); loadHistorialCierres(); }}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    Historial
+                  </button>
+                  {!hideStatsInCierre && (
+                    <button 
+                      className={`btn btn-sm ${cierreSubTab === 'estadisticas' ? 'btn-primary' : 'btn-ghost'}`} 
+                      onClick={() => { setCierreSubTab('estadisticas'); loadStats(); }}
+                      style={{ fontSize: '0.75rem' }}
+                    >
+                      Estadísticas
+                    </button>
+                  )}
+
+
+                </div>
+
+                {cierreSubTab === 'generar' && (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <style>
+                      {`
+                        @media print {
+                          body * { visibility: hidden; }
+                          #printable-cierre, #printable-cierre * { visibility: visible; }
+                          #printable-cierre { 
+                            position: absolute; 
+                            left: 0; 
+                            top: 0; 
+                            width: 100%;
+                            padding: 20px;
+                          }
+                          .no-print { display: none !important; }
+                        }
+                      `}
+                    </style>
+                    
+                    <select 
+                      className="form-input" 
+                      style={{ width: 'auto', marginBottom: 0 }}
+                      value={cierreMode}
+                      onChange={(e) => setCierreMode(e.target.value)}
+                    >
+                      <option value="pendientes">⏳ Últimos Pedidos (Sin Cerrar)</option>
+                      <option value="dia">📅 Por Día Específico</option>
+                      <option value="intervalo">🗓️ Por Intervalo de Fechas</option>
+                    </select>
+
+                    {cierreMode === 'dia' && (
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        style={{ width: 'auto', marginBottom: 0 }} 
+                        value={cierreFecha} 
+                        onChange={(e) => setCierreFecha(e.target.value)} 
+                      />
+                    )}
+
+                    {cierreMode === 'intervalo' && (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input 
+                          type="date" 
+                          className="form-input" 
+                          style={{ width: 'auto', marginBottom: 0 }} 
+                          value={cierreFechaInicio} 
+                          onChange={(e) => setCierreFechaInicio(e.target.value)} 
+                        />
+                        <span>al</span>
+                        <input 
+                          type="date" 
+                          className="form-input" 
+                          style={{ width: 'auto', marginBottom: 0 }} 
+                          value={cierreFechaFin} 
+                          onChange={(e) => setCierreFechaFin(e.target.value)} 
+                        />
+                      </div>
+                    )}
+
+                    <button className="btn btn-primary" onClick={loadCierreReport} disabled={cierreLoading}>
+                      {cierreLoading ? <span className="spinner spinner-white" /> : '🔍 Generar Informe'}
+                    </button>
+                  </div>
+                )}
+
+
+              </div>
+
+              {cierreSubTab === 'generar' ? (
+                !cierreReport ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)' }}>
+                    Seleccioná una fecha y hacé clic en "Generar Informe" para ver las ventas.
+                  </div>
+                ) : (
+                  <div id="printable-cierre" style={{ background: 'white' }}>
+                    {/* Header solo para impresión */}
+                    <div className="only-print" style={{ display: 'none', marginBottom: 20, borderBottom: '2px solid #000', paddingBottom: 15 }}>
+
+                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <img src="https://i.postimg.cc/RhctJq4F/buscamos-repartidores-(40)-(4).png" alt="Wepi" style={{ height: 50 }} />
+                          <div style={{ textAlign: 'right' }}>
+
+                             <h1 style={{ margin: 0, fontSize: '1.5rem' }}>CIERRE DE CAJA</h1>
+                             <p style={{ margin: 0 }}><strong>Local:</strong> {restaurant?.nombre}</p>
+                             <p style={{ margin: 0 }}><strong>Fecha:</strong> {new Date(cierreFecha + 'T12:00:00').toLocaleDateString('es-AR')}</p>
+                          </div>
+                       </div>
+                    </div>
+
+                    <style>
+                      {`
+                        @media print {
+                          @page { margin: 0; }
+                          html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
+                          .rd-page, .rd-main, .card-body, section { padding: 0 !important; margin: 0 !important; }
+                          .only-print { display: block !important; }
+                          #printable-cierre { 
+                            display: block !important;
+                            position: absolute !important;
+                            top: 0 !important;
+                            left: 0 !important;
+                            width: 100% !important;
+                            padding: 20px !important; 
+                            background: white !important;
+                            margin: 0 !important;
+                          }
+                          .stat-card { border: 1px solid #ddd !important; }
+                          .no-print, .rd-header, .rd-topbar, .rd-alerts, .footer, .rd-nav { display: none !important; }
+                        }
+                      `}
+                    </style>
+
+
+
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: 16, color: 'var(--gray-800)', borderBottom: '2px solid var(--gray-100)', paddingBottom: 8 }}>
+                    📋 Detalle de Pedidos ({cierreReport.pedidos.length})
+                  </h3>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
+                          <th style={{ padding: '12px 8px' }}>Pedido</th>
+                          <th style={{ padding: '12px 8px' }}>Fecha/Hora</th>
+                          <th style={{ padding: '12px 8px' }}>Método</th>
+                          <th style={{ padding: '12px 8px' }}>Op. MP</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right' }}>Total</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>Com. (%)</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>Neto</th>
+                        </tr>
+
+                      </thead>
+                      <tbody>
+                        {cierreReport.pedidos.map(p => (
+                          <tr key={p.id} style={{ borderBottom: '1px solid var(--gray-50)' }}>
+                            <td style={{ padding: '12px 8px', fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.75rem' }}>
+                              {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                            </td>
+
+
+                            <td style={{ padding: '12px 8px' }}>{p.metodo}</td>
+
+                            <td style={{ padding: '12px 8px', fontFamily: 'monospace', color: 'var(--gray-500)', fontSize: '0.75rem' }}>{p.nro_operacion}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>${p.total}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.comision_monto)).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                        {cierreReport.pedidos.length === 0 ? (
+                          <tr>
+                            <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>Sin pedidos para esta fecha.</td>
+                          </tr>
+                        ) : (
+                          <>
+                            <tr style={{ borderTop: '2px solid var(--gray-200)', background: 'var(--gray-50)' }}>
+                               <td colSpan="4" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right' }}>TOTAL VENTA (BRUTO)</td>
+                               <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${cierreReport.subtotal}</td>
+                               <td colSpan="3"></td>
+                            </tr>
+                            <tr style={{ background: 'var(--gray-50)' }}>
+                               <td colSpan="4" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
+                               <td colSpan="2"></td>
+                               <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${cierreReport.comisiones}</td>
+                               <td></td>
+                            </tr>
+                            <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
+                               <td colSpan="4" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>NETO WEPI (A LIQUIDAR)</td>
+                               <td colSpan="3"></td>
+                               <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${cierreReport.neto}</td>
+                            </tr>
+                            <tr style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                               <td colSpan="8" style={{ padding: '16px 8px', textAlign: 'right' }}>
+                                  <div style={{ marginBottom: 4 }}>
+                                    <span style={{ marginRight: 20 }}>💳 Transferencia: ${cierreReport.transferencia}</span>
+                                    <span>💵 Efectivo: ${cierreReport.efectivo}</span>
+                                  </div>
+                                  <div style={{ fontStyle: 'italic', color: 'var(--gray-400)', fontSize: '0.65rem' }}>
+                                    * Este informe contempla únicamente la comisión de servicio de Wepi. No incluye retenciones de pasarelas de pago (Mercado Pago) ni impuestos externos.
+                                  </div>
+                                </td>
+                            </tr>
+
+                          </>
+                        )}
+                      </tbody>
+
+                    </table>
+                  </div>
+
+                  <div className="no-print" style={{ marginTop: 30, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                     <button className="btn btn-outline" onClick={() => window.print()}>🖨️ Imprimir Informe</button>
+                     <button className="btn btn-success" onClick={handleSaveCierre} disabled={cierreLoading || cierreReport.pedidos.length === 0}>
+                       {cierreLoading ? <span className="spinner spinner-white" /> : '💾 Guardar Cierre'}
+                     </button>
+                  </div>
+                  </div>
+                )) : cierreSubTab === 'historial' ? (
+                <div className="historial-cierres">
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
+                          <th style={{ padding: '12px 8px' }}>Fecha</th>
+                          <th style={{ padding: '12px 8px' }}>Subtotal</th>
+                          <th style={{ padding: '12px 8px' }}>Comisión</th>
+                          <th style={{ padding: '12px 8px' }}>Neto</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right' }}>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historialCierres.map(c => (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--gray-50)' }}>
+                            <td style={{ padding: '12px 8px', fontWeight: 600 }}>
+                              {new Date(new Date(c.created_at).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                            </td>
+
+
+
+                            <td style={{ padding: '12px 8px' }}>${c.total_subtotal}</td>
+                            <td style={{ padding: '12px 8px', color: 'var(--red-600)' }}>-${c.total_comisiones}</td>
+                            <td style={{ padding: '12px 8px', fontWeight: 700, color: '#166534' }}>${c.total_neto_local}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
+                              <button className="btn btn-ghost btn-xs" onClick={() => { 
+                                setCierreReport({
+                                  subtotal: c.total_subtotal,
+                                  comisiones: c.total_comisiones,
+                                  neto: c.total_neto_local,
+                                  transferencia: c.total_transferencia,
+                                  efectivo: c.total_efectivo,
+                                  pedidos: c.datos_detallados,
+                                  comisionPct: (c.total_comisiones / c.total_subtotal * 100).toFixed(1)
+                                });
+                                setCierreSubTab('generar');
+                              }}>Ver Detalle</button>
+                            </td>
+                          </tr>
+                        ))}
+                        {historialCierres.length === 0 && !cierreLoading && (
+                          <tr>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>No hay cierres guardados aún.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                ) : (
+                <div className="estadisticas-cierres animate-fade-in">
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Desde:</span>
+                      <input type="date" className="form-input" style={{ marginBottom: 0, width: '150px' }} value={statsDates.start} onChange={e => setStatsDates(s => ({...s, start: e.target.value}))} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Hasta:</span>
+                      <input type="date" className="form-input" style={{ marginBottom: 0, width: '150px' }} value={statsDates.end} onChange={e => setStatsDates(s => ({...s, end: e.target.value}))} />
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={loadStats}>Filtrar</button>
+                  </div>
+
+                  {statsData && (
+                    <div className="animate-fade-in">
+                      <div className="cierre-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+                        <div className="stat-card" style={{ padding: 12, background: 'var(--gray-50)', borderRadius: 10, border: '1px solid var(--gray-100)' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 600 }}>PEDIDOS TOTALES</span>
+                          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{statsData.totals.totalPedidos}</p>
+                        </div>
+                        <div className="stat-card" style={{ padding: 12, background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 600 }}>VENTAS BRUTAS</span>
+                          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>${statsData.totals.totalVentas.toLocaleString()}</p>
+                        </div>
+                        <div className="stat-card" style={{ padding: 12, background: '#fff5f5', borderRadius: 10, border: '1px solid #feb2b2' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--red-600)', fontWeight: 600 }}>COMISIONES</span>
+                          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--red-600)' }}>-${statsData.totals.totalComisiones.toLocaleString()}</p>
+                        </div>
+                        <div className="stat-card" style={{ padding: 12, background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600 }}>NETO A RECIBIR</span>
+                          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#1e40af' }}>${statsData.totals.totalNeto.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                          <thead>
+                            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
+                              <th style={{ padding: '8px' }}>Fecha</th>
+                              <th style={{ padding: '8px' }}>Pedidos</th>
+                              <th style={{ padding: '8px' }}>Venta</th>
+                              <th style={{ padding: '8px' }}>Comisión</th>
+                              <th style={{ padding: '8px' }}>Neto</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {statsData.history.map(h => (
+                              <tr key={h.id} style={{ borderBottom: '1px solid var(--gray-50)' }}>
+                                <td style={{ padding: '8px' }}>{new Date(h.fecha).toLocaleDateString('es-AR')}</td>
+                                <td style={{ padding: '8px' }}>{h.num_pedidos}</td>
+                                <td style={{ padding: '8px' }}>${h.total_subtotal}</td>
+                                <td style={{ padding: '8px', color: 'var(--red-600)' }}>-${h.total_comisiones}</td>
+                                <td style={{ padding: '8px', fontWeight: 600 }}>${h.total_neto_local}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                )}
+
+            </div>
+            <style>{`
+              @media print {
+                .no-print, .rd-header, .rd-topbar, .rd-alerts, .footer, .rd-nav { display: none !important; }
+                #printable-cierre { padding: 0 !important; }
+                .card { border: none !important; box-shadow: none !important; margin: 0 !important; }
+              }
+            `}</style>
+
+          </section>
+        )}
+
         {/* ─── Settings View ─── */}
         {view === 'settings' && (
           <section className="animate-fade-in">
@@ -2714,61 +3164,82 @@ export default function RestaurantDashboard() {
             </div>
 
             {profileSubView === 'ventas' && (
-              <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>Mis Ventas</h2>
-                
-                {finishedOrders.length > 0 && (
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                    gap: '16px', 
-                    marginBottom: '32px' 
-                  }}>
-                    {/* Contador de Cantidad */}
-                    <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--red-600)', background: 'var(--gray-50)' }}>
-                      <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase' }}>Cantidad de Ventas</p>
-                      <h3 style={{ margin: '8px 0 0', fontSize: '2.5rem', color: 'var(--red-600)', fontWeight: 800 }}>{finishedOrders.length}</h3>
+              <div className="card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                   <h2 style={{ color: 'var(--red-600)', margin: 0 }}>📊 Estadísticas de Ventas</h2>
+                   <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Desde:</span>
+                      <input type="date" className="form-input" style={{ marginBottom: 0, width: '150px' }} value={statsDates.start} onChange={e => setStatsDates(s => ({...s, start: e.target.value}))} />
                     </div>
-                    {/* Contador de Monto Total */}
-                    <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--green-600)', background: 'var(--gray-50)' }}>
-                      <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase' }}>Monto Total Recaudado</p>
-                      <h3 style={{ margin: '8px 0 0', fontSize: '2.5rem', color: 'var(--green-600)', fontWeight: 800 }}>
-                        ${finishedOrders.reduce((sum, o) => sum + (Number(o.totalLocal) || 0), 0).toLocaleString('es-AR')}
-                      </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Hasta:</span>
+                      <input type="date" className="form-input" style={{ marginBottom: 0, width: '150px' }} value={statsDates.end} onChange={e => setStatsDates(s => ({...s, end: e.target.value}))} />
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={loadStats}>🔍 Filtrar</button>
+                  </div>
+                </div>
+                
+                {statsData ? (
+                  <div className="animate-fade-in">
+                    <div className="cierre-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
+                      <div className="stat-card" style={{ padding: 20, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-100)', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 700, textTransform: 'uppercase' }}>Pedidos Totales</span>
+                        <p style={{ margin: '8px 0 0', fontSize: '1.8rem', fontWeight: 800 }}>{statsData.totals.totalPedidos}</p>
+                      </div>
+                      <div className="stat-card" style={{ padding: 20, background: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700, textTransform: 'uppercase' }}>Ventas Brutas</span>
+                        <p style={{ margin: '8px 0 0', fontSize: '1.8rem', fontWeight: 800, color: '#166534' }}>${statsData.totals.totalVentas.toLocaleString()}</p>
+                      </div>
+                      <div className="stat-card" style={{ padding: 20, background: '#fff5f5', borderRadius: 12, border: '1px solid #feb2b2', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 700, textTransform: 'uppercase' }}>Comisiones</span>
+                        <p style={{ margin: '8px 0 0', fontSize: '1.8rem', fontWeight: 800, color: 'var(--red-600)' }}>-${statsData.totals.totalComisiones.toLocaleString()}</p>
+                      </div>
+                      <div className="stat-card" style={{ padding: 20, background: '#eff6ff', borderRadius: 12, border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700, textTransform: 'uppercase' }}>Neto Wepi</span>
+                        <p style={{ margin: '8px 0 0', fontSize: '1.8rem', fontWeight: 800, color: '#1e40af' }}>${statsData.totals.totalNeto.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
+                            <th style={{ padding: '12px 8px' }}>Fecha</th>
+                            <th style={{ padding: '12px 8px' }}>Pedidos</th>
+                            <th style={{ padding: '12px 8px' }}>Venta Bruta</th>
+                            <th style={{ padding: '12px 8px' }}>Comisión</th>
+                            <th style={{ padding: '12px 8px' }}>Neto</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statsData.history.map(h => (
+                            <tr key={h.id} style={{ borderBottom: '1px solid var(--gray-50)' }}>
+                              <td style={{ padding: '12px 8px', fontWeight: 600 }}>
+                                {new Date(new Date(h.created_at).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                              </td>
+
+
+
+                              <td style={{ padding: '12px 8px' }}>{h.num_pedidos}</td>
+                              <td style={{ padding: '12px 8px' }}>${h.total_subtotal}</td>
+                              <td style={{ padding: '12px 8px', color: 'var(--red-600)' }}>-${h.total_comisiones}</td>
+                              <td style={{ padding: '12px 8px', fontWeight: 700, color: '#166534' }}>${h.total_neto_local}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                )}
-
-                {finishedOrders.length === 0 ? (
-                  <p className="rd-empty">No hay ventas registradas aún.</p>
                 ) : (
-                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                        <th style={{ padding: '12px 8px' }}>Pedido #</th>
-                        <th style={{ padding: '12px 8px' }}>Fecha</th>
-                        <th style={{ padding: '12px 8px' }}>Cliente</th>
-                        <th style={{ padding: '12px 8px' }}>Método</th>
-                        <th style={{ padding: '12px 8px' }}>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {finishedOrders.map(o => (
-                        <tr key={o.idPedidoLocal} style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                          <td style={{ padding: '12px 8px' }}>#{o.idPedido.substring(0, 8)}</td>
-                          <td style={{ padding: '12px 8px' }}>{o.fecha ? new Date(o.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires' }) : '---'}</td>
-                          <td style={{ padding: '12px 8px' }}>{o.nombreCliente}</td>
-                          <td style={{ padding: '12px 8px', textTransform: 'capitalize' }}>{o.metodoPago}</td>
-                          <td style={{ padding: '12px 8px', fontWeight: '600', color: 'var(--red-600)' }}>
-                            ${o.totalLocal.toFixed(0)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 16 }}>📈</div>
+                    <p>Haz clic en "Filtrar" para ver las estadísticas de tus ventas cerradas.</p>
+                  </div>
                 )}
               </div>
             )}
+
 
             {profileSubView === 'cobros' && (
               <div className="card card-body">

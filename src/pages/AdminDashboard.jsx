@@ -15,6 +15,7 @@ import AdminConfig from './AdminConfig';
 import AdminPruebas from './AdminPruebas';
 import AdminCupones from './AdminCupones';
 import AdminCredits from './AdminCredits';
+import AdminReportes from './AdminReportes';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -72,6 +73,7 @@ const AdminDashboard = () => {
             case 'pruebas': return <AdminPruebas />;
             case 'cupones': return <AdminCupones />;
             case 'wallet': return <AdminCredits />;
+            case 'reports': return <AdminReportes />;
             default: return <AdminLocales />;
         }
     };
@@ -116,6 +118,9 @@ const AdminDashboard = () => {
                     </button>
                     <button className={activeTab === 'wallet' ? 'active' : ''} onClick={() => handleTabClick('wallet')}>
                         <span className="icon">💰</span> Config Wallet
+                    </button>
+                    <button className={activeTab === 'reports' ? 'active' : ''} onClick={() => handleTabClick('reports')}>
+                        <span className="icon">📊</span> Informes de Gestión
                     </button>
                     <button className={activeTab === 'pruebas' ? 'active' : ''} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} onClick={() => handleTabClick('pruebas')}>
                         <span className="icon">🧪</span> Pruebas
