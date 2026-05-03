@@ -1528,9 +1528,13 @@ export async function adminGetPedidoDetalle(pedidoId) {
 // ADMIN — Update Pedido Status (Global + Local)
 // ═══════════════════════════════════════════════════
 export async function adminUpdatePedidoStatus(pedidoId, status) {
+  // 1. Actualizar locales PRIMERO (prioridad para impresión Electron)
+  await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
+
+  // 2. Actualizar estado general
   const { error: errGen } = await supabase.from('pedidos_general').update({ estado: status }).eq('id', pedidoId);
   if (errGen) throw errGen;
-  await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
+
 
   try {
     if (status === 'Rechazado' || status === 'Cancelado') {
