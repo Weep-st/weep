@@ -644,8 +644,14 @@ export default function CustomerApp() {
           api.getSaboresByLocal(menu.local_id),
           api.getAdicionalesByLocal(menu.local_id)
         ]);
-        setIceCreamFlavors(flavors.filter(f => f.disponible && f.tipo === 'Sabor'));
-        setIceCreamSauces(flavors.filter(f => f.disponible && f.tipo === 'Salsa'));
+        console.log("🍦 Sabores y Salsas cargados:", flavors);
+        const filteredFlavors = flavors.filter(f => f.disponible && (f.tipo === 'Sabor' || f.tipo === 'sabor'));
+        const filteredSauces = flavors.filter(f => f.disponible && (f.tipo === 'Salsa' || f.tipo === 'salsa'));
+        console.log("✅ Sabores filtrados:", filteredFlavors);
+        console.log("🍯 Salsas filtradas:", filteredSauces);
+        
+        setIceCreamFlavors(filteredFlavors);
+        setIceCreamSauces(filteredSauces);
         setIceCreamExtras(extras.filter(e => e.disponible));
         setIceCreamModal(menu);
         return; 
