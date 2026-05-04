@@ -644,16 +644,19 @@ export default function CustomerApp() {
           api.getSaboresByLocal(menu.local_id),
           api.getAdicionalesByLocal(menu.local_id)
         ]);
-        console.log("🍦 Sabores y Salsas cargados:", flavors);
+        
         const filteredFlavors = flavors.filter(f => f.disponible && (f.tipo === 'Sabor' || f.tipo === 'sabor'));
         const filteredSauces = flavors.filter(f => f.disponible && (f.tipo === 'Salsa' || f.tipo === 'salsa'));
-        console.log("✅ Sabores filtrados:", filteredFlavors);
-        console.log("🍯 Salsas filtradas:", filteredSauces);
         
         setIceCreamFlavors(filteredFlavors);
         setIceCreamSauces(filteredSauces);
         setIceCreamExtras(extras.filter(e => e.disponible));
-        setIceCreamModal(menu);
+        
+        // Inyectamos las salsas directamente en el objeto del modal para mayor seguridad
+        setIceCreamModal({
+          ...menu,
+          salsasDisponibles: filteredSauces
+        });
         return; 
       } catch {
         toast.error('Error al cargar opciones de helado');
@@ -2077,17 +2080,20 @@ export default function CustomerApp() {
               })}
             </div>
 
-            {iceCreamSauces.length > 0 && (
-              <>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. Salsas <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
-                <div className="sauces-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-                  {iceCreamSauces.map(sauce => {
+            {/* Sección de Salsas Forzada */}
+            {(iceCreamModal.salsasDisponibles || []).length > 0 && (
+              <div style={{ background: '#fff9f0', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffe4bc' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700', color: '#b45309' }}>
+                  🍯 ¿Querés agregar salsas?
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {(iceCreamModal.salsasDisponibles || []).map(sauce => {
                     const isSelected = selectedSauces.includes(sauce.nombre);
                     return (
                       <button 
                         key={sauce.id}
                         className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                        style={{ borderRadius: '20px', padding: '6px 14px' }}
+                        style={{ borderRadius: '20px', padding: '6px 14px', fontSize: '0.8rem' }}
                         onClick={() => {
                           if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
                           else setSelectedSauces(prev => [...prev, sauce.nombre]);
@@ -2098,7 +2104,7 @@ export default function CustomerApp() {
                     );
                   })}
                 </div>
-              </>
+              </div>
             )}
 
             {iceCreamExtras.length > 0 && (
