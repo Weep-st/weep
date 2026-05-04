@@ -378,9 +378,9 @@ export default function RestaurantDashboard() {
       const menuArray = Array.isArray(items) ? items : [];
       setMenuItems(menuArray);
 
-      // Check for stock confirmation (Only for Panadería)
-      if (profileData?.rubro === 'Panadería') {
-        const baseItems = menuArray.filter(i => i.maneja_stock && !i.stock_base_id);
+      // Check for stock confirmation (Generalized)
+      const baseItems = menuArray.filter(i => i.maneja_stock && !i.stock_base_id);
+      if (baseItems.length > 0) {
         const today = new Date().toLocaleDateString('es-AR');
         
         const pending = baseItems.filter(i => {
@@ -401,7 +401,7 @@ export default function RestaurantDashboard() {
       toast.error('Error al cargar menú'); 
     }
     setMenuLoading(false);
-  }, [restaurant, profileData?.rubro]);
+  }, [restaurant, profileData?.rubros]);
 
   const handleConfirmDailyStock = async (updates) => {
     try {
@@ -915,7 +915,8 @@ export default function RestaurantDashboard() {
       } else {
         await api.addMenuItem(data);
       }
-      const itemTerm = (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia') ? 'Artículo' : 'Plato';
+      const isInventoryRubro = profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia');
+      const itemTerm = isInventoryRubro ? 'Artículo' : 'Plato';
       toast.success(editItem ? `${itemTerm} actualizado` : `${itemTerm} agregado`);
       setEditItem(null);
       setIsBaseProductMode(false);
@@ -1160,6 +1161,7 @@ export default function RestaurantDashboard() {
   // Categories for select
   const categories = [...new Set(menuItems.map(i => i.categoria).filter(Boolean))].sort();
   const filteredMenu = menuItems.filter(i => {
+    if (i.categoria === 'Base') return false; // No mostrar productos base en la lista de menú pública
     const nameOk = !menuFilter || i.nombre.toLowerCase().includes(menuFilter.toLowerCase());
     const catOk = !menuCatFilter || i.categoria === menuCatFilter;
     return nameOk && catOk;
@@ -1728,7 +1730,7 @@ export default function RestaurantDashboard() {
         {/* Persistent Alerts for Missing Configs */}
         {profileData && (
           <div className="rd-alerts" style={{ padding: '0 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* Alerta de Confirmación Diaria (Solo Panadería) */}
+            {/* Alerta de Confirmación Diaria (Stock) */}
             {needsStockConfirmation && (
               <div style={{ backgroundColor: '#fff7ed', border: '1px solid #ffedd5', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#9a3412', fontWeight: '600' }}>🥖 <strong>Stock del día no confirmado:</strong> Actualizá tus unidades de hoy para evitar ventas sin stock.</span>
@@ -1737,7 +1739,7 @@ export default function RestaurantDashboard() {
             )}
 
             {/* Alert of low stock items */}
-            {profileData?.rubro === 'Panadería' && menuItems.filter(i => i.maneja_stock && !i.stock_base_id && i.stock_actual <= i.stock_minimo).length > 0 && (
+            {menuItems.filter(i => i.maneja_stock && !i.stock_base_id && i.stock_actual <= i.stock_minimo).length > 0 && (
               <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#991b1b', fontWeight: '500' }}>⚠️ <strong>Stock Bajo:</strong> Hay productos que están alcanzando el límite mínimo.</span>
                 <button className="btn btn-sm" style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none' }} onClick={() => setView('menu')}>Ver ítems</button>
@@ -1902,27 +1904,23 @@ export default function RestaurantDashboard() {
                    {/* Dropdown Añadir */}
                    <div style={{ position: 'relative' }}>
                       <button className="btn btn-success" onClick={() => {
-                        const needsDropdown = profileData?.rubro === 'Panadería' || profileData?.rubro === 'Heladería';
+                        const needsDropdown = profileData?.rubros?.includes('Panadería') || profileData?.rubros?.includes('Heladería');
                         if (needsDropdown) {
                           setMenuAddOpen(!menuAddOpen);
                         } else {
                           setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
                         }
                       }}>
-                        + Añadir { (profileData?.rubro === 'Panadería' || profileData?.rubro === 'Heladería') && '▾' }
+                        + Añadir { (profileData?.rubros?.includes('Panadería') || profileData?.rubros?.includes('Heladería')) && '▾' }
                       </button>
                       
                       {menuAddOpen && (
                         <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, top: '100%', display: 'block', zIndex: 100 }}>
                            <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMenuAddOpen(false); }}>
-                             {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
+                             {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
                            </button>
-                           {(profileData?.rubro === 'Panadería') && (
-                             <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setIsBaseProductMode(true); setMenuAddOpen(false); }}>
-                               🍞 Nuevo Producto Base
-                             </button>
-                           )}
-                           {(profileData?.rubro === 'Heladería') && (
+
+                           {(profileData?.rubros?.includes('Heladería')) && (
                              <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setMenuAddOpen(false); }}>
                                🍦 Sabores y Adicionales
                              </button>
@@ -2009,16 +2007,21 @@ export default function RestaurantDashboard() {
               </div>
             )}
             
-            {/* ─── Panel de Stock Rápido (Solo Panadería) ─── */}
-            {profileData?.rubro === 'Panadería' && (
+            {/* ─── Panel de Stock Rápido ─── */}
+            {menuItems.some(i => i.maneja_stock) && (
               <div className="card animate-fade-in" style={{ marginBottom: 24, padding: '16px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                   <h3 style={{ color: '#c2410c', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                     📦 Gestión de Stock Rápida
-                   </h3>
-                   <span style={{ fontSize: '0.75rem', background: '#fff7ed', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', border: '1px solid #ffedd5', fontWeight: 600 }}>
-                     Sólo ítems que manejan stock
-                   </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                  <h3 style={{ color: '#c2410c', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    📦 Gestión de Stock Rápida
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                     <button className="btn btn-sm btn-success" style={{ fontSize: '0.8rem', background: '#22c55e', border: 'none' }} onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setIsBaseProductMode(true); }}>
+                       + Nuevo Producto Base
+                     </button>
+                     <span style={{ fontSize: '0.75rem', background: '#fff7ed', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', border: '1px solid #ffedd5', fontWeight: 600 }}>
+                       Sólo ítems que manejan stock
+                     </span>
+                  </div>
                 </div>
                 
                 <div style={{ 
@@ -2094,7 +2097,7 @@ export default function RestaurantDashboard() {
             {menuLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando menú...</div>
             ) : finalMenu.length === 0 ? (
-              <p className="rd-empty">No hay {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'artículos' : 'platos'}. ¡Agregá tu primer {profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'artículo' : 'plato'}!</p>
+              <p className="rd-empty">No hay {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'artículos' : 'platos'}. ¡Agregá tu primer {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'artículo' : 'plato'}!</p>
             ) : finalMenu.map(item => (
               <div key={item.id} className="rd-menu-item card">
                 {item.imagen_url ? <img src={item.imagen_url} alt={item.nombre} className="rd-menu-img" /> :
@@ -2207,7 +2210,7 @@ export default function RestaurantDashboard() {
           <section className="animate-fade-in">
             <div className="card card-body">
               <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>
-                {isBaseProductMode ? '🍞 Nuevo Producto Base' : (editItem ? (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Editar Artículo' : 'Editar Plato') : (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Nuevo Artículo' : 'Nuevo Plato'))}
+                {isBaseProductMode ? '🍞 Nuevo Producto Base' : (editItem ? (profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Editar Artículo' : 'Editar Plato') : (profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Nuevo Artículo' : 'Nuevo Plato'))}
               </h2>
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
@@ -2216,7 +2219,7 @@ export default function RestaurantDashboard() {
                       <input 
                         name="nombre" 
                         className="form-input" 
-                        placeholder={profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Nombre del artículo' : 'Nombre del plato'} 
+                        placeholder={profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Nombre del artículo' : 'Nombre del plato'} 
                         value={editItem ? undefined : itemName}
                         defaultValue={editItem ? editItem.nombre : undefined}
                         onChange={(e) => {
@@ -2248,18 +2251,26 @@ export default function RestaurantDashboard() {
                       <option value="Base">Base (Inventario Interno)</option>
                     ) : (
                       (function() {
-                        const rubro = profileData?.rubro || 'Comida Rápida';
-                        let cats = [];
-                        if (rubro === 'Heladería') cats = ['Helados'];
-                        else if (rubro === 'Market') cats = ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Higiene', 'Promos'];
-                        else if (rubro === 'Farmacia') cats = ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'];
-                        else if (rubro === 'Panadería') cats = ['Pan', 'Facturas', 'Pastelería', 'Galletas', 'Salados', 'Desayuno/Merienda', 'Promos'];
-                        else cats = ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Panadería', 'Combos', 'Bebidas'];
-                        
-                        if (editItem && editItem.categoria && !cats.includes(editItem.categoria)) {
-                          cats.push(editItem.categoria);
-                        }
-                        return cats.map(cat => <option key={cat} value={cat}>{cat}</option>);
+                        const rubros = profileData?.rubros || [];
+                        const rubroConfigs = [
+                          { name: 'Comida Rápida', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Panadería', 'Combos', 'Bebidas'] },
+                          { name: 'Panadería', cats: ['Pan', 'Facturas', 'Pastelería', 'Galletas', 'Salados', 'Desayuno/Merienda', 'Promos'] },
+                          { name: 'Heladería', cats: ['Helados'] },
+                          { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
+                          { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] }
+                        ];
+
+                        const activeConfigs = rubros.length > 0 
+                          ? rubroConfigs.filter(rc => rubros.includes(rc.name))
+                          : [rubroConfigs[0]]; // Default Comida Rapida if empty
+
+                        return activeConfigs.map(config => (
+                          <optgroup key={config.name} label={config.name}>
+                            {config.cats.map(cat => (
+                              <option key={`${config.name}-${cat}`} value={cat}>{cat}</option>
+                            ))}
+                          </optgroup>
+                        ));
                       })()
                     )}
                   </select>
@@ -2367,8 +2378,8 @@ export default function RestaurantDashboard() {
                 )}
 
                 <input name="foto" type="file" className="form-input" accept="image/*" />
-                {/* ─── Gestión de Stock (Solo Panadería) ─── */}
-                {profileData?.rubro === 'Panadería' && (
+                {/* ─── Gestión de Stock ─── */}
+                {(isBaseProductMode || editItem?.categoria === 'Base' || true) && (
                   <div style={{ marginTop: 20, padding: 16, background: '#fff7ed', borderRadius: 12, border: '1px solid #ffedd5' }}>
                     <h3 style={{ fontSize: '1rem', color: '#9a3412', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                       📦 Control de Inventario
@@ -2409,9 +2420,9 @@ export default function RestaurantDashboard() {
                           ) : (
                             <>
                               <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Vincular a Producto Base (Recomendado)</label>
-                                <select name="stock_base_id" className="form-select" defaultValue={editItem?.stock_base_id || ''}>
-                                  <option value="">-- Usar stock propio --</option>
+                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Vincular a Producto Base (Requerido)</label>
+                                <select name="stock_base_id" className="form-select" defaultValue={editItem?.stock_base_id || ''} required>
+                                  <option value="" disabled>-- Seleccionar Producto Base --</option>
                                   {menuItems
                                     .filter(mi => mi.categoria === 'Base' && mi.id !== editItem?.id)
                                     .map(mi => (
@@ -2445,7 +2456,7 @@ export default function RestaurantDashboard() {
                 <div className="rd-form-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); setIsBaseProductMode(false); }}>Cancelar</button>
                   <button type="submit" className="btn btn-success" disabled={itemLoading}>
-                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (profileData?.rubro === 'Market' || profileData?.rubro === 'Farmacia' ? 'Guardar Artículo' : 'Guardar Plato'))}
+                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Guardar Artículo' : 'Guardar Plato'))}
                   </button>
                 </div>
               </form>
@@ -2925,26 +2936,47 @@ export default function RestaurantDashboard() {
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
                       Seleccioná el rubro de tu local para adaptar las opciones del panel.
                     </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <select 
-                        className="form-select" 
-                        style={{ padding: '12px', fontSize: '1rem' }}
-                        value={profileData?.rubro || 'Comida Rápida'}
-                        onChange={async (e) => {
-                          const r = e.target.value;
-                          try {
-                            const success = await api.updatePerfilLocal({ localId: restaurant.id, rubro: r });
-                            if (success) {
-                              setProfileData({ ...profileData, rubro: r });
-                              toast.success(`Rubro cambiado a ${r}`);
-                            }
-                          } catch (e) { toast.error('Error al cambiar rubro'); }
-                        }}
-                      >
-                        {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+                      {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => {
+                        const isSelected = profileData?.rubros?.includes(r);
+                        return (
+                          <label key={r} style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 10, 
+                            padding: '12px', 
+                            background: isSelected ? 'var(--red-50)' : 'white',
+                            border: `1px solid ${isSelected ? 'var(--red-200)' : 'var(--gray-200)'}`,
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s'
+                          }}>
+                            <input 
+                              type="checkbox" 
+                              checked={isSelected}
+                              onChange={async (e) => {
+                                const checked = e.target.checked;
+                                let newRubros = profileData?.rubros || [];
+                                if (checked) {
+                                  newRubros = [...newRubros, r];
+                                } else {
+                                  newRubros = newRubros.filter(item => item !== r);
+                                }
+                                
+                                try {
+                                  const success = await api.updatePerfilLocal({ localId: restaurant.id, rubros: newRubros });
+                                  if (success) {
+                                    setProfileData({ ...profileData, rubros: newRubros });
+                                    toast.success(checked ? `Rubro ${r} añadido` : `Rubro ${r} removido`);
+                                  }
+                                } catch (e) { toast.error('Error al cambiar rubros'); }
+                              }}
+                            />
+                            {r}
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
 

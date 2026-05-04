@@ -637,7 +637,7 @@ export default function PruebasWalletApp() {
           dynamicBanner: timeInfo.banner,
           dynamicRubros: timeInfo.rubros,
           allLocales: boosted,
-          dynamicLocales: boosted.filter(l => timeInfo.rubros.includes(l.rubro)).slice(0, 15),
+          dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
           promosOfDay: (prms || []).filter(p => {
             const l = allLocs.find(loc => loc.id === p.local_id);
             if (!l || !isLocalOpen(l)) return false;

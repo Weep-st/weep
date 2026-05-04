@@ -436,7 +436,7 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, admin_status, slug')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug')
     .eq('admin_status', 'Aceptado');
   return (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
@@ -451,6 +451,7 @@ export async function getLocales() {
     categoria_descuento: l.categoria_descuento || '',
     plan_id: l.plan_id,
     rubro: l.rubro,
+    rubros: l.rubros || [],
     admin_status: l.admin_status,
     slug: l.slug
   }));
@@ -459,7 +460,7 @@ export async function getLocales() {
 export async function getLocalBySlug(slug) {
   const { data, error } = await supabase
     .from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, admin_status, slug')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug')
     .eq('slug', slug)
     .maybeSingle();
   
@@ -479,6 +480,7 @@ export async function getLocalBySlug(slug) {
     categoria_descuento: data.categoria_descuento || '',
     plan_id: data.plan_id,
     rubro: data.rubro,
+    rubros: data.rubros || [],
     admin_status: data.admin_status,
     slug: data.slug
   };
@@ -490,7 +492,7 @@ export async function getLocalBySlug(slug) {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, plan_id)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, plan_id, rubros)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
@@ -551,6 +553,7 @@ export async function getPromos() {
     stock_base_id: i.stock_base_id,
     unidades_por_venta: i.unidades_por_venta,
     local_rubro: i.locales?.rubro || '',
+    local_rubros: i.locales?.rubros || [],
     local_plan_id: i.locales?.plan_id
   }));
 }
@@ -586,7 +589,7 @@ export async function getMenuByCategoria(categoria) {
 export async function getMenuByLocalId(localId) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros)')
     .eq('local_id', localId)
     .order('nombre');
   return (data || []).map(i => ({
@@ -601,6 +604,7 @@ export async function getMenuByLocalId(localId) {
     local_descuento_general: i.locales?.descuento_general || 0,
     local_categoria_descuento: i.locales?.categoria_descuento || '',
     local_rubro: i.locales?.rubro || '',
+    local_rubros: i.locales?.rubros || [],
     stock_actual: i.stock_actual,
     maneja_stock: i.maneja_stock,
     stock_base_id: i.stock_base_id,
@@ -618,7 +622,7 @@ export async function getMenuByLocalId(localId) {
 export async function getExploreItems(limit = 24) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, admin_status)')
+    .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros, admin_status)')
     .eq('disponibilidad', true)
     .eq('locales.admin_status', 'Aceptado')
     .order('created_at', { ascending: false })
@@ -642,7 +646,8 @@ export async function getExploreItems(limit = 24) {
     horario_cierre2: i.locales?.horario_cierre2,
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura,
-    local_rubro: i.locales?.rubro || ''
+    local_rubro: i.locales?.rubro || '',
+    local_rubros: i.locales?.rubros || []
   }));
 }
 
@@ -664,7 +669,7 @@ export async function getMostOrderedItems(limit = 12) {
 
   const { data: menuData } = await supabase
     .from('menu')
-    .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, admin_status)')
+    .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros, admin_status)')
     .eq('locales.admin_status', 'Aceptado')
     .in('id', sortedIds);
 
@@ -683,7 +688,8 @@ export async function getMostOrderedItems(limit = 12) {
     horario_cierre2: i.locales?.horario_cierre2,
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura,
-    local_rubro: i.locales?.rubro || ''
+    local_rubro: i.locales?.rubro || '',
+    local_rubros: i.locales?.rubros || []
   })).sort((a, b) => sortedIds.indexOf(a.id) - sortedIds.indexOf(b.id));
 }
 
@@ -1315,7 +1321,7 @@ export async function getLocalesByRubro(rubro) {
   const { data } = await supabase
     .from('locales')
     .select('*')
-    .eq('rubro', rubro)
+    .or(`rubro.eq.${rubro},rubros.cs.{${rubro}}`)
     .eq('admin_status', 'Aceptado');
 
   return (data || []).map(l => ({

@@ -162,6 +162,7 @@ const AdminLocales = () => {
             const updates = {
                 localId: editingLocal.id,
                 nombre: fd.get('nombre'),
+                rubros: fd.getAll('rubros'), // Get all checked rubros
                 horario_apertura: fd.get('horario_apertura'),
                 horario_cierre: fd.get('horario_cierre'),
                 horario_apertura2: fd.get('horario_apertura2'),
@@ -566,6 +567,31 @@ const AdminLocales = () => {
                             <div className="form-group">
                                 <label>Nombre del Local</label>
                                 <input name="nombre" defaultValue={editingLocal.nombre} required />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Rubros del Negocio</label>
+                                <div style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', 
+                                    gap: '8px', 
+                                    background: '#f8fafc', 
+                                    padding: '12px', 
+                                    borderRadius: '8px',
+                                    border: '1px solid #e2e8f0'
+                                }}>
+                                    {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
+                                        <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                name="rubros" 
+                                                value={r} 
+                                                defaultChecked={editingLocal.rubros?.includes(r) || editingLocal.rubro === r} 
+                                            />
+                                            {r}
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                             
                             <div className="form-section">
