@@ -2071,9 +2071,33 @@ export default function CustomerApp() {
               })}
             </div>
 
+            {iceCreamSauces.length > 0 && (
+              <>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. Elegí una salsa <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
+                <div className="sauces-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                  {iceCreamSauces.map(sauce => {
+                    const isSelected = selectedSauces.includes(sauce.nombre);
+                    return (
+                      <button 
+                        key={sauce.id}
+                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ borderRadius: '20px', padding: '6px 14px' }}
+                        onClick={() => {
+                          if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
+                          else setSelectedSauces([sauce.nombre]); // Solo permite una salsa por ahora
+                        }}
+                      >
+                        {sauce.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
             {iceCreamExtras.length > 0 && (
               <>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>4. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
                 <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
                   {iceCreamExtras.map(extra => {
                     const isSelected = selectedExtras.some(e => e.id === extra.id);
@@ -2111,6 +2135,7 @@ export default function CustomerApp() {
                   onClick={() => {
                     const details = [];
                     details.push(`Sabores: ${selectedFlavors.join(', ')}`);
+                    if (selectedSauces.length > 0) details.push(`Salsa: ${selectedSauces.join(', ')}`);
                     if (selectedExtras.length > 0) details.push(`Extras: ${selectedExtras.map(e => e.nombre).join(', ')}`);
 
                     const finalItem = {
@@ -2121,11 +2146,13 @@ export default function CustomerApp() {
                       precioOriginal: rawTotal,
                       precio: currentTotal,
                       flavors: selectedFlavors,
+                      sauces: selectedSauces,
                       extras: selectedExtras,
                       descripcion: details.join(' | ')
                     };
                     cart.addItem(finalItem);
                     setIceCreamModal(null);
+                    setSelectedSauces([]); // Reset sauces
                     toast.success('¡Helado agregado!');
                   }}
                 >
@@ -2133,6 +2160,7 @@ export default function CustomerApp() {
                 </button>
               );
             })()}
+
           </div>
         </div>
       )}
