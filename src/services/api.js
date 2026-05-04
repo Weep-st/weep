@@ -994,18 +994,29 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
   try {
     const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).maybeSingle();
     if (pl?.pedido_id) {
-      await supabase.from('pedidos_general').update({ estado }).eq('id', pl.pedido_id);
+      // 2a. Obtener datos del pedido general para decidir el estado de sincronización
+      const { data: pg } = await supabase.from('pedidos_general')
+        .select('tipo_entrega, usuario_id, repartidor_id')
+        .eq('id', pl.pedido_id)
+        .maybeSingle();
 
-      // Efectos secundarios según el estado
+      let targetGeneralEstado = estado;
+      // Si el local marca como 'Entregado' pero el pedido es con envío, lo pasamos a 'Retirado'
+      // para que el repartidor lo siga viendo en su dashboard y pueda marcar la entrega final.
+      if (estado === 'Entregado' && pg?.tipo_entrega?.toLowerCase().includes('env')) {
+        targetGeneralEstado = 'Retirado';
+      }
+
+      await supabase.from('pedidos_general').update({ estado: targetGeneralEstado }).eq('id', pl.pedido_id);
+
+      // 2b. Efectos secundarios según el estado
       if (estado === 'Rechazado' || estado === 'Cancelado') {
-        const { data: pg } = await supabase.from('pedidos_general').select('repartidor_id').eq('id', pl.pedido_id).maybeSingle();
         if (pg?.repartidor_id && pg.repartidor_id.length > 20) {
           await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
         }
       }
       
       if (estado === 'Entregado') {
-        const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pl.pedido_id).maybeSingle();
         if (pg?.usuario_id && pg.usuario_id.length > 20) {
           await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
         }

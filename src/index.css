@@ -242,6 +242,12 @@ input, select, textarea { font-family: inherit; }
 .badge-blue { background: #e3f2fd; color: var(--blue-500); }
 .badge-amber { background: #fff8e1; color: var(--amber-600); }
 .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+.badge.en-camino { background: #e0f2fe; color: #0369a1; }
+.badge.retirado { background: #fef3c7; color: #b45309; }
+.badge.entregado { background: #dcfce7; color: #15803d; }
+.badge.rechazado, .badge.cancelado { background: #fee2e2; color: #b91c1c; }
+.badge.preparando { background: #f3e8ff; color: #7e22ce; }
+
 
 /* ─── Loading Skeleton ─── */
 .skeleton {

@@ -2962,13 +2962,13 @@ export default function PruebasWalletApp() {
       {/* ——— Ice Cream Modal ——— */}
       {iceCreamModal && (
         <div className="modal-overlay" onClick={() => setIceCreamModal(null)}>
-          <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '24px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '20px' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.5rem' }}>{iceCreamModal.nombre}</h2>
-            <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 20 }}>{iceCreamModal.descripcion}</p>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.4rem' }}>{iceCreamModal.nombre}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
             
-            <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
-            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
               {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
                 <div 
                   key={size}
@@ -2980,8 +2980,8 @@ export default function PruebasWalletApp() {
                     boxShadow: selectedSize === size ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', fontSize: '1rem', color: selectedSize === size ? 'var(--red-600)' : 'inherit' }}>{size}</div>
-                  <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem', marginTop: '4px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: selectedSize === size ? 'var(--red-600)' : 'inherit' }}>{size}</div>
+                  <div style={{ color: 'var(--gray-500)', fontSize: '0.72rem', marginTop: '2px' }}>
                     ${JSON.parse(iceCreamModal.variantes).precios[size].precio}
                   </div>
                 </div>
@@ -2995,7 +2995,7 @@ export default function PruebasWalletApp() {
                </div>
             </h3>
             
-            <div className="flavors-list" style={{ maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24, padding: '4px' }}>
+            <div className="flavors-list" style={{ maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: '4px' }}>
               {iceCreamFlavors.map(flavor => {
                 const isSelected = selectedFlavors.includes(flavor.nombre);
                 const max = JSON.parse(iceCreamModal.variantes).precios[selectedSize].max;
@@ -3006,8 +3006,8 @@ export default function PruebasWalletApp() {
                     key={flavor.id}
                     className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
                     style={{ 
-                      justifyContent: 'flex-start', textAlign: 'left', minHeight: 48, borderRadius: '10px',
-                      borderWidth: isSelected ? '2px' : '1px', fontSize: '0.9rem'
+                      justifyContent: 'flex-start', textAlign: 'left', minHeight: 40, borderRadius: '10px',
+                      borderWidth: isSelected ? '2px' : '1px', fontSize: '0.75rem', padding: '4px 8px'
                     }}
                     onClick={() => {
                       if (isSelected) {
@@ -3039,7 +3039,7 @@ export default function PruebasWalletApp() {
                       <button 
                         key={sauce.id}
                         className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                        style={{ borderRadius: '20px', padding: '6px 14px', fontSize: '0.8rem' }}
+                        style={{ borderRadius: '20px', padding: '4px 10px', fontSize: '0.72rem' }}
                         onClick={() => {
                           if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
                           else setSelectedSauces(prev => [...prev, sauce.nombre]);
