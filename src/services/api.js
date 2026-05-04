@@ -1118,7 +1118,7 @@ export async function getMisPedidos(userId) {
       repartidorId: p.repartidor_id,
       repartidorNombre: p.repartidor?.nombre,
       repartidorTelefono: p.repartidor?.telefono,
-      itemsResumen: items.map(i => ({ nombre: i.nombre || i.nombre_item, cantidad: i.cantidad, precio: i.precio_unitario })),
+      itemsResumen: items.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 
     const estadosCurso = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino'];
@@ -2530,8 +2530,8 @@ export async function createPendingMercadoPagoOrder({ userId, direccion, total, 
     await supabase.from('pedidos_locales').insert({ id: plId, pedido_id: pedidoId, local_id: localId, total: sub, estado: 'Pendiente de Pago', metodo_pago: 'Mercado Pago' });
     await supabase.from('pedidos_items').insert(localItems.map(i => ({ 
       pedido_id: pedidoId, 
-      menu_item_id: i.id, 
-      nombre_item: i.descripcion ? `${i.nombre} (${i.descripcion})` : i.nombre, 
+      item_id: i.id, 
+      nombre: i.descripcion ? `${i.nombre} (${i.descripcion})` : i.nombre, 
       precio_unitario: i.precio, 
       cantidad: i.cantidad || i.qty || 1, 
       subtotal: i.precio * (i.cantidad || i.qty || 1) 

@@ -125,7 +125,7 @@ BEGIN
             WHERE COALESCE(el->>'local_id', 'unknown') = v_local_id;
 
             -- 5c. Insertar Items del Pedido
-            INSERT INTO pedidos_items (pedido_id, menu_item_id, nombre_item, precio_unitario, cantidad, subtotal, local_id)
+            INSERT INTO pedidos_items (pedido_id, item_id, nombre, precio_unitario, cantidad, subtotal, local_id)
             SELECT 
                 v_pedido_id, 
                 el->>'id', 
@@ -136,6 +136,7 @@ BEGIN
                 v_local_id
             FROM jsonb_array_elements(p_cart) AS el
             WHERE COALESCE(el->>'local_id', 'unknown') = v_local_id;
+
 
         END LOOP;
 
