@@ -2034,7 +2034,12 @@ export default function CustomerApp() {
           <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '24px' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
             <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.5rem' }}>{iceCreamModal.nombre}</h2>
-            <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 20 }}>{iceCreamModal.descripcion}</p>
+            <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 10 }}>{iceCreamModal.descripcion}</p>
+            
+            {/* DEBUG TAG - Solo para desarrollo */}
+            <div style={{ fontSize: '10px', color: 'gray', marginBottom: 15 }}>
+              Debug: Sabores ({iceCreamFlavors.length}) | Salsas ({(iceCreamModal.salsasDisponibles || iceCreamSauces || []).length})
+            </div>
             
             <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
             <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
@@ -2095,18 +2100,18 @@ export default function CustomerApp() {
               })}
             </div>
 
-            {/* Sección de Salsas Forzada */}
-            {(iceCreamModal.salsasDisponibles || []).length > 0 && (
+            {/* Sección de Salsas con Fallback Total */}
+            {((iceCreamModal.salsasDisponibles || iceCreamSauces || []).length > 0) && (
               <div style={{ background: '#fff9f0', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffe4bc' }}>
                 <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700', color: '#b45309' }}>
-                  🍯 ¿Querés agregar salsas?
+                  🍯 Agregá tus salsas:
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {(iceCreamModal.salsasDisponibles || []).map(sauce => {
+                  {(iceCreamModal.salsasDisponibles || iceCreamSauces || []).map(sauce => {
                     const isSelected = selectedSauces.includes(sauce.nombre);
                     return (
                       <button 
-                        key={sauce.id}
+                        key={sauce.id || sauce.nombre}
                         className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
                         style={{ borderRadius: '20px', padding: '6px 14px', fontSize: '0.8rem' }}
                         onClick={() => {
