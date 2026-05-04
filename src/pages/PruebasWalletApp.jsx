@@ -1212,14 +1212,23 @@ export default function PruebasWalletApp() {
       setSelectedSauces([]);
       setSelectedExtras([]);
       try {
-        const [flavors, extras] = await Promise.all([
+        const [allFlavorsData, extras] = await Promise.all([
           api.getSaboresByLocal(menu.local_id),
           api.getAdicionalesByLocal(menu.local_id)
         ]);
-        setIceCreamFlavors(flavors.filter(f => f.disponible && f.tipo === 'Sabor'));
-        setIceCreamSauces(flavors.filter(f => f.disponible && f.tipo === 'Salsa'));
-        setIceCreamExtras(extras.filter(e => e.disponible));
-        setIceCreamModal(menu);
+        
+        const rawItems = allFlavorsData || [];
+        const saboresFinal = rawItems.filter(f => f.disponible && (f.tipo || '').trim().toLowerCase() === 'sabor');
+        const salsasFinal = rawItems.filter(f => f.disponible && (f.tipo || '').trim().toLowerCase() === 'salsa');
+        
+        setIceCreamFlavors(saboresFinal);
+        setIceCreamSauces(salsasFinal);
+        setIceCreamExtras((extras || []).filter(e => e.disponible));
+        
+        setIceCreamModal({
+          ...menu,
+          salsas: salsasFinal
+        });
         return; 
       } catch {
         toast.error('Error al cargar opciones de helado');
@@ -2987,6 +2996,34 @@ export default function PruebasWalletApp() {
                </div>
             </h3>
             
+            <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
+              {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
+                <div 
+                  key={size}
+                  className={`selection-card ${selectedSize === size ? 'active' : ''}`}
+                  onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
+                  style={{ 
+                    padding: '16px 8px', borderRadius: '12px', border: selectedSize === size ? '2px solid var(--red-500)' : '1px solid #eee',
+                    backgroundColor: selectedSize === size ? '#fff5f5' : '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease',
+                    boxShadow: selectedSize === size ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '1rem', color: selectedSize === size ? 'var(--red-600)' : 'inherit' }}>{size}</div>
+                  <div style={{ color: 'var(--gray-500)', fontSize: '0.8rem', marginTop: '4px' }}>
+                    ${JSON.parse(iceCreamModal.variantes).precios[size].precio}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>
+               2. Seleccioná tus sabores:
+               <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '400', marginTop: '2px' }}>
+                Máximo {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max} sabores
+               </div>
+            </h3>
+            
             <div className="flavors-list" style={{ maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24, padding: '4px' }}>
               {iceCreamFlavors.map(flavor => {
                 const isSelected = selectedFlavors.includes(flavor.nombre);
@@ -3018,10 +3055,36 @@ export default function PruebasWalletApp() {
               })}
             </div>
 
+            {/* 3. Salsas */}
+            {iceCreamSauces.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. ¿Querés agregar salsas?</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {iceCreamSauces.map(sauce => {
+                    const isSelected = selectedSauces.includes(sauce.nombre);
+                    return (
+                      <button 
+                        key={sauce.id}
+                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ borderRadius: '20px', padding: '6px 14px' }}
+                        onClick={() => {
+                          if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
+                          else setSelectedSauces(prev => [...prev, sauce.nombre]);
+                        }}
+                      >
+                        {sauce.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Adicionales */}
             {iceCreamExtras.length > 0 && (
-              <>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
-                <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
+              <div style={{ marginBottom: 28 }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>{iceCreamSauces.length > 0 ? '4' : '3'}. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {iceCreamExtras.map(extra => {
                     const isSelected = selectedExtras.some(e => e.id === extra.id);
                     return (
@@ -3039,8 +3102,9 @@ export default function PruebasWalletApp() {
                     );
                   })}
                 </div>
-              </>
+              </div>
             )}
+
 
             {(() => {
               const configuration = JSON.parse(iceCreamModal.variantes);
@@ -3068,6 +3132,7 @@ export default function PruebasWalletApp() {
                       precioOriginal: rawTotal,
                       precio: currentTotal,
                       flavors: selectedFlavors,
+                      sauces: selectedSauces,
                       extras: selectedExtras,
                       descripcion: details.join(' | ')
                     };
