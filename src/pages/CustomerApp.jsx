@@ -645,16 +645,24 @@ export default function CustomerApp() {
           api.getAdicionalesByLocal(menu.local_id)
         ]);
         
-        // Filtro robusto: Limpiamos espacios y aceptamos mayúsculas/minúsculas
-        const filteredFlavors = (flavors || []).filter(f => {
+        // Filtro ULTRA estricto y limpio
+        const allItems = flavors || [];
+        
+        const filteredFlavors = allItems.filter(f => {
           const t = (f.tipo || '').trim().toLowerCase();
-          return f.disponible && t === 'sabor';
+          return f.disponible && (t === 'sabor');
         });
         
-        const filteredSauces = (flavors || []).filter(f => {
+        const filteredSauces = allItems.filter(f => {
           const t = (f.tipo || '').trim().toLowerCase();
-          return f.disponible && t.includes('salsa');
+          return f.disponible && (t === 'salsa' || t === 'salsas');
         });
+        
+        // Debug interno (visible en consola del navegador)
+        console.log("--- DEBUG HELADOS ---");
+        console.log("Total items:", allItems.length);
+        console.log("Sabores detectados:", filteredFlavors.length);
+        console.log("Salsas detectadas:", filteredSauces.length);
         
         setIceCreamFlavors(filteredFlavors);
         setIceCreamSauces(filteredSauces);
