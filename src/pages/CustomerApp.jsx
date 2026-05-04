@@ -645,14 +645,21 @@ export default function CustomerApp() {
           api.getAdicionalesByLocal(menu.local_id)
         ]);
         
-        const filteredFlavors = flavors.filter(f => f.disponible && (f.tipo === 'Sabor' || f.tipo === 'sabor'));
-        const filteredSauces = flavors.filter(f => f.disponible && (f.tipo === 'Salsa' || f.tipo === 'salsa'));
+        // Filtro robusto: Limpiamos espacios y aceptamos mayúsculas/minúsculas
+        const filteredFlavors = (flavors || []).filter(f => {
+          const t = (f.tipo || '').trim().toLowerCase();
+          return f.disponible && t === 'sabor';
+        });
+        
+        const filteredSauces = (flavors || []).filter(f => {
+          const t = (f.tipo || '').trim().toLowerCase();
+          return f.disponible && t.includes('salsa');
+        });
         
         setIceCreamFlavors(filteredFlavors);
         setIceCreamSauces(filteredSauces);
-        setIceCreamExtras(extras.filter(e => e.disponible));
+        setIceCreamExtras((extras || []).filter(e => e.disponible));
         
-        // Inyectamos las salsas directamente en el objeto del modal para mayor seguridad
         setIceCreamModal({
           ...menu,
           salsasDisponibles: filteredSauces
