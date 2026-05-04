@@ -71,12 +71,15 @@ const AdminPedidos = () => {
     const formatFecha = (fechaStr) => {
         if (!fechaStr) return 'N/A';
         const date = new Date(fechaStr);
+        // Ajustar +3 horas para compensar el almacenamiento en UTC-3 que JS interpreta como UTC
+        date.setHours(date.getHours() + 3);
         return date.toLocaleString('es-AR', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: false
         });
     };
 
