@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import * as api from '../services/api';
+import CountdownTimer from '../components/CountdownTimer';
 import toast from 'react-hot-toast';
 import './MisPedidos.css';
 
@@ -279,6 +280,17 @@ export default function MisPedidos() {
                       {p.estado === 'Listo' ? 'Listo para envío' : p.estado}
                     </span>
                   </div>
+                  {p.estado === 'Pendiente de Pago' && (
+                    <div style={{ background: '#fff7ed', padding: '10px', borderRadius: '8px', marginBottom: '12px', textAlign: 'center', border: '1px solid #ffedd5' }}>
+                      <p style={{ margin: '0 0 5px 0', color: '#9a3412', fontSize: '0.9rem', fontWeight: 'bold' }}>⚠️ Pago pendiente</p>
+                      <small style={{ color: '#c2410c', display: 'block', marginBottom: '4px' }}>Tu pedido se cancelará en:</small>
+                      <CountdownTimer 
+                        startTime={p.pago_pendiente_at || p.created_at} 
+                        limitMinutes={8} 
+                        onTimeout={() => loadPedidos()} 
+                      />
+                    </div>
+                  )}
                   <div className="pedido-items-list">
                     {p.repartidorNombre && (
                       <div className="pedido-repartidor-mini" style={{ fontSize: '0.8rem', color: 'var(--blue-600)', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
@@ -395,6 +407,17 @@ export default function MisPedidos() {
               <>
                 {/* Timeline */}
                 <div className="timeline">
+                  {seguimiento.estadoGeneral === 'Pendiente de Pago' && (
+                    <div style={{ background: '#fff7ed', padding: '15px', borderRadius: '12px', marginBottom: '20px', textAlign: 'center', border: '1px solid #ffedd5' }}>
+                      <p style={{ margin: '0 0 5px 0', color: '#9a3412', fontSize: '1rem', fontWeight: 'bold' }}>💳 Esperando tu pago</p>
+                      <small style={{ color: '#c2410c', display: 'block', marginBottom: '8px' }}>Tu pedido se cancelará automáticamente si no recibimos el pago en:</small>
+                      <CountdownTimer 
+                        startTime={seguimiento.pago_pendiente_at || seguimiento.created_at} 
+                        limitMinutes={8} 
+                        onTimeout={() => loadPedidos()} 
+                      />
+                    </div>
+                  )}
                   {timelineSteps.map((step, i) => {
                     const progress = getTimelineProgress(seguimiento.estadoGeneral || 'Pendiente');
                     const isDone = i <= progress;

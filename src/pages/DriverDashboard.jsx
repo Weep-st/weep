@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
 import { useJsApiLoader } from '@react-google-maps/api';
+import CountdownTimer from '../components/CountdownTimer';
 import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import MapComponent from '../components/MapComponent';
@@ -1057,6 +1058,14 @@ export default function DriverDashboard() {
               <div className="dd-waiting-payment-box animate-pulse" style={{ background: '#fff7ed', border: '1px solid #ffedd5', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
                 <div className="waiting-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
                 <p style={{ margin: '0 0 8px 0', color: '#9a3412' }}><strong>Pedido pendiente de confirmación</strong></p>
+                <div style={{ marginBottom: '12px' }}>
+                  <small style={{ color: '#c2410c', display: 'block', marginBottom: '4px' }}>Tiempo restante para el pago:</small>
+                  <CountdownTimer 
+                    startTime={enViaje.pago_pendiente_at || enViaje.created_at} 
+                    limitMinutes={8} 
+                    onTimeout={() => fetchPedidos()} 
+                  />
+                </div>
                 <p className="small" style={{ fontSize: '0.8rem', color: '#c2410c', lineHeight: '1.4' }}>
                   Una vez que el usuario realice el pago, el pedido se confirmará automáticamente y podrás ver los datos del local para el retiro.
                 </p>
