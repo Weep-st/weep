@@ -467,7 +467,7 @@ export default function RestaurantDashboard() {
     if (editItem && view === 'addItem') {
       const cat = editItem.categoria;
       setItemCategory(cat || '');
-      if (cat === 'Hamburguesas' || cat === 'Combos') {
+      if (cat !== 'Helados' && cat !== 'Base') {
         try {
           const cfg = typeof editItem.variantes === 'string' ? JSON.parse(editItem.variantes) : (editItem.variantes || {});
           setBurgerVariants(cfg.variants?.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
@@ -863,17 +863,24 @@ export default function RestaurantDashboard() {
         };
         variantesVal = JSON.stringify(iceCreamConfig);
         precioVal = fd.get('p_14');
-      } else if (fd.get('categoria') === 'Hamburguesas' || fd.get('categoria') === 'Combos' || fd.get('categoria') === 'Panchos') {
-        const advancedConfig = {
-          es_hamburguesa: fd.get('categoria') === 'Hamburguesas',
-          es_combo: fd.get('categoria') === 'Combos',
-          es_pancho: fd.get('categoria') === 'Panchos',
-          variants: burgerVariants.filter(v => v.nombre.trim() !== ''),
-          extras: burgerExtras.filter(e => e.nombre.trim() !== ''),
-          con_papas: burgerOfferPapas,
-          precio_papas: parseFloat(burgerPrecioPapas) || 0
-        };
-        variantesVal = JSON.stringify(advancedConfig);
+      } else if (fd.get('categoria') !== 'Helados' && fd.get('categoria') !== 'Base') {
+        const filteredVariants = burgerVariants.filter(v => v.nombre.trim() !== '');
+        const filteredExtras = burgerExtras.filter(e => e.nombre.trim() !== '');
+        
+        if (filteredVariants.length > 0 || filteredExtras.length > 0 || burgerOfferPapas) {
+          const advancedConfig = {
+            es_hamburguesa: fd.get('categoria') === 'Hamburguesas',
+            es_combo: fd.get('categoria') === 'Combos',
+            es_pancho: fd.get('categoria') === 'Panchos',
+            variants: filteredVariants,
+            extras: filteredExtras,
+            con_papas: burgerOfferPapas,
+            precio_papas: parseFloat(burgerPrecioPapas) || 0
+          };
+          variantesVal = JSON.stringify(advancedConfig);
+        } else {
+          variantesVal = null; // Clear if no variants/extras/papas
+        }
       }
 
       const data = {
@@ -2521,16 +2528,14 @@ export default function RestaurantDashboard() {
                   );
                 })()}
 
-                {/* ─── Burgers/Combos Configuration ─── */}
-                {(['Hamburguesas', 'Combos', 'Panchos'].includes(itemCategory) || ['Hamburguesas', 'Combos', 'Panchos'].includes(editItem?.categoria)) && (
+                {/* ─── Advanced Configuration (Variants/Extras) ─── */}
+                {(itemCategory !== 'Helados' && itemCategory !== 'Base' && (itemCategory !== '' || editItem)) && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de {
-                      (itemCategory === 'Combos' || editItem?.categoria === 'Combos') ? 'Combo' : 
-                      (itemCategory === 'Panchos' || editItem?.categoria === 'Panchos') ? 'Pancho' : 'Hamburguesa'
-                    }</h3>
+                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de Variantes y Extras</h3>
                     
                     <div style={{ marginBottom: '20px' }}>
-                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
+                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>El cliente debe elegir una sola opción. Cada una tiene su propio precio total.</p>
                       {burgerVariants.map((v, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                           <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
@@ -2542,7 +2547,8 @@ export default function RestaurantDashboard() {
                     </div>
 
                     <div style={{ marginBottom: '20px' }}>
-                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--gray-700)' }}>Extras (Bacon, Cheddar, etc.)</p>
+                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Extras (Bacon, Cheddar, etc.)</p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>Son adicionales opcionales que se suman al precio de la variante elegida.</p>
                       {burgerExtras.map((ex, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                           <input placeholder="Nombre extra" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={ex.nombre} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].nombre = e.target.value; setBurgerExtras(newE); }} />

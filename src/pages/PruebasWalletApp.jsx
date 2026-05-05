@@ -1134,7 +1134,7 @@ export default function PruebasWalletApp() {
     } catch (e) {}
 
     const isIceCream = cfg?.es_helado;
-    const isBurgerOrCombo = cfg?.es_hamburguesa || cfg?.es_combo || cfg?.es_pancho || cfg?.con_papas;
+    const isBurgerOrCombo = cfg?.es_hamburguesa || cfg?.es_combo || cfg?.es_pancho || cfg?.con_papas || (cfg?.variants?.length > 0) || (cfg?.extras?.length > 0);
 
     if (isIceCream) {
       setSelectedSize('1/4kg');
@@ -1228,7 +1228,7 @@ export default function PruebasWalletApp() {
 
   const renderMenuItem = React.useCallback((item) => {
     const itemCfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes || '{}') : (item.variantes || {});
-    const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas;
+    const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas || (itemCfg.variants?.length > 0) || (itemCfg.extras?.length > 0);
     
     return (
       <div 
@@ -3144,9 +3144,9 @@ export default function PruebasWalletApp() {
                             opacity: !withFries ? 1 : 0.7
                           }}
                         >
-                          <div style={{ fontSize: '2.5rem' }}>{cfg.es_pancho ? '🌭' : '🍔'}</div>
+                          <div style={{ fontSize: '2.5rem' }}>{cfg.es_pancho ? '🌭' : (cfg.es_hamburguesa ? '🍔' : '🍽️')}</div>
                           <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Solo el {cfg.es_pancho ? 'pancho' : 'plato'}</div>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>{cfg.es_pancho ? 'Solo el pancho' : (cfg.es_hamburguesa ? 'Solo la hamburguesa' : 'Solo el plato')}</div>
                             <div style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Sin papas</div>
                           </div>
                         </div>
