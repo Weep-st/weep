@@ -693,6 +693,10 @@ export default function PruebaDashboard() {
             precio_papas: parseFloat(burgerPrecioPapas) || 0
           };
           variantesVal = JSON.stringify(advancedConfig);
+          // Fallback: Use first variant price if regular price is empty
+          if (!precioVal && filteredVariants.length > 0) {
+            precioVal = filteredVariants[0].precio;
+          }
         } else {
           variantesVal = null;
         }
@@ -1827,7 +1831,7 @@ export default function PruebaDashboard() {
                 <div className="rd-form-row rd-form-row-3">
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Precio Regular ($)</label>
-                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={editItem?.precio || ''} required />
+                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={editItem?.precio || ''} />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Descuento Ítem (%)</label>

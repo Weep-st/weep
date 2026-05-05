@@ -878,6 +878,10 @@ export default function RestaurantDashboard() {
             precio_papas: parseFloat(burgerPrecioPapas) || 0
           };
           variantesVal = JSON.stringify(advancedConfig);
+          // Fallback: Use first variant price if regular price is empty
+          if (!precioVal && filteredVariants.length > 0) {
+            precioVal = filteredVariants[0].precio;
+          }
         } else {
           variantesVal = null; // Clear if no variants/extras/papas
         }
@@ -2479,7 +2483,7 @@ export default function RestaurantDashboard() {
                 <div className="rd-form-row rd-form-row-3" style={ (isBaseProductMode || editItem?.categoria === 'Base') ? { opacity: 0.5, pointerEvents: 'none' } : {} }>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Precio Regular ($)</label>
-                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.precio || '')} required />
+                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.precio || '')} />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Descuento (%)</label>
