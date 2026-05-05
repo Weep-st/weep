@@ -59,7 +59,15 @@ export async function registerUsuario(nombre, email, password, direccion, telefo
     email_confirmado: false,
     token_confirmacion: code
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === '23505') {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('email')) throw new Error('Este email ya está registrado. Por favor, inicia sesión.');
+      if (msg.includes('telefono')) throw new Error('Este número de teléfono ya está en uso.');
+      throw new Error('El email o teléfono ya está registrado.');
+    }
+    throw new Error(error.message);
+  }
   
   // Enviar email de confirmación
   sendConfirmationEmail(email, code, 'usuario', nombre).catch(console.error);
@@ -1145,10 +1153,12 @@ export async function getMisPedidos(userId) {
       repartidorTelefono: p.repartidor?.telefono,
       pago_pendiente_at: p.pago_pendiente_at,
       created_at: p.created_at,
+      localId: p.local_id,
+      platform_gross: p.total - items.reduce((sum, i) => sum + (Number(i.precio_unitario) * Number(i.cantidad)), 0),
       itemsResumen: items.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 
-    const estadosCurso = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino'];
+    const estadosCurso = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Pendiente de Pago', 'Buscando Repartidor'];
     if (estadosCurso.includes(estadoLocal)) enCurso.push(pedidoObj);
     else historial.push(pedidoObj);
   }
@@ -1221,7 +1231,7 @@ export async function rateOrder(userId, pedidoId, calificacion, comentario) {
 export async function reOrderItems(userId, pedidoId) {
   const { data: items } = await supabase
     .from('pedidos_items')
-    .select('item_id, nombre, precio_unitario, cantidad')
+    .select('id, item_id, nombre, precio_unitario, cantidad')
     .eq('pedido_id', pedidoId);
 
   if (!items || items.length === 0) return { success: false, items: [] };
@@ -1235,8 +1245,13 @@ export async function reOrderItems(userId, pedidoId) {
       .single();
     if (menu) {
       menuItems.push({
-        id: menu.id, nombre: menu.nombre, categoria: menu.categoria,
-        descripcion: menu.descripcion, precio: menu.precio,
+        ...menu, // Keep all base menu info
+        menuId: menu.id, // Save original menu ID
+        id: `reorder-${item.id}`, // Use the primary key of the order item to keep it unique but stable for reorders
+        nombre: item.nombre, // USE THE CUSTOMIZED NAME FROM THE ORDER
+        categoria: menu.categoria,
+        descripcion: menu.descripcion, 
+        precio: menu.precio, // Use CURRENT price
         imagen_url: menu.imagen_url, local_id: menu.local_id,
         variantes: menu.variantes,
         local_nombre: menu.locales?.nombre || '', local_logo: menu.locales?.foto_url || '',
@@ -2241,8 +2256,8 @@ export async function getPedidosDisponibles(repartidorId) {
   // 4. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
     .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono)')
-    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando"),tipo_entrega.eq."Con Envío")`)
-    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando'])
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
+    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -2750,6 +2765,28 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     });
   } catch (error) {
     console.error("Error enviando email al cliente:", error);
+  }
+}
+
+export async function notifyDriverAboutPaymentInProgress(pedidoId, repartidorId) {
+  try {
+    const { data: rep } = await supabase
+      .from('repartidores')
+      .select('OneSignalId')
+      .eq('id', repartidorId)
+      .single();
+
+    if (rep?.OneSignalId) {
+      await sendPushNotification({
+        subscriptionIds: [rep.OneSignalId],
+        title: '¡Pago en curso! 💳',
+        message: `El cliente del pedido #${pedidoId} está completando el pago. Por favor, aguarda un momento.`,
+        url: 'https://wepi.com.ar/repartidores',
+        data: { type: 'payment_in_progress', pedidoId }
+      });
+    }
+  } catch (err) {
+    console.error("Error notifying driver about payment:", err);
   }
 }
 

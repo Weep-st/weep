@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import * as api from '../services/api';
+import { iniciarPagoMercadoPago } from '../services/mercadopago';
 import CountdownTimer from '../components/CountdownTimer';
 import toast from 'react-hot-toast';
 import './MisPedidos.css';
@@ -108,6 +109,45 @@ export default function MisPedidos() {
       }
     } catch {
       toast.error('Error al recuperar pedido');
+    }
+  };
+
+  const handlePayment = async (p) => {
+    const loading = toast.loading('Re-iniciando pago...');
+    try {
+      // 1. Notificar al repartidor si existe
+      if (p.repartidorId) {
+        await api.notifyDriverAboutPaymentInProgress(p.idPedido, p.repartidorId);
+      }
+
+      // 2. Construir datos de pago
+      const successUrl = `${window.location.origin}/pedir`;
+      const paymentData = {
+        external_reference: p.idPedido,
+        back_urls: { success: successUrl, failure: successUrl, pending: successUrl },
+        auto_return: "approved",
+        items: [{
+          title: `Pedido Wepi #${p.idPedido}`,
+          quantity: 1,
+          currency_id: "ARS",
+          unit_price: Number(p.total)
+        }],
+        local_id: p.localId,
+        marketplace_fee: p.platform_gross
+      };
+
+      // 3. Iniciar MP
+      const res = await iniciarPagoMercadoPago(paymentData);
+      if (res.init_point) {
+        window.location.href = res.init_point;
+      } else {
+        throw new Error('No se pudo generar el punto de inicio de pago');
+      }
+    } catch (err) {
+      console.error("Error re-initiating payment:", err);
+      toast.error('Error al procesar el pago. Inténtalo de nuevo.');
+    } finally {
+      toast.dismiss(loading);
     }
   };
 
@@ -289,6 +329,13 @@ export default function MisPedidos() {
                         limitMinutes={8} 
                         onTimeout={() => loadPedidos()} 
                       />
+                      <button 
+                        className="btn btn-primary btn-sm btn-full" 
+                        style={{ marginTop: '10px', background: 'var(--blue-600)' }}
+                        onClick={() => handlePayment(p)}
+                      >
+                        💳 Pagar pedido ahora
+                      </button>
                     </div>
                   )}
                   <div className="pedido-items-list">

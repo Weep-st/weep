@@ -487,7 +487,7 @@ export default function PruebasApp() {
         setModal(null);
         toast.success('¡Registro exitoso!');
       } else toast.error('Error al registrar');
-    } catch { toast.error('Error de conexión'); }
+    } catch (err) { toast.error(err.message || 'Error de conexión'); }
     setAuthLoading(false);
   };
 
