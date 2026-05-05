@@ -78,6 +78,7 @@ export default function DriverDashboard() {
   const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
   const [activeLocales, setActiveLocales] = React.useState([]);
   const [loadingLocales, setLoadingLocales] = React.useState(false);
+  const [scheduledDates, setScheduledDates] = React.useState({});
 
   React.useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -188,6 +189,7 @@ export default function DriverDashboard() {
 
   // Modals state
   const [showEntregaModal, setShowEntregaModal] = React.useState(false);
+  const [showRetiroModal, setShowRetiroModal] = React.useState(false);
   const [showChatModal, setShowChatModal] = React.useState(false);
   const [activeChatPedidoId, setActiveChatPedidoId] = React.useState(null);
   const [chatMessages, setChatMessages] = React.useState([]);
@@ -272,8 +274,19 @@ export default function DriverDashboard() {
       fetchHistorial();
       loadRealStats();
       loadGamification();
+      loadScheduledDates();
     } catch { toast.error('Error al cargar datos'); }
   }, [driver, loginAsDriver]);
+
+  const loadScheduledDates = async () => {
+    if (!driver) return;
+    try {
+      const dates = await api.repartidorGetScheduledPayments(driver.id);
+      setScheduledDates(dates);
+    } catch (err) {
+      console.error("Error loading scheduled dates:", err);
+    }
+  };
 
   const loadGamification = async () => {
     if (!driver) return;
@@ -798,13 +811,15 @@ export default function DriverDashboard() {
     } catch { toast.error('Error de conexión', { id: 'ac' }); }
   };
 
-  const retirarPedido = async (pedidoId) => {
-    if (!window.confirm('¿Confirmas que ya RETIRASTE el pedido del local?')) return;
+  const finalizarRetiro = async (pedido, pin) => {
+    if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el local');
     toast.loading('Actualizando...', { id: 'ret' });
     try {
-      const res = await api.updateEstadoPedido(pedidoId, 'Retirado', driver.id);
+      const res = await api.updateEstadoPedido(pedido.id, 'Retirado', driver.id, pin);
       if (res.success) {
         toast.success('Pedido marcado como RETIRADO', { id: 'ret' });
+        setShowRetiroModal(false);
+        setPinInput('');
         fetchPedidos();
       } else {
         toast.error(res.error || 'Error', { id: 'ret' });
@@ -812,7 +827,13 @@ export default function DriverDashboard() {
     } catch { toast.error('Error de conexión', { id: 'ret' }); }
   };
 
+  const confirmarRetiroClick = () => {
+    setPinInput('');
+    setShowRetiroModal(true);
+  };
+
   const confirmarEntregaClick = () => {
+    setPinInput('');
     setShowEntregaModal(true);
   };
 
@@ -1141,10 +1162,10 @@ export default function DriverDashboard() {
                       className="dd-btn-rojo"
                       onClick={() => {
                         if (isTutorial) {
-                          setTutorialOrder({ ...tutorialOrder, estado: 'Retirado' });
-                          if (tutorialStep === 3) setTutorialStep(4);
+                          setShowRetiroModal(true);
+                          setPinInput('');
                         } else {
-                          retirarPedido(enViaje.id);
+                          confirmarRetiroClick();
                         }
                       }}
                     >
@@ -1209,6 +1230,49 @@ export default function DriverDashboard() {
                       finalizarEntrega(enViaje);
                     }
                   }}>Confirmar Entrega</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showRetiroModal && (
+            <div className="dd-modal-overlay">
+              <div className="dd-modal-content animate-slide-down">
+                <div className="dd-modal-header">
+                  <h5>Confirmar Retiro</h5>
+                  <button className="dd-modal-close" onClick={() => setShowRetiroModal(false)}>×</button>
+                </div>
+                <div className="dd-modal-body">
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: 8 }}>Solicita el PIN de retiro al local</label>
+                    <input
+                      type="text"
+                      maxLength="4"
+                      placeholder="Ej: 1234"
+                      className="form-input"
+                      style={{ fontSize: '24px', textAlign: 'center', letterSpacing: '8px', fontWeight: 'bold' }}
+                      value={pinInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPinInput(val);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="dd-modal-footer">
+                  <button className="dd-btn-rojo dd-btn-large" onClick={() => {
+                    if (isTutorial) {
+                      if (pinInput.length === 4) {
+                        toast.success('¡Excelente! Retiro de prueba completado.');
+                        setTutorialOrder({ ...tutorialOrder, estado: 'Retirado' });
+                        setShowRetiroModal(false);
+                        setPinInput('');
+                        if (tutorialStep === 3) setTutorialStep(4);
+                      } else toast.error('Ingresa un PIN de 4 dígitos');
+                    } else {
+                      finalizarRetiro(enViaje, pinInput);
+                    }
+                  }}>Confirmar Retiro</button>
                 </div>
               </div>
             </div>
@@ -1391,9 +1455,16 @@ export default function DriverDashboard() {
               <small style={{ color: 'var(--gray-500)' }}>
                 {new Date(h.created_at).toLocaleDateString()}
               </small>
-              <span className={`dd-badge ${h.cobro_repartidor_procesado ? 'bg-success' : (h.metodo_pago === 'Efectivo' ? 'bg-info' : 'bg-warning')}`} style={{ fontSize: '0.7rem' }}>
-                {h.cobro_repartidor_procesado ? '✓ Cobrado' : (h.metodo_pago === 'Efectivo' ? 'Cash Recibido' : 'Pendiente de cobro')}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <span className={`dd-badge ${h.cobro_repartidor_procesado ? 'bg-success' : (h.metodo_pago === 'Efectivo' ? 'bg-info' : 'bg-warning')}`} style={{ fontSize: '0.7rem' }}>
+                  {h.cobro_repartidor_procesado ? '✓ Cobrado' : (h.metodo_pago === 'Efectivo' ? 'Cash Recibido' : 'Pendiente de cobro')}
+                </span>
+                {scheduledDates[h.id] && !h.cobro_repartidor_procesado && (
+                  <span className="dd-badge" style={{ fontSize: '0.65rem', background: '#6366f1', color: 'white' }}>
+                    📅 Pago: {scheduledDates[h.id].split('-').reverse().join('-')}
+                  </span>
+                )}
+              </div>
             </div>
             <p style={{ margin: '8px 0', fontWeight: 'bold', fontSize: '0.9rem' }}>{h.direccion}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

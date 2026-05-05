@@ -3541,6 +3541,12 @@ function OrderCard({ order: o, onAction, finished }) {
       </div>
       <div className="rd-order-body">
         <p><strong>Cliente:</strong> {o.nombreCliente}</p>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <strong>PIN de Retiro/Entrega:</strong> 
+          <span style={{ color: 'var(--red-600)', fontWeight: 'bold', fontSize: '1.1rem', background: '#fff1f2', padding: '2px 8px', borderRadius: '4px' }}>
+            {o.numConfirmacion || 'N/A'}
+          </span>
+        </p>
         <p><strong>Dirección:</strong> {o.direccion}</p>
         <p><strong>Pago:</strong> {o.metodoPago}</p>
         <p><strong>Repartidor:</strong> <span style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginLeft: 8 }}>({o.repartidorTelefono})</span>}</p>

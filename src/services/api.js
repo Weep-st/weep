@@ -2312,7 +2312,7 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     .eq('id', pedidoId).eq('repartidor_id', repartidorId).single();
   if (!ped) return { success: false, error: 'Pedido no encontrado para este repartidor' };
 
-  if (nuevoEstado === 'Entregado' && ped.num_confirmacion && ped.num_confirmacion !== pinConfirmacion) {
+  if ((nuevoEstado === 'Entregado' || nuevoEstado === 'Retirado') && ped.num_confirmacion && ped.num_confirmacion !== pinConfirmacion) {
     return { success: false, error: 'PIN incorrecto' };
   }
 
@@ -3472,3 +3472,108 @@ export async function getAllWalletConfigs() {
   return data || [];
 }
 
+
+// ──────────────────────────────────────────────────
+// REPARTIDORES — CALENDARIO DE PAGOS
+// ──────────────────────────────────────────────────
+
+export async function adminGetDriverPayments(month, year) {
+  // Start and end of the month
+  const start = new Date(year, month, 1).toISOString().split('T')[0];
+  const end = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('repartidores_pagos_calendario')
+    .select('*, repartidores(nombre)')
+    .gte('fecha', start)
+    .lte('fecha', end)
+    .order('fecha', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminCreateDriverPayment(paymentData) {
+  const { data, error } = await supabase
+    .from('repartidores_pagos_calendario')
+    .insert(paymentData)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function adminGetDriverPaymentsAll() {
+  const { data, error } = await supabase
+    .from('repartidores_pagos_calendario')
+    .select('id, repartidor_id, monto, nota, fecha, pedido_ids, created_at, repartidores(nombre)')
+    .order('fecha', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function adminDeleteDriverPayment(id) {
+  const { error } = await supabase
+    .from('repartidores_pagos_calendario')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function adminGetDriverPendingSettlements(driverId) {
+  // 1. Obtener todos los IDs de pedidos que ya están en el calendario
+  const { data: scheduledPayments, error: scheduledError } = await supabase
+    .from('repartidores_pagos_calendario')
+    .select('pedido_ids')
+    .not('pedido_ids', 'is', null);
+
+  if (scheduledError) throw scheduledError;
+
+  // Aplanar todos los IDs de pedidos agendados
+  const allScheduledIds = scheduledPayments
+    .flatMap(p => p.pedido_ids.split(','))
+    .map(id => id.trim())
+    .filter(Boolean);
+
+  // 2. Obtener pedidos que NO estén en esa lista
+  let query = supabase
+    .from('pedidos_general')
+    .select('id, created_at, precio_envio, metodo_pago')
+    .eq('repartidor_id', driverId)
+    .eq('estado', 'Entregado')
+    .eq('cobro_repartidor_procesado', false);
+
+  if (allScheduledIds.length > 0) {
+    query = query.not('id', 'in', `(${allScheduledIds.join(',')})`);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function repartidorGetScheduledPayments(driverId) {
+  const { data, error } = await supabase
+    .from('repartidores_pagos_calendario')
+    .select('fecha, pedido_ids')
+    .eq('repartidor_id', driverId);
+
+  if (error) throw error;
+  
+  // Create a map of orderId -> date
+  const dateMap = {};
+  data.forEach(p => {
+    if (p.pedido_ids) {
+      p.pedido_ids.split(',').forEach(id => {
+        dateMap[id.trim()] = p.fecha;
+      });
+    }
+  });
+  
+  return dateMap;
+}
