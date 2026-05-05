@@ -2231,8 +2231,8 @@ export async function getPedidosDisponibles(repartidorId) {
   // 4. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
   const { data, error } = await supabase.from('pedidos_general')
     .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono)')
-    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor"),tipo_entrega.eq."Con Envío")`)
-    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino'])
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando"),tipo_entrega.eq."Con Envío")`)
+    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando'])
     .order('created_at', { ascending: false });
 
   if (error) {

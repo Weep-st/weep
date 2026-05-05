@@ -510,7 +510,7 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     if (!isMapLoaded) return;
 
-    const enViaje = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado'].includes(p.estado));
+    const enViaje = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
     if (enViaje) {
       // 1. Cargar datos del local
       if (enViaje.local_id) {
@@ -1018,8 +1018,8 @@ export default function DriverDashboard() {
 
   const renderDisponibles = () => {
     // Si hay pedidos Confirmado/Retirado o Pendiente de Pago, o incluso Pendiente/Aceptado PERO ya asignados a mí, estamos "En Viaje" o "En Espera"
-    const enViajeReal = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado'].includes(p.estado));
-    const enViajeTutorial = tutorialOrder && (['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado'].includes(tutorialOrder.estado));
+    const enViajeReal = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
+    const enViajeTutorial = tutorialOrder && (['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(tutorialOrder.estado));
     const enViaje = enViajeTutorial ? tutorialOrder : enViajeReal;
 
     if (enViaje) {
@@ -1282,7 +1282,7 @@ export default function DriverDashboard() {
     }
 
     // List of pending orders (Disponibles)
-    const pendientesReales = pedidos.filter(p => p.estado === 'Pendiente' || p.estado === 'Buscando Repartidor');
+    const pendientesReales = pedidos.filter(p => ['Pendiente', 'Buscando Repartidor', 'Listo', 'Preparando'].includes(p.estado));
     const pendientesTutorial = tutorialOrder && tutorialOrder.estado === 'Pendiente' ? [tutorialOrder] : [];
     const pendientes = [...pendientesTutorial, ...pendientesReales];
     if (pendientes.length === 0) {
