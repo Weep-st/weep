@@ -9,6 +9,7 @@ import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
 import HelpChatbot from '../components/HelpChatbot';
+import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
 import './PruebasWalletApp.css';
 
 export default function PruebasWalletApp() {
@@ -241,13 +242,20 @@ export default function PruebasWalletApp() {
   }, []);
   
   const isClosedToday = React.useCallback((local) => {
-    if (!local || !local.modo_automatico) return false;
-    const { dias_apertura } = local;
-    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
+    if (!local) return false;
+    const config = local.config_horarios || {};
+    const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDayName = daysMap[new Date().getDay()];
+    
+    // Si tiene la nueva configuración, verificamos si ese día está "cerrado"
+    if (config[currentDayName]) {
+      return config[currentDayName].tipo === 'cerrado';
+    }
+
+    // Fallback a lógica vieja si no hay config_horarios
+    if (local.modo_automatico && local.dias_apertura && Array.isArray(local.dias_apertura)) {
       const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const normalizedDays = dias_apertura.map(normalize);
+      const normalizedDays = local.dias_apertura.map(normalize);
       const normalizedCurrentDay = normalize(currentDayName);
       return !normalizedDays.includes(normalizedCurrentDay);
     }
@@ -479,7 +487,7 @@ export default function PruebasWalletApp() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
-    // Verificar si ya pasó la fecha de disponibilidad
+    // 1. Verificar si ya pasó la fecha de disponibilidad
     if (local.disponible_desde) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -487,101 +495,23 @@ export default function PruebasWalletApp() {
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
       if (today < availableDate) return false;
     }
-    
-    // Si no tiene modo automático, dependemos del estado manual
-    if (!local.modo_automatico) {
-      return local.estado?.toLowerCase() === 'activo';
-    }
 
-    // Si tiene modo automático, verificamos horario y días
-    const { horario_apertura, horario_cierre, dias_apertura } = local;
-    if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
-
-    // Verificar días
-    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
-      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const normalizedDays = dias_apertura.map(normalize);
-      const normalizedCurrentDay = normalize(currentDayName);
-      if (!normalizedDays.includes(normalizedCurrentDay)) return false;
-    }
-
-    // Verificar horario (Turno 1)
-    const [hA, mA] = horario_apertura.split(':').map(Number);
-    const [hC, mC] = horario_cierre.split(':').map(Number);
-    const minApertura = hA * 60 + mA;
-    const minCierre = hC * 60 + mC;
-    const now = new Date();
-    const current = now.getHours() * 60 + now.getMinutes();
-
-    let insideTime = false;
-    if (minApertura < minCierre) {
-      insideTime = current >= minApertura && current <= minCierre;
-    } else {
-      insideTime = current >= minApertura || current <= minCierre;
-    }
-
-    // Verificar horario (Turno 2) si no está abierto en el primero
-    if (!insideTime && local.horario_apertura2 && local.horario_cierre2) {
-      const [hA2, mA2] = local.horario_apertura2.split(':').map(Number);
-      const [hC2, mC2] = local.horario_cierre2.split(':').map(Number);
-      const minApertura2 = hA2 * 60 + mA2;
-      const minCierre2 = hC2 * 60 + mC2;
-
-      if (minApertura2 < minCierre2) {
-        insideTime = current >= minApertura2 && current <= minCierre2;
-      } else {
-        insideTime = current >= minApertura2 || current <= minCierre2;
-      }
-    }
-
-    return insideTime;
+    // 2. Usar utilidad flexible
+    return isLocalOpenFlexible(local);
   }, []);
 
   const getLocalStatusText = React.useCallback((local) => {
     if (!local) return '';
     if (local.nombre?.toUpperCase() === 'FULL') return 'Próximamente';
-    const isOpen = isLocalOpen(local);
     
-    const now = new Date();
-    const current = now.getHours() * 60 + now.getMinutes();
+    const isOpen = isLocalOpen(local);
+    const { nextStatus, time } = getNextStatusChange(local);
 
-    if (!isOpen) {
-      // Determinar cuál es el próximo horario de apertura
-      let nextApertura = local.horario_apertura;
-      if (local.horario_apertura2 && local.horario_apertura) {
-        const [hA, mA] = local.horario_apertura.split(':').map(Number);
-        const minApertura = hA * 60 + mA;
-        const [hA2, mA2] = local.horario_apertura2.split(':').map(Number);
-        const minApertura2 = hA2 * 60 + mA2;
-
-        // Si ya pasó el primer turno o estamos más cerca del segundo
-        if (current > minApertura && current < minApertura2) {
-          nextApertura = local.horario_apertura2;
-        }
-      }
-      
-      if (nextApertura) return `abre ${nextApertura}`;
-      return 'Cerrado';
+    if (isOpen) {
+      return time ? `cierra ${time}` : 'Abierto';
+    } else {
+      return time ? `abre ${time}` : 'Cerrado';
     }
-
-    // Si está abierto, determinar cuál es el próximo horario de cierre
-    let nextCierre = local.horario_cierre;
-    if (local.horario_apertura2 && local.horario_cierre2) {
-      const [hA2, mA2] = local.horario_apertura2.split(':').map(Number);
-      const minApertura2 = hA2 * 60 + mA2;
-      const [hC2, mC2] = local.horario_cierre2.split(':').map(Number);
-      const minCierre2 = hC2 * 60 + mC2;
-
-      // Si estamos en el rango del segundo turno
-      if (current >= minApertura2 || (minApertura2 > minCierre2 && current <= minCierre2)) {
-        nextCierre = local.horario_cierre2;
-      }
-    }
-
-    if (nextCierre) return `cierra ${nextCierre}`;
-    return 'Abierto';
   }, [isLocalOpen]);
   // Load locals + drinks on mount
   React.useEffect(() => {

@@ -9,6 +9,7 @@ import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
 import HelpChatbot from '../components/HelpChatbot';
+import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
 import './CustomerApp.css';
 
 export default function CustomerApp() {
@@ -110,13 +111,20 @@ export default function CustomerApp() {
   const searchTimeout = React.useRef(null);
   
   const isClosedToday = React.useCallback((local) => {
-    if (!local || !local.modo_automatico) return false;
-    const { dias_apertura } = local;
-    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
+    if (!local) return false;
+    const config = local.config_horarios || {};
+    const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDayName = daysMap[new Date().getDay()];
+    
+    // Si tiene la nueva configuración, verificamos si ese día está "cerrado"
+    if (config[currentDayName]) {
+      return config[currentDayName].tipo === 'cerrado';
+    }
+
+    // Fallback a lógica vieja si no hay config_horarios
+    if (local.modo_automatico && local.dias_apertura && Array.isArray(local.dias_apertura)) {
       const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const normalizedDays = dias_apertura.map(normalize);
+      const normalizedDays = local.dias_apertura.map(normalize);
       const normalizedCurrentDay = normalize(currentDayName);
       return !normalizedDays.includes(normalizedCurrentDay);
     }
@@ -126,7 +134,7 @@ export default function CustomerApp() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
-    // Verificar si ya pasó la fecha de disponibilidad
+    // 1. Verificar si ya pasó la fecha de disponibilidad
     if (local.disponible_desde) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -134,42 +142,9 @@ export default function CustomerApp() {
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
       if (today < availableDate) return false;
     }
-    
-    // Si no tiene modo automático, dependemos del estado manual
-    if (!local.modo_automatico) {
-      return local.estado?.toLowerCase() === 'activo';
-    }
 
-    // Si tiene modo automático, verificamos horario y días
-    const { horario_apertura, horario_cierre, dias_apertura } = local;
-    if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
-
-    // Verificar días
-    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
-      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const normalizedDays = dias_apertura.map(normalize);
-      const normalizedCurrentDay = normalize(currentDayName);
-      if (!normalizedDays.includes(normalizedCurrentDay)) return false;
-    }
-
-    // Verificar horario
-    const [hA, mA] = horario_apertura.split(':').map(Number);
-    const [hC, mC] = horario_cierre.split(':').map(Number);
-    const minApertura = hA * 60 + mA;
-    const minCierre = hC * 60 + mC;
-    const now = new Date();
-    const current = now.getHours() * 60 + now.getMinutes();
-
-    let insideTime = false;
-    if (minApertura < minCierre) {
-      insideTime = current >= minApertura && current <= minCierre;
-    } else {
-      insideTime = current >= minApertura || current <= minCierre;
-    }
-
-    return insideTime;
+    // 2. Usar utilidad flexible (que ya maneja modo_automatico, estado manual y fallback)
+    return isLocalOpenFlexible(local);
   }, []);
 
   // Load locals + drinks on mount

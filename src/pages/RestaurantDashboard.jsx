@@ -7,6 +7,7 @@ import * as api from '../services/api';
 import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import './RestaurantDashboard.css';
+import { isLocalOpen, getNextStatusChange } from '../utils/businessHours';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
@@ -148,7 +149,8 @@ export default function RestaurantDashboard() {
   const [showDiscountPanel, setShowDiscountPanel] = React.useState(false);
   const [menuAddOpen, setMenuAddOpen] = React.useState(false);
   const [showGamification, setShowGamification] = React.useState(false);
-
+  const [configHorarios, setConfigHorarios] = React.useState({});
+  const [showHorariosConfig, setShowHorariosConfig] = React.useState(false);
   React.useEffect(() => {
     if (editItem) {
       setItemManejaStock(editItem.maneja_stock || false);
@@ -286,6 +288,26 @@ export default function RestaurantDashboard() {
         if (d.email_confirmado !== restaurant.emailConfirmado) {
           loginAsRestaurant({ localId: restaurant.id, emailConfirmado: d.email_confirmado });
         }
+
+        // Initialize Flexible Hours Config
+        if (d.config_horarios && Object.keys(d.config_horarios).length > 0) {
+          setConfigHorarios(d.config_horarios);
+        } else {
+          const initialConfig = {};
+          ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+            const dayNorm = day.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            const isSelected = d.dias_apertura?.some(da => da.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === dayNorm);
+            if (isSelected || !d.dias_apertura) {
+              const intervalos = [];
+              if (d.horario_apertura && d.horario_cierre) intervalos.push({ inicio: d.horario_apertura, fin: d.horario_cierre });
+              if (d.horario_apertura2 && d.horario_cierre2) intervalos.push({ inicio: d.horario_apertura2, fin: d.horario_cierre2 });
+              initialConfig[day] = { tipo: 'especifico', intervalos };
+            } else {
+              initialConfig[day] = { tipo: 'cerrado', intervalos: [] };
+            }
+          });
+          setConfigHorarios(initialConfig);
+        }
       }
     } catch {}
   }, [restaurant]);
@@ -306,53 +328,14 @@ export default function RestaurantDashboard() {
   }, [loadProfile]);
 
   /* ─── Modo Automático ─── */
+  // Deprecated: Use isLocalOpen from utils/businessHours
   const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura, apertura2, cierre2) => {
-    if (!apertura || !cierre) return false;
-    
-    // Verificar días de apertura si existen
-    if (diasApertura && Array.isArray(diasApertura) && diasApertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
-      
-      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const normalizedDays = diasApertura.map(normalize);
-      const normalizedCurrentDay = normalize(currentDayName);
-      
-      if (!normalizedDays.includes(normalizedCurrentDay)) {
-        return false;
-      }
-    }
-
-    const checkRange = (start, end) => {
-      if (!start || !end) return false;
-      const [hA, mA] = start.split(':').map(Number);
-      const [hC, mC] = end.split(':').map(Number);
-      const minApertura = hA * 60 + mA;
-      const minCierre = hC * 60 + mC;
-      const now = new Date();
-      const current = now.getHours() * 60 + now.getMinutes();
-
-      if (minApertura < minCierre) {
-        return current >= minApertura && current <= minCierre;
-      } else {
-        return current >= minApertura || current <= minCierre;
-      }
-    };
-
-    let inside = checkRange(apertura, cierre);
-    if (!inside && apertura2 && cierre2) {
-      inside = checkRange(apertura2, cierre2);
-    }
-    
-    return inside;
+    return isLocalOpen({ horario_apertura: apertura, horario_cierre: cierre, dias_apertura: diasApertura, horario_apertura2: apertura2, horario_cierre2: cierre2, modo_automatico: true });
   }, []);
 
   const verificarEstadoAutomatico = React.useCallback(() => {
-    const shouldBeOpen = estaDentroDeHorario(
-      profileData.horario_apertura, profileData.horario_cierre, 
-      profileData.dias_apertura,
-      profileData.horario_apertura2, profileData.horario_cierre2
-    );
+    if (!profileData) return;
+    const shouldBeOpen = isLocalOpen(profileData);
     
     if (localOpenRef.current !== shouldBeOpen) {
       const nuevoEstado = shouldBeOpen ? 'Activo' : 'Inactivo';
@@ -368,7 +351,7 @@ export default function RestaurantDashboard() {
         }
       }).catch(err => console.error(err));
     }
-  }, [profileData, restaurant, estaDentroDeHorario]);
+  }, [profileData, restaurant]);
 
   const loadMenu = React.useCallback(async () => {
     if (!restaurant) return;
@@ -1080,7 +1063,8 @@ export default function RestaurantDashboard() {
         modo_automatico: fd.get('modo_automatico') === 'true',
         dias_apertura: selectedDays,
         acepta_retiro: fd.get('acepta_retiro') === 'on',
-        acepta_envio: fd.get('acepta_envio') === 'on'
+        acepta_envio: fd.get('acepta_envio') === 'on',
+        config_horarios: configHorarios
       };
 
       const success = await api.updatePerfilLocal(params);
@@ -1090,7 +1074,6 @@ export default function RestaurantDashboard() {
       }
     } catch { toast.error('Error al guardar configuración'); }
   };
-
   const handleAddressConfirm = (data) => {
     setProfileAddress(data.address);
     setProfileLat(data.lat);
@@ -1098,6 +1081,214 @@ export default function RestaurantDashboard() {
     setShowAddressSelector(false);
   };
 
+  const handleToggleDay = (day) => {
+    setConfigHorarios(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        tipo: prev[day]?.tipo === 'cerrado' ? 'especifico' : 'cerrado',
+        intervalos: (prev[day]?.tipo === 'cerrado' && (!prev[day]?.intervalos || prev[day].intervalos.length === 0))
+          ? [{ inicio: '09:00', fin: '14:00' }]
+          : (prev[day]?.intervalos || [])
+      }
+    }));
+  };
+
+  const handleChangeTipo = (day, tipo) => {
+    setConfigHorarios(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        tipo,
+        intervalos: tipo === 'especifico' && (!prev[day]?.intervalos || prev[day].intervalos.length === 0) 
+          ? [{ inicio: '09:00', fin: '14:00' }] 
+          : (prev[day]?.intervalos || [])
+      }
+    }));
+  };
+
+  const handleAddInterval = (day) => {
+    setConfigHorarios(prev => {
+      const current = prev[day]?.intervalos || [];
+      if (current.length >= 2) return prev;
+      return {
+        ...prev,
+        [day]: {
+          ...prev[day],
+          intervalos: [...current, { inicio: '19:00', fin: '23:00' }]
+        }
+      };
+    });
+  };
+
+  const handleRemoveInterval = (day, index) => {
+    setConfigHorarios(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        intervalos: (prev[day].intervalos || []).filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  const handleUpdateInterval = (day, index, field, value) => {
+    setConfigHorarios(prev => {
+      const newIntervals = [...(prev[day].intervalos || [])];
+      newIntervals[index] = { ...newIntervals[index], [field]: value };
+      return {
+        ...prev,
+        [day]: {
+          ...prev[day],
+          intervalos: newIntervals
+        }
+      };
+    });
+  };
+
+  const renderHorariosConfig = () => {
+    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    return (
+      <div className="rd-horarios-config" style={{ marginTop: '0px' }}>
+        {days.map(day => {
+          const config = configHorarios[day] || { tipo: 'cerrado', intervalos: [] };
+          const isOpen = config.tipo !== 'cerrado';
+          
+          return (
+            <div key={day} style={{ 
+              padding: '16px', 
+              background: isOpen ? 'white' : 'var(--gray-50)', 
+              borderRadius: '12px', 
+              border: '1px solid var(--gray-200)',
+              marginBottom: '12px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isOpen ? '12px' : 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div 
+                    onClick={() => handleToggleDay(day)}
+                    style={{ 
+                      width: '40px', 
+                      height: '22px', 
+                      background: isOpen ? 'var(--red-600)' : 'var(--gray-300)', 
+                      borderRadius: '11px', 
+                      position: 'relative', 
+                      cursor: 'pointer',
+                      transition: 'background 0.3s'
+                    }}
+                  >
+                    <div style={{ 
+                      width: '18px', 
+                      height: '18px', 
+                      background: 'white', 
+                      borderRadius: '50%', 
+                      position: 'absolute', 
+                      top: '2px', 
+                      left: isOpen ? '20px' : '2px',
+                      transition: 'left 0.3s'
+                    }} />
+                  </div>
+                  <span style={{ fontWeight: 600, color: isOpen ? 'var(--gray-800)' : 'var(--gray-500)' }}>{day}</span>
+                </div>
+                
+                {isOpen && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button"
+                      onClick={() => handleChangeTipo(day, 'especifico')}
+                      className="btn"
+                      style={{ 
+                        padding: '4px 10px', 
+                        fontSize: '0.75rem', 
+                        borderRadius: '6px',
+                        border: '1px solid ' + (config.tipo === 'especifico' ? 'var(--red-600)' : 'var(--gray-300)'),
+                        background: config.tipo === 'especifico' ? 'var(--red-50)' : 'white',
+                        color: config.tipo === 'especifico' ? 'var(--red-600)' : 'var(--gray-600)',
+                        fontWeight: config.tipo === 'especifico' ? 600 : 400,
+                        height: 'auto',
+                        minHeight: 'unset'
+                      }}
+                    >
+                      Horario
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleChangeTipo(day, '24hs')}
+                      className="btn"
+                      style={{ 
+                        padding: '4px 10px', 
+                        fontSize: '0.75rem', 
+                        borderRadius: '6px',
+                        border: '1px solid ' + (config.tipo === '24hs' ? 'var(--red-600)' : 'var(--gray-300)'),
+                        background: config.tipo === '24hs' ? 'var(--red-50)' : 'white',
+                        color: config.tipo === '24hs' ? 'var(--red-600)' : 'var(--gray-600)',
+                        fontWeight: config.tipo === '24hs' ? 600 : 400,
+                        height: 'auto',
+                        minHeight: 'unset'
+                      }}
+                    >
+                      24hs
+                    </button>
+                  </div>
+                )}
+                {!isOpen && <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontStyle: 'italic' }}>Cerrado</span>}
+              </div>
+
+              {isOpen && config.tipo === 'especifico' && (
+                <div style={{ paddingLeft: '52px' }}>
+                  {(config.intervalos || []).map((intervalo, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <input 
+                        type="time" 
+                        value={intervalo.inicio} 
+                        onChange={(e) => handleUpdateInterval(day, idx, 'inicio', e.target.value)}
+                        className="form-input" 
+                        style={{ padding: '4px 8px', width: '100px', fontSize: '0.85rem', marginBottom: 0 }} 
+                      />
+                      <span style={{ color: 'var(--gray-400)' }}>a</span>
+                      <input 
+                        type="time" 
+                        value={intervalo.fin} 
+                        onChange={(e) => handleUpdateInterval(day, idx, 'fin', e.target.value)}
+                        className="form-input" 
+                        style={{ padding: '4px 8px', width: '100px', fontSize: '0.85rem', marginBottom: 0 }} 
+                      />
+                      {idx > 0 && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveInterval(day, idx)}
+                          style={{ background: 'none', border: 'none', color: 'var(--red-600)', cursor: 'pointer', fontSize: '1.1rem' }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {(config.intervalos || []).length < 2 && (
+                    <button 
+                      type="button"
+                      onClick={() => handleAddInterval(day)}
+                      style={{ 
+                        background: 'none', 
+                        border: '1px dashed var(--gray-300)', 
+                        color: 'var(--gray-500)', 
+                        padding: '4px 12px', 
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        marginTop: '4px'
+                      }}
+                    >
+                      + Agregar Turno
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
   // ─── Tutorial Mock Data logic ───
   const tutorialSampleDish = {
     id: 'sample-dish-1',
@@ -1752,7 +1943,7 @@ export default function RestaurantDashboard() {
                 <button className="btn btn-sm" style={{ backgroundColor: '#faad14', color: '#fff', border: 'none' }} onClick={() => { setView('settings'); setProfileSubView('edit'); }}>Vincular</button>
               </div>
             )}
-            {(!profileData.horario_apertura || !profileData.horario_cierre) && (
+            {(!profileData.horario_apertura || !profileData.horario_cierre) && (!profileData.config_horarios || Object.keys(profileData.config_horarios).length === 0) && (
               <div style={{ backgroundColor: '#fff1f0', border: '1px solid #ffa39e', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#cf1322', fontWeight: '500' }}>⏰ <strong>Horarios sin configurar:</strong> Establecé el horario de cierre de cocina para gestionar pedidos automáticos.</span>
                 <button className="btn btn-sm" style={{ backgroundColor: '#ff4d4f', color: '#fff', border: 'none' }} onClick={() => { setView('settings'); setProfileSubView('edit'); }}>Configurar</button>
@@ -3014,63 +3205,55 @@ export default function RestaurantDashboard() {
                     )}
                   </div>
 
-                  {/* Horarios */}
-                  <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>🕒 Horarios de Atención</h3>
-                    
-                    <div style={{ marginBottom: 16 }}>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: 8, fontWeight: 600 }}>Primer Turno (Mañana/Mediodía)</p>
-                      <div className="rd-form-row" style={{ marginBottom: 0, gap: '12px' }}>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Apertura</label>
-                          <input name="horario_apertura" type="time" className="form-input" defaultValue={profileData?.horario_apertura || '09:00'} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Cierre</label>
-                          <input name="horario_cierre" type="time" className="form-input" defaultValue={profileData?.horario_cierre || '14:00'} />
+                  {/* Configuración de Horarios Flexible */}
+                  {/* Configuración de Horarios Flexible */}
+                  <div style={{ marginBottom: 24, padding: 0, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
+                    <div 
+                      onClick={() => setShowHorariosConfig(!showHorariosConfig)}
+                      style={{ 
+                        padding: '16px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        cursor: 'pointer',
+                        background: showHorariosConfig ? 'var(--gray-50)' : 'white',
+                        borderBottom: showHorariosConfig ? '1px solid var(--gray-200)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>🕒</span>
+                        <h3 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--gray-700)' }}>Horarios de Atención</h3>
+                      </div>
+                      <span style={{ 
+                        transform: showHorariosConfig ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease',
+                        fontSize: '1.2rem',
+                        color: 'var(--gray-400)'
+                      }}>
+                        ▼
+                      </span>
+                    </div>
+
+                    {showHorariosConfig && (
+                      <div className="animate-fade-in" style={{ padding: '16px' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
+                          Configurá los horarios específicos para cada día de la semana.
+                        </p>
+                        
+                        {renderHorariosConfig()}
+
+                        <div style={{ marginTop: 24, padding: '16px', background: 'var(--gray-50)', borderRadius: '12px', border: '1px solid var(--gray-200)' }}>
+                          <label style={{ fontSize: '0.85rem', color: 'var(--gray-600)', display: 'block', marginBottom: 8, fontWeight: 600 }}>Gestión de Estado</label>
+                          <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
+                            <option value="true">Modo Automático (Abrir/Cerrar según horario)</option>
+                            <option value="false">Modo Manual (Yo controlo el botón de Abrir/Cerrar)</option>
+                          </select>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: 8 }}>
+                            En modo automático, el local cambiará su estado a "Abierto" o "Cerrado" siguiendo la configuración de arriba.
+                          </p>
                         </div>
                       </div>
-                    </div>
-
-                    <div style={{ marginBottom: 16 }}>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: 8, fontWeight: 600 }}>Segundo Turno (Tarde/Noche - Opcional)</p>
-                      <div className="rd-form-row" style={{ marginBottom: 0, gap: '12px' }}>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Apertura</label>
-                          <input name="horario_apertura2" type="time" className="form-input" defaultValue={profileData?.horario_apertura2 || ''} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Cierre</label>
-                          <input name="horario_cierre2" type="time" className="form-input" defaultValue={profileData?.horario_cierre2 || ''} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '12px', background: 'var(--gray-50)', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
-                      <label style={{ fontSize: '0.85rem', color: 'var(--gray-600)', display: 'block', marginBottom: 8 }}>Gestión de Estado</label>
-                      <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
-                        <option value="true">Modo Automático (Abrir/Cerrar según horario)</option>
-                        <option value="false">Modo Manual (Yo controlo el botón de Abrir/Cerrar)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Días */}
-                  <div style={{ marginBottom: 24, padding: 16, background: 'white', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--gray-700)' }}>📅 Días de Apertura</h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
-                        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                        const dayNorm = normalize(day);
-                        const isSelected = profileData?.dias_apertura?.some(d => normalize(d) === dayNorm);
-                        return (
-                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--gray-100)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                            <input type="checkbox" name={`day_${day}`} defaultChecked={isSelected || !profileData?.dias_apertura} />
-                            {day}
-                          </label>
-                        );
-                      })}
-                    </div>
+                    )}
                   </div>
 
                   {/* Entrega */}
