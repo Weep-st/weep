@@ -1384,14 +1384,17 @@ export async function getLocalesByRubro(rubro) {
     acepta_envio: l.acepta_envio,
     dias_descuento: l.dias_descuento || [],
     descuento_general: l.descuento_general || 0,
-    plan_id: l.plan_id
+    plan_id: l.plan_id,
+    rubro: l.rubro,
+    rubros: l.rubros || [],
+    config_horarios: l.config_horarios || {}
   }));
 }
 
 export async function getLocalesByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, plan_id)')
+    .select('local_id, precio, locales(id, nombre, foto_url, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, admin_status, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, plan_id, rubro, rubros, config_horarios)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true);
 
@@ -1420,7 +1423,9 @@ export async function getLocalesByCategoria(categoria) {
         acepta_envio: item.locales?.acepta_envio,
         dias_descuento: item.locales?.dias_descuento || [],
         descuento_general: item.locales?.descuento_general || 0,
-        plan_id: item.locales?.plan_id
+        rubro: item.locales?.rubro,
+        rubros: item.locales?.rubros || [],
+        config_horarios: item.locales?.config_horarios || {}
       };
     } else {
       if (item.precio < groupedMap[lid].precio_min_categoria) {

@@ -9,6 +9,7 @@ import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
 import HelpChatbot from '../components/HelpChatbot';
+import { isLocalOpen as isLocalOpenFlexible } from '../utils/businessHours';
 import './PruebasApp.css';
 
 export default function PruebasApp() {
@@ -126,7 +127,7 @@ export default function PruebasApp() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
-    // Verificar si ya pasó la fecha de disponibilidad
+    // 1. Verificar si ya pasó la fecha de disponibilidad
     if (local.disponible_desde) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -135,41 +136,8 @@ export default function PruebasApp() {
       if (today < availableDate) return false;
     }
     
-    // Si no tiene modo automático, dependemos del estado manual
-    if (!local.modo_automatico) {
-      return local.estado?.toLowerCase() === 'activo';
-    }
-
-    // Si tiene modo automático, verificamos horario y días
-    const { horario_apertura, horario_cierre, dias_apertura } = local;
-    if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
-
-    // Verificar días
-    if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDayName = daysMap[new Date().getDay()];
-      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const normalizedDays = dias_apertura.map(normalize);
-      const normalizedCurrentDay = normalize(currentDayName);
-      if (!normalizedDays.includes(normalizedCurrentDay)) return false;
-    }
-
-    // Verificar horario
-    const [hA, mA] = horario_apertura.split(':').map(Number);
-    const [hC, mC] = horario_cierre.split(':').map(Number);
-    const minApertura = hA * 60 + mA;
-    const minCierre = hC * 60 + mC;
-    const now = new Date();
-    const current = now.getHours() * 60 + now.getMinutes();
-
-    let insideTime = false;
-    if (minApertura < minCierre) {
-      insideTime = current >= minApertura && current <= minCierre;
-    } else {
-      insideTime = current >= minApertura || current <= minCierre;
-    }
-
-    return insideTime;
+    // 2. Usar utilidad flexible (que ya maneja modo_automatico, estado manual y fallback)
+    return isLocalOpenFlexible(local);
   }, []);
 
   // Load locals + drinks on mount
@@ -395,9 +363,13 @@ export default function PruebasApp() {
         precio_min: l.precio_min_categoria || 0,
         horario_apertura: l.horario_apertura,
         horario_cierre: l.horario_cierre,
+        horario_apertura2: l.horario_apertura2,
+        horario_cierre2: l.horario_cierre2,
         modo_automatico: l.modo_automatico,
         dias_apertura: l.dias_apertura,
-        disponible_desde: l.disponible_desde
+        disponible_desde: l.disponible_desde,
+        config_horarios: l.config_horarios || {},
+        rubro: l.rubro
       }));
       setFilteredLocals(mapped);
       setSelectedCategory(cat);

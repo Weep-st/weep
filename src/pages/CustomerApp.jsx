@@ -370,9 +370,13 @@ export default function CustomerApp() {
         precio_min: l.precio_min_categoria || 0,
         horario_apertura: l.horario_apertura,
         horario_cierre: l.horario_cierre,
+        horario_apertura2: l.horario_apertura2,
+        horario_cierre2: l.horario_cierre2,
         modo_automatico: l.modo_automatico,
         dias_apertura: l.dias_apertura,
-        disponible_desde: l.disponible_desde
+        disponible_desde: l.disponible_desde,
+        config_horarios: l.config_horarios || {},
+        rubro: l.rubro
       }));
       setFilteredLocals(mapped);
       setSelectedCategory(cat);
