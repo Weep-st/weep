@@ -246,6 +246,7 @@ export default function MisPedidos() {
       'Retirado': 'badge-green',
       'En camino': 'badge-green',
       'Entregado': 'badge-success',
+      'Rechazado': 'badge-danger',
     };
     return map[estado] || 'badge-default';
   };
@@ -367,6 +368,11 @@ export default function MisPedidos() {
                     <button className="btn btn-primary btn-sm btn-full" onClick={() => openSeguimiento(p.idPedido)}>
                       Ver seguimiento →
                     </button>
+                    {p.estado === 'Rechazado' && (
+                      <button className="btn btn-primary btn-sm btn-full" style={{ background: 'var(--green-600)' }} onClick={() => handleReorder(p.idPedido)}>
+                        🔄 Pedir de nuevo
+                      </button>
+                    )}
                     {p.repartidorId && 
                      ['Retirado', 'En camino'].includes(p.estado) && (
                       <button className="btn btn-secondary btn-sm" onClick={() => openChat(p.idPedido)} style={{ flex: '0 0 auto', padding: '0 12px' }}>
@@ -387,6 +393,12 @@ export default function MisPedidos() {
                           ❌ Cancelar
                         </button>
                       </div>
+                    </div>
+                  ) : p.estado === 'Rechazado' ? (
+                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                      <p style={{ color: '#d32f2f', fontSize: '0.9rem', marginBottom: '0', fontWeight: 'bold' }}>
+                        ❌ El local rechazó tu pedido
+                      </p>
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', marginTop: '12px' }}>

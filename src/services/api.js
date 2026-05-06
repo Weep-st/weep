@@ -1158,7 +1158,7 @@ export async function getMisPedidos(userId) {
       itemsResumen: items.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio_unitario })),
     };
 
-    const estadosCurso = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Pendiente de Pago', 'Buscando Repartidor'];
+    const estadosCurso = ['Pendiente', 'Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Pendiente de Pago', 'Buscando Repartidor', 'Rechazado'];
     if (estadosCurso.includes(estadoLocal)) enCurso.push(pedidoObj);
     else historial.push(pedidoObj);
   }
@@ -1418,7 +1418,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura')
+    .select('id, nombre, email, password, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura')
     .order('created_at', { ascending: false });
   return data || [];
 }

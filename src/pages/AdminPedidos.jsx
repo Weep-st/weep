@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -200,7 +201,7 @@ const AdminPedidos = () => {
             </div>
 
             {/* Modal de Detalle */}
-            {selectedPedido && (
+            {selectedPedido && createPortal(
                 <div className="admin-modal-overlay" onClick={handleCloseModal}>
                     <div className="admin-modal-content" onClick={e => e.stopPropagation()}>
                         <button className="modal-close-btn" onClick={handleCloseModal}>×</button>
@@ -255,58 +256,66 @@ const AdminPedidos = () => {
                                     </section>
                                 </div>
 
-                                <section className="detail-section">
-                                    <h4>🏢 Locales del Pedido</h4>
-                                    <div className="locales-list">
-                                        {pedidoDetalle.locales_info && pedidoDetalle.locales_info.map(li => (
-                                            <div key={li.id} className="local-item-detail" style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', marginBottom: '8px', border: '1px solid #e2e8f0' }}>
-                                                <strong>{li.locales?.nombre}</strong> 
-                                                <span style={{ marginLeft: '10px', fontSize: '0.85rem' }} className={`badge ${li.estado?.toLowerCase().replace(' ', '-')}`}>{li.estado}</span>
-                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Local: ${Number(li.total).toLocaleString('es-AR')}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-
                                 <section className="detail-section items-section">
-                                    <h4>📦 Productos</h4>
-                                    <table className="items-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Cant</th>
-                                                <th>Producto</th>
-                                                <th>Local</th>
-                                                <th>Unit.</th>
-                                                <th>Subtotal</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {pedidoDetalle.items.map(item => {
-                                                const local = (pedidoDetalle.locales_info || []).find(l => l.local_id === item.local_id);
-                                                return (
-                                                    <tr key={item.id}>
-                                                        <td>{item.cantidad}x</td>
-                                                        <td>{item.nombre || item.nombre_item}</td>
-                                                        <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{local?.locales?.nombre || '—'}</td>
-                                                        <td>${Number(item.precio_unitario).toLocaleString('es-AR')}</td>
-                                                        <td>${Number(item.subtotal).toLocaleString('es-AR')}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                        <tfoot>
-                                            {pedidoDetalle.precio_envio > 0 && (
-                                              <tr style={{ color: '#64748b', fontSize: '0.85rem' }}>
-                                                  <td colSpan="3">ENVÍO</td>
-                                                  <td>${Number(pedidoDetalle.precio_envio).toLocaleString('es-AR')}</td>
-                                              </tr>
-                                            )}
-                                            <tr>
-                                                <td colSpan="3">TOTAL</td>
-                                                <td>${Number(pedidoDetalle.total).toLocaleString('es-AR')}</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                    <h4>📦 Detalle por Local</h4>
+                                    {pedidoDetalle.locales_info && pedidoDetalle.locales_info.map(li => {
+                                        const localItems = pedidoDetalle.items.filter(item => item.local_id === li.local_id);
+                                        return (
+                                            <div key={li.id} style={{ marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                                                    <h5 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>🏢 {li.locales?.nombre}</h5>
+                                                    <span className={`badge ${li.estado?.toLowerCase().replace(' ', '-')}`}>{li.estado}</span>
+                                                </div>
+                                                <table className="items-table" style={{ background: 'transparent', boxShadow: 'none', margin: 0 }}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th style={{ width: '50px' }}>Cant</th>
+                                                            <th>Producto</th>
+                                                            <th style={{ textAlign: 'right' }}>Unit.</th>
+                                                            <th style={{ textAlign: 'right' }}>Subtotal</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {localItems.map(item => (
+                                                            <tr key={item.id}>
+                                                                <td>{item.cantidad}x</td>
+                                                                <td>
+                                                                    <div style={{ fontWeight: 600 }}>{item.nombre || item.nombre_item}</div>
+                                                                </td>
+                                                                <td style={{ textAlign: 'right' }}>${Number(item.precio_unitario).toLocaleString('es-AR')}</td>
+                                                                <td style={{ textAlign: 'right' }}>${Number(item.subtotal).toLocaleString('es-AR')}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                    <tfoot style={{ borderTop: '1px dashed #cbd5e1' }}>
+                                                        <tr>
+                                                            <td colSpan="3" style={{ textAlign: 'right', fontWeight: 600, padding: '12px 8px 0' }}>Total Local:</td>
+                                                            <td style={{ textAlign: 'right', fontWeight: 800, padding: '12px 8px 0', color: '#1e293b' }}>${Number(li.total).toLocaleString('es-AR')}</td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        );
+                                    })}
+                                    
+                                    <div style={{ 
+                                        marginTop: '16px', 
+                                        background: '#f1f5f9', 
+                                        padding: '16px', 
+                                        borderRadius: '12px', 
+                                        border: '1px solid #e2e8f0' 
+                                    }}>
+                                        {pedidoDetalle.precio_envio > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', marginBottom: '8px', fontSize: '0.9rem' }}>
+                                                <span>Costo de Envío</span>
+                                                <span>${Number(pedidoDetalle.precio_envio).toLocaleString('es-AR')}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#1e293b' }}>
+                                            <span>TOTAL PEDIDO</span>
+                                            <span>${Number(pedidoDetalle.total).toLocaleString('es-AR')}</span>
+                                        </div>
+                                    </div>
                                 </section>
 
                                 <footer className="detail-footer">
@@ -329,7 +338,8 @@ const AdminPedidos = () => {
                             <p>No se pudo cargar la información.</p>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             <style dangerouslySetInnerHTML={{ __html: `
@@ -347,13 +357,13 @@ const AdminPedidos = () => {
                 }
                 .admin-modal-overlay {
                     position: fixed;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(0,0,0,0.5);
+                    inset: 0;
+                    background: rgba(0,0,0,0.85);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    z-index: 1000;
-                    backdrop-filter: blur(4px);
+                    z-index: 10000;
+                    backdrop-filter: blur(8px);
                     padding: 20px;
                 }
                 .admin-modal-content {

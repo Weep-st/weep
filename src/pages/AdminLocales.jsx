@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
 import AdminPagos from './AdminPagos';
@@ -162,6 +163,8 @@ const AdminLocales = () => {
             const updates = {
                 localId: editingLocal.id,
                 nombre: fd.get('nombre'),
+                email: fd.get('email'),
+                password: fd.get('password') || undefined, // Only send if not empty
                 rubros: fd.getAll('rubros'), // Get all checked rubros
                 horario_apertura: fd.get('horario_apertura'),
                 horario_cierre: fd.get('horario_cierre'),
@@ -170,6 +173,8 @@ const AdminLocales = () => {
                 modo_automatico: fd.get('modo_automatico') === 'true'
             };
             
+            if (!updates.password) delete updates.password; // Double check
+
             await api.updatePerfilLocal(updates);
             toast.success('Local actualizado correctamente');
             setEditingLocal(null);
@@ -556,7 +561,7 @@ const AdminLocales = () => {
             ) : null}
 
             {/* Modal de Edición */}
-            {editingLocal && (
+            {editingLocal && createPortal(
                 <div className="modal-overlay" onClick={() => setEditingLocal(null)}>
                     <div className="modal-content admin-modal" onClick={e => e.stopPropagation()}>
                         <header className="modal-header">
@@ -567,6 +572,22 @@ const AdminLocales = () => {
                             <div className="form-group">
                                 <label>Nombre del Local</label>
                                 <input name="nombre" defaultValue={editingLocal.nombre} required />
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Email de Acceso</label>
+                                    <input name="email" type="email" defaultValue={editingLocal.email} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Contraseña Actual (Ver/Editar)</label>
+                                    <input 
+                                        name="password" 
+                                        type="text" 
+                                        defaultValue={editingLocal.password} 
+                                        placeholder="Contraseña del local" 
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">
@@ -638,7 +659,8 @@ const AdminLocales = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

@@ -80,6 +80,7 @@ export default function RestaurantDashboard() {
   const [sabores, setSabores] = React.useState([]);
   const [saboresLoading, setSaboresLoading] = React.useState(false);
   const [itemCategory, setItemCategory] = React.useState('');
+  const [itemSubcategory, setItemSubcategory] = React.useState('Helado por kg');
   const [profileSubView, setProfileSubView] = React.useState('edit'); // 'ventas', 'cobros', 'edit'
   const [profileMenuOpen, setProfileMenuOpen] = React.useState(false);
   const [addMenuOpen, setAddMenuOpen] = React.useState(false);
@@ -467,7 +468,10 @@ export default function RestaurantDashboard() {
     if (editItem && view === 'addItem') {
       const cat = editItem.categoria;
       setItemCategory(cat || '');
-      if (cat !== 'Helados' && cat !== 'Base') {
+      const sub = editItem.tamano || '';
+      setItemSubcategory(cat === 'Helados' ? (sub || 'Helado por kg') : '');
+
+      if (cat !== 'Base' && (cat !== 'Helados' || (cat === 'Helados' && sub !== 'Helado por kg'))) {
         try {
           const cfg = typeof editItem.variantes === 'string' ? JSON.parse(editItem.variantes) : (editItem.variantes || {});
           setBurgerVariants(cfg.variants?.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
@@ -852,26 +856,48 @@ export default function RestaurantDashboard() {
       let precioVal = fd.get('precio');
       let variantesVal = fd.get('variantes');
       
-      if (fd.get('categoria') === 'Helados') {
-        const iceCreamConfig = {
-          es_helado: true,
-          precios: {
-            '1/4kg': { precio: fd.get('p_14'), max: parseInt(fd.get('m_14')) || 3 },
-            '1/2kg': { precio: fd.get('p_12'), max: parseInt(fd.get('m_12')) || 3 },
-            '1kg': { precio: fd.get('p_1'), max: parseInt(fd.get('m_1')) || 4 }
+      const cat = fd.get('categoria');
+      const subcat = fd.get('subcategoria');
+
+      if (cat === 'Helados') {
+        if (subcat === 'Helado por kg') {
+          const iceCreamConfig = {
+            es_helado: true,
+            precios: {
+              '1/4kg': { precio: fd.get('p_14'), max: parseInt(fd.get('m_14')) || 3 },
+              '1/2kg': { precio: fd.get('p_12'), max: parseInt(fd.get('m_12')) || 3 },
+              '1kg': { precio: fd.get('p_1'), max: parseInt(fd.get('m_1')) || 4 }
+            }
+          };
+          variantesVal = JSON.stringify(iceCreamConfig);
+          precioVal = fd.get('p_14');
+        } else {
+          // Paletas or Envasados - standard variant config
+          const filteredVariants = burgerVariants.filter(v => v.nombre.trim() !== '');
+          const filteredExtras = burgerExtras.filter(e => e.nombre.trim() !== '');
+          
+          if (filteredVariants.length > 0 || filteredExtras.length > 0) {
+            const advancedConfig = {
+              variants: filteredVariants,
+              extras: filteredExtras
+            };
+            variantesVal = JSON.stringify(advancedConfig);
+            if (!precioVal && filteredVariants.length > 0) {
+              precioVal = filteredVariants[0].precio;
+            }
+          } else {
+            variantesVal = null;
           }
-        };
-        variantesVal = JSON.stringify(iceCreamConfig);
-        precioVal = fd.get('p_14');
-      } else if (fd.get('categoria') !== 'Helados' && fd.get('categoria') !== 'Base') {
+        }
+      } else if (cat !== 'Base') {
         const filteredVariants = burgerVariants.filter(v => v.nombre.trim() !== '');
         const filteredExtras = burgerExtras.filter(e => e.nombre.trim() !== '');
         
         if (filteredVariants.length > 0 || filteredExtras.length > 0 || burgerOfferPapas) {
           const advancedConfig = {
-            es_hamburguesa: fd.get('categoria') === 'Hamburguesas',
-            es_combo: fd.get('categoria') === 'Combos',
-            es_pancho: fd.get('categoria') === 'Panchos',
+            es_hamburguesa: cat === 'Hamburguesas',
+            es_combo: cat === 'Combos',
+            es_pancho: cat === 'Panchos',
             variants: filteredVariants,
             extras: filteredExtras,
             con_papas: burgerOfferPapas,
@@ -893,7 +919,7 @@ export default function RestaurantDashboard() {
         descripcion: fd.get('descripcion'), precio: precioVal,
         descuento: fd.get('descuento') ? parseFloat(fd.get('descuento')) : 0,
         disponibilidad: fd.get('disponibilidad') === 'true',
-        tamano_porcion: fd.get('tamano_porcion'), variantes: variantesVal,
+        tamano_porcion: cat === 'Helados' ? subcat : fd.get('tamano_porcion'), variantes: variantesVal,
         tiempo_preparacion: fd.get('tiempo_preparacion'),
         imagen_url: imgUrl,
         // Stock management fields
@@ -2110,7 +2136,7 @@ export default function RestaurantDashboard() {
                         if (needsDropdown) {
                           setMenuAddOpen(!menuAddOpen);
                         } else {
-                          setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
+                          setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
                         }
                       }}>
                         + Añadir { (profileData?.rubros?.includes('Panadería') || profileData?.rubros?.includes('Heladería')) && '▾' }
@@ -2118,7 +2144,7 @@ export default function RestaurantDashboard() {
                       
                       {menuAddOpen && (
                         <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, top: '100%', display: 'block', zIndex: 100 }}>
-                           <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setItemCategory(''); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMenuAddOpen(false); }}>
+                           <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMenuAddOpen(false); }}>
                              {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
                            </button>
 
@@ -2217,7 +2243,7 @@ export default function RestaurantDashboard() {
                     📦 Gestión de Stock Rápida
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                     <button className="btn btn-sm btn-success" style={{ fontSize: '0.8rem', background: '#22c55e', border: 'none' }} onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setIsBaseProductMode(true); }}>
+                     <button className="btn btn-sm btn-success" style={{ fontSize: '0.8rem', background: '#22c55e', border: 'none' }} onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setItemSubcategory(''); setIsBaseProductMode(true); }}>
                        + Nuevo Producto Base
                      </button>
                      <span style={{ fontSize: '0.75rem', background: '#fff7ed', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', border: '1px solid #ffedd5', fontWeight: 600 }}>
@@ -2397,7 +2423,12 @@ export default function RestaurantDashboard() {
                     </label>
                     <span className="rd-disp-text">{item.disponibilidad ? 'Disponible' : 'No disponible'}</span>
                     <div className="rd-menu-actions">
-                      <button className="btn btn-sm" style={{ background: 'var(--amber-500)', color: '#fff' }} onClick={() => { setEditItem(item); setView('addItem'); }}>Editar</button>
+                      <button className="btn btn-sm" style={{ background: 'var(--amber-500)', color: '#fff' }} onClick={() => { 
+                        setEditItem(item); 
+                        setItemCategory(item.categoria);
+                        setItemSubcategory(item.tamano || '');
+                        setView('addItem'); 
+                      }}>Editar</button>
                       <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} onClick={() => handleDeleteItem(item.id)}>Eliminar</button>
                     </div>
                   </div>
@@ -2497,10 +2528,31 @@ export default function RestaurantDashboard() {
                     </select>
                   </div>
                 </div>
+                
+                {/* ─── Helados Subcategory Selector ─── */}
+                {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') && (
+                  <div className="rd-form-row" style={{ marginBottom: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--red-600)' }}>Subcategoría de Helado</label>
+                      <select 
+                        name="subcategoria" 
+                        className="form-select" 
+                        value={itemSubcategory} 
+                        onChange={(e) => setItemSubcategory(e.target.value)}
+                        required
+                      >
+                        <option value="Helado por kg">Helado por kg (con pesos y sabores)</option>
+                        <option value="Paletas">Paletas (producto simple/con variantes)</option>
+                        <option value="Envasados">Envasados (producto simple/con variantes)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
 
-                {/* ─── Helados Configuration ─── */}
+                {/* ─── Helados Configuration (Only for 'Helado por kg') ─── */}
                 {(() => {
                   if (itemCategory !== 'Helados' && editItem?.categoria !== 'Helados') return null;
+                  if (itemSubcategory !== 'Helado por kg') return null;
                   
                   let iceConfig = {};
                   try {
@@ -2533,7 +2585,7 @@ export default function RestaurantDashboard() {
                 })()}
 
                 {/* ─── Advanced Configuration (Variants/Extras) ─── */}
-                {(itemCategory !== 'Helados' && itemCategory !== 'Base' && (itemCategory !== '' || editItem)) && (
+                {(itemCategory !== 'Base' && (itemCategory !== '' || editItem) && (itemCategory !== 'Helados' || (itemCategory === 'Helados' && itemSubcategory !== 'Helado por kg'))) && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de Variantes y Extras</h3>
                     
