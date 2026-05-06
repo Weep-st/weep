@@ -42,6 +42,9 @@ export default function DriverDashboard() {
   const [activeTab, setActiveTab] = React.useState('disponibles'); // 'disponibles', 'historial'
   const [pedidos, setPedidos] = React.useState([]);
   const [historial, setHistorial] = React.useState([]); 
+  const [archivados, setArchivados] = React.useState([]);
+  const [loadingArchivados, setLoadingArchivados] = React.useState(false);
+  const [expandedCierre, setExpandedCierre] = React.useState(null);
   const [availableDriversCount, setAvailableDriversCount] = React.useState(0);
 
   const [localInfo, setLocalInfo] = React.useState({ nombre: '', direccion: '', lat: null, lng: null });
@@ -276,6 +279,7 @@ export default function DriverDashboard() {
       loadRealStats();
       loadGamification();
       loadScheduledDates();
+      fetchArchivados();
     } catch { toast.error('Error al cargar datos'); }
   }, [driver, loginAsDriver]);
 
@@ -326,6 +330,21 @@ export default function DriverDashboard() {
       }
     } catch (err) {
       console.error("Error fetching history:", err);
+    }
+  }, [driver]);
+
+  const fetchArchivados = React.useCallback(async () => {
+    if (!driver) return;
+    setLoadingArchivados(true);
+    try {
+      const res = await api.getRepartidorCierresArchivados(driver.id);
+      if (res.success) {
+        setArchivados(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching archived closures:", err);
+    } finally {
+      setLoadingArchivados(false);
     }
   }, [driver]);
 
@@ -1486,6 +1505,62 @@ export default function DriverDashboard() {
     );
   };
 
+  const renderArchivados = () => {
+    if (loadingArchivados) return <div className="spinner-container" style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><span className="spinner" /></div>;
+
+    if (archivados.length === 0) {
+      return (
+        <div className="empty-state">
+          <h3>No hay liquidaciones archivadas</h3>
+          <p>Tus cierres de caja finalizados aparecerán aquí.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="dd-archivados-list animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        {archivados.map((c, i) => (
+          <div key={c.id} className="dd-order-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div 
+              style={{ padding: '15px', cursor: 'pointer', background: expandedCierre === c.id ? 'var(--gray-50)' : 'white' }}
+              onClick={() => setExpandedCierre(expandedCierre === c.id ? null : c.id)}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <small style={{ color: 'var(--gray-500)', fontWeight: 600 }}>LIQUIDACIÓN #{c.id.slice(-6).toUpperCase()}</small>
+                  <p style={{ margin: '4px 0', fontWeight: 'bold' }}>{new Date(c.fecha).toLocaleDateString('es-AR')}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: 'var(--red-600)', fontWeight: 800, fontSize: '1.1rem' }}>${Number(c.monto_total).toLocaleString('es-AR')}</div>
+                  <small style={{ color: 'var(--gray-500)' }}>{c.cantidad_viajes} viajes</small>
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '0.75rem', color: 'var(--red-500)', fontWeight: 600 }}>
+                {expandedCierre === c.id ? '🔼 Ocultar detalles' : '🔽 Ver detalle de viajes'}
+              </div>
+            </div>
+
+            {expandedCierre === c.id && (
+              <div style={{ background: '#f8fafc', borderTop: '1px solid #eee', padding: '15px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {c.pedidos.map(p => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                      <div style={{ maxWidth: '70%' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{p.direccion}</div>
+                        <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem' }}>#{p.id.slice(0,8)} • {p.metodo_pago}</small>
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>${Number(p.precio_envio).toLocaleString('es-AR')}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderCobros = () => {
     if (cobrosLoading && !cobrosData) return <div className="spinner-container" style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><span className="spinner" /></div>;
     
@@ -1896,13 +1971,20 @@ export default function DriverDashboard() {
                     <button className={`dd-tab-link ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
                       Historial
                     </button>
+                    <button className={`dd-tab-link ${activeTab === 'archivados' ? 'active' : ''}`} onClick={() => { setActiveTab('archivados'); fetchArchivados(); }}>
+                      Archivados
+                    </button>
                   </div>
                   {activeTab === 'disponibles' ? (
                     <>
                       {renderActiveLocales()}
                       {renderDisponibles()}
                     </>
-                  ) : renderHistorial()}
+                  ) : activeTab === 'historial' ? (
+                    renderHistorial()
+                  ) : (
+                    renderArchivados()
+                  )}
                 </>
               )}
               {view === 'cobros' && renderCobros()}

@@ -293,7 +293,7 @@ export async function repartidorGetDashboardStats(repartidorId) {
   today.setHours(0, 0, 0, 0);
 
   // Consideramos fecha >= hoy 00:00 (en hora local, la DB usa UTC-3 usualmente en el campo fecha)
-  const [todayRes, totalRes] = await Promise.all([
+  const [todayRes, noCerradosRes, archivedRes] = await Promise.all([
     supabase
       .from('pedidos_general')
       .select('precio_envio')
@@ -305,23 +305,41 @@ export async function repartidorGetDashboardStats(repartidorId) {
       .select('precio_envio')
       .eq('repartidor_id', repartidorId)
       .eq('estado', 'Entregado')
+      .eq('cierre_caja', false),
+    supabase
+      .from('cierre_repartidores')
+      .select('detalles_por_repartidor')
+      .contains('detalles_por_repartidor', [{ id: repartidorId }])
   ]);
 
   if (todayRes.error) return { success: false, error: todayRes.error.message };
-  if (totalRes.error) return { success: false, error: totalRes.error.message };
+  if (noCerradosRes.error) return { success: false, error: noCerradosRes.error.message };
 
   const viajesHoy = todayRes.data.length;
   const gananciasTotalesHoy = todayRes.data.reduce((sum, p) => sum + (Number(p.precio_envio) || 0), 0);
   
-  const viajesTotales = totalRes.data.length;
-  const gananciasGlobales = totalRes.data.reduce((sum, p) => sum + (Number(p.precio_envio) || 0), 0);
+  const viajesNoCerrados = noCerradosRes.data.length;
+  const gananciasNoCerradas = noCerradosRes.data.reduce((sum, p) => sum + (Number(p.precio_envio) || 0), 0);
+
+  let viajesArchivados = 0;
+  let gananciasArchivadas = 0;
+
+  if (archivedRes.data) {
+    archivedRes.data.forEach(c => {
+      const stats = (c.detalles_por_repartidor || []).find(r => r.id === repartidorId);
+      if (stats) {
+        viajesArchivados += (Number(stats.entregados) || 0);
+        gananciasArchivadas += (Number(stats.monto_envio) || 0);
+      }
+    });
+  }
 
   return {
     success: true,
     viajesHoy,
     gananciasTotalesHoy,
-    viajesTotales,
-    gananciasGlobales
+    viajesTotales: viajesNoCerrados + viajesArchivados,
+    gananciasGlobales: gananciasNoCerradas + gananciasArchivadas
   };
 }
 
@@ -2401,6 +2419,29 @@ export async function getRepartidorHistorial(repartidorId) {
   
   if (error) return { success: false, error: error.message };
   return { success: true, data: data || [] };
+}
+
+export async function getRepartidorCierresArchivados(repartidorId) {
+  const { data, error } = await supabase.from('cierre_repartidores')
+    .select('*')
+    .contains('detalles_por_repartidor', [{ id: repartidorId }])
+    .order('fecha_cierre', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+
+  const processed = (data || []).map(c => {
+    const stats = (c.detalles_por_repartidor || []).find(r => r.id === repartidorId);
+    const orders = (c.datos_pedidos || []).filter(p => p.repartidor_id === repartidorId);
+    return {
+      id: c.id,
+      fecha: c.fecha_cierre,
+      monto_total: stats?.monto_envio || 0,
+      cantidad_viajes: stats?.entregados || 0,
+      pedidos: orders
+    };
+  });
+
+  return { success: true, data: processed };
 }
 
 export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pinConfirmacion = null) {
