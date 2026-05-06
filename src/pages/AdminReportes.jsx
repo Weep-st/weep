@@ -15,11 +15,17 @@ const AdminReportes = () => {
         end: new Date().toISOString().split('T')[0]
     });
     const [statsData, setStatsData] = useState(null);
+    const [deudasLocales, setDeudasLocales] = useState({});
+    const [deudasLoading, setDeudasLoading] = useState(false);
+    const [selectedCierre, setSelectedCierre] = useState(null);
     const [deleteParams, setDeleteParams] = useState({
         status: 'Rechazado',
         start: '',
         end: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Por defecto hasta hace una semana
     });
+    const [cierreMode, setCierreMode] = useState('dia');
+    const [cierreFechaInicio, setCierreFechaInicio] = useState(new Date().toISOString().split('T')[0]);
+    const [cierreFechaFin, setCierreFechaFin] = useState(new Date().toISOString().split('T')[0]);
 
 
 
@@ -38,6 +44,7 @@ const AdminReportes = () => {
     useEffect(() => {
         if (activeTab === 'historial_locales') loadHistorialLocales();
         if (activeTab === 'historial_repartidores') loadHistorialRepartidores();
+        if (activeTab === 'deudas') loadDeudasLocales();
     }, [activeTab, localId]);
 
     const loadHistorialLocales = async () => {
@@ -63,6 +70,18 @@ const AdminReportes = () => {
             setLoading(false);
         }
     };
+    const loadDeudasLocales = async () => {
+        setDeudasLoading(true);
+        try {
+            const data = await api.adminGetLocalesDebt();
+            setDeudasLocales(data);
+        } catch (err) {
+            toast.error('Error al cargar deudas');
+        } finally {
+            setDeudasLoading(false);
+        }
+    };
+
     const loadGlobalStats = async () => {
         setLoading(true);
         try {
@@ -78,9 +97,21 @@ const AdminReportes = () => {
     const loadReport = async () => {
         setLoading(true);
         try {
-            const res = await api.getAdminCierreReport(fecha, localId);
-            if (res.success) {
-                setReportData(res);
+            if (localId === 'Todos') {
+                const res = await api.getAdminCierreReport(fecha, localId);
+                if (res.success) {
+                    setReportData(res);
+                }
+            } else {
+                let options = {};
+                if (cierreMode === 'dia') options = { fecha: fecha };
+                else if (cierreMode === 'intervalo') options = { inicio: cierreFechaInicio, fin: cierreFechaFin };
+                else options = { pendientes: true };
+
+                const res = await api.getLocalCierreReport(localId, options);
+                if (res.success) {
+                    setReportData({ ...res, isLocalReport: true, localId: localId });
+                }
             }
         } catch (err) {
             toast.error('Error al cargar reporte: ' + err.message);
@@ -108,6 +139,48 @@ const AdminReportes = () => {
             setReportData(null); // Reset to force reload and clear closed orders
         } catch (err) {
             toast.error('Error al guardar liquidación');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveLocalCierre = async () => {
+        if (!reportData || !reportData.isLocalReport) return;
+        const local = locales.find(l => l.id === reportData.localId);
+        if (!window.confirm(`¿Deseas efectuar el cierre de caja para "${local?.nombre || 'este local'}"? Los pedidos incluidos quedarán marcados como cerrados.`)) return;
+
+        try {
+            setLoading(true);
+            await api.saveLocalCierre({
+                localId: reportData.localId,
+                fecha: reportData.fecha,
+                subtotal: reportData.subtotal,
+                comisiones: reportData.comisiones,
+                comisionEfectivo: reportData.comisionEfectivo,
+                neto: reportData.neto,
+                transferencia: reportData.transferencia,
+                efectivo: reportData.efectivo,
+                pedidos: reportData.pedidos
+            });
+            toast.success('Cierre de caja efectuado con éxito');
+            setReportData(null);
+        } catch (err) {
+            toast.error('Error al guardar el cierre: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteCierre = async (id) => {
+        if (!window.confirm('¿Estás seguro de eliminar este cierre? Los pedidos asociados se reabrirán y volverán a estar pendientes de cierre.')) return;
+        
+        try {
+            setLoading(true);
+            await api.adminDeleteCierreLocal(id);
+            toast.success('Cierre eliminado con éxito');
+            loadHistorialLocales();
+        } catch (err) {
+            toast.error('Error al eliminar cierre: ' + err.message);
         } finally {
             setLoading(false);
         }
@@ -175,6 +248,13 @@ const AdminReportes = () => {
                             📊 Estadísticas Globales
                         </button>
                         <button 
+                            className={`btn btn-sm ${activeTab === 'deudas' ? 'btn-primary' : 'btn-ghost'}`} 
+                            onClick={() => setActiveTab('deudas')}
+                            style={{ fontSize: '0.75rem' }}
+                        >
+                            💸 Deudas Locales
+                        </button>
+                        <button 
                             className={`btn btn-sm ${activeTab === 'maintenance' ? 'btn-primary' : 'btn-ghost'}`} 
                             onClick={() => setActiveTab('maintenance')}
                             style={{ fontSize: '0.75rem', color: activeTab === 'maintenance' ? 'white' : 'var(--red-600)' }}
@@ -187,23 +267,49 @@ const AdminReportes = () => {
                 </div>
 
                 {activeTab === 'generar' && (
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
                         <select 
                             className="form-select" 
                             style={{ marginBottom: 0, width: '200px' }}
                             value={localId}
-                            onChange={(e) => setLocalId(e.target.value)}
+                            onChange={(e) => {
+                                setLocalId(e.target.value);
+                                setReportData(null);
+                            }}
                         >
-                            <option value="Todos">Todos los locales</option>
+                            <option value="Todos">Todos los locales (Repartidores)</option>
                             {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
                         </select>
-                        <input 
-                            type="date" 
-                            className="form-input" 
-                            style={{ marginBottom: 0, width: 'auto' }}
-                            value={fecha}
-                            onChange={(e) => setFecha(e.target.value)}
-                        />
+
+                        {localId !== 'Todos' && (
+                            <select 
+                                className="form-select" 
+                                style={{ marginBottom: 0, width: '150px' }}
+                                value={cierreMode}
+                                onChange={(e) => setCierreMode(e.target.value)}
+                            >
+                                <option value="dia">Día específico</option>
+                                <option value="intervalo">Intervalo de fechas</option>
+                                <option value="pendientes">Todo lo pendiente</option>
+                            </select>
+                        )}
+
+                        {cierreMode === 'dia' || localId === 'Todos' ? (
+                            <input 
+                                type="date" 
+                                className="form-input" 
+                                style={{ marginBottom: 0, width: 'auto' }}
+                                value={fecha}
+                                onChange={(e) => setFecha(e.target.value)}
+                            />
+                        ) : cierreMode === 'intervalo' ? (
+                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                <input type="date" className="form-input" style={{ marginBottom: 0 }} value={cierreFechaInicio} onChange={e => setCierreFechaInicio(e.target.value)} />
+                                <span>a</span>
+                                <input type="date" className="form-input" style={{ marginBottom: 0 }} value={cierreFechaFin} onChange={e => setCierreFechaFin(e.target.value)} />
+                            </div>
+                        ) : null}
+
                         <button className="btn btn-primary" onClick={loadReport} disabled={loading}>
                             {loading ? 'Cargando...' : 'Ver Informe'}
                         </button>
@@ -229,6 +335,88 @@ const AdminReportes = () => {
                 !reportData ? (
                     <div style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>
                         Selecciona los filtros y haz clic en "Ver Informe"
+                    </div>
+                ) : reportData.isLocalReport ? (
+                    <div className="report-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--gray-50)', padding: '15px', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
+                            <div>
+                                <h3 style={{ margin: 0, color: 'var(--gray-800)' }}>🏪 Cierre de Caja: {locales.find(l => l.id === reportData.localId)?.nombre}</h3>
+                                <p style={{ margin: '5px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                                    {cierreMode === 'pendientes' ? 'Pedidos pendientes de cierre' : `Periodo: ${reportData.fecha}`}
+                                </p>
+                            </div>
+                            <button className="btn btn-success" onClick={handleSaveLocalCierre} disabled={loading || reportData.pedidos.length === 0}>
+                                ✅ Efectuar Cierre de Caja
+                            </button>
+                        </div>
+
+                        <div className="table-responsive">
+                             <table className="admin-table" style={{ fontSize: '0.85rem' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Pedido</th>
+                                        <th>Fecha/Hora</th>
+                                        <th>Método</th>
+                                        <th style={{ textAlign: 'right' }}>Total</th>
+                                        <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Com. (%)</th>
+                                        <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
+                                        <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reportData.pedidos.map(p => (
+                                        <tr key={p.id}>
+                                            <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                                            <td style={{ fontSize: '0.75rem' }}>
+                                                {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                                            </td>
+                                            <td>{p.metodo}</td>
+                                            <td style={{ textAlign: 'right' }}>${p.total}</td>
+                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
+                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.comision_monto)).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                    {reportData.pedidos.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>Sin pedidos para este periodo.</td>
+                                        </tr>
+                                    ) : (
+                                        <>
+                                            <tr style={{ borderTop: '2px solid var(--gray-200)', background: 'var(--gray-50)' }}>
+                                                <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right' }}>TOTAL VENTA (BRUTO)</td>
+                                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${reportData.subtotal}</td>
+                                                <td colSpan="3"></td>
+                                            </tr>
+                                            <tr style={{ background: 'var(--gray-50)' }}>
+                                                <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
+                                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${reportData.comisiones}</td>
+                                                <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', verticalAlign: 'middle', paddingLeft: '15px' }}>
+                                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                                        <span>Saldada (Transf.): -${(Number(reportData.comisiones) - Number(reportData.comisionEfectivo)).toFixed(2)}</span>
+                                                        <span style={{ color: 'var(--red-600)', fontWeight: 600 }}>Pendiente (Efectivo): -${reportData.comisionEfectivo}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
+                                                <td colSpan="3" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
+                                                <td colSpan="2"></td>
+                                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${reportData.neto}</td>
+                                                <td></td>
+                                            </tr>
+                                            <tr style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                                                <td colSpan="7" style={{ padding: '16px 8px', textAlign: 'right' }}>
+                                                    <div style={{ marginBottom: 4 }}>
+                                                        <span style={{ marginRight: 20 }}>💳 Transferencia: ${reportData.transferencia}</span>
+                                                        <span>💵 Efectivo: ${reportData.efectivo}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </>
+                                    )}
+                                </tbody>
+                             </table>
+                        </div>
                     </div>
                 ) : (
                     <div className="report-content" style={{ display: 'flex', flexDirection: 'column', gap: '30px', padding: '20px' }}>
@@ -339,10 +527,14 @@ const AdminReportes = () => {
                                         <td style={{ color: 'var(--red-600)' }}>-${c.total_comisiones}</td>
                                         <td style={{ fontWeight: 700, color: '#166534' }}>${c.total_neto_local}</td>
                                         <td>
-                                            <button className="btn btn-ghost btn-xs" onClick={() => {
-                                                console.log(c.datos_detallados);
-                                                toast.info(`ID Cierre: ${c.id}\nDatos enviados a consola.`);
-                                            }}>Ver Detalle</button>
+                                            <div style={{ display: 'flex', gap: '5px' }}>
+                                                <button className="btn btn-ghost btn-xs" onClick={() => {
+                                                    setSelectedCierre(c);
+                                                }}>Ver Detalle</button>
+                                                <button className="btn btn-ghost btn-xs" style={{ color: 'var(--red-600)' }} onClick={() => handleDeleteCierre(c.id)}>
+                                                    Eliminar
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -481,6 +673,62 @@ const AdminReportes = () => {
                         </div>
                     </div>
                 </div>
+            ) : activeTab === 'deudas' ? (
+                <div className="report-content" style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0 }}>💸 Deudas de Locales (Comisión Efectivo Pendiente)</h3>
+                        <button className="btn btn-primary btn-sm" onClick={loadDeudasLocales} disabled={deudasLoading}>
+                            {deudasLoading ? 'Actualizando...' : 'Refrescar Deudas'}
+                        </button>
+                    </div>
+
+                    <div className="table-responsive">
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Local</th>
+                                    <th style={{ textAlign: 'right' }}>Comisión Pendiente (Efectivo)</th>
+                                    <th>Acción Sugerida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {locales.map(l => {
+                                    const deuda = deudasLocales[l.id] || 0;
+                                    return (
+                                        <tr key={l.id}>
+                                            <td style={{ fontWeight: 600 }}>{l.nombre}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700, color: deuda > 0 ? 'var(--red-600)' : 'var(--green-600)' }}>
+                                                ${deuda.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td>
+                                                {deuda > 0 ? (
+                                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                                        A la espera de pago por transferencia del local.
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.8rem', color: '#22c55e' }}>Al día</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {locales.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No hay locales activos.</td>
+                                    </tr>
+                                ) : (
+                                    <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
+                                        <td style={{ fontWeight: 800 }}>TOTAL DEUDA PENDIENTE</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--red-600)', fontSize: '1.1rem' }}>
+                                            ${Object.values(deudasLocales).reduce((acc, d) => acc + (Number(d) || 0), 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             ) : (
 
                 <div className="report-content" style={{ padding: '20px' }}>
@@ -505,7 +753,7 @@ const AdminReportes = () => {
                                         <td>
                                             <button className="btn btn-ghost btn-xs" onClick={() => {
                                                 console.log(l.detalles_por_repartidor);
-                                                toast.info(`ID Liquidación: ${l.id}\nDatos enviados a consola.`);
+                                                toast(`ID Liquidación: ${l.id}\nDatos enviados a consola.`);
                                             }}>Ver Repartidores</button>
                                         </td>
                                     </tr>
@@ -517,6 +765,63 @@ const AdminReportes = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {selectedCierre && (
+                <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }} onClick={() => setSelectedCierre(null)}>
+                    <div className="modal-content animate-slide-up" style={{ background: 'white', padding: '25px', borderRadius: '12px', maxWidth: '900px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
+                            <div>
+                                <h3 style={{ margin: 0, color: 'var(--gray-800)' }}>📄 Detalle de Cierre: {selectedCierre.locales?.nombre}</h3>
+                                <p style={{ margin: '5px 0 0', fontSize: '0.8rem', color: '#64748b' }}>ID: {selectedCierre.id} | Fecha: {new Date(selectedCierre.fecha).toLocaleDateString('es-AR')}</p>
+                            </div>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setSelectedCierre(null)} style={{ fontSize: '1.2rem' }}>✕</button>
+                        </div>
+                        
+                        <div className="table-responsive">
+                            <table className="admin-table" style={{ fontSize: '0.8rem' }}>
+                                <thead>
+                                    <tr style={{ background: '#f8fafc' }}>
+                                        <th>Pedido</th>
+                                        <th>Cliente</th>
+                                        <th>Fecha Pedido</th>
+                                        <th>Método</th>
+                                        <th style={{ textAlign: 'right' }}>Total</th>
+                                        <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Comisión</th>
+                                        <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(selectedCierre.datos_detallados || []).map(p => (
+                                        <tr key={p.id}>
+                                            <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                                            <td>{p.cliente}</td>
+                                            <td style={{ fontSize: '0.7rem' }}>{new Date(p.hora).toLocaleString('es-AR')}</td>
+                                            <td>{p.metodo}</td>
+                                            <td style={{ textAlign: 'right' }}>${p.total}</td>
+                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.comision_monto)).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
+                                        <td colSpan="4" style={{ textAlign: 'right', padding: '15px' }}>TOTALES DEL CIERRE:</td>
+                                        <td style={{ textAlign: 'right' }}>${selectedCierre.total_subtotal}</td>
+                                        <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${selectedCierre.total_comisiones}</td>
+                                        <td style={{ textAlign: 'right', color: '#166534', fontSize: '1rem' }}>${selectedCierre.total_neto_local}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div style={{ marginTop: '20px', padding: '15px', background: '#f1f5f9', borderRadius: '8px', display: 'flex', gap: '20px', fontSize: '0.85rem' }}>
+                            <div><strong>💳 Transferencia:</strong> ${selectedCierre.total_transferencia}</div>
+                            <div><strong>💵 Efectivo:</strong> ${selectedCierre.total_efectivo}</div>
+                            <div style={{ color: 'var(--red-600)' }}><strong>⚠️ Comisión Pendiente (Efectivo):</strong> ${selectedCierre.comision_efectivo || '0.00'}</div>
+                        </div>
                     </div>
                 </div>
             )}

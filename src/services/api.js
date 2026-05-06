@@ -1756,7 +1756,7 @@ export async function getLocalCierreReport(localId, options = {}) {
   if (errPL) throw new Error(errPL.message);
   
   if (!pedidosLocales || pedidosLocales.length === 0) {
-    return { subtotal: 0, transferencia: 0, efectivo: 0, pedidos: [], comisiones: 0, neto: 0, comisionPct: 0 };
+    return { success: true, subtotal: 0, transferencia: 0, efectivo: 0, comisionEfectivo: 0, pedidos: [], comisiones: 0, neto: 0, comisionPct: 0 };
   }
 
   // 2. Obtener datos complementarios de pedidos_general (nombre_cliente, nro_operacion, etc.)
@@ -1775,7 +1775,7 @@ export async function getLocalCierreReport(localId, options = {}) {
   const planInfo = await getPlanInfo(localId);
   const comisionPct = planInfo.success ? planInfo.comision_actual : 8;
 
-  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0;
+  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0, comisionEfectivo = 0;
   const detalles = pedidosLocales.map(p => {
     const pg = pgMap.get(p.pedido_id) || {};
     const totalPedido = Number(p.total) || 0;
@@ -1786,8 +1786,12 @@ export async function getLocalCierreReport(localId, options = {}) {
     totalComisiones += montoComision;
 
     const metodo = (p.metodo_pago || pg.metodo_pago || '').toLowerCase();
-    if (metodo.includes('efectivo')) efectivo += totalPedido;
-    else transferencia += totalPedido;
+    if (metodo.includes('efectivo')) {
+      efectivo += totalPedido;
+      comisionEfectivo += montoComision;
+    } else {
+      transferencia += totalPedido;
+    }
 
     return {
       id: p.pedido_id,
@@ -1810,6 +1814,7 @@ export async function getLocalCierreReport(localId, options = {}) {
     subtotal: subtotal.toFixed(2),
     transferencia: transferencia.toFixed(2),
     efectivo: efectivo.toFixed(2),
+    comisionEfectivo: comisionEfectivo.toFixed(2),
     pedidos: detalles,
     comisiones: totalComisiones.toFixed(2),
     neto: neto.toFixed(2),
@@ -1982,6 +1987,7 @@ export async function saveLocalCierre(data) {
     total_neto_local: data.neto,
     total_transferencia: data.transferencia,
     total_efectivo: data.efectivo,
+    comision_efectivo: data.comisionEfectivo || 0,
     num_pedidos: (data.pedidos || []).length,
     datos_detallados: data.pedidos
   });
@@ -2093,6 +2099,71 @@ export async function getHistorialCierresLocales(localId = null) {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data || [];
+}
+
+export async function adminDeleteCierreLocal(cierreId) {
+  // 1. Obtener los IDs de pedidos asociados al cierre antes de borrarlo
+  const { data: cierre, error: errCierre } = await supabase
+    .from('cierre_caja')
+    .select('local_id, datos_detallados')
+    .eq('id', cierreId)
+    .single();
+  
+  if (errCierre) throw new Error(errCierre.message);
+
+  const pedidoIds = (cierre.datos_detallados || []).map(p => p.id);
+
+  // 2. Reabrir los pedidos en pedidos_locales (poner cierre_caja a false)
+  if (pedidoIds.length > 0) {
+    const { error: errUpdate } = await supabase
+      .from('pedidos_locales')
+      .update({ cierre_caja: false })
+      .in('pedido_id', pedidoIds)
+      .eq('local_id', cierre.local_id);
+    
+    if (errUpdate) throw new Error(errUpdate.message);
+  }
+
+  // 3. Borrar el registro de cierre
+  const { error: errDelete } = await supabase
+    .from('cierre_caja')
+    .delete()
+    .eq('id', cierreId);
+
+  if (errDelete) throw new Error(errDelete.message);
+
+  return { success: true };
+}
+
+export async function adminGetLocalesDebt() {
+  // 1. Obtener suma de comision_efectivo por local desde cierre_caja
+  const { data: cierres, error: errC } = await supabase
+    .from('cierre_caja')
+    .select('local_id, comision_efectivo');
+
+  if (errC) throw new Error(errC.message);
+
+  // 2. Obtener suma de pagos procesados desde gestion_cobros (Solicitudes de pago que el local hizo a Wepi)
+  const { data: cobros, error: errCob } = await supabase
+    .from('gestion_cobros')
+    .select('local_id, monto_neto')
+    .eq('tipo', 'Solicitud')
+    .eq('estado', 'Pagado');
+
+  if (errCob) throw new Error(errCob.message);
+
+  // 3. Agrupar deudas
+  const deudas = {};
+  cierres.forEach(c => {
+    deudas[c.local_id] = (deudas[c.local_id] || 0) + (Number(c.comision_efectivo) || 0);
+  });
+
+  // 4. Restar lo ya pagado
+  cobros.forEach(c => {
+    deudas[c.local_id] = (deudas[c.local_id] || 0) - (Number(c.monto_neto) || 0);
+  });
+
+  return deudas;
 }
 
 

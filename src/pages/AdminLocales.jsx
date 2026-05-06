@@ -20,6 +20,7 @@ const AdminLocales = () => {
     const [planes, setPlanes] = useState([]);
     const [editingLocal, setEditingLocal] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [deudas, setDeudas] = useState({});
 
     const loadLocales = async () => {
         setLoading(true);
@@ -31,10 +32,20 @@ const AdminLocales = () => {
                 return (order[a.admin_status] || 4) - (order[b.admin_status] || 4);
             });
             setLocales(sorted);
+            loadDeudas();
         } catch (err) {
             toast.error('Error al cargar locales');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDeudas = async () => {
+        try {
+            const data = await api.adminGetLocalesDebt();
+            setDeudas(data);
+        } catch (err) {
+            console.error('Error al cargar deudas:', err);
         }
     };
 
@@ -243,6 +254,7 @@ const AdminLocales = () => {
                                 <th>Slug / URL</th>
                                 <th>Plan Actual</th>
                                 <th>Comisión (%)</th>
+                                <th style={{ textAlign: 'right' }}>Deuda Efectivo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -393,6 +405,16 @@ const AdminLocales = () => {
                                                         Fija Personalizada
                                                     </span>
                                                 )}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ 
+                                                fontWeight: 700, 
+                                                color: (deudas[local.id] || 0) > 0 ? '#ef4444' : '#22c55e',
+                                                fontSize: '0.9rem',
+                                                textAlign: 'right'
+                                            }}>
+                                                ${(deudas[local.id] || 0).toLocaleString('es-AR')}
                                             </div>
                                         </td>
                                         <td>
@@ -601,7 +623,7 @@ const AdminLocales = () => {
                                     borderRadius: '8px',
                                     border: '1px solid #e2e8f0'
                                 }}>
-                                    {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
+                                    {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
                                         <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
                                             <input 
                                                 type="checkbox" 

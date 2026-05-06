@@ -144,6 +144,7 @@ export default function PruebasWalletApp() {
   const searchTimeout = React.useRef(null);
   const [exploreRubroFilter, setExploreRubroFilter] = React.useState('');
   const [exploreCatFilter, setExploreCatFilter] = React.useState('');
+  const [targetMenuCategory, setTargetMenuCategory] = React.useState(null);
   const [discoveryItems, setDiscoveryItems] = React.useState([]);
   const [loadingDiscovery, setLoadingDiscovery] = React.useState(false);
 
@@ -787,6 +788,7 @@ export default function PruebasWalletApp() {
     } else if (search === '') {
       setShowMenus(false);
     }
+    setTargetMenuCategory(null);
   }, [search]);
 
   const fetchMenusByLocal = React.useCallback((localId, catId = null) => {
@@ -823,6 +825,37 @@ export default function PruebasWalletApp() {
       setShowMenus(true);
     }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
   }, [locals, filteredLocals]);
+  
+  // Auto-scroll to category if coming from rubro click
+  React.useEffect(() => {
+    if (showMenus && menus.length > 0 && targetMenuCategory) {
+      const timer = setTimeout(() => {
+        const normalizedTarget = targetMenuCategory.toLowerCase().trim();
+        const categories = Array.from(new Set(menus.map(m => m.categoria))).filter(Boolean);
+        
+        // Match logic: exact, partial, or special cases
+        let match = categories.find(c => c.toLowerCase().trim() === normalizedTarget);
+        if (!match) {
+          match = categories.find(c => 
+            c.toLowerCase().includes(normalizedTarget) || 
+            normalizedTarget.includes(c.toLowerCase())
+          );
+        }
+        if (!match && normalizedTarget.includes('helado')) {
+          match = categories.find(c => c.toLowerCase().includes('helado'));
+        }
+
+        if (match) {
+          console.log(`🎯 Auto-scrolling to category: ${match}`);
+          const el = document.getElementById(`cat-${match}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [showMenus, menus, targetMenuCategory]);
 
   // Carga automática por slug (Landing Page de Local)
   React.useEffect(() => {
@@ -860,6 +893,7 @@ export default function PruebasWalletApp() {
     setDiscoveryItems([]);
     setExploreRubroFilter('');
     setExploreCatFilter('');
+    setTargetMenuCategory(null);
 
     try {
       // 1. Fetch locales for all rubros in parallel
@@ -921,7 +955,7 @@ export default function PruebasWalletApp() {
     }
   }, [getTimeBasedTitle, isLocalOpen]);
 
-  const fetchByCategory = React.useCallback((cat) => {
+  const fetchByCategory = React.useCallback((cat, label = null) => {
     setDiscoveryItems([]); // Clear discovery when entering specific category
     api.trackDemandSignal('category_view', sessionId).catch(() => {});
     if (cat === 'favoritos') {
@@ -952,6 +986,7 @@ export default function PruebasWalletApp() {
       })).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
       setFilteredLocals(mapped);
       setSelectedCategory(cat);
+      setTargetMenuCategory(label);
       setShowMenus(false);
       setTimeout(() => {
         document.querySelector('.locals-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -1862,7 +1897,7 @@ export default function PruebasWalletApp() {
 
                <div className="categories-grid-home">
                  {homeLayout.categories.map(cat => (
-                   <div key={cat.label} className="home-category-card-square" onClick={() => fetchByCategory(cat.type)}>
+                   <div key={cat.label} className="home-category-card-square" onClick={() => fetchByCategory(cat.type, cat.label)}>
                      <img src={cat.img} alt={cat.label} />
                      <div className="category-overlay">
                        <span>{cat.label}</span>
@@ -2191,14 +2226,14 @@ export default function PruebasWalletApp() {
         {filteredLocals && !showMenus && (
           <div className="explorer-view animate-fade-in">
              <div className="category-chips-sticky">
-                <button className={`chip ${!selectedCategory ? 'active' : ''}`} onClick={() => { setFilteredLocals(null); setSelectedCategory(null); }}>
+                <button className={`chip ${!selectedCategory ? 'active' : ''}`} onClick={() => { setFilteredLocals(null); setSelectedCategory(null); setTargetMenuCategory(null); }}>
                   Inicio
                </button>
                {homeLayout.categories.map(cat => (
                  <button 
                   key={cat.label} 
                   className={`chip ${selectedCategory === cat.type ? 'active' : ''}`} 
-                  onClick={() => fetchByCategory(cat.type)}
+                  onClick={() => fetchByCategory(cat.type, cat.label)}
                 >
                    {cat.label}
                  </button>

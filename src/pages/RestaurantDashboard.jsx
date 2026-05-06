@@ -2486,7 +2486,7 @@ export default function RestaurantDashboard() {
                       (function() {
                         const rubros = profileData?.rubros || [];
                         const rubroConfigs = [
-                          { name: 'Comida Rápida', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Panadería', 'Combos', 'Bebidas'] },
+                          { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Panadería', 'Combos', 'Bebidas'] },
                           { name: 'Panadería', cats: ['Pan', 'Facturas', 'Pastelería', 'Galletas', 'Salados', 'Desayuno/Merienda', 'Promos'] },
                           { name: 'Heladería', cats: ['Helados'] },
                           { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
@@ -2495,7 +2495,7 @@ export default function RestaurantDashboard() {
 
                         const activeConfigs = rubros.length > 0 
                           ? rubroConfigs.filter(rc => rubros.includes(rc.name))
-                          : [rubroConfigs[0]]; // Default Comida Rapida if empty
+                          : [rubroConfigs[0]]; // Default Restaurante if empty
 
                         return activeConfigs.map(config => (
                           <optgroup key={config.name} label={config.name}>
@@ -3005,12 +3005,16 @@ export default function RestaurantDashboard() {
                             </tr>
                             <tr style={{ background: 'var(--gray-50)' }}>
                                <td colSpan="4" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
-                               <td colSpan="2"></td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${cierreReport.comisiones}</td>
-                               <td></td>
+                               <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', verticalAlign: 'middle', paddingLeft: '15px' }}>
+                                  <div style={{ display: 'flex', gap: '15px' }}>
+                                     <span>Saldada (Transf.): -${(Number(cierreReport.comisiones) - Number(cierreReport.comisionEfectivo)).toFixed(2)}</span>
+                                     <span style={{ color: 'var(--red-600)', fontWeight: 600 }}>Pendiente (Efectivo): -${cierreReport.comisionEfectivo}</span>
+                                  </div>
+                               </td>
                             </tr>
                             <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
-                               <td colSpan="4" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>NETO WEPI (A LIQUIDAR)</td>
+                               <td colSpan="4" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
                                <td colSpan="3"></td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${cierreReport.neto}</td>
                             </tr>
@@ -3190,7 +3194,7 @@ export default function RestaurantDashboard() {
                       Seleccioná el rubro de tu local para adaptar las opciones del panel.
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-                      {['Comida Rápida', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => {
+                      {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => {
                         const isSelected = profileData?.rubros?.includes(r);
                         return (
                           <label key={r} style={{ 
