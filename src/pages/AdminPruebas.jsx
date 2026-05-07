@@ -105,7 +105,7 @@ const AdminPruebas = () => {
                 })),
                 emailCliente: cliente.email,
                 nombreCliente: cliente.nombre,
-                estadoInicial: (metodoPago === 'MercadoPago' || metodoPago === 'Transferencia') ? 'Pendiente de Pago' : 'Pendiente',
+                estadoInicial: (metodoPago === 'MercadoPago' || metodoPago === 'Transferencia') ? 'Pendiente de Pago' : (tipoEntrega === 'Con Envío' ? 'Pendiente' : 'Confirmado'),
                 totalCalculado: calculateTotal(),
                 lat: -34.6037, // Mocked CABA coords
                 lng: -58.3816,

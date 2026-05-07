@@ -1064,7 +1064,7 @@ export default function PruebasApp() {
       };
 
       // Create order in "Buscando Repartidor" (or Pendiente if already confirmed for pickup)
-      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Pendiente' : 'Pendiente de Pago');
+      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Confirmado' : 'Pendiente de Pago');
 
       const response = await api.crearPedido({
         userId: user.id,

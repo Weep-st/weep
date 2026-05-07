@@ -1481,7 +1481,7 @@ export default function PruebasWalletApp() {
       const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
       
       // Unificamos el estado inicial: si es envío, buscamos repartidor broadcast
-      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Pendiente' : 'Pendiente de Pago');
+      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Confirmado' : 'Pendiente de Pago');
 
       const orderDataForCreation = {
         userId: user.id,

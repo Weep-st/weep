@@ -836,7 +836,7 @@ export default function CustomerApp() {
           metodoPago: mp, observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
           items: orderItems,
           emailCliente: user.email, nombreCliente: user.name,
-          estadoInicial: 'Pendiente',
+          estadoInicial: (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : 'Confirmado',
           totalCalculado: exactTotal,
           lat: addressData.lat,
           lng: addressData.lng,
