@@ -15,7 +15,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    -- Actualizar el pedido en la tabla general
+    -- Actualizar el pedido en la tabla general (Solo si está en estado inicial)
     UPDATE public.pedidos_general
     SET 
         estado = 'Confirmado',
@@ -23,12 +23,14 @@ BEGIN
         preference_id = COALESCE(p_preference_id, preference_id),
         external_reference = COALESCE(p_external_reference, external_reference),
         fecha_pago = NOW()
-    WHERE id = p_pedido_id;
+    WHERE id = p_pedido_id 
+      AND (estado IS NULL OR estado IN ('Pendiente', 'Pendiente de Pago', 'Buscando Repartidor'));
 
-    -- Actualizar el pedido en la tabla local para que el restaurante vea 'Confirmado'
+    -- Actualizar el pedido en la tabla local (Solo si está en estado inicial)
     UPDATE public.pedidos_locales
     SET estado = 'Confirmado'
-    WHERE pedido_id = p_pedido_id;
+    WHERE pedido_id = p_pedido_id
+      AND (estado IS NULL OR estado IN ('Pendiente', 'Pendiente de Pago', 'Buscando Repartidor'));
 END;
 $$;
 
@@ -36,7 +38,13 @@ $$;
 CREATE OR REPLACE FUNCTION public.handle_payment_confirmation()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF (NEW.payment_id IS NOT NULL AND NEW.estado = 'Pendiente de Pago') THEN
+  -- SEGURIDAD: Si el pedido ya está en un estado avanzado o final, NO permitir que este trigger lo revierta.
+  IF (OLD.estado IN ('Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Entregado', 'Rechazado', 'Cancelado')) THEN
+    RETURN NEW;
+  END IF;
+
+  -- Solo actuar si se asigna un payment_id y el estado es de los iniciales
+  IF (NEW.payment_id IS NOT NULL AND (NEW.estado IS NULL OR NEW.estado IN ('Pendiente', 'Pendiente de Pago', 'Buscando Repartidor'))) THEN
     UPDATE public.pedidos_locales SET estado = 'Confirmado' WHERE pedido_id = NEW.id;
     NEW.estado := 'Confirmado';
     IF (NEW.fecha_pago IS NULL) THEN

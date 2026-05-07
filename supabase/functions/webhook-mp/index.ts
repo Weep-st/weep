@@ -100,21 +100,35 @@ Deno.serve(async (req) => {
         console.log(`[Webhook MP] Pedido temporal no encontrado. Verificando si ya existe en pedidos_general...`)
       }
 
-      // 6. ASEGURAR ACTUALIZACIÓN (Fallback Robusto)
-      // Actualizamos estado y payment_id directamente en las tablas finales. 
-      // Si el RPC ya lo hizo, esto es seguro de repetir. Si el RPC falló pero el pedido ya existía, esto lo "salva".
-      const { error: updateError } = await supabase.from('pedidos_general').update({ 
-        estado: 'Confirmado',
-        payment_id: String(id),
-        fecha_pago: new Date().toISOString()
-      }).eq('id', externalReference)
+      // 6. ASEGURAR ACTUALIZACIÓN (Fallback Robusto con Seguro)
+      // Antes de forzar el estado a 'Confirmado', verificamos que no esté en un estado avanzado.
+      const { data: currentOrder } = await supabase.from('pedidos_general').select('estado').eq('id', externalReference).single();
+      
+      const safeToConfirm = !currentOrder || 
+        ['Pendiente', 'Pendiente de Pago', 'Buscando Repartidor', null].includes(currentOrder.estado as any);
 
-      if (updateError) {
-        console.error(`[Webhook MP] Error actualizando estado en pedidos_general:`, updateError)
+      if (safeToConfirm) {
+        const { error: updateError } = await supabase.from('pedidos_general').update({ 
+          estado: 'Confirmado',
+          payment_id: String(id),
+          fecha_pago: new Date().toISOString()
+        }).eq('id', externalReference)
+
+        if (updateError) {
+          console.error(`[Webhook MP] Error actualizando estado en pedidos_general:`, updateError)
+        } else {
+          // También actualizar locales para el dashboard/impresora
+          await supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', externalReference)
+          console.log(`[Webhook MP] Pedido ${externalReference} confirmado con éxito.`)
+        }
       } else {
-        // También actualizar locales para el dashboard/impresora
-        await supabase.from('pedidos_locales').update({ estado: 'Confirmado' }).eq('pedido_id', externalReference)
-        console.log(`[Webhook MP] Pedido ${externalReference} confirmado con éxito.`)
+        console.log(`[Webhook MP] Pedido ${externalReference} ya está en estado ${currentOrder.estado}. Omitiendo cambio a Confirmado.`)
+        
+        // Aún así actualizamos el payment_id si no lo tiene, sin cambiar el estado
+        await supabase.from('pedidos_general').update({ 
+          payment_id: String(id),
+          fecha_pago: new Date().toISOString()
+        }).eq('id', externalReference).is('payment_id', null)
       }
     }
 
