@@ -322,19 +322,15 @@ export default function DriverDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchHistorial = React.useCallback(async () => {
+  const fetchHistorial = async () => {
     if (!driver) return;
     try {
       const res = await api.getRepartidorHistorial(driver.id);
-      if (res.success) {
-        setHistorial(res.data);
-      }
-    } catch (err) {
-      console.error("Error fetching history:", err);
-    }
-  }, [driver]);
+      if (res.success) setHistorial(res.data);
+    } catch (err) { console.error(err); }
+  };
 
-  const fetchArchivados = React.useCallback(async () => {
+  const fetchArchivados = async () => {
     if (!driver) return;
     setLoadingArchivados(true);
     try {
@@ -347,14 +343,26 @@ export default function DriverDashboard() {
     } finally {
       setLoadingArchivados(false);
     }
-  }, [driver]);
+  };
 
   const fetchPedidos = React.useCallback(async (silent = false) => {
     if (!driver) return;
     try {
       const res = await api.getPedidosDisponibles(driver.id);
       if (res.success) {
-        const sorted = res.data.sort((a, b) => a.id.localeCompare(b.id));
+        // Enriquecer pedidos con datos del local si faltan (para evitar error 406 en join)
+        const enriched = await Promise.all((res.data || []).map(async p => {
+          if (['Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'].includes(p.estado) && p.local_id) {
+            try {
+              const { data: lData } = await api.supabase.from('locales').select('nombre, direccion, lat, lng').eq('id', p.local_id).single();
+              if (lData) {
+                return { ...p, local_nombre: lData.nombre, local_direccion: lData.direccion, local_lat: lData.lat, local_lng: lData.lng };
+              }
+            } catch (e) { console.warn("Error enriqueciendo pedido:", p.id, e); }
+          }
+          return p;
+        }));
+        const sorted = enriched.sort((a, b) => a.id.localeCompare(b.id));
         setPedidos(prev => {
           const pendientesNuevos = sorted.filter(p => p.estado === 'Pendiente');
           const pendientesViejos = prev.filter(p => p.estado === 'Pendiente');
@@ -365,7 +373,7 @@ export default function DriverDashboard() {
         });
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error en fetchPedidos:", err);
     }
   }, [driver]);
 
@@ -527,14 +535,27 @@ export default function DriverDashboard() {
   //   Evitamos desconectar al refrescar. El CRON de inactividad se encarga si cierran la página.
   // }, [driver, isActive]);
 
+  // Sincronizar localInfo con el pedido en viaje principal para retrocompatibilidad
+  React.useEffect(() => {
+    const enViaje = pedidos.find(p => ['Confirmado', 'Retirado', 'En camino', 'Pendiente de Pago', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
+    if (enViaje && enViaje.local_nombre) {
+      setLocalInfo({
+        nombre: enViaje.local_nombre,
+        direccion: enViaje.local_direccion,
+        lat: enViaje.local_lat,
+        lng: enViaje.local_lng
+      });
+    }
+  }, [pedidos]);
+
   // Carga de datos del local para viaje en curso
   React.useEffect(() => {
     if (!isMapLoaded) return;
 
-    const enViaje = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
+    const enViaje = pedidos.find(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
     if (enViaje) {
       // 1. Cargar datos del local
-      if (enViaje.local_id) {
+      if (enViaje.local_id && !enViaje.local_nombre) {
         Promise.all([
           api.getLocalDatos(enViaje.local_id),
           api.getMontoLocalPedido(enViaje.id, enViaje.local_id)
@@ -834,18 +855,21 @@ export default function DriverDashboard() {
 
   const finalizarRetiro = async (pedido, pin) => {
     if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el local');
-    toast.loading('Actualizando...', { id: 'ret' });
+    const tid = toast.loading('Actualizando...', { id: 'ret' });
     try {
       const res = await api.updateEstadoPedido(pedido.id, 'Retirado', driver.id, pin);
       if (res.success) {
-        toast.success('Pedido marcado como RETIRADO', { id: 'ret' });
+        toast.success('Pedido marcado como RETIRADO', { id: tid });
         setShowRetiroModal(false);
         setPinInput('');
-        fetchPedidos();
+        await fetchPedidos(true);
       } else {
-        toast.error(res.error || 'Error', { id: 'ret' });
+        toast.error(res.error || 'Error', { id: tid });
       }
-    } catch { toast.error('Error de conexión', { id: 'ret' }); }
+    } catch (err) { 
+      console.error("Error en finalizarRetiro:", err);
+      toast.error('Error de conexión al marcar retiro', { id: tid }); 
+    }
   };
 
   const confirmarRetiroClick = (pedido) => {
@@ -861,25 +885,41 @@ export default function DriverDashboard() {
   };
 
   const finalizarEntrega = async (pedido) => {
-    if (!pinInput || pinInput.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el cliente');
-    toast.loading('Confirmando entrega...', { id: 'ent' });
+    const pin = pinInput; // Capturar PIN actual
+    if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el cliente');
+    
+    const tid = toast.loading('Confirmando entrega...', { id: 'ent' });
+    console.log("🚀 Iniciando finalizarEntrega para pedido:", pedido.id, "con PIN:", pin);
+    
     try {
-      const res = await api.updateEstadoPedido(pedido.id, 'Entregado', driver.id, pinInput);
+      const res = await api.updateEstadoPedido(pedido.id, 'Entregado', driver.id, pin);
+      console.log("✅ Respuesta de api.updateEstadoPedido:", res);
+      
       if (res.success) {
-        toast.success('¡Entrega confirmada!', { id: 'ent' });
-        // Refresh server-side balance and history
-        if (typeof loadCobros === 'function') loadCobros();
-        if (typeof fetchHistorial === 'function') fetchHistorial();
-        loadRealStats();
+        toast.success('¡Entrega confirmada!', { id: tid });
+        
+        try {
+          console.log("🔄 Refrescando datos post-entrega...");
+          if (typeof loadCobros === 'function') await loadCobros();
+          if (typeof fetchHistorial === 'function') await fetchHistorial();
+          await loadRealStats();
+        } catch (e) { 
+          console.warn("⚠️ Error no crítico refrescando stats:", e); 
+        }
+
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
         setShowEntregaModal(false);
         setPinInput('');
         setActiveTab('historial');
-        fetchPedidos();
+        await fetchPedidos(true);
       } else {
-        toast.error(res.error || 'Error', { id: 'ent' });
+        console.warn("❌ Error reportado por el servidor:", res.error);
+        toast.error(res.error || 'Error', { id: tid });
       }
-    } catch { toast.error('Error de conexión', { id: 'ent' }); }
+    } catch (err) { 
+      console.error("🔥 Error CRÍTICO en finalizarEntrega:", err);
+      toast.error('Error de conexión al finalizar entrega', { id: tid }); 
+    }
   };
 
   const rechazarPedido = async (pedidoId) => {
@@ -1078,12 +1118,16 @@ export default function DriverDashboard() {
           </div>
 
           {todosEnCurso.map(enViaje => {
+            console.log("📦 Pedido en curso:", enViaje);
             const isTutorial = enViaje.id.includes('PRUEBA');
             const isRetirado = enViaje.estado === 'Retirado';
             const isLento = enViaje.nivel_rapidez === 2;
             
-            const localNombre = isTutorial ? 'Restaurante Tutorial' : (enViaje.local_nombre || 'Local');
-            const localDir = isTutorial ? 'Av. San Martín 456' : (enViaje.local_direccion || 'Cargando...');
+            const localObj = Array.isArray(enViaje.locales) ? enViaje.locales[0] : enViaje.locales;
+            const localNombre = isTutorial ? 'Restaurante Tutorial' : (localObj?.nombre || enViaje.local_nombre || 'Local');
+            const localDir = isTutorial ? 'Av. San Martín 456' : (localObj?.direccion || enViaje.local_direccion || 'Cargando...');
+            const localLat = isTutorial ? -28.549 : (localObj?.lat || enViaje.local_lat);
+            const localLng = isTutorial ? -56.032 : (localObj?.lng || enViaje.local_lng);
             const montoMostrar = isTutorial ? 2000 : (enViaje.monto_local || 0);
 
             return (
@@ -1127,6 +1171,17 @@ export default function DriverDashboard() {
                           <span className="dd-info-label">Dirección</span>
                           <span className="dd-info-value">{localDir}</span>
                         </div>
+                        {localLat && localLng && (
+                          <div style={{ marginTop: '10px' }}>
+                            <button 
+                              className="btn btn-secondary btn-sm" 
+                              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${localLat},${localLng}`, '_blank')}
+                              style={{ width: '100%', fontSize: '0.8rem', padding: '6px' }}
+                            >
+                              📍 Abrir en Google Maps (GPS)
+                            </button>
+                          </div>
+                        )}
                         <div className="dd-info-row">
                           <span className="dd-info-value monto">
                             {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
@@ -1148,6 +1203,17 @@ export default function DriverDashboard() {
                           <span className="dd-info-label">Dirección</span>
                           <span className="dd-info-value">{enViaje.direccion}</span>
                         </div>
+                        {enViaje.lat && enViaje.lng && (
+                          <div style={{ marginTop: '10px' }}>
+                            <button 
+                              className="btn btn-secondary btn-sm" 
+                              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${enViaje.lat},${enViaje.lng}`, '_blank')}
+                              style={{ width: '100%', fontSize: '0.8rem', padding: '6px' }}
+                            >
+                              📍 Abrir en Google Maps (GPS)
+                            </button>
+                          </div>
+                        )}
                         <div className="dd-info-row">
                           <span className="dd-info-value monto cobrar">
                             {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 

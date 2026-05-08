@@ -1650,7 +1650,7 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
 
   try {
     if (status === 'Entregado') {
-      supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(console.error);
+      try { await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }); } catch(e){}
       const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).maybeSingle();
       if (pg?.usuario_id && pg.usuario_id.length > 20) {
         await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
@@ -2354,7 +2354,7 @@ export async function getPedidosDisponibles(repartidorId) {
 
   // 2. Contar pedidos actuales del repartidor
   const { data: misPedidosActuales } = await supabase.from('pedidos_general')
-    .select('id, local_id, created_at, nivel_rapidez_pedido')
+    .select('id, local_id, created_at')
     .eq('repartidor_id', repartidorId)
     .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
 
@@ -2378,7 +2378,7 @@ export async function getPedidosDisponibles(repartidorId) {
 
   // 4. Obtener Pedidos (Asignados o Disponibles para Broadcast)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, nivel_rapidez_pedido, usuarios(telefono)')
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
@@ -2503,110 +2503,119 @@ export async function getRepartidorCierresArchivados(repartidorId) {
 }
 
 export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pinConfirmacion = null) {
-  const ok = ['Confirmado', 'Retirado', 'En camino', 'Entregado'];
-  if (!ok.includes(nuevoEstado)) return { success: false, error: `Estado no permitido: ${nuevoEstado}` };
-  const { data: ped } = await supabase.from('pedidos_general').select('id, num_confirmacion, metodo_pago, estado')
-    .eq('id', pedidoId).eq('repartidor_id', repartidorId).single();
-  if (!ped) return { success: false, error: 'Pedido no encontrado para este repartidor' };
-
-  if ((nuevoEstado === 'Entregado' || nuevoEstado === 'Retirado') && ped.num_confirmacion && ped.num_confirmacion !== pinConfirmacion) {
-    return { success: false, error: 'PIN incorrecto' };
-  }
-
-  // Lógica de transición de estado inteligente
-  let targetEstado = nuevoEstado;
-  if (targetEstado === 'Confirmado') {
-    const isCash = (ped.metodo_pago || '').toLowerCase().includes('efectivo');
-    const needsPayment = !isCash;
+  try {
+    const ok = ['Confirmado', 'Retirado', 'En camino', 'Entregado'];
+    if (!ok.includes(nuevoEstado)) return { success: false, error: `Estado no permitido: ${nuevoEstado}` };
+    const { data: ped, error: pedError } = await supabase.from('pedidos_general').select('id, num_confirmacion, metodo_pago, estado')
+      .eq('id', pedidoId).eq('repartidor_id', repartidorId).single();
     
-    // Si el repartidor acepta un pedido que requiere pago previo, lo pasamos a 'Pendiente de Pago'
-    if (needsPayment && (ped.estado === 'Buscando Repartidor' || ped.estado === 'Pendiente')) {
-      targetEstado = 'Pendiente de Pago';
-    }
-  }
-
-  const updateData = { estado: targetEstado };
-  if (targetEstado === 'Entregado' && ped.metodo_pago === 'Efectivo') {
-    updateData.cobro_repartidor_procesado = true;
-  }
-
-  const { error } = await supabase.from('pedidos_general').update(updateData).eq('id', pedidoId);
-  if (error) return { success: false, error: error.message };
-
-  if (targetEstado === 'Entregado') {
-    // Wallet System: Credit earn logic (20% back)
-    supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }).catch(e => console.error("Wallet earn error:", e));
-  }
-  
-  if (nuevoEstado === 'Confirmado') {
-    // Al aceptar el pedido, verificar capacidad (la lógica real está en el RPC claim_pedido_broadcast,
-    // pero aquí mantenemos compatibilidad para asignaciones manuales)
-    const { data: activeCount } = await supabase.from('pedidos_general')
-        .select('id', { count: 'exact', head: true })
-        .eq('repartidor_id', repartidorId)
-        .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
-    
-    const { data: rep } = await supabase.from('repartidores').select('nivel_repartidor').eq('id', repartidorId).single();
-    
-    // Si llegó al límite, marcar como ocupado. Si no, dejarlo Activo.
-    const limit = (rep?.nivel_repartidor === 1) ? 2 : 1;
-    if ((activeCount || 0) >= limit) {
-        await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', repartidorId);
-    }
-    
-    // Incrementar su buena reputacin (aceptados)
-    const { data: dRep } = await supabase.from('repartidores').select('pedidos_aceptados_count').eq('id', repartidorId).single();
-    if (dRep) {
-      await supabase.from('repartidores').update({ 
-        pedidos_aceptados_count: (dRep.pedidos_aceptados_count || 0) + 1,
-        rachas_ignoradas: 0 // Reset racha for good behavior
-      }).eq('id', repartidorId);
+    if (pedError || !ped) {
+      console.error("Error buscando pedido en updateEstadoPedido:", pedError);
+      return { success: false, error: 'Pedido no encontrado o ya no está asignado a ti' };
     }
 
-    // ENVIAR EMAIL SOLO CUANDO SE CONFIRMA EL PEDIDO
-    try {
-      const { data: pg } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
-      const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
-      const { data: rep } = await supabase.from('repartidores').select('email').eq('id', repartidorId).single();
+    if ((nuevoEstado === 'Entregado' || nuevoEstado === 'Retirado') && ped.num_confirmacion && ped.num_confirmacion !== pinConfirmacion) {
+      return { success: false, error: 'PIN incorrecto' };
+    }
 
-      if (pg && rep?.email) {
-        await notifyDriverAboutNewOrder(
-          pedidoId,
-          items || [],
-          pg.direccion,
-          pg.observaciones,
-          pg.total,
-          pg.metodo_pago,
-          rep.email
-        );
+    // Lógica de transición de estado inteligente
+    let targetEstado = nuevoEstado;
+    if (targetEstado === 'Confirmado') {
+      const isCash = (ped.metodo_pago || '').toLowerCase().includes('efectivo');
+      const needsPayment = !isCash;
+      
+      // Si el repartidor acepta un pedido que requiere pago previo, lo pasamos a 'Pendiente de Pago'
+      if (needsPayment && (ped.estado === 'Buscando Repartidor' || ped.estado === 'Pendiente')) {
+        targetEstado = 'Pendiente de Pago';
       }
-    } catch (e) {
-      console.error('Error enviando email tras confirmación del repartidor:', e);
     }
-  }
-  
-  if (nuevoEstado === 'Entregado') {
-    // Verificar si tiene más pedidos pendientes antes de liberar
-    const { data: activeCount } = await supabase.from('pedidos_general')
-        .select('id', { count: 'exact', head: true })
-        .eq('repartidor_id', repartidorId)
-        .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado'])
-        .neq('id', pedidoId); // Excluir el actual que se está entregando
 
-    if ((activeCount || 0) === 0) {
-        await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', repartidorId);
+    const updateData = { estado: targetEstado };
+    if (targetEstado === 'Entregado' && ped.metodo_pago === 'Efectivo') {
+      updateData.cobro_repartidor_procesado = true;
+    }
+
+    const { error: updateError } = await supabase.from('pedidos_general').update(updateData).eq('id', pedidoId);
+    if (updateError) throw new Error(updateError.message);
+
+    if (targetEstado === 'Entregado') {
+      // Wallet System: Credit earn logic (20% back)
+      try {
+        await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId });
+      } catch (e) { 
+        console.error("Wallet earn error:", e); 
+      }
     }
     
-    const { data: d } = await supabase.from('repartidores').select('pedidos_hoy').eq('id', repartidorId).single();
-    if (d) await supabase.from('repartidores').update({ pedidos_hoy: (d.pedidos_hoy || 0) + 1 }).eq('id', repartidorId);
+    if (nuevoEstado === 'Confirmado') {
+      // Al aceptar el pedido, verificar capacidad
+      const { data: activeCount } = await supabase.from('pedidos_general')
+          .select('id', { count: 'exact', head: true })
+          .eq('repartidor_id', repartidorId)
+          .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
+      
+      const { data: rep } = await supabase.from('repartidores').select('nivel_repartidor').eq('id', repartidorId).single();
+      
+      const limit = (rep?.nivel_repartidor === 1) ? 2 : 1;
+      if ((activeCount || 0) >= limit) {
+          await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', repartidorId);
+      }
+      
+      const { data: dRep } = await supabase.from('repartidores').select('pedidos_aceptados_count').eq('id', repartidorId).single();
+      if (dRep) {
+        await supabase.from('repartidores').update({ 
+          pedidos_aceptados_count: (dRep.pedidos_aceptados_count || 0) + 1,
+          rachas_ignoradas: 0 
+        }).eq('id', repartidorId);
+      }
 
-    // Marcar usuario como "ya realizó pedidos"
-    const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).single();
-    if (pg?.usuario_id) {
-      await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+      // ENVIAR EMAIL SOLO CUANDO SE CONFIRMA EL PEDIDO
+      try {
+        const { data: pg } = await supabase.from('pedidos_general').select('*').eq('id', pedidoId).single();
+        const { data: items } = await supabase.from('pedidos_items').select('*').eq('pedido_id', pedidoId);
+        const { data: repEmail } = await supabase.from('repartidores').select('email').eq('id', repartidorId).single();
+
+        if (pg && repEmail?.email) {
+          await notifyDriverAboutNewOrder(
+            pedidoId,
+            items || [],
+            pg.direccion,
+            pg.observaciones,
+            pg.total,
+            pg.metodo_pago,
+            repEmail.email
+          );
+        }
+      } catch (e) {
+        console.error('Error enviando email:', e);
+      }
     }
+    
+    if (nuevoEstado === 'Entregado') {
+      // Liberar repartidor si no tiene más pedidos
+      const { data: activeCountRem } = await supabase.from('pedidos_general')
+          .select('id', { count: 'exact', head: true })
+          .eq('repartidor_id', repartidorId)
+          .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado'])
+          .neq('id', pedidoId);
+
+      if ((activeCountRem || 0) === 0) {
+          await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', repartidorId);
+      }
+      
+      const { data: dStats } = await supabase.from('repartidores').select('pedidos_hoy').eq('id', repartidorId).single();
+      if (dStats) await supabase.from('repartidores').update({ pedidos_hoy: (dStats.pedidos_hoy || 0) + 1 }).eq('id', repartidorId);
+
+      const { data: pgUser } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).single();
+      if (pgUser?.usuario_id) {
+        await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pgUser.usuario_id);
+      }
+    }
+    return { success: true, mensaje: `Estado actualizado a "${nuevoEstado}"` };
+  } catch (err) {
+    console.error("Error inesperado en updateEstadoPedido:", err);
+    return { success: false, error: err.message || 'Error interno de red o servidor' };
   }
-  return { success: true, mensaje: `Estado actualizado a "${nuevoEstado}"` };
 }
 
 export async function repartidorGetCobros(repartidorId) {
@@ -3850,7 +3859,7 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
 
   // 2. Contar pedidos actuales
   const { data: misPedidosActuales } = await supabase.from('pedidos_general')
-    .select('id, local_id, created_at, nivel_rapidez_pedido')
+    .select('id, local_id, created_at')
     .eq('repartidor_id', repartidorId)
     .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
 
@@ -3860,7 +3869,7 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
 
   // 3. Obtener Pedidos
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, nivel_rapidez_pedido, usuarios(telefono)')
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
