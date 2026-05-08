@@ -34,7 +34,7 @@ const AdminRepartidores = () => {
     const loadRepartidores = async () => {
         setLoading(true);
         try {
-            const data = await api.adminGetRepartidores();
+            const data = await api.adminGetRepartidoresDetallado();
             // Sort: Aceptado -> Pendiente -> Rechazado
             const sorted = data.sort((a, b) => {
                 const order = { 'Aceptado': 1, 'Pendiente': 2, 'Rechazado': 3 };
@@ -48,9 +48,47 @@ const AdminRepartidores = () => {
         }
     };
 
+    const handleUpdateVehicle = async (repId, field, value) => {
+        try {
+            await api.repartidorUpdatePerfil({ driverId: repId, [field]: value });
+            toast.success('Actualizado correctamente');
+            loadRepartidores();
+        } catch (err) {
+            toast.error('Error al actualizar');
+        }
+    };
+
+    const [rubrosConfig, setRubrosConfig] = useState([]);
+    const [loadingRubros, setLoadingRubros] = useState(false);
+
+    const loadRubrosConfig = async () => {
+        setLoadingRubros(true);
+        try {
+            const data = await api.getRubrosConfig();
+            setRubrosConfig(data);
+        } catch (err) {
+            toast.error('Error al cargar rubros');
+        } finally {
+            setLoadingRubros(false);
+        }
+    };
+
+    const handleUpdateRubro = async (id, field, value) => {
+        try {
+            await api.updateRubroConfig(id, { [field]: value });
+            toast.success('Rubro actualizado');
+            loadRubrosConfig();
+        } catch (err) {
+            toast.error('Error al actualizar rubro');
+        }
+    };
+
     useEffect(() => {
         loadRepartidores();
         loadLocales();
+        if (activeTab === 'rubros') {
+            loadRubrosConfig();
+        }
         if (activeTab === 'finanzas') {
             if (finanzasSubTab === 'liquidacion') {
                 loadSettlements();
@@ -367,6 +405,13 @@ const AdminRepartidores = () => {
                     >
                         Compensación
                     </button>
+                    <button 
+                        className={`tab-btn ${activeTab === 'rubros' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('rubros')}
+                        style={{ padding: '8px 16px', background: activeTab === 'rubros' ? '#e2e8f0' : 'transparent', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                        Config. Rubros
+                    </button>
                 </div>
                 <button className="btn btn-primary" onClick={loadRepartidores}>Refrescar</button>
             </header>
@@ -408,8 +453,24 @@ const AdminRepartidores = () => {
                                     </td>
                                     <td>{rep.telefono}</td>
                                     <td>
-                                        <div>{rep.patente}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rep.marca_modelo}</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                            <select 
+                                                value={rep.tipo_vehiculo || 'Moto'} 
+                                                onChange={(e) => handleUpdateVehicle(rep.id, 'tipo_vehiculo', e.target.value)}
+                                                style={{ padding: '2px 4px', fontSize: '0.8rem', borderRadius: '4px' }}
+                                            >
+                                                <option value="Moto">🏍️ Moto</option>
+                                                <option value="Bicicleta">🚲 Bici</option>
+                                            </select>
+                                            <select 
+                                                value={rep.nivel_repartidor || 1} 
+                                                onChange={(e) => handleUpdateVehicle(rep.id, 'nivel_repartidor', Number(e.target.value))}
+                                                style={{ padding: '2px 4px', fontSize: '0.8rem', borderRadius: '4px' }}
+                                            >
+                                                <option value={1}>Nivel 1 (Cap 2)</option>
+                                                <option value={2}>Nivel 2 (Cap 1)</option>
+                                            </select>
+                                        </div>
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
                                         <span 
@@ -741,6 +802,52 @@ const AdminRepartidores = () => {
                                     );
                                 })}
                             </div>
+                        </div>
+                    )}
+                </div>
+            ) : activeTab === 'rubros' ? (
+                <div className="rubros-config-container animate-fade-in">
+                    <header style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ margin: 0 }}>Niveles de Rapidez por Rubro</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>Configura el nivel de rapidez y la ventana de stacking (pedidos simultáneos) por rubro.</p>
+                    </header>
+                    
+                    {loadingRubros ? <div className="loading-state">Cargando rubros...</div> : (
+                        <div className="table-responsive">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rubro</th>
+                                        <th>Nivel de Rapidez</th>
+                                        <th>Ventana Stacking (Min)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rubrosConfig.map(r => (
+                                        <tr key={r.id}>
+                                            <td style={{ fontWeight: 600 }}>{r.nombre}</td>
+                                            <td>
+                                                <select 
+                                                    value={r.nivel_rapidez} 
+                                                    onChange={(e) => handleUpdateRubro(r.id, 'nivel_rapidez', Number(e.target.value))}
+                                                    style={{ padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                                                >
+                                                    <option value={1}>Nivel 1 (Rápido)</option>
+                                                    <option value={2}>Nivel 2 (Lento - Preparación)</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input 
+                                                    type="number" 
+                                                    value={r.ventana_stacking_minutos} 
+                                                    onChange={(e) => handleUpdateRubro(r.id, 'ventana_stacking_minutos', Number(e.target.value))}
+                                                    style={{ padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0', width: '80px' }}
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>

@@ -1,4 +1,4 @@
-.dd-page {
+﻿.dd-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -439,7 +439,7 @@
   object-fit: contain;
 }
 
-/* ─── NEW STYLES ─── */
+/* â”€â”€â”€ NEW STYLES â”€â”€â”€ */
 
 /* Sidebar / Menu */
 .dd-sidebar-overlay {
@@ -733,7 +733,7 @@
   line-height: 1.5;
 }
 
-/* ⚡ Broadcast Premium Styles */
+/* âš¡ Broadcast Premium Styles */
 .dd-order-card.broadcast-card {
   border: 2px solid #e11d48;
   position: relative;
@@ -780,5 +780,4 @@
 .dd-btn-broadcast:active {
   transform: scale(0.98);
 }
-@ k e y f r a m e s   p u l s e   {   0 %   {   o p a c i t y :   0 . 6 ;   t r a n s f o r m :   s c a l e ( 1 ) ;   }   5 0 %   {   o p a c i t y :   1 ;   t r a n s f o r m :   s c a l e ( 1 . 2 ) ;   }   1 0 0 %   {   o p a c i t y :   0 . 6 ;   t r a n s f o r m :   s c a l e ( 1 ) ;   }   }  
- 
+@keyframes pulse { 0% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.6; transform: scale(1); } } .dd-background-map-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; } .dd-overlay-top { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 10px 16px; pointer-events: none; } .dd-stats-box { pointer-events: auto; background: white; border-radius: 18px; padding: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); margin-bottom: 12px; border: 1px solid rgba(0,0,0,0.05); } .dd-active-locales-inline { pointer-events: auto; display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 6px 0; scrollbar-width: none; } .dd-tabs-overlay { position: absolute; bottom: calc(45% + 10px); left: 16px; right: 16px; z-index: 5; pointer-events: auto; } .dd-floating-bottom-container { position: absolute; bottom: 0; left: 0; right: 0; height: 45%; z-index: 10; pointer-events: none; } .dd-floating-bottom-container > div { height: 100%; overflow-y: auto; padding: 0 16px 20px; pointer-events: auto; scrollbar-width: none; } .dd-full-view-overlay { background: white; min-height: 100%; border-radius: 24px 24px 0 0; padding: 24px; box-shadow: 0 -8px 32px rgba(0,0,0,0.15); pointer-events: auto; }

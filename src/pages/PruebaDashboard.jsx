@@ -60,6 +60,10 @@ export default function PruebaDashboard() {
   const [planInfo, setPlanInfo] = React.useState(null);
   const [planLoading, setPlanLoading] = React.useState(false);
   const [availablePlans, setAvailablePlans] = React.useState([]);
+
+  // NUEVO: Arquitectura de Planes y Roles
+  const [selectedPlan, setSelectedPlan] = React.useState(null); // 'Emprendedor' | 'Empresa'
+  const [localUserRole, setLocalUserRole] = React.useState('Admin'); // 'Admin' | 'Cajero'
   
   // Advanced Burger State
   const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
@@ -618,7 +622,11 @@ export default function PruebaDashboard() {
     setAuthLoading(true);
     try {
       const d = await api.loginLocal(fd.get('email'), fd.get('password'));
-      if (d.success && d.localId) { loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado }); toast.success('¡Bienvenido!'); }
+      if (d.success && d.localId) { 
+        loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado }); 
+        setLocalUserRole(d.role || 'Admin');
+        toast.success('¡Bienvenido!'); 
+      }
       else toast.error('Credenciales incorrectas');
     } catch { toast.error('Error de conexión'); }
     setAuthLoading(false);
@@ -634,11 +642,13 @@ export default function PruebaDashboard() {
       await api.registerLocal(
         fd.get('nombre'), fd.get('direccion'), email, fd.get('password'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
-        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        selectedPlan // Pasamos el tipo de plan
       );
       toast.success('¡Local registrado! Iniciá sesión.');
       setAuthEmail(email);
       setAuthView('login');
+      setSelectedPlan(null); // Reset plan selection after registration
     } catch { toast.error('Error al registrar'); }
     setAuthLoading(false);
   };
@@ -971,16 +981,65 @@ export default function PruebaDashboard() {
         <Link to="/">
           <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" className="rd-logo" />
         </Link>
-        <h1>Panel de Gestión</h1>
+        <h1>Panel de Gestión {selectedPlan ? `- ${selectedPlan}` : ''}</h1>
       </header>
       <main className="rd-main">
-        <div className="rd-auth-card card animate-fade-in" key={authView}>
-          <div className="card-body">
-            <h2>Acceso Local</h2>
-            <div className="rd-auth-tabs">
-              <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar Sesión</button>
-              <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrar Local</button>
+        {(!selectedPlan && authView === 'register') ? (
+          <div className="plan-selection-container animate-fade-in" style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+            <h2 style={{ textAlign: 'center', marginBottom: '32px', color: 'var(--gray-800)' }}>Elegí el mejor plan para tu negocio</h2>
+            <div className="plan-selection-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+              
+              <div className="plan-card card" style={{ border: '2px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => setSelectedPlan('Emprendedor')}>
+                <div className="card-body" style={{ textAlign: 'center', padding: '32px' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🌱</div>
+                  <h3 style={{ color: 'var(--red-600)', marginBottom: '8px' }}>Plan Emprendedor</h3>
+                  <p style={{ color: 'var(--green-600)', fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '20px' }}>GRATUITO</p>
+                  <ul style={{ textAlign: 'left', listStyle: 'none', padding: 0, fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '32px' }}>
+                    <li style={{ marginBottom: '10px' }}>✅ Gestión de pedidos ilimitada</li>
+                    <li style={{ marginBottom: '10px' }}>✅ Menú digital autogestionable</li>
+                    <li style={{ marginBottom: '10px' }}>✅ Recibí pagos en efectivo</li>
+                    <li style={{ marginBottom: '10px' }}>❌ Sin Facturación Fiscal (AFIP)</li>
+                    <li style={{ marginBottom: '10px' }}>❌ Usuario único (Solo Admin)</li>
+                  </ul>
+                  <button className="btn btn-secondary btn-full">Comenzar Gratis</button>
+                </div>
+              </div>
+
+              <div className="plan-card card" style={{ border: '2px solid var(--red-500)', cursor: 'pointer', transform: 'scale(1.05)', boxShadow: '0 10px 25px rgba(230, 57, 70, 0.15)' }} onClick={() => setSelectedPlan('Empresa')}>
+                <div className="card-body" style={{ textAlign: 'center', padding: '32px' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🏢</div>
+                  <h3 style={{ color: 'var(--red-600)', marginBottom: '8px' }}>Plan Empresa</h3>
+                  <p style={{ color: 'var(--gray-800)', fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '20px' }}>CON COSTO</p>
+                  <ul style={{ textAlign: 'left', listStyle: 'none', padding: 0, fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '32px' }}>
+                    <li style={{ marginBottom: '10px' }}>✅ Todo lo del Plan Emprendedor</li>
+                    <li style={{ marginBottom: '10px' }}>✅ <strong>Integración AFIP (Facturación)</strong></li>
+                    <li style={{ marginBottom: '10px' }}>✅ <strong>Roles: Admin y Cajero</strong></li>
+                    <li style={{ marginBottom: '10px' }}>✅ Reportes de auditoría avanzados</li>
+                    <li style={{ marginBottom: '10px' }}>✅ Soporte prioritario 24/7</li>
+                  </ul>
+                  <button className="btn btn-primary btn-full">Elegir Plan Empresa</button>
+                </div>
+              </div>
+
             </div>
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <button className="btn btn-ghost" onClick={() => setAuthView('login')}>Ya tengo una cuenta, iniciar sesión</button>
+            </div>
+          </div>
+        ) : (
+          <div className="rd-auth-card card animate-fade-in" key={authView}>
+            <div className="card-body">
+              <h2>Acceso Local</h2>
+              <div className="rd-auth-tabs">
+                <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); setSelectedPlan(null); }}>Iniciar Sesión</button>
+                <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrar Local</button>
+              </div>
+              {selectedPlan && (
+                <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--gray-700)' }}>Plan Seleccionado: <span style={{ color: 'var(--red-600)' }}>{selectedPlan}</span></span>
+                  <button className="btn btn-ghost btn-xs" onClick={() => setSelectedPlan(null)}>Cambiar</button>
+                </div>
+              )}
             {authView === 'login' ? (
               <form onSubmit={handleLogin} className="rd-auth-form">
                 <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={authEmail} required autoComplete="username" />
@@ -1048,6 +1107,7 @@ export default function PruebaDashboard() {
             )}
           </div>
         </div>
+      )}
       </main>
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
         <img src="https://i.postimg.cc/Y0Ln7qb3/Digitalizacion-y-logistica-para-Santo-Tome-(1).png" alt="Weep" style={{ height: '50px', objectFit: 'contain' }} />
@@ -1426,15 +1486,19 @@ export default function PruebaDashboard() {
               
               {profileMenuOpen && (
                 <div className="rd-dropdown-menu animate-fade-in">
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('ventas'); loadOrders(); }}>
-                    💰 Mis Ventas
-                  </button>
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); }}>
-                    🏦 Gestión de Pagos
-                  </button>
-                  <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); }}>
-                    👤 Editar Perfil
-                  </button>
+                  {localUserRole === 'Admin' && (
+                    <>
+                      <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('ventas'); loadOrders(); }}>
+                        💰 Mis Ventas
+                      </button>
+                      <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); }}>
+                        🏦 Gestión de Pagos
+                      </button>
+                      <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); }}>
+                        👤 Editar Perfil
+                      </button>
+                    </>
+                  )}
                   <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }} style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>
                     📖 Ver tutorial
                   </button>
@@ -1479,27 +1543,32 @@ export default function PruebaDashboard() {
               </span>
             )}
           </button>
-          <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
-          <button className={`rd-nav-btn ${view === 'plans' ? 'active' : ''}`} onClick={() => { setView('plans'); loadPlanInfo(); }}>🚀 Planes</button>
           
-          <div className="rd-dropdown-container">
-            <button 
-              className={`rd-nav-btn ${(view === 'addItem' || view === 'sabores') ? 'active' : ''}`} 
-              onClick={(e) => { e.stopPropagation(); setAddMenuOpen(!addMenuOpen); }}
-            >
-              ➕ Añadir ▾
-            </button>
-            {addMenuOpen && (
-              <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, right: 'auto' }}>
-                <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory(''); setAddMenuOpen(false); }}>
-                  🍔 Nuevo Plato
+          {localUserRole === 'Admin' && (
+            <>
+              <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
+              <button className={`rd-nav-btn ${view === 'plans' ? 'active' : ''}`} onClick={() => { setView('plans'); loadPlanInfo(); }}>🚀 Planes</button>
+              
+              <div className="rd-dropdown-container">
+                <button 
+                  className={`rd-nav-btn ${(view === 'addItem' || view === 'sabores') ? 'active' : ''}`} 
+                  onClick={(e) => { e.stopPropagation(); setAddMenuOpen(!addMenuOpen); }}
+                >
+                  ➕ Añadir ▾
                 </button>
-                <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setAddMenuOpen(false); }}>
-                  🍦 Sabores y Adicionales
-                </button>
+                {addMenuOpen && (
+                  <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, right: 'auto' }}>
+                    <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setView('addItem'); setItemCategory(''); setAddMenuOpen(false); }}>
+                      🍔 Nuevo Plato
+                    </button>
+                    <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setAddMenuOpen(false); }}>
+                      🍦 Sabores y Adicionales
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </nav>
 
         {/* ─── Orders View ─── */}

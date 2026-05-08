@@ -89,17 +89,34 @@ export async function updateDireccion(userId, nuevaDireccion, lat, lng) {
 // AUTH — Locales (Restaurants)
 // ═══════════════════════════════════════════════════
 export async function loginLocal(email, password) {
-  const { data, error } = await supabase
+  // 1. Buscar en la tabla principal de locales (Admins)
+  const { data: localData, error: localError } = await supabase
     .from('locales')
     .select('*')
     .eq('email', email)
     .eq('password', password)
     .single();
-  if (error || !data) return { success: false };
-  return { success: true, localId: data.id, emailConfirmado: data.email_confirmado };
+    
+  if (localData) {
+    return { success: true, localId: localData.id, emailConfirmado: localData.email_confirmado, role: 'Admin' };
+  }
+
+  // 2. Buscar en la tabla de usuarios secundarios (Cajeros)
+  const { data: userData, error: userError } = await supabase
+    .from('locales_usuarios')
+    .select('*')
+    .eq('email', email)
+    .eq('password', password)
+    .single();
+
+  if (userData) {
+    return { success: true, localId: userData.local_id, emailConfirmado: true, role: userData.rol };
+  }
+
+  return { success: false };
 }
 
-export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true) {
+export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor') {
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
@@ -109,7 +126,8 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
     terms_accepted_at: new Date().toISOString(),
     terms_version: 'v1',
     email_confirmado: false,
-    token_confirmacion: code
+    token_confirmacion: code,
+    plan_type: planType
   });
   if (error) throw new Error(error.message);
   
@@ -283,7 +301,9 @@ export async function repartidorGetDatos(driverId) {
       PedidosAceptados: data.pedidos_aceptados_count || 0,
       PedidosRechazados: data.pedidos_rechazados_count || 0,
       PedidosIgnorados: data.pedidos_ignorados_count || 0,
-      OneSignalId: data.onesignal_id
+      OneSignalId: data.onesignal_id,
+      TipoVehiculo: data.tipo_vehiculo || 'Moto',
+      NivelRepartidor: data.nivel_repartidor || 1
     },
   };
 }
@@ -2319,20 +2339,30 @@ export async function assignRepartidor(pedidoId) {
 }
 
 export async function getPedidosDisponibles(repartidorId) {
-  // 1. Obtener datos del repartidor para ver sus prioridades
+  // 1. Obtener datos del repartidor para ver sus prioridades y capacidad
   const { data: repData, error: repError } = await supabase.from('repartidores')
-    .select('locales_prioridad')
+    .select('locales_prioridad, nivel_repartidor, estado')
     .eq('id', repartidorId)
     .single();
 
   if (repError) {
-    console.error("Error fetching driver priority:", repError);
+    console.error("Error fetching driver data:", repError);
   }
 
   const misPrioridades = repData?.locales_prioridad || [];
+  const nivelRepartidor = repData?.nivel_repartidor || 1; // 1: Moto (cap 2), 2: Bici (cap 1)
 
-  // 2. Obtener todos los repartidores que tienen ALGUNA prioridad
-  // Esto sirve para saber si un local tiene repartidores prioritarios asignados
+  // 2. Contar pedidos actuales del repartidor
+  const { data: misPedidosActuales } = await supabase.from('pedidos_general')
+    .select('id, local_id, created_at, nivel_rapidez_pedido')
+    .eq('repartidor_id', repartidorId)
+    .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
+
+  const pedidosActivosCount = misPedidosActuales?.length || 0;
+  const tienePedidoLento = misPedidosActuales?.some(p => p.nivel_rapidez_pedido === 2);
+  const localesEnCurso = misPedidosActuales?.map(p => p.local_id) || [];
+
+  // 3. Obtener todos los repartidores que tienen ALGUNA prioridad
   const { data: todosLosPrioritarios } = await supabase.from('repartidores')
     .select('locales_prioridad')
     .not('locales_prioridad', 'eq', '{}');
@@ -2346,10 +2376,9 @@ export async function getPedidosDisponibles(repartidorId) {
     });
   }
 
-  // 3. Pedidos asignados al repartidor (Confirmados o Retirados)
-  // 4. Pedidos sin asignar (NULL) que estén en estado Pendiente (Broadcasting)
+  // 4. Obtener Pedidos (Asignados o Disponibles para Broadcast)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono)')
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, nivel_rapidez_pedido, usuarios(telefono)')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
@@ -2359,21 +2388,43 @@ export async function getPedidosDisponibles(repartidorId) {
     return { success: false, error: error.message };
   }
 
-  // 4. Filtrar por prioridad de 20 segundos
+  // 5. Obtener configuración de rubros para tiempos de stacking
+  const { data: rubrosConfig } = await supabase.from('rubros_config').select('*');
+
+  // 6. Filtrar dinámicamente
   const ahora = Date.now();
   const delayMs = 20000;
 
   const filtered = (data || []).filter(p => {
-    // Si el pedido ya tiene repartidor asignado (y soy yo), lo muestro
-    if (p.repartidor_id) return true;
+    // Si el pedido ya es mío, lo muestro siempre
+    if (p.repartidor_id === repartidorId) return true;
 
-    // Si el pedido es del local prioritario del repartidor, lo muestro inmediatamente
+    // --- LÓGICA DE CAPACIDAD ---
+    // Si soy Bici (Nivel 2) y ya tengo un pedido, no puedo tomar más (a menos que sea del mismo local)
+    if (nivelRepartidor === 2 && pedidosActivosCount >= 1 && !localesEnCurso.includes(p.local_id)) return false;
+    
+    // Si soy Moto (Nivel 1) y ya tengo 2 pedidos, no puedo tomar más (a menos que sea del mismo local)
+    if (nivelRepartidor === 1 && pedidosActivosCount >= 2 && !localesEnCurso.includes(p.local_id)) return false;
+
+    // Si tengo un pedido lento (Restaurante), solo puedo tomar rápidos (Nivel 1) adicionales
+    if (tienePedidoLento && p.nivel_rapidez_pedido === 2 && !localesEnCurso.includes(p.local_id)) return false;
+
+    // --- LÓGICA DE STACKING (Mismo Local) ---
+    if (localesEnCurso.includes(p.local_id)) {
+        const config = rubrosConfig?.find(r => r.nivel_rapidez === p.nivel_rapidez_pedido);
+        const ventanaMin = config?.ventana_stacking_minutos || 5;
+        
+        // Buscar el primer pedido que tomé de ese local
+        const miPedidoEnLocal = misPedidosActuales.find(mp => mp.local_id === p.local_id);
+        if (miPedidoEnLocal) {
+            const timeDiffMin = (ahora - new Date(p.created_at).getTime()) / 60000;
+            if (timeDiffMin <= ventanaMin) return true; // Permitir stacking inmediato si está en ventana
+        }
+    }
+
+    // --- LÓGICA DE PRIORIDADES EXISTENTE ---
     if (misPrioridades.includes(p.local_id)) return true;
-
-    // REGLA NUEVA: Si el local NO tiene repartidores prioritarios asignados, se muestra a todos al instante
     if (!localesConPrioridad.has(p.local_id)) return true;
-
-    // Si NO es prioritario para mí, pero EL LOCAL TIENE prioritarios asignados, verificamos si ya pasaron los 20 segundos
     const createdTime = new Date(p.created_at).getTime();
     return (ahora - createdTime) >= delayMs;
   });
@@ -2397,7 +2448,9 @@ export async function getPedidosDisponibles(repartidorId) {
       lng: p.lng,
       pago_pendiente_at: p.pago_pendiente_at,
       created_at: p.created_at,
-      esBroadcast: !p.repartidor_id // Flag para identificar en UI
+      nivel_rapidez: p.nivel_rapidez_pedido,
+      esBroadcast: !p.repartidor_id,
+      esStacking: localesEnCurso.includes(p.local_id)
     })) 
   };
 }
@@ -2486,8 +2539,20 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
   }
   
   if (nuevoEstado === 'Confirmado') {
-    // Al aceptar el pedido, ponerlo Ocupado
-    await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', repartidorId);
+    // Al aceptar el pedido, verificar capacidad (la lógica real está en el RPC claim_pedido_broadcast,
+    // pero aquí mantenemos compatibilidad para asignaciones manuales)
+    const { data: activeCount } = await supabase.from('pedidos_general')
+        .select('id', { count: 'exact', head: true })
+        .eq('repartidor_id', repartidorId)
+        .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
+    
+    const { data: rep } = await supabase.from('repartidores').select('nivel_repartidor').eq('id', repartidorId).single();
+    
+    // Si llegó al límite, marcar como ocupado. Si no, dejarlo Activo.
+    const limit = (rep?.nivel_repartidor === 1) ? 2 : 1;
+    if ((activeCount || 0) >= limit) {
+        await supabase.from('repartidores').update({ estado: 'Ocupado' }).eq('id', repartidorId);
+    }
     
     // Incrementar su buena reputacin (aceptados)
     const { data: dRep } = await supabase.from('repartidores').select('pedidos_aceptados_count').eq('id', repartidorId).single();
@@ -2521,8 +2586,16 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
   }
   
   if (nuevoEstado === 'Entregado') {
-    // Liberar repartidor al terminar
-    await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', repartidorId);
+    // Verificar si tiene más pedidos pendientes antes de liberar
+    const { data: activeCount } = await supabase.from('pedidos_general')
+        .select('id', { count: 'exact', head: true })
+        .eq('repartidor_id', repartidorId)
+        .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado'])
+        .neq('id', pedidoId); // Excluir el actual que se está entregando
+
+    if ((activeCount || 0) === 0) {
+        await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', repartidorId);
+    }
     
     const { data: d } = await supabase.from('repartidores').select('pedidos_hoy').eq('id', repartidorId).single();
     if (d) await supabase.from('repartidores').update({ pedidos_hoy: (d.pedidos_hoy || 0) + 1 }).eq('id', repartidorId);
@@ -3742,4 +3815,110 @@ export async function repartidorGetScheduledPayments(driverId) {
   });
   
   return dateMap;
+}
+
+// ═══════════════════════════════════════════════════
+// RUBROS CONFIG
+// ═══════════════════════════════════════════════════
+export async function getRubrosConfig() {
+  const { data } = await supabase.from('rubros_config').select('*').order('nombre');
+  return data || [];
+}
+
+export async function updateRubroConfig(id, updates) {
+  const { error } = await supabase.from('rubros_config').update(updates).eq('id', id);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function adminGetRepartidoresDetallado() {
+  const { data } = await supabase.from('repartidores')
+    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor')
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function getPedidosDisponiblesProbando(repartidorId) {
+  // 1. Obtener datos del repartidor
+  const { data: repData, error: repError } = await supabase.from('repartidores')
+    .select('locales_prioridad, nivel_repartidor, estado')
+    .eq('id', repartidorId)
+    .single();
+
+  const misPrioridades = repData?.locales_prioridad || [];
+  const nivelRepartidor = repData?.nivel_repartidor || 1; 
+
+  // 2. Contar pedidos actuales
+  const { data: misPedidosActuales } = await supabase.from('pedidos_general')
+    .select('id, local_id, created_at, nivel_rapidez_pedido')
+    .eq('repartidor_id', repartidorId)
+    .in('estado', ['Confirmado', 'Retirado', 'En camino', 'Preparando', 'Listo', 'Aceptado']);
+
+  const pedidosActivosCount = misPedidosActuales?.length || 0;
+  const tienePedidoLento = misPedidosActuales?.some(p => p.nivel_rapidez_pedido === 2);
+  const localesEnCurso = misPedidosActuales?.map(p => p.local_id) || [];
+
+  // 3. Obtener Pedidos
+  const { data, error } = await supabase.from('pedidos_general')
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, nivel_rapidez_pedido, usuarios(telefono)')
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
+    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
+    .order('created_at', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+
+  // 4. Filtrar con LÓGICA /PROBANDO
+  const filtered = (data || []).filter(p => {
+    if (p.repartidor_id === repartidorId) return true;
+
+    // --- REGLAS PROBANDO ---
+    // BICICLETA: Solo 1 pedido máximo
+    if (nivelRepartidor === 2 && pedidosActivosCount >= 1) return false;
+
+    // MOTO:
+    if (nivelRepartidor === 1) {
+        // Límite absoluto de 3
+        if (pedidosActivosCount >= 3) return false;
+
+        const esMismoLocal = localesEnCurso.includes(p.local_id);
+
+        // Si tiene uno lento de otro local o quiere tomar uno lento de otro local -> No
+        if (tienePedidoLento && p.nivel_rapidez_pedido === 2 && !esMismoLocal) return false;
+
+        // Si es mismo local, permitimos hasta 3 (incluyendo 1 lento + 2 rápidos o 3 rápidos)
+        if (esMismoLocal) {
+            return true; 
+        } else {
+            // Si es local diferente, mantenemos límite de 1 activo para poder tomar otro (total 2)
+            if (pedidosActivosCount >= 2) return false;
+        }
+    }
+
+    return true; 
+  });
+
+  return { 
+    success: true, 
+    data: filtered.map(p => ({
+      id: p.id, 
+      cliente: p.usuario_id, 
+      nombre_cliente: p.nombre_cliente || 'Cliente', 
+      telefono_cliente: p.usuarios?.telefono || '',
+      direccion: p.direccion || 'Sin dirección',
+      monto: +p.total || 0,
+      precio_envio: +p.precio_envio || 0,
+      pago: p.metodo_pago || 'Efectivo',
+      estado: p.estado, 
+      observaciones: p.observaciones || '', 
+      envio: p.tipo_entrega || 'envio',
+      local_id: p.local_id, 
+      lat: p.lat, 
+      lng: p.lng,
+      pago_pendiente_at: p.pago_pendiente_at,
+      created_at: p.created_at,
+      nivel_rapidez: p.nivel_rapidez_pedido,
+      repartidor_id: p.repartidor_id,
+      esStacking: localesEnCurso.includes(p.local_id)
+    }))
+  };
 }
