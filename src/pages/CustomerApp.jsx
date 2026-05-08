@@ -134,18 +134,29 @@ export default function CustomerApp() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
+    // Red de seguridad: si es un item de menú (tiene local_id) pero no tiene config_horarios,
+    // intentar buscar el local completo en la lista de locales cargados.
+    const localId = local.local_id || local.id;
+    const realLocal = (locals.find(l => l.id === localId)) || local;
+    
+    // Mapeo de compatibilidad para items que vienen de api.getPromos() u otros joins
+    const localToPass = {
+      ...realLocal,
+      disponible_desde: realLocal.disponible_desde || realLocal.local_disponible_desde
+    };
+
     // 1. Verificar si ya pasó la fecha de disponibilidad
-    if (local.disponible_desde) {
+    if (localToPass.disponible_desde) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const parts = local.disponible_desde.split('-');
+      const parts = localToPass.disponible_desde.split('-');
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
       if (today < availableDate) return false;
     }
 
     // 2. Usar utilidad flexible (que ya maneja modo_automatico, estado manual y fallback)
-    return isLocalOpenFlexible(local);
-  }, []);
+    return isLocalOpenFlexible(localToPass);
+  }, [locals]);
 
   // Load locals + drinks on mount
   React.useEffect(() => {
@@ -597,7 +608,10 @@ export default function CustomerApp() {
     }
 
     // Verificar si el local está abierto
-    const localRef = selectedLocal || locals.find(l => l.id === menu.local_id) || menu;
+    const localRef = (selectedLocal && selectedLocal.id === menu.local_id) 
+      ? selectedLocal 
+      : (locals.find(l => l.id === menu.local_id) || menu);
+
     if (!isLocalOpen(localRef)) {
       toast.error('Este local está cerrado por el momento');
       return;
@@ -1209,7 +1223,11 @@ export default function CustomerApp() {
             {filteredLocals && (
               <button 
                 className="btn btn-ghost btn-sm" 
-                onClick={() => { setFilteredLocals(null); setSelectedCategory(null); }}
+                onClick={() => { 
+                  setFilteredLocals(null); 
+                  setSelectedCategory(null); 
+                  setSelectedLocal(null);
+                }}
                 style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}
               >
                 ✕ Ver todos
@@ -1441,7 +1459,7 @@ export default function CustomerApp() {
                     Ver menú completo
                   </button>
                 )}
-                <button className="btn btn-ghost btn-sm" onClick={() => setShowMenus(false)}>✕ Cerrar</button>
+                 <button className="back-btn" onClick={() => { setShowMenus(false); setSelectedLocal(null); }}>← Volver</button>
               </div>
             </div>
             {loadingMenus ? (

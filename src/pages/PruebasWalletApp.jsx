@@ -488,18 +488,29 @@ export default function PruebasWalletApp() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
+    // Red de seguridad: si es un item de menú (tiene local_id) pero no tiene config_horarios,
+    // intentar buscar el local completo en la lista de locales cargados.
+    const localId = local.local_id || local.id;
+    const realLocal = (locals.find(l => l.id === localId)) || local;
+    
+    // Mapeo de compatibilidad para items que vienen de api.getPromos() u otros joins
+    const localToPass = {
+      ...realLocal,
+      disponible_desde: realLocal.disponible_desde || realLocal.local_disponible_desde
+    };
+
     // 1. Verificar si ya pasó la fecha de disponibilidad
-    if (local.disponible_desde) {
+    if (localToPass.disponible_desde) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const parts = local.disponible_desde.split('-');
+      const parts = localToPass.disponible_desde.split('-');
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
       if (today < availableDate) return false;
     }
 
     // 2. Usar utilidad flexible
-    return isLocalOpenFlexible(local);
-  }, []);
+    return isLocalOpenFlexible(localToPass);
+  }, [locals]);
 
   const getLocalStatusText = React.useCallback((local) => {
     if (!local) return '';
@@ -1136,7 +1147,10 @@ export default function PruebasWalletApp() {
     }
 
     // Verificar si el local está abierto
-    const localRef = selectedLocal || locals.find(l => l.id === menu.local_id) || menu;
+    const localRef = (selectedLocal && selectedLocal.id === menu.local_id) 
+      ? selectedLocal 
+      : (locals.find(l => l.id === menu.local_id) || menu);
+
     if (!isLocalOpen(localRef)) {
       if (localRef.nombre?.toUpperCase() === 'FULL') {
         toast.error('Este local estará disponible próximamente');
@@ -2199,7 +2213,12 @@ export default function PruebasWalletApp() {
         {filteredLocals && !showMenus && (
           <div className="explorer-view animate-fade-in">
              <div className="category-chips-sticky">
-                <button className={`chip ${!selectedCategory ? 'active' : ''}`} onClick={() => { setFilteredLocals(null); setSelectedCategory(null); setTargetMenuCategory(null); }}>
+                <button className={`chip ${!selectedCategory ? 'active' : ''}`} onClick={() => { 
+                  setFilteredLocals(null); 
+                  setSelectedCategory(null); 
+                  setTargetMenuCategory(null);
+                  setSelectedLocal(null);
+                }}>
                   Inicio
                </button>
                {homeLayout.categories.map(cat => (
@@ -2333,7 +2352,7 @@ export default function PruebasWalletApp() {
         {showMenus && (
           <div className="menu-view animate-fade-in">
              <div className="menu-header-sticky">
-                <button className="back-btn-premium" onClick={() => setShowMenus(false)}>← Volver</button>
+                <button className="back-btn-premium" onClick={() => { setShowMenus(false); setSelectedLocal(null); }}>← Volver</button>
                 <h2 className="menu-local-title">{selectedLocal?.nombre}</h2>
              </div>
 
