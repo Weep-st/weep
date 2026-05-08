@@ -201,6 +201,7 @@ export default function DriverDashboard() {
   const [pinInput, setPinInput] = React.useState('');
   const [showMap, setShowMap] = React.useState(false);
   const [showSessionModal, setShowSessionModal] = React.useState(false);
+  const [activePedido, setActivePedido] = React.useState(null);
 
   // Sesion Timer Effect
   React.useEffect(() => {
@@ -847,12 +848,14 @@ export default function DriverDashboard() {
     } catch { toast.error('Error de conexión', { id: 'ret' }); }
   };
 
-  const confirmarRetiroClick = () => {
+  const confirmarRetiroClick = (pedido) => {
+    setActivePedido(pedido);
     setPinInput('');
     setShowRetiroModal(true);
   };
 
-  const confirmarEntregaClick = () => {
+  const confirmarEntregaClick = (pedido) => {
+    setActivePedido(pedido);
     setPinInput('');
     setShowEntregaModal(true);
   };
@@ -934,6 +937,28 @@ export default function DriverDashboard() {
       setTutorialOrder(null);
       localStorage.setItem(`tutorial_seen_driver_${driver.id}`, 'true');
     }
+  };
+
+  const aceptarTutorial = () => {
+    setTutorialOrder(prev => ({ ...prev, estado: 'Confirmado' }));
+    setTutorialStep(3);
+    toast.success('¡Pedido de prueba aceptado!');
+  };
+
+  const confirmarRetiroTutorial = () => {
+    setTutorialOrder(prev => ({ ...prev, estado: 'Retirado' }));
+    setTutorialStep(4);
+    setShowRetiroModal(false);
+    setPinInput('');
+    toast.success('¡Retiro de prueba confirmado!');
+  };
+
+  const finalizarTutorial = () => {
+    setTutorialOrder(null);
+    setTutorialStep(5);
+    setShowEntregaModal(false);
+    setPinInput('');
+    toast.success('¡Entrega de prueba finalizada!');
   };
 
   const openChat = async (pedidoId) => {
@@ -1142,11 +1167,11 @@ export default function DriverDashboard() {
                         💬 Chat
                       </button>
                       {!isRetirado ? (
-                        <button className="dd-btn-rojo" onClick={() => isTutorial ? setShowRetiroModal(true) : confirmarRetiroClick(enViaje)}>
+                        <button className="dd-btn-rojo" onClick={() => confirmarRetiroClick(enViaje)}>
                           🏍️ RETIRAR
                         </button>
                       ) : (
-                        <button className="dd-btn-verde" onClick={() => isTutorial ? setShowEntregaModal(true) : confirmarEntregaClick(enViaje)}>
+                        <button className="dd-btn-verde" onClick={() => confirmarEntregaClick(enViaje)}>
                           🚀 ENTREGAR
                         </button>
                       )}
@@ -1172,12 +1197,7 @@ export default function DriverDashboard() {
     const pendientes = [...pendientesTutorial, ...pendientesReales];
 
     if (pendientes.length === 0 && actuales.length === 0) {
-      return (
-        <div className="empty-state">
-          <h3>No hay pedidos pendientes</h3>
-          <p>Los pedidos que te asignen aparecerán aquí cuando estés Activo.</p>
-        </div>
-      );
+      return null;
     }
 
     if (pendientes.length === 0) return null;
@@ -2012,6 +2032,78 @@ export default function DriverDashboard() {
               />
               <button type="submit" className="dd-btn-rojo" style={{ width: 'auto', padding: '10px 16px' }}>Enviar</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Retiro Modal */}
+      {showRetiroModal && (
+        <div className="dd-modal-overlay" onClick={() => { setShowRetiroModal(false); setActivePedido(null); }}>
+          <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
+            <div className="dd-modal-header">
+              <h5>Confirmar Retiro</h5>
+              <button className="dd-modal-close" onClick={() => { setShowRetiroModal(false); setActivePedido(null); }}>×</button>
+            </div>
+            <div className="dd-modal-body" style={{ textAlign: 'center', padding: '30px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🏍️</div>
+              <p style={{ color: 'var(--gray-600)', marginBottom: '20px' }}>
+                Ingresa el <strong>PIN de 4 dígitos</strong> proporcionado por el local para confirmar el retiro del pedido.
+              </p>
+              <input
+                type="number"
+                pattern="\d*"
+                inputMode="numeric"
+                className="form-input"
+                style={{ fontSize: '2rem', textAlign: 'center', letterSpacing: '8px', height: '60px' }}
+                placeholder="0000"
+                value={pinInput}
+                onChange={e => setPinInput(e.target.value.slice(0, 4))}
+              />
+            </div>
+            <div className="dd-modal-footer">
+              <button 
+                className="dd-btn-rojo dd-btn-large" 
+                onClick={() => activePedido?.id?.includes('PRUEBA') || !activePedido ? confirmarRetiroTutorial() : finalizarRetiro(activePedido, pinInput)}
+              >
+                Confirmar Retiro
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Entrega Modal */}
+      {showEntregaModal && (
+        <div className="dd-modal-overlay" onClick={() => { setShowEntregaModal(false); setActivePedido(null); }}>
+          <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
+            <div className="dd-modal-header">
+              <h5>Confirmar Entrega</h5>
+              <button className="dd-modal-close" onClick={() => { setShowEntregaModal(false); setActivePedido(null); }}>×</button>
+            </div>
+            <div className="dd-modal-body" style={{ textAlign: 'center', padding: '30px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🚀</div>
+              <p style={{ color: 'var(--gray-600)', marginBottom: '20px' }}>
+                Ingresa el <strong>PIN de 4 dígitos</strong> proporcionado por el cliente para finalizar la entrega.
+              </p>
+              <input
+                type="number"
+                pattern="\d*"
+                inputMode="numeric"
+                className="form-input"
+                style={{ fontSize: '2rem', textAlign: 'center', letterSpacing: '8px', height: '60px' }}
+                placeholder="0000"
+                value={pinInput}
+                onChange={e => setPinInput(e.target.value.slice(0, 4))}
+              />
+            </div>
+            <div className="dd-modal-footer">
+              <button 
+                className="dd-btn-verde dd-btn-large" 
+                onClick={() => activePedido?.id?.includes('PRUEBA') || !activePedido ? finalizarTutorial() : finalizarEntrega(activePedido)}
+              >
+                Confirmar Entrega
+              </button>
+            </div>
           </div>
         </div>
       )}

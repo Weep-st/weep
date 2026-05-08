@@ -608,8 +608,6 @@ export default function PruebasWalletApp() {
       });
     }).catch(console.error);
 
-    // Verificar repartidores al cargar
-    api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
     if (user) {
       api.getFavoritos(user.id).then(d => {
         if (Array.isArray(d)) setFavorites(d);
@@ -667,17 +665,6 @@ export default function PruebasWalletApp() {
     }
   }, [selectedLocal, cart.items, user?.id]);
 
-  // Forzar cambio a retiro si no hay repartidores y está seleccionado envio
-  React.useEffect(() => {
-    if (hasRepartidores === false && cart.deliveryType === 'envio') {
-      // Intentar obtener el local del primer item del carrito si selectedLocal es null
-      const localRef = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-      const puedeRetirar = localRef?.acepta_retiro === true;
-      if (puedeRetirar) {
-        cart.setDeliveryType('retiro');
-      }
-    }
-  }, [hasRepartidores, cart.deliveryType, selectedLocal, cart, locals]);
 
   // MP Return URL Parse
   React.useEffect(() => {
@@ -766,12 +753,6 @@ export default function PruebasWalletApp() {
     }
   }, [cart]);
 
-  // Refrescar repartidores cada vez que el carrito se abre
-  React.useEffect(() => {
-    if (cartOpen) {
-      api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
-    }
-  }, [cartOpen]);
 
   // Search
   React.useEffect(() => {
@@ -1384,18 +1365,6 @@ export default function PruebasWalletApp() {
 
     const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
 
-    // Check repartidores active strictly before proceeding if envio is selected
-    if (cart.deliveryType === 'envio') {
-      const freshRiders = await api.checkActiveRepartidores();
-      if (!freshRiders.hasActive) {
-        setHasRepartidores(false);
-        const puedeRetirar = currentLocal?.acepta_retiro === true;
-        if (puedeRetirar) {
-          cart.setDeliveryType('retiro');
-        }
-        return;
-      }
-    }
 
     if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
       toast.error('Este local no ofrece la opción de retiro en el local.');
@@ -2432,69 +2401,20 @@ export default function PruebasWalletApp() {
           <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
         </div>
         <div className="cart-body-content">
-          {!hasRepartidores && (
-            <div 
-              className="no-drivers-cart-top-notice animate-fade-in" 
-              style={{
-                background: '#fffbeb',
-                color: '#92400e',
-                fontSize: '0.9rem',
-                padding: '16px',
-                borderRadius: '12px',
-                marginBottom: '20px',
-                fontWeight: '700',
-                border: '2px solid #fef3c7',
-                textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(251, 191, 36, 0.1)'
-              }}
-            >
-              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🚫</div>
-              No hay repartidores disponibles en este momento.
-              <p style={{ fontWeight: '400', fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>
-                Vuelve a intentar en unos minutos para envíos a domicilio.
-              </p>
-            </div>
-          )}
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="form-label">Tipo de entrega</label>
             <select 
               className="form-select" 
               value={cart.deliveryType} 
-              onChange={e => {
-                const val = e.target.value;
-                cart.setDeliveryType(val);
-
-                if (val === 'envio') {
-                  api.checkActiveRepartidores().then(fresh => {
-                    setHasRepartidores(fresh.hasActive);
-                    if (!fresh.hasActive) {
-                      // Si al final no había, revertimos a retiro (si se permite)
-                      const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
-                      if (currentLocal?.acepta_retiro === true) {
-                        cart.setDeliveryType('retiro');
-                      }
-                    }
-                  }).catch(() => {});
-                }
-              }}
-              style={{ 
-                borderColor: !hasRepartidores ? 'var(--amber-400)' : '',
-                backgroundColor: !hasRepartidores ? '#fff9f0' : ''
-              }}
+              onChange={e => cart.setDeliveryType(e.target.value)}
             >
               {(() => {
                 const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
                 return (
                   <>
                     {(currentLocal?.acepta_envio !== false) && (
-                      <option 
-                        value="envio" 
-                        disabled={!hasRepartidores}
-                        style={{ color: !hasRepartidores ? '#999' : 'inherit' }}
-                      >
-                        {hasRepartidores ? 'Con envío a domicilio' : '🛵 Con envío (sin repartidores disponibles)'}
-                      </option>
+                      <option value="envio">Con envío a domicilio</option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (
                       <option value="retiro">🥡 Retirar en local</option>
