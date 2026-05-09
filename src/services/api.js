@@ -1631,6 +1631,15 @@ export async function adminGetPedidoDetalle(pedidoId) {
 // ADMIN — Update Pedido Status (Global + Local)
 // ═══════════════════════════════════════════════════
 export async function adminUpdatePedidoStatus(pedidoId, status) {
+  // 0. Seguridad: Si intentamos volver a 'Confirmado' pero el pedido ya es final, abortar.
+  if (status === 'Confirmado') {
+    const { data: current } = await supabase.from('pedidos_general').select('estado').eq('id', pedidoId).single();
+    if (current && ['Entregado', 'Cancelado', 'Rechazado', 'En camino', 'Retirado', 'Listo'].includes(current.estado)) {
+      console.log(`[Seguro] Abortando cambio a Confirmado para ${pedidoId} porque ya está en ${current.estado}`);
+      return { success: true, skipped: true };
+    }
+  }
+
   // 1. Actualizar locales PRIMERO (prioridad para impresión Electron)
   await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
 

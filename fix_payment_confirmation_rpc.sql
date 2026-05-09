@@ -40,6 +40,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- SEGURIDAD: Si el pedido ya está en un estado avanzado o final, NO permitir que este trigger lo revierta.
   IF (OLD.estado IN ('Confirmado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Entregado', 'Rechazado', 'Cancelado')) THEN
+    NEW.estado := OLD.estado; -- FORZAR el estado anterior para evitar regresiones
     RETURN NEW;
   END IF;
 
