@@ -92,6 +92,16 @@ const MapProbandoComponent = ({
         clickableIcons: false,
         fullscreenControl: false,
         gestureHandling: 'greedy',
+        styles: [
+          {
+            featureType: 'poi',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'transit',
+            stylers: [{ visibility: 'off' }]
+          }
+        ],
         restriction: {
           latLngBounds: { north: -28.3, south: -28.8, west: -56.3, east: -55.8 },
           strictBounds: false

@@ -110,15 +110,25 @@ export default function DriverDashboard() {
       return;
     }
 
+    // Definir si el destino es el local (para retiro) o el cliente (para entrega)
+    const needsPickup = ['Confirmado', 'Aceptado', 'Listo', 'Preparando', 'Pendiente'].includes(targetOrder.estado);
     const isRetirado = targetOrder.estado === 'Retirado';
+    
     const localObj = Array.isArray(targetOrder.locales) ? targetOrder.locales[0] : targetOrder.locales;
     
-    const destLat = isRetirado ? Number(targetOrder.lat) : Number(localObj?.lat || targetOrder.local_lat);
-    const destLng = isRetirado ? Number(targetOrder.lng) : Number(localObj?.lng || targetOrder.local_lng);
+    const destLat = needsPickup 
+      ? Number(localObj?.lat || targetOrder.local_lat) 
+      : Number(targetOrder.lat);
+      
+    const destLng = needsPickup 
+      ? Number(localObj?.lng || targetOrder.local_lng) 
+      : Number(targetOrder.lng);
 
     if (!destLat || !destLng) return;
 
     const directionsService = new window.google.maps.DirectionsService();
+    console.log("🛣️ Solicitando ruta desde:", driverLocation, "hacia:", { lat: destLat, lng: destLng });
+    
     directionsService.route(
       {
         origin: { lat: Number(driverLocation.lat), lng: Number(driverLocation.lng) },
@@ -127,9 +137,13 @@ export default function DriverDashboard() {
       },
       (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
+          console.log("✅ Ruta calculada con éxito");
           setDirections(result);
         } else {
-          console.error(`Directions request failed due to ${status}`);
+          console.error(`❌ Error calculando ruta: ${status}`, result);
+          if (status === 'ZERO_RESULTS') {
+            toast.error("No se encontró una ruta por calle hasta el destino.");
+          }
         }
       }
     );
@@ -159,17 +173,19 @@ export default function DriverDashboard() {
     if (isActive && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
+          console.log("📍 Ubicación actualizada:", position.coords.latitude, position.coords.longitude);
           setDriverLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
         },
         (error) => {
-          console.error("Error watching location:", error);
+          console.error("❌ Error en GPS:", error);
+          if (error.code === 1) toast.error("Permiso de ubicación denegado. Activa el GPS.");
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 5000,
           maximumAge: 0
         }
       );
@@ -1104,8 +1120,8 @@ export default function DriverDashboard() {
                   </div>
                 </div>
                 
-                {isExpanded && (
-                  <div className="dd-simple-body animate-fade-in">
+                <div className={`dd-simple-body-wrapper ${isExpanded ? 'expanded' : 'collapsed'}`}>
+                  <div className="dd-simple-body">
                     {enViaje.estado === 'Pendiente de Pago' ? (
                       <div className="dd-waiting-payment-box animate-pulse" style={{ background: '#fff7ed', border: '1px solid #ffedd5', padding: '15px', borderRadius: '12px', textAlign: 'center' }}>
                         <p style={{ margin: '0 0 8px 0', color: '#9a3412' }}><strong>Pendiente de pago del cliente</strong></p>
@@ -1211,7 +1227,7 @@ export default function DriverDashboard() {
                       )}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -1245,63 +1261,34 @@ export default function DriverDashboard() {
           {pendientes.map(p => {
             const isLento = p.nivel_rapidez === 2;
             const isStacking = p.esStacking;
-            const isExpanded = expandedOrders[p.id];
 
             return (
-              <div 
-                key={p.id} 
-                className={`dd-simple-card broadcast-card animate-slide-up ${isLento ? 'lento-card' : ''} ${isStacking ? 'stacking-card' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`} 
-                style={{ 
-                  borderTop: isStacking ? '6px solid #6366f1' : 'none',
-                  background: 'white',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-                  marginBottom: '1rem'
-                }}
-              >
-                <div className="dd-simple-header" onClick={() => toggleOrderExpand(p.id)} style={{ cursor: 'pointer', background: isStacking ? '#6366f1' : (isLento ? '#f97316' : '#22c55e') }}>
+              <div className={`dd-order-card broadcast-card ${isLento ? 'lento-card' : ''} ${isStacking ? 'stacking-card' : ''}`} key={p.id} style={{ borderTop: isStacking ? '6px solid #6366f1' : 'none' }}>
+                <div className="dd-order-head">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h4 style={{ margin: 0 }}>Pedido #{p.id.split('-').pop()}</h4>
-                    <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>
-                      {isLento ? '🍳 PREPARACIÓN LENTA' : '⚡ ENTREGA RÁPIDA'}
-                    </span>
+                    <h5>Pedido #{p.id.split('-').pop()}</h5>
+                    {isStacking && <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 'bold' }}>📍 ¡MISMO LOCAL!</span>}
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                      ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
-                    </div>
-                    <span style={{ fontSize: '1.2rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                  </div>
+                  <span className={`dd-badge ${isLento ? 'bg-lento' : 'bg-broadcast'}`}>
+                    {isLento ? 'LENTO 🍳' : 'RÁPIDO ⚡'}
+                  </span>
                 </div>
-
-                {isExpanded && (
-                  <div className="dd-simple-body animate-fade-in">
-                    <div className="dd-order-amount" style={{ marginBottom: '15px' }}>
-                      <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)' }}>Ganancia Envío</small>
-                      <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#15803d' }}>
-                        ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
-                      </span>
-                    </div>
-                    <div className="dd-info-block">
-                      <div className="dd-info-row">
-                        <span className="dd-info-label">Cliente</span>
-                        <span className="dd-info-value">{p.nombre_cliente}</span>
-                      </div>
-                      <div className="dd-info-row">
-                        <span className="dd-info-label">Destino</span>
-                        <span className="dd-info-value">{p.direccion}</span>
-                      </div>
-                    </div>
-                    <div className="dd-order-actions">
-                      <button 
-                        className={isStacking ? "dd-btn-stacking" : (isLento ? "dd-btn-lento" : "dd-btn-broadcast")}
-                        onClick={() => p.id.includes('PRUEBA') ? aceptarTutorial() : aceptarPedido(p)}
-                        style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
-                      >
-                        {isStacking ? 'Tomar para este local' : 'Tomar Viaje →'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="dd-order-amount">
+                  <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)' }}>Ganancia Envío</small>
+                  ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
+                </div>
+                <div className="dd-order-info">
+                  <p>👤 <strong>Cliente:</strong> {p.nombre_cliente}</p>
+                  <p>📍 <strong>Destino:</strong> {p.direccion}</p>
+                </div>
+                <div className="dd-order-actions">
+                  <button 
+                    className={isStacking ? "dd-btn-stacking" : (isLento ? "dd-btn-lento" : "dd-btn-broadcast")}
+                    onClick={() => p.id.includes('PRUEBA') ? aceptarTutorial() : aceptarPedido(p)}
+                  >
+                    {isStacking ? 'Tomar para este local' : 'Tomar Viaje →'}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -1930,6 +1917,7 @@ export default function DriverDashboard() {
               zIndex: 10, 
               maxHeight: '45%', // Reducido para liberar espacio central del mapa
               overflowY: 'auto', 
+              overflowX: 'hidden', 
               padding: '10px 16px',
               background: 'linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 100%)',
               pointerEvents: 'none',

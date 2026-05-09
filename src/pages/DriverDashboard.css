@@ -485,14 +485,25 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0,0,0,0.25);
-  margin-bottom: 12px;
+  margin-bottom: 0; /* Margin manejado por gap en el list */
   border: 1px solid rgba(0,0,0,0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
 }
 
+.dd-simple-body-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+}
+
+.dd-simple-body-wrapper.expanded {
+  max-height: 600px; /* Suficiente para el contenido */
+}
+
 .dd-simple-card.collapsed {
-  margin-bottom: 8px;
+  opacity: 0.95;
 }
 
 .dd-simple-card.collapsed .dd-simple-header {
@@ -772,8 +783,8 @@
 
 .dd-floating-orders-list {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: column-reverse; /* Crecer hacia arriba */
+  gap: 12px;
   width: 100%;
 }
 
@@ -799,6 +810,11 @@
 
 @keyframes slideDown {
   from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
