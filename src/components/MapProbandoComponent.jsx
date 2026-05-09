@@ -131,9 +131,9 @@ const MapProbandoComponent = ({
           options={{
             suppressMarkers: true,
             polylineOptions: {
-              strokeColor: '#ef4444',
-              strokeWeight: 5,
-              strokeOpacity: 0.8
+              strokeColor: '#4285F4',
+              strokeWeight: 6,
+              strokeOpacity: 0.9
             }
           }}
         />
