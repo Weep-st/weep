@@ -118,13 +118,7 @@ export default function DriverDashboard() {
       }
     });
 
-    if (tutorialOrder && !tutorialOrder.id.includes('DUMMY')) {
-       const isRetirado = tutorialOrder.estado === 'Retirado';
-       const localObj = Array.isArray(tutorialOrder.locales) ? tutorialOrder.locales[0] : tutorialOrder.locales;
-       const lat = isRetirado ? Number(tutorialOrder.lat) : Number(localObj?.lat || tutorialOrder.local_lat);
-       const lng = isRetirado ? Number(tutorialOrder.lng) : Number(localObj?.lng || tutorialOrder.local_lng);
-       if (lat && lng) pointsMap.set(`${lat},${lng}`, { lat, lng });
-    }
+
 
     const uniquePoints = Array.from(pointsMap.values());
 
@@ -183,7 +177,7 @@ export default function DriverDashboard() {
         }
       }
     );
-  }, [isMapLoaded, driverLocation, pedidos, tutorialOrder]);
+  }, [isMapLoaded, driverLocation, pedidos]);
 
   React.useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -1279,8 +1273,7 @@ export default function DriverDashboard() {
 
   const renderPendientes = (actuales = []) => {
     const pendientesReales = pedidos.filter(p => ['Pendiente', 'Buscando Repartidor', 'Listo', 'Preparando'].includes(p.estado) && p.esBroadcast);
-    const pendientesTutorial = tutorialOrder && tutorialOrder.estado === 'Pendiente' ? [tutorialOrder] : [];
-    const pendientes = [...pendientesTutorial, ...pendientesReales];
+    const pendientes = [...pendientesReales];
 
     if (pendientes.length === 0 && actuales.length === 0) {
       return null;
@@ -1320,7 +1313,7 @@ export default function DriverDashboard() {
                 <div className="dd-order-actions">
                   <button 
                     className={isStacking ? "dd-btn-stacking" : (isLento ? "dd-btn-lento" : "dd-btn-broadcast")}
-                    onClick={() => p.id.includes('PRUEBA') ? aceptarTutorial() : aceptarPedido(p)}
+                    onClick={() => aceptarPedido(p)}
                   >
                     {isStacking ? 'Tomar para este local' : 'Tomar Viaje →'}
                   </button>
