@@ -214,6 +214,12 @@ export default function DriverDashboard() {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
+          // Sincronizar con DB para seguimiento en tiempo real del cliente
+          if (driver?.id) {
+            api.updateDriverCoords(driver.id, position.coords.latitude, position.coords.longitude)
+              .catch(err => console.warn("Error syncing coords:", err));
+          }
+
         },
         (error) => {
           console.error("❌ Error en GPS Watcher:", error);

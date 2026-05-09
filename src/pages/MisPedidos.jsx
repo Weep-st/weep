@@ -5,8 +5,12 @@ import { useCart } from '../context/CartContext';
 import * as api from '../services/api';
 import { iniciarPagoMercadoPago } from '../services/mercadopago';
 import CountdownTimer from '../components/CountdownTimer';
+import { GoogleMap, Marker, useJsApiLoader, Polyline } from '@react-google-maps/api';
 import toast from 'react-hot-toast';
 import './MisPedidos.css';
+
+const MAP_LIBRARIES = ['places'];
+
 
 export default function MisPedidos() {
   const { user } = useAuth();
@@ -26,6 +30,16 @@ export default function MisPedidos() {
   const [rating, setRating] = React.useState(0);
   const [comentario, setComentario] = React.useState('');
   const [ratingLoading, setRatingLoading] = React.useState(false);
+
+  // Realtime Tracking
+  const [driverCoords, setDriverCoords] = React.useState(null);
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const { isLoaded: isMapLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey,
+    libraries: MAP_LIBRARIES
+  });
+
 
   // Chat state
   const [activeChatPedidoId, setActiveChatPedidoId] = React.useState(null);
@@ -92,6 +106,25 @@ export default function MisPedidos() {
     }
     setSeguimientoLoading(false);
   };
+
+  // Suscripción a ubicación del repartidor en tiempo real
+  React.useEffect(() => {
+    if (!seguimiento || !['Retirado', 'En camino'].includes(seguimiento.estadoGeneral) || !seguimiento.repartidor_id) {
+      setDriverCoords(null);
+      return;
+    }
+
+    // Suscribirse
+    const channel = api.subscribeToDriverLocation(seguimiento.repartidor_id, (coords) => {
+      console.log("🛵 Nueva ubicación del repartidor:", coords);
+      setDriverCoords(coords);
+    });
+
+    return () => {
+      api.supabase.removeChannel(channel);
+    };
+  }, [seguimiento]);
+
 
   const handleReorder = async (pedidoId) => {
     try {
@@ -493,10 +526,80 @@ export default function MisPedidos() {
                   })}
                 </div>
 
-                {/* Map placeholder */}
-                <div className="map-placeholder">
-                  🗺️ Mapa del repartidor — próximamente
-                </div>
+                {/* Map Section */}
+                {['Retirado', 'En camino'].includes(seguimiento.estadoGeneral) && isMapLoaded ? (
+                  <div className="mp-map-container">
+                    <GoogleMap
+                      mapContainerClassName="mp-google-map"
+                      center={driverCoords || { lat: Number(seguimiento.lat) || -28.48, lng: Number(seguimiento.lng) || -56.04 }}
+                      zoom={15}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                        styles: [
+                          {
+                            "featureType": "poi",
+                            "stylers": [{ "visibility": "off" }]
+                          }
+                        ]
+                      }}
+                    >
+                      {/* Marcador Destino (Cliente) */}
+                      {seguimiento.lat && seguimiento.lng && (
+                        <Marker 
+                          position={{ lat: Number(seguimiento.lat), lng: Number(seguimiento.lng) }} 
+                          icon={{
+                            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                            scaledSize: new window.google.maps.Size(40, 40)
+                          }}
+                          title="Tu ubicación de entrega"
+                        />
+                      )}
+
+                      {/* Marcador Repartidor */}
+                      {driverCoords && (
+                        <Marker 
+                          position={driverCoords} 
+                          icon={{
+                            url: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png', // Icono de moto
+                            scaledSize: new window.google.maps.Size(40, 40),
+                            anchor: new window.google.maps.Point(20, 20)
+                          }}
+                          title={`Repartidor: ${seguimiento.repartidor?.nombre || ''}`}
+                        />
+                      )}
+
+                      {/* Línea de ruta opcional */}
+                      {driverCoords && seguimiento.lat && (
+                        <Polyline 
+                          path={[
+                            driverCoords,
+                            { lat: Number(seguimiento.lat), lng: Number(seguimiento.lng) }
+                          ]}
+                          options={{
+                            strokeColor: "#3b82f6",
+                            strokeOpacity: 0.6,
+                            strokeWeight: 4,
+                            icons: [{
+                              icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 },
+                              offset: '0',
+                              repeat: '20px'
+                            }],
+                          }}
+                        />
+                      )}
+                    </GoogleMap>
+                  </div>
+                ) : seguimiento.estadoGeneral === 'Retirado' || seguimiento.estadoGeneral === 'En camino' ? (
+                  <div className="map-placeholder">
+                    <div className="spinner" /> Cargando mapa...
+                  </div>
+                ) : (
+                  <div className="map-placeholder info">
+                    📍 El mapa se activará cuando el repartidor retire tu pedido.
+                  </div>
+                )}
+
 
                 {/* Order details */}
                 <div className="order-details">

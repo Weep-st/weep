@@ -498,6 +498,32 @@ export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
   return { success: true };
 }
 
+export async function updateDriverCoords(driverId, lat, lng) {
+  const { error } = await supabase
+    .from('repartidores')
+    .update({ lat, lng, ultima_actividad: new Date().toISOString() })
+    .eq('id', driverId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export function subscribeToDriverLocation(driverId, onUpdate) {
+  return supabase
+    .channel(`driver_location_${driverId}`)
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'repartidores',
+      filter: `id=eq.${driverId}`
+    }, (payload) => {
+      if (payload.new.lat && payload.new.lng) {
+        onUpdate({ lat: payload.new.lat, lng: payload.new.lng });
+      }
+    })
+    .subscribe();
+}
+
+
 export async function localUpdateOneSignalId(localId, onesignalId) {
   if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
   
