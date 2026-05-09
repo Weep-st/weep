@@ -34,31 +34,38 @@ const MapProbandoComponent = ({
 
   const markers = useMemo(() => {
     const m = [];
-    if (localLat && localLng && isWithinSantoTome(localLat, localLng)) {
+    // Mostrar marcador del local solo si hay pedidos pendientes de retiro
+    const hayPendientesDeRetiro = pedidosActivos.some(p => p.estado !== 'Retirado');
+    
+    if (localLat && localLng && isWithinSantoTome(localLat, localLng) && hayPendientesDeRetiro) {
       m.push({
         id: 'local',
         position: { lat: Number(localLat), lng: Number(localLng) },
         title: localName,
+        label: {
+          text: localName,
+          color: 'black',
+          fontSize: '12px',
+          fontWeight: '900'
+        },
         icon: 'https://i.postimg.cc/ZKHbrvdP/Home-free-icons-designed-by-nawicon-(1).png'
       });
     }
 
     pedidosActivos.forEach((p, index) => {
-        if (p.lat && p.lng && isWithinSantoTome(p.lat, p.lng)) {
-            const isRetirado = p.estado === 'Retirado';
+        // Solo mostrar marcador de entrega si el pedido ya fue retirado
+        if (p.estado === 'Retirado' && p.lat && p.lng && isWithinSantoTome(p.lat, p.lng)) {
             m.push({
                 id: `pedido-${p.id}`,
                 position: { lat: Number(p.lat), lng: Number(p.lng) },
                 title: p.direccion,
                 label: {
-                  text: `${isRetirado ? 'Entrega' : 'Retiro'} ${index + 1}`,
+                  text: `Entrega ${index + 1}`,
                   color: 'white',
                   fontSize: '12px',
                   fontWeight: 'bold'
                 },
-                icon: isRetirado 
-                  ? 'https://i.postimg.cc/zfbqZdPs/Home-free-icons-designed-by-nawicon.png' 
-                  : 'https://i.postimg.cc/ZKHbrvdP/Home-free-icons-designed-by-nawicon-(1).png'
+                icon: 'https://i.postimg.cc/zfbqZdPs/Home-free-icons-designed-by-nawicon.png'
             });
         }
     });
@@ -68,7 +75,7 @@ const MapProbandoComponent = ({
         id: 'driver',
         position: { lat: Number(driverLat), lng: Number(driverLng) },
         title: 'Tu ubicación',
-        icon: 'https://i.postimg.cc/qRrchsLY/buscamos-repartidores-(27).png'
+        icon: 'https://i.postimg.cc/GtL50wyB/buscamos-repartidores-(48)-(1).png'
       });
     }
     return m;
