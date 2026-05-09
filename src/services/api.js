@@ -75,6 +75,56 @@ export async function registerUsuario(nombre, email, password, direccion, telefo
   return { success: true, userId: id };
 }
 
+export async function getUsuarioByEmail(email) {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function syncFirebaseUser(firebaseUser) {
+  const existing = await getUsuarioByEmail(firebaseUser.email);
+  if (existing) {
+    return { 
+      success: true, 
+      userId: existing.id, 
+      nombre: existing.nombre, 
+      email: existing.email,
+      direccion: existing.direccion,
+      telefono: existing.telefono,
+      emailConfirmado: existing.email_confirmado || firebaseUser.emailVerified,
+      role: existing.role || 'user'
+    };
+  }
+  
+  // Si no existe, lo creamos (sin password, ya que usa Firebase)
+  const id = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  const { error } = await supabase.from('usuarios').insert({ 
+    id, 
+    nombre: firebaseUser.displayName || 'Usuario Google', 
+    email: firebaseUser.email,
+    email_confirmado: firebaseUser.emailVerified || false,
+    terms_accepted: true,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: 'v1'
+  });
+  
+  if (error) throw new Error(error.message);
+  
+  return { 
+    success: true, 
+    userId: id, 
+    nombre: firebaseUser.displayName, 
+    email: firebaseUser.email,
+    emailConfirmado: firebaseUser.emailVerified || false,
+    role: 'user',
+    isNew: true // Para que el frontend sepa que debe pedir datos extra
+  };
+}
+
 export async function updateDireccion(userId, nuevaDireccion, lat, lng) {
   const updateData = { direccion: nuevaDireccion };
   if (lat !== undefined) updateData.lat = lat;
@@ -3441,9 +3491,18 @@ export async function suscribirAPlan(localId, planId) {
     return { success: true };
 }
 
-export async function broadcastOrderToDrivers(pedidoId, total, localId = null) {
+export async function broadcastOrderToDrivers(pedidoId, total, localId = null, precioEnvio = null) {
   try {
     console.log(`⚡ Broadcasting order push to all accepted drivers... (Local: ${localId})`);
+    
+    let finalPrecioEnvio = precioEnvio;
+    
+    // Si no se pasó el precio de envío, intentar obtenerlo del pedido
+    if (finalPrecioEnvio === null) {
+      const { data: pData } = await supabase.from('pedidos_general').select('precio_envio').eq('id', pedidoId).single();
+      finalPrecioEnvio = pData?.precio_envio || 0;
+    }
+
     const { data: drivers } = await supabase
       .from('repartidores')
       .select('onesignal_id, locales_prioridad')
@@ -3465,7 +3524,7 @@ export async function broadcastOrderToDrivers(pedidoId, total, localId = null) {
       return await sendPushNotification({
         subscriptionIds: ids,
         title: '¡Nuevo Pedido Disponible! 🛵',
-        message: `Hay un pedido por $${Number(total).toLocaleString('es-AR')}. ¡Aceptalo ahora mismo!`,
+        message: `¡Nuevo pedido! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`,
         url: 'https://wepi.com.ar/repartidores',
         data: { pedidoId, type: 'new_order_broadcast' }
       });

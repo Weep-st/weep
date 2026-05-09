@@ -3257,3 +3257,71 @@
   padding: 4px 16px;
 }
 
+
+/* Auth Firebase Styles */
+.auth-separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 16px 0;
+  color: var(--gray-400);
+}
+
+.auth-separator::before,
+.auth-separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.auth-separator span {
+  padding: 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.btn-google {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: white !important;
+  color: var(--gray-700) !important;
+  border: 1px solid var(--gray-300) !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+}
+
+.btn-google:hover {
+  background: #f8fafc !important;
+  border-color: var(--gray-400) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.google-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.btn-apple {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: black !important;
+  color: white !important;
+  border: none !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+}
+
+.btn-apple:hover {
+  background: #1a1a1a !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.apple-icon {
+  width: 18px;
+  height: 18px;
+}

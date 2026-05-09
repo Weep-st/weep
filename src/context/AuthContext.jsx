@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { auth, googleProvider } from '../services/firebase';
+import { signInWithPopup, signOut } from 'firebase/auth';
+import * as api from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -55,9 +58,41 @@ export function AuthProvider({ children }) {
     });
   };
 
-  const logoutUser = () => {
+  const logoutUser = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error("Firebase logout error:", e);
+    }
     ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole'].forEach(k => localStorage.removeItem(k));
     setUser(null);
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      
+      // Sincronizar con Supabase
+      const dbUser = await api.syncFirebaseUser(firebaseUser);
+      
+      if (dbUser.success) {
+        loginAsUser({
+          userId: dbUser.userId,
+          name: dbUser.nombre,
+          email: dbUser.email,
+          address: dbUser.direccion,
+          telefono: dbUser.telefono,
+          emailConfirmado: dbUser.emailConfirmado,
+          role: dbUser.role
+        });
+        return { success: true, isNew: dbUser.isNew };
+      }
+      return { success: false, error: 'Error al sincronizar con la base de datos' };
+    } catch (error) {
+      console.error("Error en login con Google:", error);
+      return { success: false, error: error.message };
+    }
   };
 
   const loginAsRestaurant = (data) => {
@@ -96,7 +131,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, restaurant, driver,
-      loginAsUser, logoutUser,
+      loginAsUser, logoutUser, loginWithGoogle,
       loginAsRestaurant, logoutRestaurant,
       loginAsDriver, logoutDriver,
       updateUserAddress,

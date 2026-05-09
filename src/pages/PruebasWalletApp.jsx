@@ -18,7 +18,7 @@ export default function PruebasWalletApp() {
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
-    console.error("âŒ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+    console.error("â Œ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
   }
 
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
@@ -28,10 +28,10 @@ export default function PruebasWalletApp() {
   });
 
   if (loadError) {
-    console.error("âŒ Error loading Google Maps in CustomerApp:", loadError);
+    console.error("â Œ Error loading Google Maps in CustomerApp:", loadError);
   }
   
-  const { user, loginAsUser, logoutUser: doLogout, updateUserAddress } = useAuth();
+  const { user, loginAsUser, loginWithGoogle, logoutUser: doLogout, updateUserAddress } = useAuth();
   const cart = useCart();
   const navigate = useNavigate();
 
@@ -1026,6 +1026,22 @@ export default function PruebasWalletApp() {
     setAuthLoading(false);
   };
 
+  const handleGoogleLogin = async () => {
+    setAuthLoading(true);
+    const res = await loginWithGoogle();
+    if (res.success) {
+      setModal(null);
+      if (res.isNew) {
+        toast.success('¡Bienvenido! Recordá completar tu teléfono en el perfil para pedir.');
+      } else {
+        toast.success('¡Bienvenido!');
+      }
+    } else {
+      toast.error(res.error || 'Error al iniciar sesión con Google');
+    }
+    setAuthLoading(false);
+  };
+
   const handleResendConfirmation = async () => {
     if (!user?.email) return;
     const loading = toast.loading('Reenviando email...');
@@ -1042,7 +1058,7 @@ export default function PruebasWalletApp() {
     const email = fd.get('email').toLowerCase();
     const nombre = fd.get('nombre');
     const password = fd.get('password');
-    const direccion = fd.get('direccion');
+    const direccion = ''; // Removido del form
     const prefix = fd.get('prefix');
     const localNumber = fd.get('telefono');
     const telefono = `${prefix}${localNumber}`;
@@ -1328,6 +1344,11 @@ export default function PruebasWalletApp() {
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (!user) { setModal('login'); return; }
+    if (!user.telefono) {
+      toast.error('Por favor, configurá tu teléfono en el perfil antes de realizar un pedido.');
+      setModal('editProfile');
+      return;
+    }
     if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
     const fd = new FormData(e.target);
     const mp = metodoPago; // Use state instead of FormData
@@ -1514,7 +1535,7 @@ export default function PruebasWalletApp() {
             setCartOpen(false);
 
             // Iniciamos el broadcast centralizado
-            await api.broadcastOrderToDrivers(pregeneratedId, exactTotal, cart.items[0]?.local_id).catch(console.error);
+            await api.broadcastOrderToDrivers(pregeneratedId, exactTotal, cart.items[0]?.local_id, shipping).catch(console.error);
             return;
          } else {
             // RETIRO + EFECTIVO
@@ -1566,7 +1587,7 @@ export default function PruebasWalletApp() {
           // Re-enviar Push cada 25 segundos para incentivar
           if (prev > 0 && prev % 25 === 0 && pendingOrderId) {
             console.log("📢 Re-enviando push de incentivo...");
-            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id).catch(console.error);
+            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, shipping).catch(console.error);
           }
           
           return prev + 1;
@@ -2685,6 +2706,16 @@ export default function PruebasWalletApp() {
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Entrar'}
                 </button>
+
+                <div className="auth-separator">
+                  <span>O</span>
+                </div>
+
+                <button type="button" className="btn btn-google btn-full" onClick={handleGoogleLogin} disabled={authLoading}>
+                  <img src="https://i.postimg.cc/4yg7FY6B/channels4-profile.jpg" alt="Google" className="google-icon" />
+                  Continuar con Google
+                </button>
+
                 <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
               </form>
             )}
@@ -2710,7 +2741,6 @@ export default function PruebasWalletApp() {
                     />
                   </button>
                 </div>
-                <input name="direccion" className="form-input" placeholder="Dirección (opcional)" autoComplete="street-address" />
                 <div className="phone-input-group">
                   <select name="prefix" className="phone-prefix-select">
                     <option value="+54">🇦🇷 +54</option>
@@ -2729,6 +2759,16 @@ export default function PruebasWalletApp() {
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
                 </button>
+
+                <div className="auth-separator">
+                  <span>O</span>
+                </div>
+
+                <button type="button" className="btn btn-google btn-full" onClick={handleGoogleLogin} disabled={authLoading}>
+                  <img src="https://i.postimg.cc/4yg7FY6B/channels4-profile.jpg" alt="Google" className="google-icon" />
+                  Registrarme con Google
+                </button>
+
                 <p className="modal-switch">¿Ya tenés cuenta? <button type="button" onClick={() => { setModal('login'); setShowPassword(false); }}>Iniciar sesión</button></p>
               </form>
             )}
@@ -3370,7 +3410,7 @@ export default function PruebasWalletApp() {
                 onClick={() => {
                   setDriverSearchTimeout(false);
                   setSearchSeconds(0); 
-                  api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id);
+                  api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, shipping);
                   toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
                 }}
               >

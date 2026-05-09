@@ -423,7 +423,7 @@ export default function PruebasApp() {
           // Re-enviar Push cada 20 segundos para incentivar (en 20s y 40s)
           if (prev > 0 && prev % 20 === 0 && pendingOrderId) {
             console.log("📣 Re-enviando push de incentivo...");
-            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id);
+            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, shipping);
           }
           
           return prev + 1;
@@ -1121,7 +1121,7 @@ export default function PruebasApp() {
           setCartOpen(false);
 
           // Notify drivers via Push
-          api.broadcastOrderToDrivers(response.pedidoId, exactTotal, cart.items[0]?.local_id).catch(console.error);
+          api.broadcastOrderToDrivers(response.pedidoId, exactTotal, cart.items[0]?.local_id, shipping).catch(console.error);
         } else {
           // Pickup Flow
           if (mp === 'efectivo') {
