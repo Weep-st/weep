@@ -2556,6 +2556,19 @@ export async function getPedidosDisponibles(repartidorId) {
     return (ahora - createdTime) >= delayMs;
   });
 
+  // 7. Obtener montos locales para los pedidos filtrados (Safe way without joins)
+  const filteredIds = filtered.map(p => p.id);
+  let totalsMap = {};
+  if (filteredIds.length > 0) {
+    const { data: totalsData } = await supabase.from('pedidos_locales')
+      .select('pedido_id, local_id, total')
+      .in('pedido_id', filteredIds);
+    
+    (totalsData || []).forEach(t => {
+      totalsMap[`${t.pedido_id}_${t.local_id}`] = t.total;
+    });
+  }
+
   return { 
     success: true, 
     data: filtered.map(p => ({
@@ -2577,7 +2590,8 @@ export async function getPedidosDisponibles(repartidorId) {
       created_at: p.created_at,
       nivel_rapidez: p.nivel_rapidez_pedido,
       esBroadcast: !p.repartidor_id,
-      esStacking: localesEnCurso.includes(p.local_id)
+      esStacking: localesEnCurso.includes(p.local_id),
+      monto_local: totalsMap[`${p.id}_${p.local_id}`] || 0
     })) 
   };
 }

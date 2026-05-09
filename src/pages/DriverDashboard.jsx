@@ -1095,7 +1095,7 @@ export default function DriverDashboard() {
               <div key={enViaje.id} className={`dd-simple-card animate-slide-up ${isLento ? 'lento-card' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`} style={{ borderLeft: isLento ? '6px solid #f97316' : '6px solid #22c55e' }}>
                 <div className="dd-simple-header" onClick={() => toggleOrderExpand(enViaje.id)} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h4 style={{ margin: 0, fontSize: '1rem' }}>Pedido #{enViaje.id.split('-').pop()}</h4>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Pedido #{enViaje.id.split('-').pop()}</h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                       <span className={`dd-time-counter-badge ${isUrgent ? 'urgent' : ''}`}>
                         ⏱️ {timeStr}
@@ -1839,15 +1839,7 @@ export default function DriverDashboard() {
 
               {/* ─── BANNER DE PRÓXIMA PARADA ─── */}
               {routeSequence.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 20,
-                  width: '90%',
-                  maxWidth: '400px'
-                }}>
+                <div className="dd-next-stop-container">
                   <div className="dd-next-stop-banner animate-slide-down">
                     <div className="next-stop-icon">🎯</div>
                     <div className="next-stop-info">
