@@ -61,9 +61,9 @@ const MapProbandoComponent = ({
                 title: p.direccion,
                 label: {
                   text: `Entrega ${index + 1}`,
-                  color: 'white',
+                  color: 'black',
                   fontSize: '12px',
-                  fontWeight: 'bold'
+                  fontWeight: '900'
                 },
                 icon: 'https://i.postimg.cc/zfbqZdPs/Home-free-icons-designed-by-nawicon.png'
             });

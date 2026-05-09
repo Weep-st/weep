@@ -98,56 +98,69 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     if (!isMapLoaded || !driverLocation.lat || !driverLocation.lng) return;
 
+    // 1. Recolectar todos los puntos de interés (Retiros y Entregas)
     const pedidosEnCurso = pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
-    const tutorialActivo = (tutorialOrder && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(tutorialOrder.estado)) ? tutorialOrder : null;
+    const pointsMap = new Map(); // Usar Map para evitar duplicados en la misma coordenada
     
-    let targetOrder = pedidosEnCurso.find(p => expandedOrders[p.id]);
-    if (!targetOrder && tutorialOrder && expandedOrders[tutorialOrder.id]) targetOrder = tutorialOrder;
-    if (!targetOrder) targetOrder = tutorialActivo || pedidosEnCurso[0];
+    pedidosEnCurso.forEach(p => {
+      const isRetirado = p.estado === 'Retirado';
+      const localObj = Array.isArray(p.locales) ? p.locales[0] : p.locales;
+      
+      const lat = isRetirado ? Number(p.lat) : Number(localObj?.lat || p.local_lat);
+      const lng = isRetirado ? Number(p.lng) : Number(localObj?.lng || p.local_lng);
+      
+      if (lat && lng) {
+        pointsMap.set(`${lat},${lng}`, { lat, lng });
+      }
+    });
 
-    if (!targetOrder) {
+    if (tutorialOrder && !tutorialOrder.id.includes('DUMMY')) {
+       const isRetirado = tutorialOrder.estado === 'Retirado';
+       const localObj = Array.isArray(tutorialOrder.locales) ? tutorialOrder.locales[0] : tutorialOrder.locales;
+       const lat = isRetirado ? Number(tutorialOrder.lat) : Number(localObj?.lat || tutorialOrder.local_lat);
+       const lng = isRetirado ? Number(tutorialOrder.lng) : Number(localObj?.lng || tutorialOrder.local_lng);
+       if (lat && lng) pointsMap.set(`${lat},${lng}`, { lat, lng });
+    }
+
+    const uniquePoints = Array.from(pointsMap.values());
+
+    if (uniquePoints.length === 0) {
       if (directions) setDirections(null);
       return;
     }
 
-    // Definir si el destino es el local (para retiro) o el cliente (para entrega)
-    const needsPickup = ['Confirmado', 'Aceptado', 'Listo', 'Preparando', 'Pendiente'].includes(targetOrder.estado);
-    const isRetirado = targetOrder.estado === 'Retirado';
-    
-    const localObj = Array.isArray(targetOrder.locales) ? targetOrder.locales[0] : targetOrder.locales;
-    
-    const destLat = needsPickup 
-      ? Number(localObj?.lat || targetOrder.local_lat) 
-      : Number(targetOrder.lat);
-      
-    const destLng = needsPickup 
-      ? Number(localObj?.lng || targetOrder.local_lng) 
-      : Number(targetOrder.lng);
-
-    if (!destLat || !destLng) return;
+    // 2. Configurar la ruta con Waypoints
+    // El último punto será el destino, los intermedios serán waypoints
+    const destination = uniquePoints[uniquePoints.length - 1];
+    const waypoints = uniquePoints.slice(0, -1).map(p => ({
+      location: p,
+      stopover: true
+    }));
 
     const directionsService = new window.google.maps.DirectionsService();
-    console.log("🛣️ Solicitando ruta desde:", driverLocation, "hacia:", { lat: destLat, lng: destLng });
+    console.log("🛣️ Solicitando ruta multi-punto optimizada...");
     
     directionsService.route(
       {
         origin: { lat: Number(driverLocation.lat), lng: Number(driverLocation.lng) },
-        destination: { lat: destLat, lng: destLng },
+        destination: destination,
+        waypoints: waypoints,
+        optimizeWaypoints: true, // Google optimiza el orden de las paradas
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
-          console.log("✅ Ruta calculada con éxito");
+          console.log("✅ Ruta multi-punto optimizada con éxito");
           setDirections(result);
         } else {
-          console.error(`❌ Error calculando ruta: ${status}`, result);
+          console.error(`❌ Error calculando ruta multi-punto: ${status}`);
           if (status === 'ZERO_RESULTS') {
-            toast.error("No se encontró una ruta por calle hasta el destino.");
+            toast.error("No se encontró una ruta por calle.");
           }
         }
       }
     );
-  }, [isMapLoaded, driverLocation, pedidos, expandedOrders, tutorialOrder]);
+  }, [isMapLoaded, driverLocation, pedidos, tutorialOrder]);
 
   React.useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
