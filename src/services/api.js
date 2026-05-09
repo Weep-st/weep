@@ -3992,7 +3992,7 @@ export async function updateRubroConfig(id, updates) {
 
 export async function adminGetRepartidoresDetallado() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor')
+    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor, foto_url, onesignal_id, horario_apertura, horario_cierre, dias_apertura, ultima_actividad, locales_prioridad')
     .order('created_at', { ascending: false });
   return data || [];
 }

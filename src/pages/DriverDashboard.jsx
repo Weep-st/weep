@@ -1838,8 +1838,8 @@ export default function DriverDashboard() {
               />
 
               {/* ─── BANNER DE PRÓXIMA PARADA ─── */}
-              {routeSequence.length > 0 && (
-                <div className="dd-next-stop-container">
+              <div className="dd-next-stop-container">
+                {routeSequence.length > 0 ? (
                   <div className="dd-next-stop-banner animate-slide-down">
                     <div className="next-stop-icon">🎯</div>
                     <div className="next-stop-info">
@@ -1852,8 +1852,16 @@ export default function DriverDashboard() {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="dd-next-stop-banner animate-slide-down">
+                    <div className="next-stop-icon" style={{ background: '#94a3b8' }}>🏁</div>
+                    <div className="next-stop-info">
+                      <span className="next-stop-label" style={{ color: '#64748b' }}>Estado</span>
+                      <span className="next-stop-address">Sin viajes pendientes</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* ─── CAPA SUPERIOR (Estadísticas y Locales) ─── */}
