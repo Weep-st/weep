@@ -83,6 +83,8 @@ export default function DriverDashboard() {
   const [showPWAInstructions, setShowPWAInstructions] = React.useState(false);
   const [activeLocales, setActiveLocales] = React.useState([]);
   const [loadingLocales, setLoadingLocales] = React.useState(false);
+  const [routeSequence, setRouteSequence] = React.useState([]);
+  const [dismissedBroadcasts, setDismissedBroadcasts] = React.useState({});
   const [scheduledDates, setScheduledDates] = React.useState({});
   const [expandedOrders, setExpandedOrders] = React.useState({});
   const [directions, setDirections] = React.useState(null);
@@ -158,6 +160,25 @@ export default function DriverDashboard() {
         if (status === window.google.maps.DirectionsStatus.OK) {
           console.log("✅ Ruta multi-punto optimizada con éxito");
           setDirections(result);
+          
+          // Extraer la secuencia optimizada para mostrar en la UI
+          const route = result.routes[0];
+          const sequence = [];
+          
+          // El origen es el repartidor (no lo contamos como parada)
+          // Las paradas intermedias y el destino final
+          if (route.legs.length > 0) {
+            route.legs.forEach((leg, i) => {
+              sequence.push({
+                address: leg.end_address,
+                lat: leg.end_location.lat(),
+                lng: leg.end_location.lng(),
+                distance: leg.distance.text,
+                duration: leg.duration.text
+              });
+            });
+          }
+          setRouteSequence(sequence);
         } else {
           console.error(`❌ Error calculando ruta multi-punto: ${status}`);
           if (status === 'ZERO_RESULTS') {
@@ -426,7 +447,14 @@ export default function DriverDashboard() {
     if (!driver) return;
     try {
       const res = await api.getPedidosDisponibles(driver.id);
-      if (res.success) {
+      
+      // Filtrar pedidos en curso (ya aceptados o asignados)
+      const enCurso = (res.data || []).filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
+      
+      // Si ya tiene 3 o más, solo mostramos los suyos y ocultamos el aviso de nuevos pedidos
+      if (enCurso.length >= 3) {
+        setPedidos(enCurso.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+      } else if (res.success) {
         // Enriquecer pedidos con datos del local si faltan (para evitar error 406 en join)
         const enriched = await Promise.all((res.data || []).map(async p => {
           if (['Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'].includes(p.estado) && p.local_id) {
@@ -1099,7 +1127,9 @@ export default function DriverDashboard() {
     // Si no hay pedidos en curso reales, ver si hay tutorial
     const tutorialActivo = (tutorialOrder && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(tutorialOrder.estado)) ? [tutorialOrder] : [];
     
-    const todosEnCurso = [...tutorialActivo, ...pedidosEnCurso];
+    const todosEnCurso = [...tutorialActivo, ...pedidosEnCurso].sort((a, b) => 
+      new Date(a.created_at) - new Date(b.created_at)
+    );
 
     if (todosEnCurso.length > 0) {
       return (
@@ -1121,7 +1151,11 @@ export default function DriverDashboard() {
 
             const isExpanded = expandedOrders[enViaje.id];
 
-            const diff = now - new Date(enViaje.created_at);
+            // Ajuste de Zona Horaria (+3 horas)
+            const createdDate = new Date(enViaje.created_at);
+            createdDate.setHours(createdDate.getHours() + 3); 
+            
+            const diff = now - createdDate;
             const totalSecs = Math.max(0, Math.floor(diff / 1000));
             const mins = Math.floor(totalSecs / 60);
             const secs = totalSecs % 60;
@@ -1173,17 +1207,7 @@ export default function DriverDashboard() {
                             <span className="dd-info-label">Dirección</span>
                             <span className="dd-info-value">{localDir}</span>
                           </div>
-                          {localLat && localLng && (
-                            <div style={{ marginTop: '10px' }}>
-                              <button 
-                                className="btn btn-secondary btn-sm" 
-                                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${localLat},${localLng}`, '_blank')}
-                                style={{ width: '100%', fontSize: '0.8rem', padding: '6px' }}
-                              >
-                                📍 Abrir en Google Maps (GPS)
-                              </button>
-                            </div>
-                          )}
+
                           <div className="dd-info-row">
                             <span className="dd-info-value monto">
                               {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
@@ -1216,17 +1240,7 @@ export default function DriverDashboard() {
                             <span className="dd-info-label">Dirección</span>
                             <span className="dd-info-value">{enViaje.direccion}</span>
                           </div>
-                          {enViaje.lat && enViaje.lng && (
-                            <div style={{ marginTop: '10px' }}>
-                              <button 
-                                className="btn btn-secondary btn-sm" 
-                                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${enViaje.lat},${enViaje.lng}`, '_blank')}
-                                style={{ width: '100%', fontSize: '0.8rem', padding: '6px' }}
-                              >
-                                📍 Abrir en Google Maps (GPS)
-                              </button>
-                            </div>
-                          )}
+
                           <div className="dd-info-row">
                             <span className="dd-info-value monto cobrar">
                               {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
@@ -1262,13 +1276,74 @@ export default function DriverDashboard() {
             );
           })}
 
-          {/* Mostrar pedidos disponibles adicionales abajo si hay capacidad */}
-          {renderPendientes(todosEnCurso)}
+          {/* No mostrar renderPendientes aquí, ahora es un pop-up */}
         </div>
       );
     }
 
-    return renderPendientes([]);
+    return null;
+  };
+
+  const renderBroadcastOverlay = () => {
+    // Solo mostrar si el repartidor tiene menos de 3 pedidos
+    const pedidosEnCurso = pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
+    if (pedidosEnCurso.length >= 3) return null;
+
+    const pendientesReales = pedidos.filter(p => ['Pendiente', 'Buscando Repartidor', 'Listo', 'Preparando'].includes(p.estado) && p.esBroadcast);
+    const pendientesTutorial = (tutorialOrder && tutorialOrder.estado === 'Pendiente') ? [tutorialOrder] : [];
+    const todosDisponibles = [...pendientesTutorial, ...pendientesReales]
+      .filter(p => !dismissedBroadcasts[p.id]);
+
+    if (todosDisponibles.length === 0) return null;
+
+    // Mostrar solo el más reciente (o el primero de la lista)
+    const p = todosDisponibles[0];
+    const isLento = p.nivel_rapidez === 2;
+    const isStacking = p.esStacking;
+
+    return (
+      <div className="dd-broadcast-overlay">
+        <div className={`dd-broadcast-popup animate-pop-in ${isLento ? 'lento' : ''} ${isStacking ? 'stacking' : ''}`}>
+          <div className="popup-header">
+            <div className="popup-badge">NUEVO PEDIDO DISPONIBLE</div>
+            {isStacking && <div className="stacking-tag">📍 MISMO LOCAL</div>}
+          </div>
+          
+          <div className="popup-body">
+            <div className="popup-amount">
+              <span className="amount-label">Ganancia Envío</span>
+              <span className="amount-value">${Number(p.precio_envio || 0).toLocaleString('es-AR')}</span>
+            </div>
+            
+            <div className="popup-details">
+              <div className="detail-item">
+                <span className="detail-icon">👤</span>
+                <span className="detail-text"><strong>{p.nombre_cliente}</strong></span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-icon">📍</span>
+                <span className="detail-text">{p.direccion}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="popup-footer">
+            <button 
+              className="btn-cancel" 
+              onClick={() => setDismissedBroadcasts(prev => ({ ...prev, [p.id]: true }))}
+            >
+              Cerrar
+            </button>
+            <button 
+              className="btn-accept" 
+              onClick={() => p.id.includes('PRUEBA') ? aceptarTutorial() : aceptarPedido(p)}
+            >
+              Tomar Pedido →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderPendientes = (actuales = []) => {
@@ -1835,7 +1910,36 @@ export default function DriverDashboard() {
                 localName={localInfo.nombre} 
                 isLoaded={isMapLoaded}
                 directions={directions}
+                routeSequence={routeSequence}
               />
+
+              {renderBroadcastOverlay()}
+
+              {/* ─── BANNER DE PRÓXIMA PARADA ─── */}
+              {routeSequence.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 20,
+                  width: '90%',
+                  maxWidth: '400px'
+                }}>
+                  <div className="dd-next-stop-banner animate-slide-down">
+                    <div className="next-stop-icon">🎯</div>
+                    <div className="next-stop-info">
+                      <span className="next-stop-label">Siguiente Parada</span>
+                      <span className="next-stop-address">{routeSequence[0].address}</span>
+                      <div className="next-stop-meta">
+                        <span>{routeSequence[0].distance}</span>
+                        <span className="dot">•</span>
+                        <span>{routeSequence[0].duration} aprox.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ─── CAPA SUPERIOR (Estadísticas y Locales) ─── */}

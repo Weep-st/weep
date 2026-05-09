@@ -15,7 +15,8 @@ const MapProbandoComponent = ({
   driverLng,
   localName = 'Local', 
   isLoaded,
-  directions
+  directions,
+  routeSequence = []
 }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [map, setMap] = useState(null);
@@ -37,13 +38,23 @@ const MapProbandoComponent = ({
     // Mostrar marcador del local solo si hay pedidos pendientes de retiro
     const hayPendientesDeRetiro = pedidosActivos.some(p => p.estado !== 'Retirado');
     
+    const getSequenceNumber = (lat, lng) => {
+        if (!routeSequence || routeSequence.length === 0) return null;
+        const idx = routeSequence.findIndex(s => 
+            Math.abs(s.lat - Number(lat)) < 0.0005 && 
+            Math.abs(s.lng - Number(lng)) < 0.0005
+        );
+        return idx !== -1 ? idx + 1 : null;
+    };
+
     if (localLat && localLng && isWithinSantoTome(localLat, localLng) && hayPendientesDeRetiro) {
+      const seqNum = getSequenceNumber(localLat, localLng);
       m.push({
         id: 'local',
         position: { lat: Number(localLat), lng: Number(localLng) },
         title: localName,
         label: {
-          text: localName,
+          text: seqNum ? `(${seqNum}) ${localName}` : localName,
           color: 'black',
           fontSize: '12px',
           fontWeight: '900'
@@ -55,12 +66,13 @@ const MapProbandoComponent = ({
     pedidosActivos.forEach((p, index) => {
         // Solo mostrar marcador de entrega si el pedido ya fue retirado
         if (p.estado === 'Retirado' && p.lat && p.lng && isWithinSantoTome(p.lat, p.lng)) {
+            const seqNum = getSequenceNumber(p.lat, p.lng);
             m.push({
                 id: `pedido-${p.id}`,
                 position: { lat: Number(p.lat), lng: Number(p.lng) },
                 title: p.direccion,
                 label: {
-                  text: `Entrega ${index + 1}`,
+                  text: seqNum ? `${seqNum}. Entrega` : `Entrega`,
                   color: 'black',
                   fontSize: '12px',
                   fontWeight: '900'
