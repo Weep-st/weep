@@ -143,11 +143,6 @@
      fbq('init', '1625250032028444'); 
     fbq('track', 'PageView');
     </script>
-    <noscript>
-     <img height="1" width="1" 
-    src="https://www.facebook.com/tr?id=1625250032028444&ev=PageView
-    &noscript=1"/>
-    </noscript>
     <!-- End Facebook Pixel Code -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -181,7 +176,10 @@
       });
     </script>
   </head>
-  <body>
+    <noscript>
+      <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1625250032028444&ev=PageView&noscript=1"/>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
