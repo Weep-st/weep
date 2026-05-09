@@ -821,9 +821,12 @@ export default function RestaurantDashboard() {
     setAuthLoading(true);
     try {
       await api.registerLocal(
-        fd.get('nombre'), fd.get('direccion'), email, fd.get('password'),
+        fd.get('nombre'), '', email, fd.get('password'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
-        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        'Emprendedor', // Default plan
+        null,
+        null
       );
       toast.success('¡Local registrado! Iniciá sesión.');
       setAuthEmail(email);
@@ -1582,7 +1585,6 @@ export default function RestaurantDashboard() {
               <form onSubmit={handleRegister} className="rd-auth-form">
                 <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
                 <input name="nombre" className="form-input" placeholder="Nombre del Local" required autoComplete="organization" />
-                <input name="direccion" className="form-input" placeholder="Dirección (calle, número, barrio)" required autoComplete="street-address" />
                 <div className="password-container">
                   <input 
                     name="password" 
@@ -1859,6 +1861,42 @@ export default function RestaurantDashboard() {
       </header>
 
       <main className="rd-main">
+        {restaurant && (!profileLat || !profileLng || !profileAddress) && (
+          <div className="address-warning-banner" style={{
+            background: '#fff2f0',
+            border: '1px solid #ffccc7',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '24px',
+            margin: '0 16px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            boxShadow: '0 4px 12px rgba(255, 77, 79, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '1.5rem' }}>📍</span>
+              <div style={{ flex: 1 }}>
+                <strong style={{ color: '#cf1322', display: 'block', marginBottom: '4px' }}>Ubicación no configurada</strong>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#820014', lineHeight: '1.4' }}>
+                  Tu local no tiene una dirección o ubicación exacta en el mapa. Es necesario configurarla para que los clientes puedan encontrarte.
+                </p>
+              </div>
+            </div>
+            <button 
+              className="btn btn-primary btn-full" 
+              style={{ background: '#ff4d4f', border: 'none', fontWeight: 'bold' }}
+              onClick={() => {
+                setView('profile');
+                setProfileSubView('edit');
+                setShowAddressSelector(true);
+              }}
+            >
+              Configurar dirección ahora
+            </button>
+          </div>
+        )}
+
         {restaurant && !restaurant.emailConfirmado && (
           <div className="unconfirmed-banner" style={{
             background: '#fff7e6',
@@ -3725,18 +3763,6 @@ export default function RestaurantDashboard() {
                   </form>
                 )}
                 
-                {showAddressSelector && (
-                  <AddressSelector 
-                    isLoaded={isMapLoaded}
-                    initialAddress={profileAddress}
-                    initialCoords={profileLat && profileLng ? { lat: profileLat, lng: profileLng } : null}
-                    onConfirm={handleAddressConfirm}
-                    onCancel={() => setShowAddressSelector(false)}
-                    title="Ubicación de tu Local"
-                    errorMsg="El local debe estar ubicado en Santo Tomé."
-                    limitToCity="Santo Tomé"
-                  />
-                )}
               </div>
             )}
           </section>
@@ -3761,6 +3787,16 @@ export default function RestaurantDashboard() {
       </footer>
       {renderTermsModal()}
       {renderRegretModal()}
+      {showAddressSelector && (
+        <AddressSelector 
+          isLoaded={isMapLoaded}
+          initialAddress={profileAddress}
+          initialCoords={profileLat && profileLng ? { lat: profileLat, lng: profileLng } : null}
+          onConfirm={handleAddressConfirm}
+          onCancel={() => setShowAddressSelector(false)}
+          title="Ubicación de tu Local"
+        />
+      )}
     </div>
   );
 }
