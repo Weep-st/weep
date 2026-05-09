@@ -784,7 +784,7 @@
 .dd-floating-orders-list {
   display: flex;
   flex-direction: column-reverse; /* Crecer hacia arriba */
-  gap: 12px;
+  gap: 8px; /* Reducido para mayor densidad */
   width: 100%;
 }
 
@@ -898,5 +898,30 @@
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+/* Timer Badge for Urgency */
+.dd-time-counter-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dd-time-counter-badge.urgent {
+  background: #fee2e2;
+  color: #ef4444;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 

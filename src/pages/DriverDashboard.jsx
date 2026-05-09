@@ -86,6 +86,12 @@ export default function DriverDashboard() {
   const [scheduledDates, setScheduledDates] = React.useState({});
   const [expandedOrders, setExpandedOrders] = React.useState({});
   const [directions, setDirections] = React.useState(null);
+  const [now, setNow] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleOrderExpand = (orderId) => {
     setExpandedOrders(prev => ({
@@ -1115,18 +1121,30 @@ export default function DriverDashboard() {
 
             const isExpanded = expandedOrders[enViaje.id];
 
+            const diff = now - new Date(enViaje.created_at);
+            const totalSecs = Math.max(0, Math.floor(diff / 1000));
+            const mins = Math.floor(totalSecs / 60);
+            const secs = totalSecs % 60;
+            const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+            const isUrgent = mins >= 15; // Urgente a los 15 min
+
             return (
-              <div key={enViaje.id} className={`dd-simple-card animate-slide-up ${isLento ? 'lento-card' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`} style={{ marginBottom: '1rem', borderLeft: isLento ? '6px solid #f97316' : '6px solid #22c55e', background: 'white', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }}>
+              <div key={enViaje.id} className={`dd-simple-card animate-slide-up ${isLento ? 'lento-card' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`} style={{ borderLeft: isLento ? '6px solid #f97316' : '6px solid #22c55e' }}>
                 <div className="dd-simple-header" onClick={() => toggleOrderExpand(enViaje.id)} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h4 style={{ margin: 0 }}>Pedido #{enViaje.id.split('-').pop()}</h4>
-                    <span style={{ fontSize: '0.65rem', color: isLento ? '#ffe8cc' : '#dcfce7', fontWeight: 'bold' }}>
-                      {isLento ? '🍳 PREPARACIÓN LENTA' : '⚡ ENTREGA RÁPIDA'}
-                    </span>
+                    <h4 style={{ margin: 0, fontSize: '1rem' }}>Pedido #{enViaje.id.split('-').pop()}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      <span className={`dd-time-counter-badge ${isUrgent ? 'urgent' : ''}`}>
+                        ⏱️ {timeStr}
+                      </span>
+                      <span style={{ fontSize: '0.6rem', color: '#999', fontWeight: 'bold' }}>
+                        {isLento ? '🍳 LENTO' : '⚡ RÁPIDO'}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div className={`dd-status-badge ${enViaje.estado === 'Pendiente de Pago' ? 'pulse-orange' : ''}`}>
-                      {enViaje.estado === 'Pendiente de Pago' ? 'Esperando Pago' : enViaje.estado}
+                    <div className={`dd-status-badge ${enViaje.estado === 'Pendiente de Pago' ? 'pulse-orange' : ''}`} style={{ fontSize: '0.7rem' }}>
+                      {enViaje.estado === 'Pendiente de Pago' ? 'Pago' : enViaje.estado}
                     </div>
                     <span style={{ fontSize: '1.2rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
                   </div>
@@ -1925,15 +1943,15 @@ export default function DriverDashboard() {
             {/* ─── CAPA INFERIOR (Pedidos Flotantes) ─── */}
             <div style={{ 
               position: 'absolute', 
-              bottom: 0, 
+              bottom: '20px', // Subido para evitar cortes en celulares
               left: 0, 
               right: 0, 
               zIndex: 10, 
-              maxHeight: '45%', // Reducido para liberar espacio central del mapa
+              maxHeight: '48%', 
               overflowY: 'auto', 
               overflowX: 'hidden', 
               padding: '10px 16px',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 100%)',
               pointerEvents: 'none',
               scrollbarWidth: 'none'
             }}>
