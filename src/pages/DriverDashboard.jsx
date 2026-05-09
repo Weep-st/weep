@@ -1245,34 +1245,63 @@ export default function DriverDashboard() {
           {pendientes.map(p => {
             const isLento = p.nivel_rapidez === 2;
             const isStacking = p.esStacking;
+            const isExpanded = expandedOrders[p.id];
 
             return (
-              <div className={`dd-order-card broadcast-card ${isLento ? 'lento-card' : ''} ${isStacking ? 'stacking-card' : ''}`} key={p.id} style={{ borderTop: isStacking ? '6px solid #6366f1' : 'none' }}>
-                <div className="dd-order-head">
+              <div 
+                key={p.id} 
+                className={`dd-simple-card broadcast-card animate-slide-up ${isLento ? 'lento-card' : ''} ${isStacking ? 'stacking-card' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`} 
+                style={{ 
+                  borderTop: isStacking ? '6px solid #6366f1' : 'none',
+                  background: 'white',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                  marginBottom: '1rem'
+                }}
+              >
+                <div className="dd-simple-header" onClick={() => toggleOrderExpand(p.id)} style={{ cursor: 'pointer', background: isStacking ? '#6366f1' : (isLento ? '#f97316' : '#22c55e') }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h5>Pedido #{p.id.split('-').pop()}</h5>
-                    {isStacking && <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 'bold' }}>📍 ¡MISMO LOCAL!</span>}
+                    <h4 style={{ margin: 0 }}>Pedido #{p.id.split('-').pop()}</h4>
+                    <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>
+                      {isLento ? '🍳 PREPARACIÓN LENTA' : '⚡ ENTREGA RÁPIDA'}
+                    </span>
                   </div>
-                  <span className={`dd-badge ${isLento ? 'bg-lento' : 'bg-broadcast'}`}>
-                    {isLento ? 'LENTO 🍳' : 'RÁPIDO ⚡'}
-                  </span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                      ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
+                    </div>
+                    <span style={{ fontSize: '1.2rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                  </div>
                 </div>
-                <div className="dd-order-amount">
-                  <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)' }}>Ganancia Envío</small>
-                  ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
-                </div>
-                <div className="dd-order-info">
-                  <p>👤 <strong>Cliente:</strong> {p.nombre_cliente}</p>
-                  <p>📍 <strong>Destino:</strong> {p.direccion}</p>
-                </div>
-                <div className="dd-order-actions">
-                  <button 
-                    className={isStacking ? "dd-btn-stacking" : (isLento ? "dd-btn-lento" : "dd-btn-broadcast")}
-                    onClick={() => p.id.includes('PRUEBA') ? aceptarTutorial() : aceptarPedido(p)}
-                  >
-                    {isStacking ? 'Tomar para este local' : 'Tomar Viaje →'}
-                  </button>
-                </div>
+
+                {isExpanded && (
+                  <div className="dd-simple-body animate-fade-in">
+                    <div className="dd-order-amount" style={{ marginBottom: '15px' }}>
+                      <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)' }}>Ganancia Envío</small>
+                      <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#15803d' }}>
+                        ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
+                      </span>
+                    </div>
+                    <div className="dd-info-block">
+                      <div className="dd-info-row">
+                        <span className="dd-info-label">Cliente</span>
+                        <span className="dd-info-value">{p.nombre_cliente}</span>
+                      </div>
+                      <div className="dd-info-row">
+                        <span className="dd-info-label">Destino</span>
+                        <span className="dd-info-value">{p.direccion}</span>
+                      </div>
+                    </div>
+                    <div className="dd-order-actions">
+                      <button 
+                        className={isStacking ? "dd-btn-stacking" : (isLento ? "dd-btn-lento" : "dd-btn-broadcast")}
+                        onClick={() => p.id.includes('PRUEBA') ? aceptarTutorial() : aceptarPedido(p)}
+                        style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                      >
+                        {isStacking ? 'Tomar para este local' : 'Tomar Viaje →'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
