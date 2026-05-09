@@ -173,19 +173,18 @@ export default function DriverDashboard() {
     if (isActive && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
-          console.log("📍 Ubicación actualizada:", position.coords.latitude, position.coords.longitude);
+          console.log("📍 Ubicación actualizada:", position.coords.latitude, position.coords.longitude, "Precisión:", position.coords.accuracy);
           setDriverLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
         },
         (error) => {
-          console.error("❌ Error en GPS:", error);
-          if (error.code === 1) toast.error("Permiso de ubicación denegado. Activa el GPS.");
+          console.error("❌ Error en GPS Watcher:", error);
         },
         {
           enableHighAccuracy: true,
-          timeout: 5000,
+          timeout: 10000,
           maximumAge: 0
         }
       );
@@ -195,6 +194,30 @@ export default function DriverDashboard() {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     };
   }, [isActive]);
+
+  const iniciarGPS = () => {
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no soporta GPS.');
+      return;
+    }
+    
+    toast.loading('Obteniendo ubicación exacta...', { id: 'gps-load' });
+    
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        toast.success('GPS Calibrado', { id: 'gps-load' });
+        console.log("🎯 GPS Manual:", pos.coords.latitude, pos.coords.longitude, "Acc:", pos.coords.accuracy);
+        setDriverLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        });
+      },
+      (err) => {
+        toast.error('Error: ' + err.message, { id: 'gps-load' });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
 
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
@@ -780,31 +803,7 @@ export default function DriverDashboard() {
     toast.success('Sesión cerrada');
   };
 
-  const iniciarGPS = () => {
-    if ('geolocation' in navigator) {
-      toast.loading('Iniciando GPS...', { id: 'gps-init' });
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setDriverLocation({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude
-          });
-          toast.success('GPS activado correctamente', { id: 'gps-init' });
-        },
-        (err) => {
-          console.error("GPS Error:", err);
-          let msg = 'No se pudo activar GPS';
-          if (err.code === 1) msg = 'Permiso de ubicación denegado';
-          else if (err.code === 2) msg = 'Ubicación no disponible';
-          else if (err.code === 3) msg = 'Tiempo de espera agotado';
-          toast.error(msg, { id: 'gps-init' });
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    } else {
-      toast.error('Tu navegador no soporta GPS');
-    }
-  };
+
 
   // ─── PEDIDO ACTIONS ───
   const aceptarPedido = async (pedido) => {
@@ -1889,21 +1888,23 @@ export default function DriverDashboard() {
                   onClick={iniciarGPS} 
                   style={{ 
                     pointerEvents: 'auto',
-                    background: 'rgba(255,255,255,0.9)', 
-                    backdropFilter: 'blur(5px)',
-                    border: '1px solid rgba(255,255,255,0.3)',
+                    background: 'rgba(255,255,255,0.95)', 
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(225,29,72,0.2)',
                     borderRadius: '50px',
-                    padding: '8px 16px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
+                    padding: '10px 18px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
                     color: 'var(--red-600)',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px',
+                    transition: 'all 0.2s'
                   }}
+                  className="animate-pulse"
                 >
-                  GPS
+                  <span style={{ fontSize: '1.1rem' }}>🎯</span> GPS
                 </button>
               </div>
             </div>
