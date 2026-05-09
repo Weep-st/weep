@@ -1913,8 +1913,6 @@ export default function DriverDashboard() {
                 routeSequence={routeSequence}
               />
 
-              {renderBroadcastOverlay()}
-
               {/* ─── BANNER DE PRÓXIMA PARADA ─── */}
               {routeSequence.length > 0 && (
                 <div style={{
@@ -1955,9 +1953,20 @@ export default function DriverDashboard() {
                 border: '1px solid rgba(0,0,0,0.05)'
               }}>
                 <div className="dd-stats-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showStats ? 12 : 0 }}>
-                   <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
-                     Hola, <span>{driverData?.Nombre?.split(' ')[0] || '...'}</span>
-                   </h3>
+                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
+                      Hola, <span>{driverData?.Nombre?.split(' ')[0] || '...'}</span>
+                      <span style={{ 
+                        fontSize: '0.65rem', 
+                        background: 'var(--red-100)', 
+                        color: 'var(--red-600)', 
+                        padding: '2px 8px', 
+                        borderRadius: '50px',
+                        fontWeight: '800',
+                        marginLeft: '4px'
+                      }}>
+                        {pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado)).length} pedidos pendientes
+                      </span>
+                    </h3>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button onClick={() => setShowStats(!showStats)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--red-600)', display: 'flex', alignItems: 'center' }}>
                         {showStats ? '▴' : '▾'}
@@ -2104,7 +2113,9 @@ export default function DriverDashboard() {
                   </div>
                 )}
               </div>
+
             </div>
+            {renderBroadcastOverlay()}
           </div>
         )}
       </main>
