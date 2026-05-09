@@ -1197,7 +1197,18 @@ export default function DriverDashboard() {
                       <div className="dd-info-block">
                         <div className="dd-info-row">
                           <span className="dd-info-label">Cliente</span>
-                          <span className="dd-info-value">{enViaje.nombre_cliente || 'Cliente'}</span>
+                          <span className="dd-info-value" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            {enViaje.nombre_cliente || 'Cliente'}
+                            {enViaje.telefono_cliente && (
+                              <button 
+                                className="btn btn-sm btn-success"
+                                onClick={() => window.open(`https://wa.me/${enViaje.telefono_cliente.replace(/\D/g, '')}`, '_blank')}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#25D366', border: 'none', color: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                              >
+                                💬 WhatsApp
+                              </button>
+                            )}
+                          </span>
                         </div>
                         <div className="dd-info-row">
                           <span className="dd-info-label">Dirección</span>

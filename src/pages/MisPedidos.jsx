@@ -247,6 +247,7 @@ export default function MisPedidos() {
       'En camino': 'badge-green',
       'Entregado': 'badge-success',
       'Rechazado': 'badge-danger',
+      'Cancelado': 'badge-danger',
     };
     return map[estado] || 'badge-default';
   };

@@ -1163,7 +1163,18 @@ export default function DriverProbando() {
               {isRetirado && (
                 <div style={{ marginBottom: '6px' }}>
                    <strong style={{ color: 'var(--gray-500)', fontSize: '0.7rem', display: 'block', textTransform: 'uppercase' }}>Cliente</strong>
-                   <p style={{ margin: 0 }}>{pedido.nombre_cliente || 'Sin nombre'}</p>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <p style={{ margin: 0 }}>{pedido.nombre_cliente || 'Sin nombre'}</p>
+                     {pedido.telefono_cliente && (
+                        <button 
+                          className="btn btn-sm btn-success"
+                          onClick={() => window.open(`https://wa.me/${pedido.telefono_cliente.replace(/\D/g, '')}`, '_blank')}
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#25D366', border: 'none', color: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                        >
+                          💬 WhatsApp
+                        </button>
+                      )}
+                   </div>
                 </div>
               )}
 
