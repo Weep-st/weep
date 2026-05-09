@@ -484,7 +484,8 @@ export async function getLocales() {
   const { data } = await supabase.from('locales')
     .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios')
     .eq('admin_status', 'Aceptado');
-  return (data || []).map(l => ({
+    
+  const baseLocales = (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
     estado: l.estado, direccion: l.direccion,
     horario_apertura: l.horario_apertura, horario_cierre: l.horario_cierre,
@@ -502,6 +503,43 @@ export async function getLocales() {
     slug: l.slug,
     config_horarios: l.config_horarios || {}
   }));
+
+  return enrichLocalesWithMinPrices(baseLocales, 'id');
+}
+
+/**
+ * Helper to add the absolute minimum price of the menu to each local
+ */
+async function enrichLocalesWithMinPrices(locales, idKey = 'id') {
+  if (!locales || locales.length === 0) return [];
+  
+  const ids = locales.map(l => l[idKey]);
+  
+  // Fetch min prices for all products (excluding 'Base' category)
+  const { data: menuData } = await supabase
+    .from('menu')
+    .select('local_id, precio')
+    .in('local_id', ids)
+    .eq('disponibilidad', true)
+    .neq('categoria', 'Base');
+
+  const minPrices = {};
+  (menuData || []).forEach(item => {
+    const lid = item.local_id;
+    if (!minPrices[lid] || Number(item.precio) < minPrices[lid]) {
+      minPrices[lid] = Number(item.precio);
+    }
+  });
+
+  return locales.map(l => {
+    const lid = l[idKey];
+    const min = minPrices[lid] || 0;
+    return {
+      ...l,
+      precio_min: min,
+      precio_min_categoria: min // Keep compatibility with existing UI fields
+    };
+  });
 }
 
 export async function getLocalBySlug(slug) {
@@ -1387,7 +1425,7 @@ export async function getLocalesByRubro(rubro) {
     .or(`rubro.eq.${rubro},rubros.cs.{${rubro}}`)
     .eq('admin_status', 'Aceptado');
 
-  return (data || []).map(l => ({
+  const baseLocales = (data || []).map(l => ({
     local_id: l.id,
     nombre_local: l.nombre,
     logo_url: l.foto_url || '',
@@ -1409,6 +1447,8 @@ export async function getLocalesByRubro(rubro) {
     rubros: l.rubros || [],
     config_horarios: l.config_horarios || {}
   }));
+
+  return enrichLocalesWithMinPrices(baseLocales, 'local_id');
 }
 
 export async function getLocalesByCategoria(categoria) {
@@ -1453,7 +1493,7 @@ export async function getLocalesByCategoria(categoria) {
       }
     }
   }
-  return Object.values(groupedMap);
+  return enrichLocalesWithMinPrices(Object.values(groupedMap), 'local_id');
 }
 
 // ═══════════════════════════════════════════════════

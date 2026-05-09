@@ -2261,7 +2261,7 @@ export default function PruebasWalletApp() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                                   <span className="cat">{local.rubro}</span>
                                 </div>
-                                <span className="precio-min">desde ${local.precio_min || '10'}</span>
+                                <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
                               </div>
                             ) : (
                               <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
