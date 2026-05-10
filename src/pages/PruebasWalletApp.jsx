@@ -353,26 +353,17 @@ export default function PruebasWalletApp() {
     
     let result;
     if (method === 'transferencia') {
-      const wepi_income = E + net_commission;
-      
-      // La comision interna de mp solo debe cubrir la comision de la plataforma
-      // Usamos un rate de 10% para cubrir impuestos internos y evitar rupturas
-      const MP_SAFE_RATE = 0.10;
-      const surcharge = wepi_income * MP_SAFE_RATE / (1 - MP_SAFE_RATE);
-      const total_paid = total_net + surcharge;
-      
-      // Solo a la plataforma debe llegar el neto (incluimos el recargo en la marketplace_fee)
-      const marketplace_fee = wepi_income + surcharge;
+      const marketplace_fee = E + net_commission;
 
       result = {
-        total: Math.round(total_paid),
+        total: Math.round(total_net),
         product_total: P,
         delivery_fee: E,
         commission: Math.round(net_commission),
-        mp_fee: Math.round(surcharge),
-        merchant_payout: Math.round(total_paid - marketplace_fee),
+        mp_fee: 0,
+        merchant_payout: Math.round(total_net - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(wepi_income)
+        platform_net: Math.round(E + net_commission)
       };
     } else {
       // Default (Efectivo)

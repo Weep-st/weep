@@ -805,27 +805,18 @@ export default function PruebasApp() {
     const total_net = discountedP + E;
 
     if (method === 'transferencia') {
-      const weep_income = E + net_commission;
-      
-      // El cliente paga un recargo calculado SOLO sobre la parte de Wepi
-      const surcharge = weep_income * MP_FEE_RATE / (1 - MP_FEE_RATE);
-      const total_paid = total_net + surcharge;
-      
-      // El recargo ya está en el total (unit_price). Para capturarlo correctamente sin sobrecompensar
-      // debido a cómo MP calcula el split, usamos un factor de ajuste (ej: 0.85).
-      const FEE_ADJUSTMENT_FACTOR = 0.85; 
-      const marketplace_fee = weep_income + (surcharge * FEE_ADJUSTMENT_FACTOR);
+      const marketplace_fee = E + net_commission;
 
       return {
-        total: Math.round(total_paid),
+        total: Math.round(total_net),
         product_total: discountedP,
         delivery_fee: E,
         coupon_discount: Math.round(couponDiscount),
         commission: Math.round(net_commission),
-        mp_fee: Math.round(surcharge),
-        merchant_payout: Math.round(total_paid - marketplace_fee),
+        mp_fee: 0,
+        merchant_payout: Math.round(total_net - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(weep_income)
+        platform_net: Math.round(E + net_commission)
       };
     }
 
