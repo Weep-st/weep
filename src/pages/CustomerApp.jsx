@@ -1729,7 +1729,7 @@ export default function CustomerApp() {
                   <span>{cart.deliveryType === 'retiro' ? 'Subtotal valor pedido' : 'Subtotal'}</span>
                   <span>${cart.subtotal.toLocaleString('es-AR')}</span>
                 </div>
-                {cart.deliveryType !== 'retiro' && metodoPago !== 'transferencia' && (
+                {cart.deliveryType !== 'retiro' && (
                   <div className="cart-line">
                     <span>
                       Envío
@@ -1744,8 +1744,8 @@ export default function CustomerApp() {
                 )}
                 {visibleMpFee > 0 && (
                   <div className="cart-line comision-line">
-                    <span>{metodoPago === 'transferencia' ? 'Gestión (Envío + Operación)' : 'Gestión de pago'}</span>
-                    <span>+${(metodoPago === 'transferencia' && cart.deliveryType !== 'retiro' ? (visibleMpFee + visibleShipping) : visibleMpFee).toLocaleString('es-AR')}</span>
+                    <span>Gestión de pago</span>
+                    <span>+${visibleMpFee.toLocaleString('es-AR')}</span>
                   </div>
                 )}
                 <div className="cart-line total-line">
