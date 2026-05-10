@@ -3545,6 +3545,12 @@ export async function broadcastOrderToDrivers(pedidoId, total, localId = null, p
       finalPrecioEnvio = pData?.precio_envio || 0;
     }
 
+    let nombreLocal = '';
+    if (localId) {
+      const { data: lData } = await supabase.from('locales').select('nombre').eq('id', localId).single();
+      if (lData?.nombre) nombreLocal = lData.nombre;
+    }
+
     const { data: drivers } = await supabase
       .from('repartidores')
       .select('onesignal_id, locales_prioridad')
@@ -3563,10 +3569,14 @@ export async function broadcastOrderToDrivers(pedidoId, total, localId = null, p
       const ids = recipients.map(d => d.onesignal_id).filter(Boolean);
       if (ids.length === 0) return;
       
+      const message = nombreLocal 
+        ? `¡Nuevo pedido en ${nombreLocal}! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`
+        : `¡Nuevo pedido! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`;
+
       return await sendPushNotification({
         subscriptionIds: ids,
         title: '¡Nuevo Pedido Disponible! 🛵',
-        message: `¡Nuevo pedido! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`,
+        message: message,
         url: 'https://wepi.com.ar/repartidores',
         data: { pedidoId, type: 'new_order_broadcast' }
       });
