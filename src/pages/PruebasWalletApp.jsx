@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
 import HelpChatbot from '../components/HelpChatbot';
 import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
+import { evaluatePromotions } from '../utils/promoEngine';
 import './PruebasWalletApp.css';
 
 export default function PruebasWalletApp() {
@@ -72,7 +73,9 @@ export default function PruebasWalletApp() {
   const [banners, setBanners] = React.useState([]);
   const [bannersLoading, setBannersLoading] = React.useState(true);
   const [promoItems, setPromoItems] = React.useState([]);
+  const [allPromotions, setAllPromotions] = React.useState([]);
   const [loadingPromos, setLoadingPromos] = React.useState(false);
+  const [walletDetailsOpen, setWalletDetailsOpen] = React.useState(false);
 
   // Home Optimization States
   const [homeLayout, setHomeLayout] = React.useState({
@@ -99,11 +102,14 @@ export default function PruebasWalletApp() {
 
   // Wallet States
   const [walletBalance, setWalletBalance] = React.useState(null);
+  const [walletBreakdown, setWalletBreakdown] = React.useState([]);
   const [useWallet, setUseWallet] = React.useState(false);
   const [walletConfig, setWalletConfig] = React.useState(null);
   const [allWalletConfigs, setAllWalletConfigs] = React.useState({});
   const [loadingConfig, setLoadingConfig] = React.useState(false);
   const [localCommission, setLocalCommission] = React.useState(0.15); // Default 15% (Despegue)
+  const [userPromoUsage, setUserPromoUsage] = React.useState({});
+  const [refreshingWallet, setRefreshingWallet] = React.useState(false);
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -267,214 +273,260 @@ export default function PruebasWalletApp() {
 
   const calculateDiscountedPrice = React.useCallback((item) => {
     if (!item) return 0;
-    let price = Number(item.precio);
+    let basePrice = Number(item.precio);
+    let finalPrice = basePrice;
     
-    // 1. Item Discount (%) - Takes precedence
-    if (item.descuento > 0) {
-      price = price * (1 - Number(item.descuento) / 100);
-    } else {
-      // 2. General Local Discount (Percentage)
-      const discountDays = item.local_dias_descuento || item.dias_descuento || [];
-      const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
-      const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
-      
-      if (generalDiscount > 0 && discountDays.length > 0) {
-        const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-        const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        const todayNorm = normalize(today);
-        
-        const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
-        const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+    // 1. Evaluar Promociones Unificadas (Engine)
+    // Filtramos promos de tipo 'diario', 'cupon', 'combo' que apliquen directamente al precio
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: basePrice, 
+        items: [{ ...item, cantidad: 1, qty: 1 }],
+        metodoPago: metodoPago // Inyectar método actual
+      },
+      user,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: item.local_id
+    });
 
-        if (isCorrectDay && isCorrectCategory) {
-          price = price * (1 - generalDiscount / 100);
+    if (promoResults.discountTotal > 0) {
+      finalPrice = basePrice - promoResults.discountTotal;
+    } else {
+      // 2. Fallback: Lógica Antigua (Descuento estático en tabla menu o local)
+      if (item.descuento > 0) {
+        finalPrice = basePrice * (1 - Number(item.descuento) / 100);
+      } else {
+        const discountDays = item.local_dias_descuento || item.dias_descuento || [];
+        const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+        const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
+        
+        if (generalDiscount > 0 && discountDays.length > 0) {
+          const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+          const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const todayNorm = normalize(today);
+          
+          const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+          const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+
+          if (isCorrectDay && isCorrectCategory) {
+            finalPrice = basePrice * (1 - generalDiscount / 100);
+          }
         }
       }
     }
     
-    return Math.round(price);
-  }, []);
+    return Math.round(finalPrice);
+  }, [allPromotions, user, userPromoUsage]);
 
   const renderCreditBadge = React.useCallback((item, isPremium = false) => {
     if (!item) return null;
-    const lid = item.local_id;
-    const cfg = allWalletConfigs[lid] || allWalletConfigs['global'];
+    const localId = item.local_id || item.id || selectedLocal?.id;
     
-    if (!cfg || !cfg.activo || Number(cfg.porcentaje_ganancia) <= 0) return null;
-    
-    const price = calculateDiscountedPrice(item);
-    const minToEarn = Number(cfg.compra_minima_generar || 0);
-    
-    if (price < minToEarn) return null;
-    
-    let earned = Math.round(price * (Number(cfg.porcentaje_ganancia) / 100));
-    const maxEarn = cfg.tope_maximo_ganancia ? Number(cfg.tope_maximo_ganancia) : null;
-    
-    if (maxEarn !== null && earned > maxEarn) {
-      earned = maxEarn;
-    }
-    
-    if (earned <= 0) return null;
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: calculateDiscountedPrice(item),
+        metodoPago: metodoPago 
+      },
+      user,
+      orderCount,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: localId
+    });
+
+    if (promoResults.potentialCashback <= 0) return null;
+
+    const earned = promoResults.potentialCashback;
+    const promoCredito = promoResults.appliedPromos.find(p => p.tipo === 'credito');
+    const isFirstOrderPromo = promoCredito?.triggers?.primera_compra === true;
     
     if (isPremium) {
-      const isLocalRestricted = cfg.uso_local_exclusivo === true;
+      const isLocalRestricted = promoCredito?.requisitos?.uso_local_exclusivo === true;
       const localName = item.local_nombre || selectedLocal?.nombre || '';
       const locationText = isLocalRestricted ? ` en ${localName}` : '';
+      const orderText = isFirstOrderPromo ? 'en tu 1er pedido' : 'para tu proxima compra';
       
       return (
         <div className="credit-earn-label animate-fade-in" style={{ fontSize: '0.7rem', opacity: 0.9, marginTop: '-2px', marginBottom: '4px' }}>
-          Ganás ${earned.toLocaleString()} de credito para tu proxima compra{locationText}
+          Ganás ${earned.toLocaleString()} de credito {orderText}{locationText}
         </div>
       );
     }
 
+    // Texto simplificado para Home
+    const homeLabel = isFirstOrderPromo 
+      ? `+$${earned.toLocaleString()} en 1er pedido` 
+      : `Ganás $${earned.toLocaleString()}`;
+
     return (
       <div className="credit-earn-label animate-fade-in">
-        Ganás ${earned.toLocaleString()}
+        {homeLabel}
       </div>
     );
-  }, [allWalletConfigs, calculateDiscountedPrice, selectedLocal]);
+  }, [allPromotions, calculateDiscountedPrice, selectedLocal, user, userPromoUsage]);
   
   const doesItemEarnCredit = React.useCallback((item) => {
     if (!item) return false;
-    const lid = item.local_id;
-    const cfg = allWalletConfigs[lid] || allWalletConfigs['global'];
-    if (!cfg || !cfg.activo || Number(cfg.porcentaje_ganancia) <= 0) return false;
-    const price = calculateDiscountedPrice(item);
-    const minToEarn = Number(cfg.compra_minima_generar || 0);
-    return price >= minToEarn;
-  }, [allWalletConfigs, calculateDiscountedPrice]);
+    const localId = item.local_id || item.id || selectedLocal?.id;
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: calculateDiscountedPrice(item),
+        metodoPago: metodoPago 
+      },
+      user,
+      orderCount,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: localId
+    });
+    return promoResults.potentialCashback > 0;
+  }, [allPromotions, calculateDiscountedPrice, selectedLocal, user, userPromoUsage]);
 
 
   const calculateCheckoutTotals = React.useCallback((P, E, method) => {
-    const net_commission = P * localCommission;
-    const net_local = P - net_commission;
-    const total_net = P + E;
+    // 1. Evaluar Promociones Unificadas
+    const localId = cart.items.length > 0 ? cart.items[0].local_id : null;
+    
+    // IMPORTANTE: Crear una versión del carrito con precios ORIGINALES para el motor
+    const grossItems = cart.items.map(i => ({
+      ...i,
+      precio: Number(i.precioOriginal || i.precio)
+    }));
+    
+    const grossP = grossItems.reduce((sum, i) => sum + (i.precio * i.qty), 0);
+
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: grossP, // Base bruta
+        deliveryFee: E, 
+        items: grossItems, // Items con precios originales
+        metodoPago: method // El método elegido en el selector
+      },
+      user,
+      orderCount,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: localId
+    });
+
+    // Aplicar descuentos de promos al subtotal bruto y envío
+    const discountedP = Math.max(0, grossP - (promoResults.discountTotal || 0));
+    const discountedE = promoResults.freeShipping ? 0 : Math.max(0, E - (promoResults.shippingDiscount || 0));
+
+    const net_commission = discountedP * localCommission;
+    const net_local = discountedP - net_commission;
+    const total_net = discountedP + discountedE;
     
     let result;
     if (method === 'transferencia') {
-      const marketplace_fee = E + net_commission;
-
+      const marketplace_fee = discountedE + net_commission;
       result = {
         total: Math.round(total_net),
         product_total: P,
+        discounted_product_total: discountedP,
         delivery_fee: E,
+        discounted_delivery_fee: discountedE,
         commission: Math.round(net_commission),
         mp_fee: 0,
         merchant_payout: Math.round(total_net - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(E + net_commission)
+        platform_net: Math.round(discountedE + net_commission),
+        appliedPromos: promoResults.appliedPromos
       };
     } else {
       // Default (Efectivo)
       result = {
-        total: Math.round(P + E),
+        total: Math.round(discountedP + discountedE),
         product_total: P,
+        discounted_product_total: discountedP,
         delivery_fee: E,
+        discounted_delivery_fee: discountedE,
         commission: Math.round(net_commission),
         mp_fee: 0,
         merchant_payout: Math.round(net_local),
         platform_gross: 0,
-        platform_net: Math.round(net_commission + E)
+        platform_net: Math.round(net_commission + discountedE),
+        appliedPromos: promoResults.appliedPromos
       };
     }
 
-    // Validation result for UI
+    // 2. Validación de uso de Billetera (Soberanía de Promo Admin)
     let walletValidation = { canUse: true, reason: null };
+    let maxDiscount = 0;
 
-    // Apply Wallet Discount
     if (walletBalance > 0) {
-      let maxDiscount = walletBalance;
-      
-      // Respetar configuración de uso
-      if (walletConfig) {
-        // Valida compra mínima para uso
-        if (P < (walletConfig.compra_minima_uso || 0)) {
-           walletValidation = { 
-             canUse: false, 
-             reason: `Compra mínima de $${walletConfig.compra_minima_uso.toLocaleString()} para usar crédito` 
-           };
-           maxDiscount = 0;
-        } 
+      // Determinar si es primer pedido para el filtrado de promo de uso
+      const hasOrdered = user?.ya_realizo_pedidos === true || user?.ya_realizo_pedidos === 'true' || user?.ya_realizo_pedidos === 1 || user?.ya_realizo_pedidos === '1' || user?.ya_realizo_pedidos === 'TRUE' || (orderCount > 0);
+      const isFirstOrder = !user || !user.id || !hasOrdered;
+
+      // Buscar la configuración maestra (Promo Activa de Crédito que aplique al usuario)
+      const creditPromo = allPromotions.find(p => {
+        if (p.tipo !== 'credito' || !p.activo) return false;
+        const triggers = p.triggers || {};
+        const requisitos = p.requisitos || {};
         
-        // Validar si es acumulable con promociones
-        if (walletValidation.canUse && walletConfig.acumulable_promos === false) {
-           const hasPromos = cart.items.some(i => {
-             const hasDirectDiscount = Number(i.descuento) > 0;
-             const generalDiscount = Number(i.local_descuento_general || i.descuento_general || 0);
-             const discountDays = i.local_dias_descuento || i.dias_descuento || [];
-             const categoryDiscount = i.local_categoria_descuento || i.categoria_descuento || '';
-             const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
-             const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-             const isCorrectDay = discountDays.some(d => normalize(d) === normalize(today));
-             const isCorrectCategory = !categoryDiscount || categoryDiscount === i.categoria;
-             const hasGeneralDiscountApplied = generalDiscount > 0 && isCorrectDay && isCorrectCategory;
-             const isDiscounted = i.precio_original && Number(i.precio) < Number(i.precio_original);
-             return hasDirectDiscount || hasGeneralDiscountApplied || isDiscounted;
-           });
-           
-           if (hasPromos) {
-             walletValidation = { 
-               canUse: false, 
-               reason: "No acumulable con otros descuentos o promociones" 
-             };
-             maxDiscount = 0;
-           }
-        }
-
-        if (walletValidation.canUse) {
-           // Tope 1: % máximo del saldo disponible
-           const percSaldo = walletConfig.porcentaje_maximo_uso_saldo || 100;
-           maxDiscount = Math.min(maxDiscount, Math.round(walletBalance * (percSaldo / 100)));
-
-           // Tope 2: % máximo del total del pedido
-           const percPedido = walletConfig.max_porcentaje_pedido || 100;
-           maxDiscount = Math.min(maxDiscount, Math.round(result.total * (percPedido / 100)));
-
-           // Validar uso mínimo de crédito
-           if (maxDiscount < (walletConfig.uso_minimo_credito || 0)) {
-             walletValidation = { 
-               canUse: false, 
-               reason: `Uso mínimo de crédito: $${walletConfig.uso_minimo_credito.toLocaleString()}` 
-             };
-             maxDiscount = 0;
-           }
-        }
-      }
-
-      if (useWallet && walletValidation.canUse) {
-        const discount = Math.min(result.total, maxDiscount);
-        result.total -= discount;
-        result.walletDiscount = discount;
-      }
+        // Validar Primera Compra
+        if (triggers.primera_compra === true && !isFirstOrder) return false;
+        
+        // Validar Método de Pago (Triggers)
+        if (triggers.metodo_pago && triggers.metodo_pago !== 'todos' && method && method !== triggers.metodo_pago) return false;
+        
+        // Validar Método de Pago (Requisitos)
+        if (requisitos.metodo_pago && requisitos.metodo_pago !== 'todos' && method && method !== requisitos.metodo_pago) return false;
+        
+        return true;
+      });
       
-      result.maxAvailableDiscount = maxDiscount;
+      // Combinar requisitos: Prioridad Promo > Local Config > Global Config
+      const currentLocalId = cart.items.length > 0 ? cart.items[0].local_id : null;
+      const localConfig = allWalletConfigs[currentLocalId] || allWalletConfigs['global'] || {};
+      
+      const config = creditPromo 
+        ? { ...localConfig, ...creditPromo.requisitos } // La promo sobreescribe al config
+        : localConfig;
+
+      // 1. Compra Mínima
+      const minUso = Number(config.min_compra_uso || config.compra_minima_uso || 0);
+      if (discountedP < minUso) {
+        walletValidation = {
+          canUse: false,
+          reason: `Compra mínima de $${minUso.toLocaleString()} para usar crédito`
+        };
+        maxDiscount = 0;
+      } else {
+        // 2. Si califica, aplicamos los topes de sostenibilidad
+        maxDiscount = walletBalance;
+
+        // Tope % (max_porcentaje_uso o max_porcentaje_pedido)
+        const perc = Number(config.max_porcentaje_uso || config.max_porcentaje_pedido || 100);
+        if (perc < 100) {
+          maxDiscount = Math.min(maxDiscount, Math.round(discountedP * (perc / 100)));
+        }
+
+        // Tope Monto ($)
+        const topeValue = Number(config.tope_max_descuento || 999999);
+        if (topeValue < 999999) {
+          maxDiscount = Math.min(maxDiscount, topeValue);
+        }
+      }
     }
 
     result.walletValidation = walletValidation;
+    result.maxAvailableDiscount = maxDiscount;
+    result.potentialCredit = promoResults.potentialCashback;
 
-    // Potential Credit Calculation respecting walletConfig
-    let perc = walletConfig?.porcentaje_ganancia || 0;
-    if (useWallet && walletConfig) {
-      if (walletConfig.genera_credito_sobre_credito && walletConfig.porcentaje_reducido_recompra) {
-        perc = walletConfig.porcentaje_reducido_recompra;
-      } else if (!walletConfig.genera_credito_sobre_credito) {
-        perc = 0;
+    if (useWallet && walletValidation.canUse) {
+      const discount = Math.min(discountedP, maxDiscount);
+      if (discount > 0) {
+        result.total -= discount;
+        result.walletDiscount = discount;
       }
     }
-
-    let earned = Math.round(P * (perc / 100));
-    if (walletConfig?.tope_maximo_ganancia && earned > walletConfig.tope_maximo_ganancia) {
-      earned = walletConfig.tope_maximo_ganancia;
-    }
-    if (P < (walletConfig?.compra_minima_generar || 0)) {
-      earned = 0;
-    }
-
-    result.potentialCredit = earned;
     
     return result;
-  }, [walletBalance, walletConfig, useWallet, cart.items]);
+  }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission]);
+
 
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
@@ -516,99 +568,151 @@ export default function PruebasWalletApp() {
       return time ? `abre ${time}` : 'Cerrado';
     }
   }, [isLocalOpen]);
-  // Load locals + drinks on mount
   React.useEffect(() => {
     console.log("🚀 PruebasWalletApp: Main data useEffect running");
-    // Tracking: Page View
     api.trackDemandSignal('page_view', sessionId).catch(() => {});
 
-    Promise.all([
-      api.getLocales(),
-      api.getBebidas(),
-      api.getBanners(),
-      api.getPromos(),
-      api.getMostOrderedItems(),
-      api.getExploreItems(),
-      api.getAllWalletConfigs()
-    ]).then(([locs, deks, bans, prms, most, expl, wcfgs]) => {
-      const allLocs = locs || [];
-      const boosted = getBoostedLocales(allLocs);
-      
-      const timeInfo = getTimeBasedTitle();
-      
-      // Map wallet configs by local_id
-      const configMap = {};
-      if (Array.isArray(wcfgs)) {
-        wcfgs.forEach(c => {
-          if (c.local_id) configMap[c.local_id] = c;
-          else configMap['global'] = c;
+    const loadHomeData = async () => {
+      try {
+        // 1. Cargar promociones activas, locales y configs de wallet primero para saber qué buscar
+        const [allPrms, locs, wcfgsRaw] = await Promise.all([
+          api.getActivePromotions(),
+          api.getLocales(),
+          api.getAllWalletConfigs()
+        ]);
+        setAllPromotions(allPrms || []);
+        setLocals(locs || []);
+        
+        // Mapear configs de wallet por local_id para uso rápido
+        const configMap = {};
+        if (Array.isArray(wcfgsRaw)) {
+          wcfgsRaw.forEach(c => {
+            if (c.local_id) configMap[c.local_id] = c;
+            else configMap['global'] = c;
+          });
+        }
+        setAllWalletConfigs(configMap);
+        
+        // Extraer categorías que tienen promos específicas
+        const targetCats = allPrms.flatMap(p => p.triggers?.categorias || []);
+        
+        // Extraer si hay promociones globales activas
+        const hasGlobalPromo = allPrms.some(p => p.activo && p.triggers?.global);
+        
+        // Extraer locales que tienen:
+        // a) Alguna promoción global activa (aplica a todos)
+        // b) Descuento general activo
+        // c) Configuración de Wallet activa (genera crédito)
+        const targetLocalIds = (locs || []).filter(l => {
+          if (hasGlobalPromo) return true;
+          const hasGenDiscount = Number(l.descuento_general) > 0;
+          const wcfg = configMap[l.id] || configMap['global'];
+          const generatesCredit = wcfg && wcfg.activo && Number(wcfg.porcentaje_ganancia) > 0;
+          return hasGenDiscount || generatesCredit;
+        }).map(l => l.id);
+
+        // 2. Cargar el resto de datos
+        const [deks, bans, prms, most, expl] = await Promise.all([
+          api.getBebidas(),
+          api.getBanners(),
+          api.getPromos(targetCats, targetLocalIds),
+          api.getMostOrderedItems(),
+          api.getExploreItems()
+        ]);
+
+        const allLocs = locs || [];
+        const boosted = getBoostedLocales(allLocs);
+        const timeInfo = getTimeBasedTitle();
+        
+        // El configMap ya se seteó arriba
+
+        setDrinks(deks || []);
+        setBanners(bans || []);
+        setPromoItems(prms || []);
+        setBannersLoading(false);
+        setLoadingPromos(false);
+
+        setHomeLayout(prev => {
+          const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+          const PLAN_PLUS = 'ab9be1bd-f535-476e-90f4-f03ba074ba7d';
+          const PLAN_FREEMIUM = 'b404e2f7-6716-499b-8ebf-200ce417e4cb';
+
+          const proFound = boosted.filter(l => l.plan_id === PLAN_PRO).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+          const plusFound = boosted.filter(l => l.plan_id === PLAN_PLUS).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+          const freeFound = boosted.filter(l => l.plan_id === PLAN_FREEMIUM).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+
+          // Combinar candidatos: Promos específicas + Lo más pedido + Explorar
+          const allCandidates = [
+            ...(prms || []),
+            ...(most || []),
+            ...(expl || [])
+          ];
+
+          // Eliminar duplicados por ID
+          const uniqueCandidates = Array.from(new Map(allCandidates.map(item => [item.id, item])).values());
+
+          return {
+            ...prev,
+            dynamicTitle: timeInfo.title,
+            dynamicBanner: timeInfo.banner,
+            dynamicRubros: timeInfo.rubros,
+            allLocales: boosted,
+            dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
+            promosOfDay: uniqueCandidates.filter(p => {
+              const l = allLocs.find(loc => loc.id === p.local_id);
+              if (!l || !isLocalOpen(l)) return false;
+
+              // Evaluar con el motor para detectar beneficios dinámicos
+              const promoResults = evaluatePromotions({
+                cart: { totalPrice: Number(p.precio), items: [{ ...p, qty: 1, cantidad: 1 }], deliveryFee: 500 },
+                user,
+                orderCount,
+                userPromoUsage,
+                promotions: allPrms,
+                currentLocalId: p.local_id
+              });
+
+              const earnsCredit = promoResults.potentialCashback > 0;
+              const hasFreeShipping = promoResults.freeShipping;
+              const hasDynamicDiscount = promoResults.discountTotal > 0;
+              const hasBaseDiscount = p.descuento > 0;
+              const isCombo = p.categoria?.toLowerCase().includes('combo');
+              const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
+
+              // Excluir COMBOS por pedido explícito
+              if (isCombo) return false;
+
+              return hasBaseDiscount || hasDayDiscount || earnsCredit || hasFreeShipping || hasDynamicDiscount;
+            }).sort((a, b) => {
+              const locA = allLocs.find(l => l.id === a.local_id);
+              const locB = allLocs.find(l => l.id === b.local_id);
+              const openA = isLocalOpen(locA) ? 1 : 0;
+              const openB = isLocalOpen(locB) ? 1 : 0;
+              if (openA !== openB) return openB - openA;
+              const discA = Number(a.precio) - calculateDiscountedPrice(a);
+              const discB = Number(b.precio) - calculateDiscountedPrice(b);
+              return discB - discA;
+            }).slice(0, 40),
+            mostOrdered: (most || boosted.slice(0, 12)).sort((a, b) => {
+              const locA = allLocs.find(l => l.id === a.local_id);
+              const locB = allLocs.find(l => l.id === b.local_id);
+              const openA = isLocalOpen(locA) ? 1 : 0;
+              const openB = isLocalOpen(locB) ? 1 : 0;
+              return openB - openA;
+            }),
+            newLocales: [...allLocs].filter(l => l.admin_status === 'Aceptado').sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10),
+            exploreItems: expl || [],
+            featuredProLocales: proFound,
+            recommendedPlusLocales: plusFound,
+            newFreemiumLocales: freeFound.slice(0, 12)
+          };
         });
+      } catch (err) {
+        console.error("Error loading home data:", err);
       }
-      setAllWalletConfigs(configMap);
+    };
 
-      setLocals(allLocs);
-      setDrinks(deks || []);
-      setBanners(bans || []);
-      console.log("🚀 PruebasWalletApp: Data fetched successfully", { locs: !!locs, prms: !!prms });
-      setPromoItems(prms || []);
-      setBannersLoading(false);
-      setLoadingPromos(false);
-
-      // Setup Home Layout
-      setHomeLayout(prev => {
-        const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
-        const PLAN_PLUS = 'ab9be1bd-f535-476e-90f4-f03ba074ba7d';
-        const PLAN_FREEMIUM = 'b404e2f7-6716-499b-8ebf-200ce417e4cb';
-
-        const proFound = boosted.filter(l => l.plan_id === PLAN_PRO).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
-        const plusFound = boosted.filter(l => l.plan_id === PLAN_PLUS).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
-        const freeFound = boosted.filter(l => l.plan_id === PLAN_FREEMIUM).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
-
-        return {
-          ...prev,
-          dynamicTitle: timeInfo.title,
-          dynamicBanner: timeInfo.banner,
-          dynamicRubros: timeInfo.rubros,
-          allLocales: boosted,
-          dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
-          promosOfDay: (prms || []).filter(p => {
-            const l = allLocs.find(loc => loc.id === p.local_id);
-            if (!l || !isLocalOpen(l)) return false;
-
-            const cfg = configMap[p.local_id] || configMap['global'];
-            const earnsCredit = cfg && cfg.activo && Number(cfg.porcentaje_ganancia) > 0 && calculateDiscountedPrice(p) >= Number(cfg.compra_minima_generar || 0);
-
-            const hasBaseDiscount = p.descuento > 0;
-            const isSpecialCategory = p.categoria === 'Combos' || p.categoria === 'Promos';
-            const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
-            return hasBaseDiscount || isSpecialCategory || hasDayDiscount || earnsCredit;
-          }).sort((a, b) => {
-            const locA = allLocs.find(l => l.id === a.local_id);
-            const locB = allLocs.find(l => l.id === b.local_id);
-            const openA = isLocalOpen(locA) ? 1 : 0;
-            const openB = isLocalOpen(locB) ? 1 : 0;
-            
-            if (openA !== openB) return openB - openA;
-
-            const discA = Number(a.precio) - calculateDiscountedPrice(a);
-            const discB = Number(b.precio) - calculateDiscountedPrice(b);
-            return discB - discA;
-          }).slice(0, 30),
-          mostOrdered: (most || boosted.slice(0, 12)).sort((a, b) => {
-            const locA = allLocs.find(l => l.id === a.local_id);
-            const locB = allLocs.find(l => l.id === b.local_id);
-            const openA = isLocalOpen(locA) ? 1 : 0;
-            const openB = isLocalOpen(locB) ? 1 : 0;
-            return openB - openA;
-          }),
-          newLocales: [...allLocs].filter(l => l.admin_status === 'Aceptado').sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10),
-          exploreItems: expl || [],
-          featuredProLocales: proFound,
-          recommendedPlusLocales: plusFound,
-          newFreemiumLocales: freeFound.slice(0, 12)
-        };
-      });
-    }).catch(console.error);
+    loadHomeData();
 
     if (user) {
       api.getFavoritos(user.id).then(d => {
@@ -619,8 +723,12 @@ export default function PruebasWalletApp() {
         setHasActiveOrder(!!(res.enCurso && res.enCurso.length > 0));
       }).catch(() => {});
 
-      // Order Count
-      api.getUserOrderCount(user.id).then(setOrderCount).catch(() => {});
+      // Order Count & Promo Usage & Breakdown
+      if (user?.id) {
+        api.getUserOrderCount(user.id).then(res => setOrderCount(res.count)).catch(() => {});
+        api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
+        api.getUserWalletBreakdown(user.id).then(setWalletBreakdown).catch(() => {});
+      }
     } else {
       setOrderCount(null);
       setWalletBalance(0);
@@ -647,6 +755,11 @@ export default function PruebasWalletApp() {
         .then(setWalletBalance)
         .catch(console.error);
 
+      // Fetch history for the panel
+      api.getUserWalletBreakdown(user.id)
+        .then(setWalletBreakdown)
+        .catch(() => {});
+        
       // Fetch dynamic commission for the local
       api.getPlanInfo(localId)
         .then(res => {
@@ -663,6 +776,7 @@ export default function PruebasWalletApp() {
       setLocalCommission(0.15);
       if (user?.id) {
         api.getUserWalletBalance(user.id).then(setWalletBalance).catch(console.error);
+        api.getUserWalletBreakdown(user.id).then(setWalletBreakdown).catch(() => {});
       }
     }
   }, [selectedLocal, cart.items, user?.id]);
@@ -691,6 +805,9 @@ export default function PruebasWalletApp() {
               pendingData.externalReference
             ).then(async (res) => {
               if (res.success) {
+                // Refrescar balance de wallet tras pago exitoso
+                api.getUserWalletBalance(user.id).then(setWalletBalance).catch(() => {});
+                
                 // Si el pedido tiene un repartidor asignado, notificarlo
                 try {
                   const orderRes = await api.getOrderDetail(user.id, pendingData.pedidoId);
@@ -1112,28 +1229,7 @@ export default function PruebasWalletApp() {
   const totalConComision = checkoutTotals.total;
   const visibleMpFee = checkoutTotals.mp_fee;
   
-  // Usar configuración dinámica para la vista previa de crédito
-  const potentialCredit = React.useMemo(() => {
-    if (!walletConfig) return 0;
-    
-    // Validar compra mínima para generar
-    if (cart.subtotal < (walletConfig.compra_minima_generar || 0)) return 0;
-    
-    // Determinar porcentaje (Normal vs Reducido por recompra) solo si ya se implementó genera_credito_sobre_credito
-    let perc = walletConfig.porcentaje_ganancia || 0;
-    if (useWallet && walletConfig.genera_credito_sobre_credito && walletConfig.porcentaje_reducido_recompra) {
-        perc = walletConfig.porcentaje_reducido_recompra;
-    } else if (useWallet && !walletConfig.genera_credito_sobre_credito) {
-        return 0; // No genera si usa crédito
-    }
-
-    let earned = Math.round(cart.subtotal * (perc / 100));
-    if (walletConfig.tope_maximo_ganancia && earned > walletConfig.tope_maximo_ganancia) {
-        earned = walletConfig.tope_maximo_ganancia;
-    }
-    return earned;
-  }, [cart.subtotal, walletConfig, useWallet]);
-
+  const potentialCredit = checkoutTotals.potentialCredit || 0;
   const walletDiscountUI = checkoutTotals.walletDiscount || 0;
   const visibleShipping = cart.deliveryType === 'envio' ? cart.shippingCost : 0;
 
@@ -1466,10 +1562,12 @@ export default function PruebasWalletApp() {
         lat: addressData.lat,
         lng: addressData.lng,
         precioEnvio: shipping,
-        walletDiscount: checkoutTotals.walletDiscount || 0,
+        walletDiscount: finalTotals.walletDiscount || 0,
         platform_gross: finalTotals.platform_gross || 0,
         platform_net: finalTotals.platform_net || 0,
-        merchant_payout: finalTotals.merchant_payout || 0
+        merchant_payout: finalTotals.merchant_payout || 0,
+        promociones_aplicadas: finalTotals.appliedPromos?.map(p => p.id) || [],
+        ganancia_credito: finalTotals.potentialCredit || 0
       };
 
       // 3. Handle Flow
@@ -1493,7 +1591,9 @@ export default function PruebasWalletApp() {
         lat: addressData.lat,
         lng: addressData.lng,
         precioEnvio: shipping,
-        creditoWallet: useWallet ? (checkoutTotals.walletDiscount || 0) : 0
+        creditoWallet: useWallet ? (checkoutTotals.walletDiscount || 0) : 0,
+        promociones_aplicadas: finalTotals.appliedPromos?.map(p => p.id) || [],
+        ganancia_credito: finalTotals.potentialCredit || 0
       };
 
       if (cart.deliveryType === 'envio' || mp === 'efectivo' || mp === 'transferencia') {
@@ -1532,6 +1632,15 @@ export default function PruebasWalletApp() {
             // RETIRO + EFECTIVO
             if (mp === 'efectivo') {
               toast.success(`¡Pedido #${pregeneratedId} registrado exitosamente!`);
+              // Refrescar balance y estado tras pedido exitoso
+              api.getUserWalletBalance(user.id).then(setWalletBalance).catch(() => {});
+              api.getUserOrderCount(user.id).then(cnt => {
+                setOrderCount(cnt.count);
+                if (cnt.count > 0 && !user.ya_realizo_pedidos) {
+                  loginAsUser({ ...user, ya_realizo_pedidos: true });
+                }
+              }).catch(() => {});
+              
               api.notifyLocalsAboutNewOrder(pregeneratedId, cart.items, 'Retiro en local', 'Para Retirar', orderDataForCreation.observaciones, mp).catch(e => console.error(e));
               cart.clearCart();
               setCartOpen(false);
@@ -1551,15 +1660,28 @@ export default function PruebasWalletApp() {
 
   // Check repartidores when cart opens
   const openCart = async () => {
+    if (user?.id) {
+      try {
+        // Sincronizar estado de pedidos en tiempo real para evitar discrepancias en promos
+        const res = await api.getUserOrderCount(user.id);
+        api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
+        const hasOrdered = res.count > 0;
+        if (hasOrdered !== user.ya_realizo_pedidos) {
+          console.log("🔄 Syncing user order status:", hasOrdered);
+          loginAsUser({ ...user, ya_realizo_pedidos: hasOrdered });
+          // Pequeña espera para asegurar propagación de estado
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (err) {
+        console.error("Error syncing order status:", err);
+      }
+    }
+    
     try {
       const r = await api.checkActiveRepartidores();
-      console.log("DEBUG: checkActiveRepartidores result:", r);
       setHasRepartidores(r.hasActive);
-      if (!r.hasActive) {
-        console.log("DEBUG: No drivers found");
-      }
     } catch (err) { 
-      console.error("DEBUG: Error in openCart check:", err);
+      console.error("Error in openCart check:", err);
     }
     setCartOpen(true);
   };
@@ -1757,11 +1879,44 @@ export default function PruebasWalletApp() {
         </div>
         <div className="header-actions">
           {user && (
-            <div className="wallet-header-badge" onClick={() => setModal('profile')}>
+            <div className="wallet-header-badge" onClick={() => setWalletDetailsOpen(true)}>
                <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" className="wallet-icon-img" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                <span className="wallet-val">
                  {walletBalance === null ? '...' : `$${(walletBalance || 0).toLocaleString()}`}
                </span>
+               <button 
+                 onClick={async (e) => {
+                   e.stopPropagation();
+                   if (user?.id && !refreshingWallet) {
+                     setRefreshingWallet(true);
+                     setWalletBalance(null);
+                     try {
+                       const newBalance = await api.getUserWalletBalance(user.id);
+                       setWalletBalance(newBalance);
+                       const res = await api.getUserOrderCount(user.id);
+                       setOrderCount(res.count);
+                       api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
+                     } catch (err) {
+                       console.error(err);
+                     } finally {
+                       setTimeout(() => setRefreshingWallet(false), 800);
+                     }
+                   }
+                 }}
+                 className={refreshingWallet ? 'refresh-spinning' : ''}
+                 disabled={refreshingWallet}
+                 style={{
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   cursor: 'pointer',
+                   marginLeft: '8px',
+                   fontSize: '12px',
+                   color: '#0369a1'
+                 }}
+                 title="Actualizar saldo"
+               >
+                 🔄
+               </button>
             </div>
           )}
           <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
@@ -1955,7 +2110,7 @@ export default function PruebasWalletApp() {
                                 const discountedPrice = calculateDiscountedPrice(item);
                                 if (discountedPrice < Number(item.precio)) {
                                   const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
-                                  return <div className="promo-badge-mini">{percent}% OFF</div>;
+                                  return <div className="menu-discount-badge">{percent}% OFF</div>;
                                 }
                                 return null;
                               })()}
@@ -2031,7 +2186,7 @@ export default function PruebasWalletApp() {
                                 const discountedPrice = calculateDiscountedPrice(item);
                                 if (discountedPrice < Number(item.precio)) {
                                   const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
-                                  return <div className="promo-badge-mini">{percent}% OFF</div>;
+                                  return <div className="menu-discount-badge">{percent}% OFF</div>;
                                 }
                                 return null;
                               })()}
@@ -2498,17 +2653,17 @@ export default function PruebasWalletApp() {
                   style={{ marginBottom: '5px' }}
                 >
                   <option value="" disabled>Elegí cómo pagar</option>
-                  <option value="transferencia">Transferencia / Mercado Pago</option>
+                  <option value="transferencia">Mercado Pago</option>
                   <option 
                     value="efectivo" 
-                    disabled={orderCount === 0 || orderCount === null}
-                    style={{ color: (orderCount === 0 || orderCount === null) ? '#999' : 'inherit' }}
+                    disabled={!user || user.ya_realizo_pedidos === false || user.ya_realizo_pedidos === 'false' || orderCount === 0 || orderCount === null}
+                    style={{ color: (!user || user.ya_realizo_pedidos === false || user.ya_realizo_pedidos === 'false' || orderCount === 0 || orderCount === null) ? '#999' : 'inherit' }}
                   >
-                    { (orderCount === 0 || orderCount === null) ? 'Efectivo (Inhabilitado 1er pedido)' : 'Efectivo' }
+                    { (!user || user.ya_realizo_pedidos === false || user.ya_realizo_pedidos === 'false' || orderCount === 0 || orderCount === null) ? 'Efectivo (Inhabilitado 1er pedido)' : 'Efectivo' }
                   </option>
                 </select>
                 
-                {walletBalance > 0 && walletConfig && (
+                {walletBalance > 0 && (
                   <div className="wallet-usage-cart animate-slide-up" style={{
                     padding: '12px',
                     background: '#f0f9ff',
@@ -2612,7 +2767,15 @@ export default function PruebasWalletApp() {
                     textAlign: 'center',
                     border: '1px solid #bae6fd'
                   }}>
-                    ✨ ¡Sumarás <strong>${potentialCredit.toLocaleString()}</strong> de crédito con este pedido!
+                    {(() => {
+                      const promoCredito = checkoutTotals.appliedPromos?.find(p => p.tipo === 'credito');
+                      const isFirstOrderPromo = promoCredito?.triggers?.primera_compra === true;
+                      return (
+                        <>
+                          ✨ ¡Sumarás <strong>${potentialCredit.toLocaleString()}</strong> de crédito {isFirstOrderPromo ? 'por tu 1er pedido' : 'con esta compra'}!
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -3429,15 +3592,124 @@ export default function PruebasWalletApp() {
                   }
                 }}
               >
-                âœ– No, cancelar pedido
+                ✖ No, cancelar pedido
               </button>
-           </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Chatbot de Ayuda */}
       <HelpChatbot />
+      
+      {walletDetailsOpen && (
+        <WalletDetailsPanel 
+          onClose={() => setWalletDetailsOpen(false)}
+          balance={walletBalance}
+          transactions={walletBreakdown}
+          promotions={allPromotions}
+        />
+      )}
     </div>
   );
 }
+
+// --- SUB-COMPONENT: WalletDetailsPanel ---
+function WalletDetailsPanel({ onClose, balance, transactions, promotions }) {
+  const [selectedPromo, setSelectedPromo] = React.useState(null);
+
+  return (
+    <div className="wallet-drawer-overlay animate-fade-in" onClick={onClose}>
+      <div className="wallet-drawer-content" onClick={e => e.stopPropagation()}>
+        <header className="drawer-header">
+          <div className="drawer-title">
+            <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" style={{width: 28}} />
+            <h3>Mi Wepi Wallet</h3>
+          </div>
+          <button className="close-drawer" onClick={onClose}>×</button>
+        </header>
+
+        <div className="drawer-body">
+          <div className="balance-hero">
+            <label>Saldo Disponible</label>
+            <div className="amount">${(balance || 0).toLocaleString()}</div>
+            <p className="balance-hint">Dinero acumulado para tus próximos pedidos</p>
+          </div>
+
+          <div className="drawer-section">
+            <h4>📜 Historial de Movimientos</h4>
+            <div className="credits-list">
+              {transactions && transactions.length > 0 ? transactions.map(trans => {
+                const isExpired = trans.type === 'earn' && trans.expires_at && new Date(trans.expires_at) < new Date();
+                const isEarn = trans.type === 'earn';
+                
+                return (
+                  <div key={trans.id} className={`credit-item-card ${isExpired ? 'expired-trans' : ''}`}>
+                    <div className="item-info">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span className="item-name">{isEarn ? 'Crédito Ganado' : 'Crédito Usado'}</span>
+                        {isExpired && <span className="badge-vencido">Vencido</span>}
+                      </div>
+                      <span className={`item-value ${isEarn ? 'plus' : 'minus'}`}>
+                        {isEarn ? '+' : '−'}${Number(trans.amount).toLocaleString()}
+                      </span>
+                      <div className="item-meta">
+                        <span>{trans.description}</span>
+                        {isEarn && trans.expires_at && (
+                          <span style={{display: 'block', marginTop: '2px'}}>
+                            ⏳ {isExpired ? 'Venció el' : 'Vence el'} {new Date(trans.expires_at).toLocaleDateString('es-AR')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="empty-state-simple">
+                  No tienes movimientos en tu billetera.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="drawer-section">
+             <h4>🎁 Promos Disponibles</h4>
+             <div className="credits-list">
+                {promotions.filter(p => p.tipo === 'credito' && p.activo).map(promo => (
+                  <div key={promo.id} className="credit-item-card promo-hint-card">
+                     <div className="item-info">
+                        <span className="item-name">{promo.nombre}</span>
+                        <span className="item-meta">¡Ganá hasta ${promo.beneficios?.tope_valor || ''} con esta promo!</span>
+                     </div>
+                     <button className="btn-info-legal" onClick={() => setSelectedPromo(promo)}>Ver T&C</button>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </div>
+
+        {selectedPromo && (
+          <div className="legal-popup-overlay" onClick={() => setSelectedPromo(null)}>
+            <div className="legal-popup-content" onClick={e => e.stopPropagation()}>
+              <header>
+                <h5>Términos y Condiciones</h5>
+                <button onClick={() => setSelectedPromo(null)}>×</button>
+              </header>
+              <div className="legal-text">
+                <h6>{selectedPromo.nombre}</h6>
+                <p>{selectedPromo.metadata?.terminos || 'Válido para pedidos que cumplan los requisitos de la promoción.'}</p>
+                <div className="legal-details">
+                  <div>• Compra mínima: ${selectedPromo.triggers?.min_compra || 0}</div>
+                  <div>• Vencimiento: {selectedPromo.requisitos?.vencimiento_dias || 7} días</div>
+                  <div>• Máx. uso: {selectedPromo.requisitos?.max_porcentaje_uso || 100}% del pedido</div>
+                </div>
+              </div>
+              <button className="btn btn-primary btn-full" onClick={() => setSelectedPromo(null)}>Entendido</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

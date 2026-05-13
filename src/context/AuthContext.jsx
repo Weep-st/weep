@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
         telefono: localStorage.getItem('userTelefono') || '',
         emailConfirmado: localStorage.getItem('userEmailConfirmado') === 'true',
         role: localStorage.getItem('userRole') || 'user',
+        ya_realizo_pedidos: localStorage.getItem('userYaRealizoPedidos') === 'true',
       });
     }
     const localToken = localStorage.getItem('localToken');
@@ -47,14 +48,16 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userTelefono', data.telefono || '');
     localStorage.setItem('userEmailConfirmado', String(!!data.emailConfirmado));
     localStorage.setItem('userRole', data.role || 'user');
+    localStorage.setItem('userYaRealizoPedidos', String(!!data.ya_realizo_pedidos));
     setUser({ 
-      id: data.userId, 
-      name: data.name, 
+      id: data.userId || data.id, 
+      name: data.name || data.nombre, 
       email: data.email, 
-      address: data.address,
+      address: data.address || data.direccion,
       telefono: data.telefono,
-      emailConfirmado: !!data.emailConfirmado,
-      role: data.role || 'user'
+      emailConfirmado: !!(data.emailConfirmado || data.email_confirmado),
+      role: data.role || 'user',
+      ya_realizo_pedidos: (data.ya_realizo_pedidos === true || data.ya_realizo_pedidos === 'true' || data.ya_realizo_pedidos === 1 || data.ya_realizo_pedidos === '1' || data.ya_realizo_pedidos === 'TRUE')
     });
   };
 
@@ -64,7 +67,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error("Firebase logout error:", e);
     }
-    ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole'].forEach(k => localStorage.removeItem(k));
+    ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole', 'userYaRealizoPedidos'].forEach(k => localStorage.removeItem(k));
     setUser(null);
   };
 
@@ -84,7 +87,8 @@ export function AuthProvider({ children }) {
           address: dbUser.direccion,
           telefono: dbUser.telefono,
           emailConfirmado: dbUser.emailConfirmado,
-          role: dbUser.role
+          role: dbUser.role,
+          ya_realizo_pedidos: dbUser.ya_realizo_pedidos
         });
         return { success: true, isNew: dbUser.isNew };
       }

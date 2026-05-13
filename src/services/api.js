@@ -43,7 +43,8 @@ export async function loginUsuario(email, password) {
     telefono: data.telefono, 
     email: data.email,
     emailConfirmado: data.email_confirmado,
-    role: data.role || 'user'
+    role: data.role || 'user',
+    ya_realizo_pedidos: data.ya_realizo_pedidos || false
   };
 }
 
@@ -96,7 +97,8 @@ export async function syncFirebaseUser(firebaseUser) {
       direccion: existing.direccion,
       telefono: existing.telefono,
       emailConfirmado: existing.email_confirmado || firebaseUser.emailVerified,
-      role: existing.role || 'user'
+      role: existing.role || 'user',
+      ya_realizo_pedidos: existing.ya_realizo_pedidos || false
     };
   }
   
@@ -683,14 +685,29 @@ export async function getMenuCompleto() {
   }));
 }
 
-export async function getPromos() {
+export async function getPromos(extraCategories = [], extraLocalIds = []) {
+  let orConditions = 'descuento.gt.0,categoria.eq.Combos,categoria.eq.Promos';
+  
+  if (Array.isArray(extraCategories) && extraCategories.length > 0) {
+    const uniqueCats = [...new Set(extraCategories)].filter(Boolean);
+    uniqueCats.forEach(cat => {
+      orConditions += `,categoria.eq."${cat}"`;
+    });
+  }
+
+  if (Array.isArray(extraLocalIds) && extraLocalIds.length > 0) {
+    const uniqueIds = [...new Set(extraLocalIds)].filter(Boolean);
+    orConditions += `,local_id.in.(${uniqueIds.join(',')})`;
+  }
+
   const { data } = await supabase
     .from('menu')
     .select('*, locales!inner(*)')
     .eq('disponibilidad', true)
     .eq('locales.admin_status', 'Aceptado')
-    .or('descuento.gt.0,categoria.eq.Combos,categoria.eq.Promos')
-    .order('descuento', { ascending: false });
+    .or(orConditions)
+    .order('descuento', { ascending: false })
+    .limit(100);
 
   return (data || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
@@ -1062,7 +1079,7 @@ export async function validateOrderAvailability(localIds, itemIds) {
 // ═══════════════════════════════════════════════════
 // PEDIDOS
 // ═══════════════════════════════════════════════════
-export async function crearPedido({ userId, pedidoId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio, cuponId = null, descuentoCupon = 0, creditoWallet = 0 }) {
+export async function crearPedido({ userId, pedidoId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio, cuponId = null, descuentoCupon = 0, creditoWallet = 0, promociones_aplicadas = [], ganancia_credito = 0 }) {
   const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
   const estado = estadoInicial || 'Pendiente';
 
@@ -1082,7 +1099,9 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
     p_cart: items,
     p_precio_envio: precioEnvio || 0,
     p_cupon_id: cuponId,
-    p_descuento_cupon: descuentoCupon
+    p_descuento_cupon: descuentoCupon,
+    p_promociones_aplicadas: promociones_aplicadas,
+    p_ganancia_credito: ganancia_credito
   });
 
   if (error) {
@@ -1195,6 +1214,12 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
       if (estado === 'Entregado') {
         if (pg?.usuario_id && pg.usuario_id.length > 20) {
           await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+          // Acreditar crédito en Wallet si la orden generó ganancia por promo
+          try {
+            await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pl.pedido_id });
+          } catch (e) {
+            console.error("Error acreditando crédito Wallet (Local):", e);
+          }
         }
       }
     }
@@ -1252,16 +1277,36 @@ export async function buscarMenu(query) {
 }
 
 export async function getUserOrderCount(userId) {
-  if (!userId) return 0;
-  // Usamos el flag persistente ya que las rows de pedidos pueden ser borradas
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('ya_realizo_pedidos')
-    .eq('id', userId)
-    .single();
-    
-  if (error) return 0;
-  return data?.ya_realizo_pedidos ? 1 : 0; // 1 significa que ya pidió
+  if (!userId || userId === 'undefined' || userId === 'null') {
+    return { success: true, count: 0 };
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('ya_realizo_pedidos')
+      .eq('id', userId)
+      .maybeSingle(); // Usamos maybeSingle para evitar error si no existe
+
+    if (error) throw error;
+
+    return { success: true, count: data?.ya_realizo_pedidos ? 1 : 0 };
+  } catch (error) {
+    console.warn("Error fetching user order status:", error);
+    return { success: true, count: 0 };
+  }
+}
+
+export async function getUserPromoUsage(userId) {
+  if (!userId) return {};
+  try {
+    const { data, error } = await supabase.rpc('get_user_promo_usage', { p_user_id: userId });
+    if (error) throw error;
+    return data || {};
+  } catch (err) {
+    console.warn("Error fetching promo usage:", err);
+    return {};
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1777,10 +1822,17 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
 
   try {
     if (status === 'Entregado') {
-      try { await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId }); } catch(e){}
       const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).maybeSingle();
-      if (pg?.usuario_id && pg.usuario_id.length > 20) {
+      if (pg?.usuario_id) {
         await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
+        // Acreditar crédito en Wallet si la orden generó ganancia por promo
+        try {
+          await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId });
+        } catch (e) {
+          console.error("Error acreditando crédito Wallet:", e);
+        }
+      } else {
+        console.warn(`[Wallet] El pedido ${pedidoId} no tiene usuario_id asignado. No se puede acreditar crédito.`);
       }
     }
   } catch (e) { console.warn("Post-delivery tasks skipped:", e.message); }
@@ -1933,7 +1985,7 @@ export async function getLocalCierreReport(localId, options = {}) {
   const pedidoIds = pedidosLocales.map(p => p.pedido_id);
   const { data: pedidosGeneral, error: errPG } = await supabase
     .from('pedidos_general')
-    .select('id, nombre_cliente, metodo_pago, payment_id, created_at')
+    .select('id, nombre_cliente, metodo_pago, payment_id, created_at, credito_wallet')
     .in('id', pedidoIds);
 
 
@@ -1945,7 +1997,7 @@ export async function getLocalCierreReport(localId, options = {}) {
   const planInfo = await getPlanInfo(localId);
   const comisionPct = planInfo.success ? planInfo.comision_actual : 8;
 
-  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0, comisionEfectivo = 0;
+  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0, comisionEfectivo = 0, totalCreditoWepi = 0;
   const detalles = pedidosLocales.map(p => {
     const pg = pgMap.get(p.pedido_id) || {};
     const totalPedido = Number(p.total) || 0;
@@ -1953,7 +2005,10 @@ export async function getLocalCierreReport(localId, options = {}) {
     
     // Usar comisión persistente si existe, si no, usar la actual como fallback
     const montoComision = Number(p.comision_monto) || (totalPedido * (comisionPct / 100));
+    const creditoWallet = Number(pg.credito_wallet) || 0;
+
     totalComisiones += montoComision;
+    totalCreditoWepi += creditoWallet;
 
     const metodo = (p.metodo_pago || pg.metodo_pago || '').toLowerCase();
     if (metodo.includes('efectivo')) {
@@ -1968,6 +2023,7 @@ export async function getLocalCierreReport(localId, options = {}) {
       cliente: pg.nombre_cliente || 'Desconocido',
       metodo: p.metodo_pago || pg.metodo_pago || 'Desconocido',
       total: totalPedido,
+      credito_usado: creditoWallet,
       comision_pct: p.comision_pct || comisionPct,
       comision_monto: montoComision.toFixed(2),
       nro_operacion: pg.payment_id || 'N/A',
@@ -1975,7 +2031,7 @@ export async function getLocalCierreReport(localId, options = {}) {
     };
   });
 
-  const neto = subtotal - totalComisiones;
+  const neto = subtotal - totalComisiones - totalCreditoWepi;
 
   // Asegurar que siempre devolvemos una fecha de referencia para el registro del cierre
   const finalFecha = fecha || inicio || new Date().toISOString().split('T')[0];
@@ -1984,6 +2040,7 @@ export async function getLocalCierreReport(localId, options = {}) {
     subtotal: subtotal.toFixed(2),
     transferencia: transferencia.toFixed(2),
     efectivo: efectivo.toFixed(2),
+    totalCreditoWepi: totalCreditoWepi.toFixed(2),
     comisionEfectivo: comisionEfectivo.toFixed(2),
     pedidos: detalles,
     comisiones: totalComisiones.toFixed(2),
@@ -2969,7 +3026,7 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
 
     const promesas = Object.entries(byLocal).map(async ([localId, group]) => {
       if (localId === 'unknown') return;
-      const { data: localData } = await supabase.from('locales').select('email, nombre').eq('id', localId).single();
+      const { data: localData } = await supabase.from('locales').select('email, nombre, onesignal_id').eq('id', localId).single();
       if (localData && localData.email) {
         let itemsHtml = group.items.map(i => 
           `<tr>
@@ -3030,8 +3087,16 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
           </div>
         `;
 
-        // DEBUG LOG
-        console.log(`[DEBUG] Enviando Correo a Local ${localData.email} para Pedido #${pedidoId}. Contiene el botón?`, htmlBody.includes('Ir a mis pedidos de locales'));
+        // Notificación OneSignal
+        if (localData.onesignal_id) {
+          sendPushNotification({
+            subscriptionIds: [localData.onesignal_id],
+            title: '¡Nuevo Pedido! 🛵',
+            message: `Has recibido el pedido #${pedidoId}. ¡Entra al panel para aceptarlo!`,
+            url: 'https://wepi.com.ar/locales',
+            data: { type: 'new_order', pedidoId }
+          }).catch(err => console.error("Error enviando push a local:", err));
+        }
 
         await supabase.functions.invoke('send-email', {
           body: {
@@ -3709,28 +3774,52 @@ export async function validateCupon(codigo, subtotal, localId = null) {
 // WALLET SYSTEM - API
 // ═══════════════════════════════════════════════════
 
-export async function getUserWalletBalance(userId, localId = null) {
+export async function getUserWalletBalance(userId) {
   if (!userId) return 0;
-  
-  // Using RPC to bypass RLS and handle local restriction
-  const { data, error } = await supabase.rpc('get_applicable_wallet_balance', {
-    p_user_id: userId,
-    p_local_id: localId
-  });
-  
+  const { data, error } = await supabase
+    .from('wallet_transactions')
+    .select('type, amount, expires_at')
+    .eq('user_id', userId);
+    
   if (error) {
-     console.error("Error fetching wallet balance via RPC:", error);
-     // Fallback to direct query if RPC doesn't exist yet
-     const { data: directData } = await supabase
-       .from('user_wallets')
-       .select('balance')
-       .eq('user_id', userId)
-       .maybeSingle();
-     return directData?.balance || 0;
+    console.error("Error fetching wallet balance:", error);
+    return 0;
   }
   
-  console.log(`DEBUG: Applicable balance for ${userId} in ${localId || 'Global'} is ${data}`);
-  return data || 0;
+  if (!data || data.length === 0) return 0;
+
+  return Math.max(0, data.reduce((acc, t) => {
+    const amt = Number(t.amount);
+    if (t.type === 'earn') {
+      const isExpired = t.expires_at && new Date(t.expires_at) < new Date();
+      return isExpired ? acc : acc + amt;
+    }
+    if (t.type === 'spend' || t.type === 'expire') {
+      return acc - amt;
+    }
+    if (t.type === 'refund' || t.type === 'admin_adjustment') {
+      return acc + amt;
+    }
+    return acc;
+  }, 0));
+}
+
+export async function getUserWalletBreakdown(userId) {
+  if (!userId) return [];
+  
+  // Obtenemos todas las transacciones para mostrar en el panel de detalle
+  const { data, error } = await supabase
+    .from('wallet_transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    console.error("Error fetching wallet transactions:", error);
+    return [];
+  }
+  
+  return data || [];
 }
 
 export async function getWalletTransactions(userId) {
@@ -3792,6 +3881,80 @@ export async function adminGetWalletCampaigns() {
   return data || [];
 }
 
+// ═══════════════════════════════════════════════════
+// PROMOCIONES Y DESCUENTOS UNIFICADOS
+// ═══════════════════════════════════════════════════
+
+export async function adminGetPromociones() {
+  const { data, error } = await supabase
+    .from('promociones')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminGetMenuCategorias() {
+  const { data, error } = await supabase
+    .from('menu')
+    .select('categoria');
+  if (error) throw error;
+  const unique = [...new Set((data || []).map(i => i.categoria))].filter(Boolean).sort();
+  return unique;
+}
+
+export async function getActivePromotions() {
+  const { data, error } = await supabase
+    .from('promociones')
+    .select('*')
+    .eq('activo', true)
+    .order('prioridad', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminSavePromocion(promoData) {
+  const { id, created_at, updated_at, ...data } = promoData;
+  
+  if (id) {
+    const { error } = await supabase
+      .from('promociones')
+      .update(data)
+      .eq('id', id);
+    if (error) {
+      console.error("Error updating promo:", error);
+      throw error;
+    }
+  } else {
+    const { error } = await supabase
+      .from('promociones')
+      .insert(data);
+    if (error) {
+      console.error("Error inserting promo:", error);
+      throw error;
+    }
+  }
+  return { success: true };
+}
+
+export async function adminDeletePromocion(id) {
+  const { error } = await supabase
+    .from('promociones')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function adminTogglePromocion(id, activo) {
+  const { error } = await supabase
+    .from('promociones')
+    .update({ activo })
+    .eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
 export async function adminUpsertWalletCampaign(campaign) {
   const { data, error } = await supabase
     .from('wallet_campaigns')
@@ -3801,6 +3964,7 @@ export async function adminUpsertWalletCampaign(campaign) {
   if (error) throw error;
   return data;
 }
+
 
 export async function adminDeleteWalletCampaign(id) {
   const { error } = await supabase

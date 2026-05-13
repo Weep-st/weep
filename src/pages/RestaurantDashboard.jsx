@@ -439,19 +439,22 @@ export default function RestaurantDashboard() {
         });
       }
 
-      // Check new pending orders for alerts
+      // Check new pending/confirmed orders for alerts
       if (silent && previousOrdersRef.current.length > 0) {
         const previousIds = previousOrdersRef.current.map(o => o.idPedidoLocal);
-        const newPendings = processed.filter(o => o.estadoActual === 'Pendiente' && !previousIds.includes(o.idPedidoLocal));
-        if (newPendings.length > 0) {
+        const newAlerts = processed.filter(o => 
+          (o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado') && 
+          !previousIds.includes(o.idPedidoLocal)
+        );
+        if (newAlerts.length > 0) {
           playAlertSound();
-          toast.success(`Tenés ${newPendings.length} pedido(s) nuevo(s)!`, { icon: '🔔' });
+          toast.success(`Tenés ${newAlerts.length} pedido(s) nuevo(s)!`, { icon: '🔔' });
         }
       }
       previousOrdersRef.current = processed;
 
       setOrders(processed);
-      setPendingCount(processed.filter(o => o.estadoActual === 'Pendiente').length);
+      setPendingCount(processed.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').length);
     } catch { if (!silent) toast.error('Error al cargar pedidos'); }
     if (!silent) setOrdersLoading(false);
   }, [restaurant]);
@@ -556,7 +559,7 @@ export default function RestaurantDashboard() {
     pollingRef.current = setInterval(() => {
       loadOrders(true);
       loadRepartidoresStatus();
-    }, 25000);
+    }, 15000);
     return () => clearInterval(pollingRef.current);
   }, [restaurant, loadOrders, loadRepartidoresStatus]);
 
@@ -3004,9 +3007,8 @@ export default function RestaurantDashboard() {
                           <th style={{ padding: '12px 8px' }}>Pedido</th>
                           <th style={{ padding: '12px 8px' }}>Fecha/Hora</th>
                           <th style={{ padding: '12px 8px' }}>Método</th>
-                          <th style={{ padding: '12px 8px' }}>Op. MP</th>
                           <th style={{ padding: '12px 8px', textAlign: 'right' }}>Total</th>
-                          <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>Com. (%)</th>
+                          <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--blue-600)' }}>Crédito</th>
                           <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
                           <th style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>Neto</th>
                         </tr>
@@ -3022,12 +3024,12 @@ export default function RestaurantDashboard() {
 
 
                             <td style={{ padding: '12px 8px' }}>{p.metodo}</td>
-
-                            <td style={{ padding: '12px 8px', fontFamily: 'monospace', color: 'var(--gray-500)', fontSize: '0.75rem' }}>{p.nro_operacion}</td>
                             <td style={{ padding: '12px 8px', textAlign: 'right' }}>${p.total}</td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--blue-600)', fontWeight: p.credito_usado > 0 ? 600 : 400 }}>
+                              {p.credito_usado > 0 ? `-$${p.credito_usado}` : '-'}
+                            </td>
                             <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.comision_monto)).toFixed(2)}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto)).toFixed(2)}</td>
                           </tr>
                         ))}
                         {cierreReport.pedidos.length === 0 ? (
@@ -3037,12 +3039,20 @@ export default function RestaurantDashboard() {
                         ) : (
                           <>
                             <tr style={{ borderTop: '2px solid var(--gray-200)', background: 'var(--gray-50)' }}>
-                               <td colSpan="4" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right' }}>TOTAL VENTA (BRUTO)</td>
+                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right' }}>TOTAL VENTA (BRUTO)</td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${cierreReport.subtotal}</td>
                                <td colSpan="3"></td>
                             </tr>
-                            <tr style={{ background: 'var(--gray-50)' }}>
-                               <td colSpan="4" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
+                            
+                             <tr style={{ background: '#f0f9ff' }}>
+                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>CRÉDITOS A SALDAR POR WEPI</td>
+                               <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--blue-600)' }}>${cierreReport.totalCreditoWepi}</td>
+                               <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', paddingLeft: '15px', verticalAlign: 'middle' }}>
+                                 Este monto fue pagado con crédito y Wepi lo liquidará al local.
+                               </td>
+                             </tr>
+                             <tr style={{ background: 'var(--gray-50)' }}>
+                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${cierreReport.comisiones}</td>
                                <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', verticalAlign: 'middle', paddingLeft: '15px' }}>
                                   <div style={{ display: 'flex', gap: '15px' }}>
@@ -3052,7 +3062,7 @@ export default function RestaurantDashboard() {
                                </td>
                             </tr>
                             <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
-                               <td colSpan="4" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
+                               <td colSpan="3" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
                                <td colSpan="3"></td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${cierreReport.neto}</td>
                             </tr>

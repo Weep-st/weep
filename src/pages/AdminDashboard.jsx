@@ -13,9 +13,8 @@ import AdminUsuarios from './AdminUsuarios';
 import AdminBanners from './AdminBanners';
 import AdminConfig from './AdminConfig';
 import AdminPruebas from './AdminPruebas';
-import AdminCupones from './AdminCupones';
-import AdminCredits from './AdminCredits';
 import AdminReportes from './AdminReportes';
+import AdminPromos from './AdminPromos';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -71,8 +70,7 @@ const AdminDashboard = () => {
             case 'banners': return <AdminBanners />;
             case 'config': return <AdminConfig />;
             case 'pruebas': return <AdminPruebas />;
-            case 'cupones': return <AdminCupones />;
-            case 'wallet': return <AdminCredits />;
+            case 'promos': return <AdminPromos />;
             case 'reports': return <AdminReportes />;
             default: return <AdminLocales />;
         }
@@ -113,11 +111,8 @@ const AdminDashboard = () => {
                     <button className={activeTab === 'config' ? 'active' : ''} onClick={() => handleTabClick('config')}>
                         <span className="icon">⚙️</span> Configuración
                     </button>
-                    <button className={activeTab === 'cupones' ? 'active' : ''} onClick={() => handleTabClick('cupones')}>
-                        <span className="icon">🎟️</span> Cupones
-                    </button>
-                    <button className={activeTab === 'wallet' ? 'active' : ''} onClick={() => handleTabClick('wallet')}>
-                        <span className="icon">💰</span> Config Wallet
+                    <button className={activeTab === 'promos' ? 'active' : ''} onClick={() => handleTabClick('promos')}>
+                        <span className="icon">🚀</span> Promos y Descuentos
                     </button>
                     <button className={activeTab === 'reports' ? 'active' : ''} onClick={() => handleTabClick('reports')}>
                         <span className="icon">📊</span> Informes de Gestión
