@@ -559,7 +559,7 @@ export default function RestaurantDashboard() {
     pollingRef.current = setInterval(() => {
       loadOrders(true);
       loadRepartidoresStatus();
-    }, 15000);
+    }, 10000);
     return () => clearInterval(pollingRef.current);
   }, [restaurant, loadOrders, loadRepartidoresStatus]);
 
