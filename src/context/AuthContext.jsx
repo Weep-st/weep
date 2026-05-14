@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    if (userId) {
+    if (userId && userId !== 'undefined') {
       setUser({
         id: userId,
         name: localStorage.getItem('userName') || '',
@@ -23,6 +23,9 @@ export function AuthProvider({ children }) {
         role: localStorage.getItem('userRole') || 'user',
         ya_realizo_pedidos: localStorage.getItem('userYaRealizoPedidos') === 'true',
       });
+    } else if (userId === 'undefined') {
+      // Limpiar datos corruptos
+      ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole', 'userYaRealizoPedidos'].forEach(k => localStorage.removeItem(k));
     }
     const localToken = localStorage.getItem('localToken');
     if (localToken) {
@@ -41,12 +44,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginAsUser = (data) => {
-    localStorage.setItem('userId', data.userId);
-    localStorage.setItem('userName', data.name || '');
+    const userId = data.userId || data.id;
+    localStorage.setItem('userId', userId);
+    localStorage.setItem('userName', data.name || data.nombre || '');
     localStorage.setItem('userEmail', data.email || '');
-    localStorage.setItem('userAddress', data.address || '');
+    localStorage.setItem('userAddress', data.address || data.direccion || '');
     localStorage.setItem('userTelefono', data.telefono || '');
-    localStorage.setItem('userEmailConfirmado', String(!!data.emailConfirmado));
+    localStorage.setItem('userEmailConfirmado', String(!!(data.emailConfirmado || data.email_confirmado)));
     localStorage.setItem('userRole', data.role || 'user');
     localStorage.setItem('userYaRealizoPedidos', String(!!data.ya_realizo_pedidos));
     setUser({ 

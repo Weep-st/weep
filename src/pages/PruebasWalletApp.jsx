@@ -1637,7 +1637,7 @@ export default function PruebasWalletApp() {
               api.getUserOrderCount(user.id).then(cnt => {
                 setOrderCount(cnt.count);
                 if (cnt.count > 0 && !user.ya_realizo_pedidos) {
-                  loginAsUser({ ...user, ya_realizo_pedidos: true });
+                  loginAsUser({ ...user, userId: user.id, ya_realizo_pedidos: true });
                 }
               }).catch(() => {});
               
@@ -1668,7 +1668,7 @@ export default function PruebasWalletApp() {
         const hasOrdered = res.count > 0;
         if (hasOrdered !== user.ya_realizo_pedidos) {
           console.log("🔄 Syncing user order status:", hasOrdered);
-          loginAsUser({ ...user, ya_realizo_pedidos: hasOrdered });
+          loginAsUser({ ...user, userId: user.id, ya_realizo_pedidos: hasOrdered });
           // Pequeña espera para asegurar propagación de estado
           await new Promise(resolve => setTimeout(resolve, 100));
         }
