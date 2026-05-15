@@ -330,6 +330,75 @@
 
 .suggestion-categoria .precio-min { color: #2e7d32; font-weight: 700; }
 
+/* ─── Premium Featured Cards (Modern Violet) ─── */
+.suggestion-categoria.is-premium {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
+  border: 2px solid #a78bfa; /* Violet-400 */
+  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15);
+  position: relative;
+  overflow: visible;
+}
+
+.suggestion-categoria.is-premium::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  padding: 2px;
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6, #7c3aed);
+  -webkit-mask: 
+     linear-gradient(#fff 0 0) content-box, 
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.suggestion-categoria.is-premium:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(139, 92, 246, 0.25);
+  border-color: #8b5cf6;
+}
+
+.suggestion-categoria.is-premium img {
+  border-color: #ddd6fe; /* Violet-200 */
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+.suggestion-categoria.is-premium .local-name {
+  color: #4c1d95; /* Violet-900 */
+}
+
+.suggestion-categoria.is-premium .cat {
+  background: #ede9fe; /* Violet-100 */
+  color: #7c3aed; /* Violet-600 */
+}
+
+.premium-badge-mini {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3);
+  letter-spacing: 0.5px;
+  z-index: 20;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: premium-glow 2s infinite alternate;
+}
+
+@keyframes premium-glow {
+  from { box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3); }
+  to { box-shadow: 0 4px 20px rgba(139, 92, 246, 0.6); transform: translateX(-50%) scale(1.05); }
+}
+
 /* ─── Menus ─── */
 .menu-section { margin: 24px 0; }
 .menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -1975,7 +2044,8 @@
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding: 4px 4px 16px 4px;
+  padding: 16px;
+  margin: 0 -16px;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
 }
@@ -2187,7 +2257,8 @@
   display: flex;
   gap: 12px;
   overflow-x: auto;
-  padding: 8px 0 16px;
+  padding: 8px 16px 16px;
+  margin: 0 -16px;
   scrollbar-width: none;
 }
 .categories-grid-home::-webkit-scrollbar { display: none; }
@@ -2273,7 +2344,8 @@
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding: 4px 4px 16px 4px;
+  padding: 16px;
+  margin: 0 -16px;
   scrollbar-width: none;
 }
 .horizontal-scroll-items::-webkit-scrollbar { display: none; }
@@ -2464,6 +2536,12 @@
   transition: transform 0.2s ease;
 }
 .item-promo-card-vertical:active { transform: scale(0.96); }
+
+/* Premium Promos (Modern Violet) - Solo borde */
+.item-promo-card-vertical.is-premium {
+  border: 2px solid #a78bfa;
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.15);
+}
 
 .promo-vertical-img {
   width: 100%;

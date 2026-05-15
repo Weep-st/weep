@@ -1008,27 +1008,44 @@ export default function PruebasWalletApp() {
         precio_min: l.precio_min_categoria || 0,
         horario_apertura: l.horario_apertura, 
         horario_cierre: l.horario_cierre,
+        horario_apertura2: l.horario_apertura2,
+        horario_cierre2: l.horario_cierre2,
         modo_automatico: l.modo_automatico, 
         dias_apertura: l.dias_apertura,
         disponible_desde: l.disponible_desde, 
-        rubro: l.rubro_local || l.rubro
+        config_horarios: l.config_horarios || {},
+        rubro: l.rubro_local || l.rubro,
+        plan_id: l.plan_id
       }));
 
-      // Filter open ones
-      const openLocales = allLocales.filter(l => isLocalOpen(l));
-      
-      // Remove duplicates
-      const uniqueOpen = [];
+      // Sort and Deduplicate
+      const mapped = allLocales.sort((a, b) => {
+        const openA = isLocalOpen(a) ? 1 : 0;
+        const openB = isLocalOpen(b) ? 1 : 0;
+        if (openA !== openB) return openB - openA;
+        
+        const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+        const isFeaturedA = a.plan_id === PLAN_PRO ? 1 : 0;
+        const isFeaturedB = b.plan_id === PLAN_PRO ? 1 : 0;
+        if (isFeaturedA !== isFeaturedB) return isFeaturedB - isFeaturedA;
+        
+        return 0;
+      });
+
+      const unique = [];
       const seen = new Set();
-      openLocales.forEach(l => {
+      mapped.forEach(l => {
         if (!seen.has(l.id)) {
-          uniqueOpen.push(l);
+          unique.push(l);
           seen.add(l.id);
         }
       });
 
-      setFilteredLocals(uniqueOpen);
+      setFilteredLocals(unique);
       setSelectedCategory(info.title);
+      setTimeout(() => {
+        document.querySelector('.locals-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
 
       // 2. Fetch menu items for discovery (Market cats + top from locales)
       const allItems = await api.getMenuCompleto();
@@ -1086,8 +1103,23 @@ export default function PruebasWalletApp() {
         dias_apertura: l.dias_apertura,
         disponible_desde: l.disponible_desde,
         config_horarios: l.config_horarios || {},
-        rubro: l.rubro
-      })).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+        rubro: l.rubro,
+        plan_id: l.plan_id
+      })).sort((a, b) => {
+        const openA = isLocalOpen(a) ? 1 : 0;
+        const openB = isLocalOpen(b) ? 1 : 0;
+        
+        if (openA !== openB) return openB - openA;
+        
+        // Entre locales abiertos, priorizar los destacados
+        const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+        const isFeaturedA = a.plan_id === PLAN_PRO ? 1 : 0;
+        const isFeaturedB = b.plan_id === PLAN_PRO ? 1 : 0;
+        
+        if (isFeaturedA !== isFeaturedB) return isFeaturedB - isFeaturedA;
+        
+        return 0;
+      });
       setFilteredLocals(mapped);
       setSelectedCategory(cat);
       setTargetMenuCategory(label);
@@ -2098,10 +2130,12 @@ export default function PruebasWalletApp() {
                      {homeLayout.promosOfDay.map((item) => {
                         const loc = locals.find(l => l.id === item.local_id);
                         const open = isLocalOpen(loc);
+                        const isPremium = loc?.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
                         return (
                           <div 
                             key={item.id} 
-                            className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'}`}
+                            className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'} ${isPremium ? 'is-premium' : ''}`}
                             onClick={() => open && handleAddToCart(item)}
                           >
                             <div className="promo-vertical-img">
@@ -2124,7 +2158,10 @@ export default function PruebasWalletApp() {
                                 {calculateDiscountedPrice(item) < Number(item.precio) && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span className="promo-local-label">{item.local_nombre}</span>
+                                <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {item.local_nombre}
+                                  {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
+                                </span>
                                 {open ? (
                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                 ) : (
@@ -2174,10 +2211,12 @@ export default function PruebasWalletApp() {
                     {homeLayout.mostOrdered.map((item) => {
                       const loc = locals.find(l => l.id === item.local_id);
                       const open = isLocalOpen(loc);
+                      const isPremium = loc?.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
                       return (
                         <div 
                           key={item.id} 
-                          className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'}`} 
+                          className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'} ${isPremium ? 'is-premium' : ''}`} 
                           onClick={() => open && handleAddToCart(item)}
                         >
                            <div className="promo-vertical-img">
@@ -2205,7 +2244,10 @@ export default function PruebasWalletApp() {
                                   )}
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                 <span className="promo-local-label">{item.local_nombre}</span>
+                                 <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                   {item.local_nombre}
+                                   {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
+                                 </span>
                                  {open ? (
                                    <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                  ) : (
@@ -2410,16 +2452,19 @@ export default function PruebasWalletApp() {
                 ) : filteredLocals.length === 0 ? (
                   <div className="empty-state-premium">Próximamente en Wepi</div>
                 ) : (
-                  <div className="locals-scroll" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '16px' }}>
+                  <div className="locals-scroll" style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '16px 16px', margin: '0 -16px' }}>
                     {filteredLocals.map((local) => {
                       const open = isLocalOpen(local);
+                      const isPremium = local.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
                       return (
                         <button 
                           key={local.id} 
-                          className={`suggestion-categoria ${open ? 'open' : 'closed'}`} 
+                          className={`suggestion-categoria ${open ? 'open' : 'closed'} ${isPremium ? 'is-premium' : ''}`} 
                           onClick={() => fetchMenusByLocal(local.id)}
                           style={{ flex: '0 0 auto', border: 'none', outline: 'none' }}
                         >
+                          {isPremium && <div className="premium-badge-mini">DESTACADO</div>}
                           <img src={local.logo} alt={local.nombre} />
                           <div className="suggestion-info">
                             <div className="local-name">{local.nombre}</div>
