@@ -3301,7 +3301,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
 
 const LOGO_HTML = `
   <div style="text-align: center; margin: 20px 0 30px 0;">
-      <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png"
+      <img src="https://i.postimg.cc/Sx8C1DWh/2.png"
             alt="Wepi" width="120" style="border-radius:12px;">
   </div>
   <hr style="border:0; border-top:2px solid #d32f2f; margin:30px 0;">

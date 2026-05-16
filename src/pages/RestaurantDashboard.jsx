@@ -1001,13 +1001,16 @@ export default function RestaurantDashboard() {
             qty: Number(item[6]),
             local_id: pedido.localId
           }));
+          /*
           await api.notifyCustomerAboutNewOrder(
             pedido.idPedido, mappedCart, pedido.direccion, 
             pedido.tipoEntrega, pedido.numConfirmacion, 
             pedido.emailCliente, pedido.nombreCliente
           );
+          */
 
           // Notificar al repartidor si está asignado
+          /*
           if (pedido.repartidorId) {
             api.repartidorGetDatos(pedido.repartidorId).then(rep => {
               if (rep.success && rep.data?.Email) {
@@ -1020,9 +1023,13 @@ export default function RestaurantDashboard() {
           }
         } else if (action === 'Listo') {
           const direccionLocal = profileData?.direccion || 'Dirección del local';
+          /*
           await api.notifyOrderListo(pedido, direccionLocal);
+          */
         } else if (action === 'Entregado') {
+          /*
           await api.notifyOrderEntregado(pedido);
+          */
         } else if (action === 'Rechazado') {
           await api.notifyOrderRechazado(pedido, reason);
         }
