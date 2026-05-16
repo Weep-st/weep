@@ -138,6 +138,14 @@ export default function RestaurantDashboard() {
   const [tutorialStep, setTutorialStep] = React.useState(1);
   const [tutorialSampleOrderState, setTutorialSampleOrderState] = React.useState('Pendiente'); // To simulate order states
   const [itemName, setItemName] = React.useState('');
+  const [rejectionModalOpen, setRejectionModalOpen] = React.useState(false);
+  const [orderToReject, setOrderToReject] = React.useState(null);
+  const [rejectionReason, setRejectionReason] = React.useState('');
+  const [securityModalOpen, setSecurityModalOpen] = React.useState(false);
+  const [securityPassword, setSecurityPassword] = React.useState('');
+  const [securityLoading, setSecurityLoading] = React.useState(false);
+  const [onSecuritySuccess, setOnSecuritySuccess] = React.useState(null);
+  const [isUnlocked, setIsUnlocked] = React.useState(false);
   const [notificationStatus, setNotificationStatus] = React.useState('loading');
   const [isIOS, setIsIOS] = React.useState(false);
   const [isBaseProductMode, setIsBaseProductMode] = React.useState(false);
@@ -977,7 +985,7 @@ export default function RestaurantDashboard() {
     } catch (e) { toast.error('Error al actualizar descuento'); }
   };
 
-  const handleOrderAction = async (pedido, action) => {
+  const handleOrderAction = async (pedido, action, reason = '') => {
     try {
       await api.updateEstadoLocalOrder(pedido.idPedidoLocal, action);
       
@@ -1016,7 +1024,7 @@ export default function RestaurantDashboard() {
         } else if (action === 'Entregado') {
           await api.notifyOrderEntregado(pedido);
         } else if (action === 'Rechazado') {
-          await api.notifyOrderRechazado(pedido);
+          await api.notifyOrderRechazado(pedido, reason);
         }
       } catch (e) {
         console.error('Error enviando email:', e);
@@ -1828,7 +1836,15 @@ export default function RestaurantDashboard() {
           <div className="rd-dropdown-container">
             <button 
               className={`btn btn-ghost btn-sm ${view === 'profile' ? 'active' : ''}`} 
-              onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (isUnlocked) {
+                  setProfileMenuOpen(!profileMenuOpen);
+                } else {
+                  setOnSecuritySuccess(() => () => setProfileMenuOpen(true));
+                  setSecurityModalOpen(true);
+                }
+              }}
               style={{ color: 'white' }}
             >
               Mi Perfil ▾
@@ -1976,7 +1992,14 @@ export default function RestaurantDashboard() {
                 marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid #ddd', 
                 paddingLeft: '16px', cursor: 'pointer' 
               }}
-              onClick={() => setShowGamification(!showGamification)}
+              onClick={() => {
+                if (isUnlocked) {
+                  setShowGamification(!showGamification);
+                } else {
+                  setOnSecuritySuccess(() => () => setShowGamification(true));
+                  setSecurityModalOpen(true);
+                }
+              }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '80px' }}>
@@ -2011,7 +2034,18 @@ export default function RestaurantDashboard() {
             {menuItems.filter(i => i.maneja_stock && !i.stock_base_id && i.stock_actual <= i.stock_minimo).length > 0 && (
               <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ color: '#991b1b', fontWeight: '500' }}>⚠️ <strong>Stock Bajo:</strong> Hay productos que están alcanzando el límite mínimo.</span>
-                <button className="btn btn-sm" style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none' }} onClick={() => setView('menu')}>Ver ítems</button>
+                <button className="btn btn-sm" style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none' }} 
+                  onClick={() => {
+                    if (isUnlocked) {
+                      setView('menu');
+                    } else {
+                      setOnSecuritySuccess(() => () => setView('menu'));
+                      setSecurityModalOpen(true);
+                    }
+                  }}
+                >
+                  Ver ítems
+                </button>
               </div>
             )}
 
@@ -2031,7 +2065,16 @@ export default function RestaurantDashboard() {
         )}
 
         {planInfo && showGamification && (
-          <div className="gamification-pill card animate-slide-up" onClick={() => setView('plans')} style={{ 
+          <div className="gamification-pill card animate-slide-up" 
+            onClick={() => {
+              if (isUnlocked) {
+                setView('plans');
+              } else {
+                setOnSecuritySuccess(() => () => setView('plans'));
+                setSecurityModalOpen(true);
+              }
+            }} 
+            style={{ 
             cursor: 'pointer', display: 'flex', flexDirection: 'column', padding: '16px', margin: '0 16px 16px', 
             background: 'linear-gradient(135deg, #fff 0%, #fffafa 100%)', borderLeft: '4px solid #e63946',
             boxShadow: '0 4px 15px rgba(230, 57, 70, 0.08)'
@@ -2096,7 +2139,18 @@ export default function RestaurantDashboard() {
               </span>
             )}
           </button>
-          <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
+          <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} 
+            onClick={() => { 
+              if (isUnlocked) {
+                setView('menu'); loadMenu(); 
+              } else {
+                setOnSecuritySuccess(() => () => { setView('menu'); loadMenu(); });
+                setSecurityModalOpen(true);
+              }
+            }}
+          >
+            📖 Menú
+          </button>
           
         </nav>
 
@@ -2140,7 +2194,12 @@ export default function RestaurantDashboard() {
               <OrderCard 
                 key={o.idPedidoLocal} 
                 order={o} 
-                onAction={(order, action) => {
+                onAction={async (order, action) => {
+                  if (action === 'RechazarClick') {
+                    setOrderToReject(order);
+                    setRejectionModalOpen(true);
+                    return;
+                  }
                   if (order.idPedidoLocal === 'sample-order-1') {
                     if (action === 'Aceptado') {
                        setTutorialSampleOrderState('Aceptado');
@@ -2156,7 +2215,7 @@ export default function RestaurantDashboard() {
                        setTutorialStep(5); // Move to next step if in tutorial
                     }
                   } else {
-                    handleOrderAction(order, action);
+                    await handleOrderAction(order, action);
                   }
                 }} 
               />
@@ -3810,6 +3869,97 @@ export default function RestaurantDashboard() {
       </footer>
       {renderTermsModal()}
       {renderRegretModal()}
+
+      {rejectionModalOpen && (
+        <div className="modal-overlay" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }} style={{ zIndex: 9999 }}>
+          <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <button className="modal-close" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }}>✕</button>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: '10px' }}>Rechazar Pedido</h2>
+            <p style={{ color: 'var(--gray-600)', marginBottom: '20px', fontSize: '0.9rem' }}>
+              Por favor, selecciona el motivo del rechazo para informar al cliente:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                'Local sin stock / No podemos cumplir el pedido',
+                'Local fuera de zona de entrega',
+                'Local cerrado o sin repartidor disponible',
+                'Pedido incorrecto o datos incompletos',
+                'Otro motivo'
+              ].map(reason => (
+                <button 
+                  key={reason}
+                  className="btn btn-ghost"
+                  style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '12px 16px', border: '1px solid var(--gray-200)', fontSize: '0.9rem' }}
+                  onClick={() => {
+                    handleOrderAction(orderToReject, 'Rechazado', reason);
+                    setRejectionModalOpen(false);
+                    setOrderToReject(null);
+                  }}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button 
+              className="btn btn-secondary btn-full" 
+              style={{ marginTop: '20px' }}
+              onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {securityModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 10001 }} onClick={() => setSecurityModalOpen(false)}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🔒</div>
+            <h3 style={{ marginBottom: '8px' }}>Sección Protegida</h3>
+            <p style={{ color: 'var(--gray-600)', marginBottom: '20px', fontSize: '0.9rem' }}>
+              Ingresá la contraseña de tu cuenta para acceder a esta sección.
+            </p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSecurityLoading(true);
+              try {
+                const valid = await api.verifyLocalPassword(restaurant.id, securityPassword);
+                if (valid) {
+                  setIsUnlocked(true);
+                  setSecurityModalOpen(false);
+                  setSecurityPassword('');
+                  if (onSecuritySuccess) onSecuritySuccess();
+                } else {
+                  toast.error('Contraseña incorrecta');
+                }
+              } catch (err) {
+                toast.error('Error al verificar contraseña');
+              } finally {
+                setSecurityLoading(false);
+              }
+            }}>
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="Contraseña" 
+                value={securityPassword}
+                onChange={e => setSecurityPassword(e.target.value)}
+                autoFocus
+                required
+                style={{ textAlign: 'center', fontSize: '1.1rem', letterSpacing: '4px' }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+                <button type="submit" className="btn btn-primary btn-full" disabled={securityLoading}>
+                  {securityLoading ? 'Verificando...' : 'Desbloquear'}
+                </button>
+                <button type="button" className="btn btn-ghost btn-full" onClick={() => setSecurityModalOpen(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {showAddressSelector && (
         <AddressSelector 
           isLoaded={isMapLoaded}
@@ -3839,8 +3989,8 @@ function OrderCard({ order: o, onAction, finished }) {
       <div className="rd-order-header">
         <div>
           <strong>Pedido #{o.idPedido}</strong>
-          <span className="rd-order-sub">Local #{o.idPedidoLocal}</span>
-          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
+
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(new Date(o.fecha).getTime() + 3 * 60 * 60 * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>}
           <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
             {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
           </span>
@@ -3857,7 +4007,14 @@ function OrderCard({ order: o, onAction, finished }) {
         </p>
         <p><strong>Dirección:</strong> {o.direccion}</p>
         <p><strong>Pago:</strong> {o.metodoPago}</p>
-        <p><strong>Repartidor:</strong> <span style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginLeft: 8 }}>({o.repartidorTelefono})</span>}</p>
+        {String(o.metodoPago).toLowerCase().includes('efectivo') && (
+          <p style={{ color: 'var(--amber-600)', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '4px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef3c7' }}>
+            ⚠️ El pedido no fue pagado aún
+          </p>
+        )}
+        {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío') && (
+          <p><strong>Repartidor:</strong> <span style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginLeft: 8 }}>({o.repartidorTelefono})</span>}</p>
+        )}
         {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
         <div className="rd-order-items">
           {o.items.map((item, i) => (
@@ -3878,10 +4035,18 @@ function OrderCard({ order: o, onAction, finished }) {
             {['Pendiente', 'Confirmado'].includes(o.estadoActual) ? (
               <>
                 <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
-                  {loading === 'Aceptado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✓ Aceptar'}
+                  {loading === 'Aceptado' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '✓ Aceptar'}
                 </button>
-                <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => handleAction('Rechazado')}>
-                  {loading === 'Rechazado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✕ Rechazar'}
+                <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
+                  {loading === 'Rechazado' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '✕ Rechazar'}
                 </button>
               </>
             ) : ['Aceptado', 'Listo'].includes(o.estadoActual) ? (
@@ -3892,7 +4057,11 @@ function OrderCard({ order: o, onAction, finished }) {
                   disabled={loading || o.estadoActual === 'Listo'} 
                   onClick={() => handleAction('Listo')}
                 >
-                  {loading === 'Listo' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✓ Listo'}
+                  {loading === 'Listo' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '✓ Listo'}
                 </button>
                 <button 
                   className="btn btn-sm" 
@@ -3900,7 +4069,11 @@ function OrderCard({ order: o, onAction, finished }) {
                   disabled={loading || o.estadoActual !== 'Listo'} 
                   onClick={() => handleAction('Entregado')}
                 >
-                  {loading === 'Entregado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '📦 Entregado'}
+                  {loading === 'Entregado' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '📦 Entregado'}
                 </button>
               </>
             ) : null}

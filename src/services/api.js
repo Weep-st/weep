@@ -222,6 +222,28 @@ export async function updatePerfilLocal(params) {
   return { success: true };
 }
 
+export async function verifyLocalPassword(localId, password) {
+  // Check if it's an Admin (locales table)
+  const { data: localData } = await supabase
+    .from('locales')
+    .select('id')
+    .eq('id', localId)
+    .eq('password', password)
+    .maybeSingle();
+    
+  if (localData) return true;
+
+  // Check if it's a Cajero (locales_usuarios table)
+  const { data: userData } = await supabase
+    .from('locales_usuarios')
+    .select('id')
+    .eq('local_id', localId)
+    .eq('password', password)
+    .maybeSingle();
+
+  return !!userData;
+}
+
 // ═══════════════════════════════════════════════════
 // AUTH — Repartidores (Drivers)
 // ═══════════════════════════════════════════════════
@@ -3351,7 +3373,7 @@ export async function notifyOrderEntregado(pedido) {
   }
 }
 
-export async function notifyOrderRechazado(pedido) {
+export async function notifyOrderRechazado(pedido, reason = '') {
   try {
     const to = pedido.emailCliente;
     if (!to) return { success: false, error: 'No hay email del cliente' };
@@ -3362,6 +3384,7 @@ export async function notifyOrderRechazado(pedido) {
       <h2 style="color:#d32f2f; text-align:center;">Pedido Cancelado</h2>
       <p>Hola <strong>${pedido.nombreCliente}</strong>,</p>
       <p>Lamentablemente el local no pudo aceptar tu pedido en esta ocasión.</p>
+      ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ''}
       <p>Cualquier pago realizado será reembolsado a la brevedad.</p>
       <p>Te pedimos disculpas por los inconvenientes.</p>
     `;

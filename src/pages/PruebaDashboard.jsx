@@ -92,8 +92,14 @@ export default function PruebaDashboard() {
   const [tutorialStep, setTutorialStep] = React.useState(1);
   const [tutorialSampleOrderState, setTutorialSampleOrderState] = React.useState('Pendiente'); // To simulate order states
   const [itemName, setItemName] = React.useState('');
-  const [notificationStatus, setNotificationStatus] = React.useState('loading');
-  const [isIOS, setIsIOS] = React.useState(false);
+  const [rejectionModalOpen, setRejectionModalOpen] = React.useState(false);
+  const [orderToReject, setOrderToReject] = React.useState(null);
+  const [rejectionReason, setRejectionReason] = React.useState('');
+  const [securityModalOpen, setSecurityModalOpen] = React.useState(false);
+  const [securityPassword, setSecurityPassword] = React.useState('');
+  const [securityLoading, setSecurityLoading] = React.useState(false);
+  const [onSecuritySuccess, setOnSecuritySuccess] = React.useState(null);
+  const [isUnlocked, setIsUnlocked] = React.useState(false);
 
   // ─── Modal Arrepentimiento ───
   const renderRegretModal = () => (
@@ -178,6 +184,8 @@ export default function PruebaDashboard() {
   const [profileAddress, setProfileAddress] = React.useState('');
   const [profileLat, setProfileLat] = React.useState(null);
   const [profileLng, setProfileLng] = React.useState(null);
+  const [isIOS, setIsIOS] = React.useState(false);
+  const [notificationStatus, setNotificationStatus] = React.useState('default');
 
   const pollingRef = React.useRef(null);
   const previousOrdersRef = React.useRef([]);
@@ -763,7 +771,7 @@ export default function PruebaDashboard() {
     } catch (e) { toast.error('Error al actualizar descuento'); }
   };
 
-  const handleOrderAction = async (pedido, action) => {
+  const handleOrderAction = async (pedido, action, reason = '') => {
     try {
       await api.updateEstadoLocalOrder(pedido.idPedidoLocal, action);
       
@@ -802,7 +810,7 @@ export default function PruebaDashboard() {
         } else if (action === 'Entregado') {
           await api.notifyOrderEntregado(pedido);
         } else if (action === 'Rechazado') {
-          await api.notifyOrderRechazado(pedido);
+          await api.notifyOrderRechazado(pedido, reason);
         }
       } catch (e) {
         console.error('Error enviando email:', e);
@@ -1516,7 +1524,15 @@ export default function PruebaDashboard() {
             <div className="rd-dropdown-container">
               <button 
                 className={`btn btn-ghost btn-sm ${view === 'profile' ? 'active' : ''}`} 
-                onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (isUnlocked) {
+                    setProfileMenuOpen(!profileMenuOpen);
+                  } else {
+                    setOnSecuritySuccess(() => () => setProfileMenuOpen(true));
+                    setSecurityModalOpen(true);
+                  }
+                }}
               >
                 Mi Perfil ▾
               </button>
@@ -1583,13 +1599,39 @@ export default function PruebaDashboard() {
           
           {localUserRole === 'Admin' && (
             <>
-              <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} onClick={() => { setView('menu'); loadMenu(); }}>📖 Menú</button>
-              <button className={`rd-nav-btn ${view === 'plans' ? 'active' : ''}`} onClick={() => { setView('plans'); loadPlanInfo(); }}>🚀 Planes</button>
+              <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} 
+                onClick={() => { 
+                  if (isUnlocked) {
+                    setView('menu'); loadMenu(); 
+                  } else {
+                    setOnSecuritySuccess(() => () => { setView('menu'); loadMenu(); });
+                    setSecurityModalOpen(true);
+                  }
+                }}
+              >
+                📖 Menú
+              </button>
+              <button className={`rd-nav-btn ${view === 'plans' ? 'active' : ''}`} onClick={() => { 
+                if (isUnlocked) {
+                   setView('plans'); loadPlanInfo();
+                } else {
+                   setOnSecuritySuccess(() => () => { setView('plans'); loadPlanInfo(); });
+                   setSecurityModalOpen(true);
+                }
+              }}>🚀 Planes</button>
               
               <div className="rd-dropdown-container">
                 <button 
                   className={`rd-nav-btn ${(view === 'addItem' || view === 'sabores') ? 'active' : ''}`} 
-                  onClick={(e) => { e.stopPropagation(); setAddMenuOpen(!addMenuOpen); }}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    if (isUnlocked) {
+                      setAddMenuOpen(!addMenuOpen);
+                    } else {
+                      setOnSecuritySuccess(() => () => setAddMenuOpen(true));
+                      setSecurityModalOpen(true);
+                    }
+                  }}
                 >
                   ➕ Añadir ▾
                 </button>
@@ -1612,7 +1654,16 @@ export default function PruebaDashboard() {
         {view === 'orders' && (
           <section className="animate-fade-in">
             {planInfo && (
-              <div className="gamification-pill card" onClick={() => setView('plans')} style={{ 
+              <div className="gamification-pill card" 
+                onClick={() => {
+                  if (isUnlocked) {
+                    setView('plans');
+                  } else {
+                    setOnSecuritySuccess(() => () => setView('plans'));
+                    setSecurityModalOpen(true);
+                  }
+                }} 
+                style={{ 
                 cursor: 'pointer', display: 'flex', flexDirection: 'column', padding: '16px', margin: '0 0 16px', 
                 background: 'linear-gradient(135deg, #fff 0%, #fffafa 100%)', borderLeft: '4px solid #e63946',
                 boxShadow: '0 4px 15px rgba(230, 57, 70, 0.08)'
@@ -1692,7 +1743,12 @@ export default function PruebaDashboard() {
               <OrderCard 
                 key={o.idPedidoLocal} 
                 order={o} 
-                onAction={(order, action) => {
+                onAction={async (order, action) => {
+                  if (action === 'RechazarClick') {
+                    setOrderToReject(order);
+                    setRejectionModalOpen(true);
+                    return;
+                  }
                   if (order.idPedidoLocal === 'sample-order-1') {
                     if (action === 'Aceptado') {
                        setTutorialSampleOrderState('Aceptado');
@@ -1708,7 +1764,7 @@ export default function PruebaDashboard() {
                        setTutorialStep(5); // Move to next step if in tutorial
                     }
                   } else {
-                    handleOrderAction(order, action);
+                    await handleOrderAction(order, action);
                   }
                 }} 
               />
@@ -2528,6 +2584,98 @@ export default function PruebaDashboard() {
       </footer>
       {renderTermsModal()}
       {renderRegretModal()}
+
+      {rejectionModalOpen && (
+        <div className="modal-overlay" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }} style={{ zIndex: 9999 }}>
+          <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <button className="modal-close" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }}>✕</button>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: '10px' }}>Rechazar Pedido</h2>
+            <p style={{ color: 'var(--gray-600)', marginBottom: '20px', fontSize: '0.9rem' }}>
+              Por favor, selecciona el motivo del rechazo para informar al cliente:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                'Local sin stock / No podemos cumplir el pedido',
+                'Local fuera de zona de entrega',
+                'Local cerrado o sin repartidor disponible',
+                'Pedido incorrecto o datos incompletos',
+                'Otro motivo'
+              ].map(reason => (
+                <button 
+                  key={reason}
+                  className="btn btn-ghost"
+                  style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '12px 16px', border: '1px solid var(--gray-200)', fontSize: '0.9rem' }}
+                  onClick={() => {
+                    handleOrderAction(orderToReject, 'Rechazado', reason);
+                    setRejectionModalOpen(false);
+                    setOrderToReject(null);
+                  }}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button 
+              className="btn btn-secondary btn-full" 
+              style={{ marginTop: '20px' }}
+              onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {securityModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 10001 }} onClick={() => setSecurityModalOpen(false)}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🔒</div>
+            <h3 style={{ marginBottom: '8px' }}>Sección Protegida</h3>
+            <p style={{ color: 'var(--gray-600)', marginBottom: '20px', fontSize: '0.9rem' }}>
+              Ingresá la contraseña de tu cuenta para acceder a esta sección.
+            </p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSecurityLoading(true);
+              try {
+                const valid = await api.verifyLocalPassword(restaurant.id, securityPassword);
+                if (valid) {
+                  setIsUnlocked(true);
+                  setSecurityModalOpen(false);
+                  setSecurityPassword('');
+                  if (onSecuritySuccess) onSecuritySuccess();
+                } else {
+                  toast.error('Contraseña incorrecta');
+                }
+              } catch (err) {
+                toast.error('Error al verificar contraseña');
+              } finally {
+                setSecurityLoading(false);
+              }
+            }}>
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="Contraseña" 
+                value={securityPassword}
+                onChange={e => setSecurityPassword(e.target.value)}
+                autoFocus
+                required
+                style={{ textAlign: 'center', fontSize: '1.1rem', letterSpacing: '4px' }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+                <button type="submit" className="btn btn-primary btn-full" disabled={securityLoading}>
+                  {securityLoading ? 'Verificando...' : 'Desbloquear'}
+                </button>
+                <button type="button" className="btn btn-ghost btn-full" onClick={() => setSecurityModalOpen(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showAddressSelector && (
         <AddressSelector 
           isLoaded={isMapLoaded}
@@ -2557,8 +2705,8 @@ function OrderCard({ order: o, onAction, finished }) {
       <div className="rd-order-header">
         <div>
           <strong>Pedido #{o.idPedido}</strong>
-          <span className="rd-order-sub">Local #{o.idPedidoLocal}</span>
-          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>}
+
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(new Date(o.fecha).getTime() + 3 * 60 * 60 * 1000).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>}
           <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
             {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
           </span>
@@ -2569,7 +2717,14 @@ function OrderCard({ order: o, onAction, finished }) {
         <p><strong>Cliente:</strong> {o.nombreCliente}</p>
         <p><strong>Dirección:</strong> {o.direccion}</p>
         <p><strong>Pago:</strong> {o.metodoPago}</p>
-        <p><strong>Repartidor:</strong> <span style={{ color: o.repartidorNombre ? 'var(--blue-600)' : 'var(--gray-500)', fontWeight: 600 }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-600)' }}>({o.repartidorTelefono})</span>}</p>
+        {String(o.metodoPago).toLowerCase().includes('efectivo') && (
+          <p style={{ color: 'var(--amber-600)', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '4px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef3c7' }}>
+            ⚠️ El pedido no fue pagado aún
+          </p>
+        )}
+        {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío') && (
+          <p><strong>Repartidor:</strong> <span style={{ color: o.repartidorNombre ? 'var(--blue-600)' : 'var(--gray-500)', fontWeight: 600 }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-600)' }}>({o.repartidorTelefono})</span>}</p>
+        )}
         {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
         <div className="rd-order-items">
           {o.items.map((item, i) => (
@@ -2590,10 +2745,18 @@ function OrderCard({ order: o, onAction, finished }) {
             {o.estadoActual === 'Pendiente' ? (
               <>
                 <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
-                  {loading === 'Aceptado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✓ Aceptar'}
+                  {loading === 'Aceptado' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '✓ Aceptar'}
                 </button>
-                <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => handleAction('Rechazado')}>
-                  {loading === 'Rechazado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✕ Rechazar'}
+                <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
+                  {loading === 'Rechazado' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '✕ Rechazar'}
                 </button>
               </>
             ) : ['Aceptado', 'Listo'].includes(o.estadoActual) ? (
@@ -2604,7 +2767,11 @@ function OrderCard({ order: o, onAction, finished }) {
                   disabled={loading || o.estadoActual === 'Listo'} 
                   onClick={() => handleAction('Listo')}
                 >
-                  {loading === 'Listo' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '✓ Listo'}
+                  {loading === 'Listo' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '✓ Listo'}
                 </button>
                 <button 
                   className="btn btn-sm" 
@@ -2612,7 +2779,11 @@ function OrderCard({ order: o, onAction, finished }) {
                   disabled={loading || o.estadoActual !== 'Listo'} 
                   onClick={() => handleAction('Entregado')}
                 >
-                  {loading === 'Entregado' ? <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> : '📦 Entregado'}
+                  {loading === 'Entregado' ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                    </span>
+                  ) : '📦 Entregado'}
                 </button>
               </>
             ) : null}
