@@ -370,7 +370,14 @@ const AdminReportes = () => {
                                             <td style={{ fontSize: '0.75rem' }}>
                                                 {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
                                             </td>
-                                            <td>{p.metodo}</td>
+                                            <td>
+                                                <div>{p.metodo}</div>
+                                                {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
+                                                    <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
+                                                        Op: {p.nro_operacion}
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td style={{ textAlign: 'right' }}>${p.total}</td>
                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>

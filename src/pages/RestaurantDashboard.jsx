@@ -2974,7 +2974,7 @@ export default function RestaurantDashboard() {
                     <style>
                       {`
                         @media print {
-                          @page { margin: 0; }
+                          @page { margin: 10mm; }
                           html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
                           .rd-page, .rd-main, .card-body, section { padding: 0 !important; margin: 0 !important; }
                           .only-print { display: block !important; }
@@ -2984,9 +2984,15 @@ export default function RestaurantDashboard() {
                             top: 0 !important;
                             left: 0 !important;
                             width: 100% !important;
-                            padding: 20px !important; 
+                            padding: 0 !important; 
                             background: white !important;
                             margin: 0 !important;
+                          }
+                          #printable-cierre table {
+                            font-size: 0.75rem !important;
+                          }
+                          #printable-cierre th, #printable-cierre td {
+                            padding: 6px 4px !important;
                           }
                           .stat-card { border: 1px solid #ddd !important; }
                           .no-print, .rd-header, .rd-topbar, .rd-alerts, .footer, .rd-nav { display: none !important; }
@@ -3001,35 +3007,42 @@ export default function RestaurantDashboard() {
                   </h3>
 
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                       <thead>
                         <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
-                          <th style={{ padding: '12px 8px' }}>Pedido</th>
-                          <th style={{ padding: '12px 8px' }}>Fecha/Hora</th>
-                          <th style={{ padding: '12px 8px' }}>Método</th>
-                          <th style={{ padding: '12px 8px', textAlign: 'right' }}>Total</th>
-                          <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--blue-600)' }}>Crédito</th>
-                          <th style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
-                          <th style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>Neto</th>
+                          <th style={{ padding: '8px 4px' }}>Pedido</th>
+                          <th style={{ padding: '8px 4px' }}>Fecha/Hora</th>
+                          <th style={{ padding: '8px 4px' }}>Método</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right' }}>Total</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)' }}>Crédito</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>Neto</th>
                         </tr>
 
                       </thead>
                       <tbody>
                         {cierreReport.pedidos.map(p => (
                           <tr key={p.id} style={{ borderBottom: '1px solid var(--gray-50)' }}>
-                            <td style={{ padding: '12px 8px', fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
-                            <td style={{ padding: '12px 8px', fontSize: '0.75rem' }}>
+                            <td style={{ padding: '8px 4px', fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                            <td style={{ padding: '8px 4px', fontSize: '0.7rem' }}>
                               {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
                             </td>
 
 
-                            <td style={{ padding: '12px 8px' }}>{p.metodo}</td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>${p.total}</td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--blue-600)', fontWeight: p.credito_usado > 0 ? 600 : 400 }}>
+                            <td style={{ padding: '8px 4px' }}>
+                              <div>{p.metodo}</div>
+                              {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
+                                <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
+                                  Op: {p.nro_operacion}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right' }}>${p.total}</td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)', fontWeight: p.credito_usado > 0 ? 600 : 400 }}>
                               {p.credito_usado > 0 ? `-$${p.credito_usado}` : '-'}
                             </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto)).toFixed(2)}</td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto)).toFixed(2)}</td>
                           </tr>
                         ))}
                         {cierreReport.pedidos.length === 0 ? (
