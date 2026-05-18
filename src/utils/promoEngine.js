@@ -110,6 +110,18 @@ export const evaluatePromotions = (context) => {
             }
         }
 
+        // Trigger: Código de Cupón
+        if (promo.tipo === 'cupon') {
+            const requiredCode = (triggers.codigo_cupon || '').toUpperCase().trim();
+            const inputCode = (context.cart?.couponCode || '').toUpperCase().trim();
+            
+            // Si la promo exige un código y el usuario no puso el correcto, no aplica
+            if (requiredCode && requiredCode !== inputCode) return false;
+            
+            // Si es un cupón, requiere que el usuario haya intentado aplicar el código correcto
+            if (!inputCode) return false;
+        }
+
         return true;
     });
 

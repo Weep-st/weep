@@ -2007,14 +2007,26 @@ export async function getLocalCierreReport(localId, options = {}) {
   const pedidoIds = pedidosLocales.map(p => p.pedido_id);
   const { data: pedidosGeneral, error: errPG } = await supabase
     .from('pedidos_general')
-    .select('id, nombre_cliente, metodo_pago, payment_id, created_at, credito_wallet')
+    .select('id, nombre_cliente, metodo_pago, payment_id, created_at, credito_wallet, descuento_cupon, cupon_id')
     .in('id', pedidoIds);
-
 
   if (errPG) throw new Error(errPG.message);
 
   // Crear mapa para cruce de datos
   const pgMap = new Map(pedidosGeneral?.map(pg => [pg.id, pg]) || []);
+
+  // 2.5 Obtener metadatos de cupones para saber la financiación
+  const uniqueCuponIds = [...new Set(pedidosGeneral?.map(pg => pg.cupon_id).filter(Boolean))];
+  let promocionesMap = new Map();
+  if (uniqueCuponIds.length > 0) {
+    const { data: promos } = await supabase
+      .from('promociones')
+      .select('id, financiacion')
+      .in('id', uniqueCuponIds);
+    if (promos) {
+      promos.forEach(p => promocionesMap.set(p.id, p));
+    }
+  }
 
   const planInfo = await getPlanInfo(localId);
   const comisionPct = planInfo.success ? planInfo.comision_actual : 8;
@@ -2022,15 +2034,44 @@ export async function getLocalCierreReport(localId, options = {}) {
   let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0, comisionEfectivo = 0, totalCreditoWepi = 0;
   const detalles = pedidosLocales.map(p => {
     const pg = pgMap.get(p.pedido_id) || {};
-    const totalPedido = Number(p.total) || 0;
+    let totalPedido = Number(p.total) || 0;
+    
+    let descuentoCupon = Number(pg.descuento_cupon) || 0;
+    let cuponCreditoWepi = 0;
+    let cuponDescuentoLocal = 0;
+
+    if (descuentoCupon > 0 && pg.cupon_id) {
+      const promo = promocionesMap.get(pg.cupon_id);
+      let porcWepi = 100; // Por defecto Wepi asume el 100%
+      let porcLocal = 0;
+      if (promo && promo.financiacion) {
+        try {
+          const fin = typeof promo.financiacion === 'string' ? JSON.parse(promo.financiacion) : promo.financiacion;
+          if (fin.porcentaje_wepi !== undefined) porcWepi = Number(fin.porcentaje_wepi);
+          if (fin.porcentaje_local !== undefined) porcLocal = Number(fin.porcentaje_local);
+          if (fin.porc_wepi !== undefined) porcWepi = Number(fin.porc_wepi);
+          if (fin.porc_local !== undefined) porcLocal = Number(fin.porc_local);
+        } catch (e) {}
+      }
+      cuponCreditoWepi = descuentoCupon * (porcWepi / 100);
+      cuponDescuentoLocal = descuentoCupon * (porcLocal / 100);
+    }
+
+    // Si el local financia una parte del cupón, el total bruto del pedido se reduce
+    if (cuponDescuentoLocal > 0) {
+      totalPedido -= cuponDescuentoLocal;
+    }
+
     subtotal += totalPedido;
     
     // Usar comisión persistente si existe, si no, usar la actual como fallback
     const montoComision = Number(p.comision_monto) || (totalPedido * (comisionPct / 100));
-    const creditoWallet = Number(pg.credito_wallet) || 0;
+    
+    const creditoWalletBase = Number(pg.credito_wallet) || 0;
+    const creditoTotalWepi = creditoWalletBase + cuponCreditoWepi;
 
     totalComisiones += montoComision;
-    totalCreditoWepi += creditoWallet;
+    totalCreditoWepi += creditoTotalWepi;
 
     const metodo = (p.metodo_pago || pg.metodo_pago || '').toLowerCase();
     if (metodo.includes('efectivo')) {
@@ -2044,16 +2085,17 @@ export async function getLocalCierreReport(localId, options = {}) {
       id: p.pedido_id,
       cliente: pg.nombre_cliente || 'Desconocido',
       metodo: p.metodo_pago || pg.metodo_pago || 'Desconocido',
-      total: totalPedido,
-      credito_usado: creditoWallet,
+      total: totalPedido.toFixed(2),
+      credito_usado: creditoTotalWepi.toFixed(2),
       comision_pct: p.comision_pct || comisionPct,
       comision_monto: montoComision.toFixed(2),
       nro_operacion: pg.payment_id || 'N/A',
-      hora: pg.created_at || p.created_at
+      hora: pg.created_at || p.created_at,
+      cupon_descuento_local: cuponDescuentoLocal.toFixed(2)
     };
   });
 
-  const neto = subtotal - totalComisiones - totalCreditoWepi;
+  const neto = subtotal - totalComisiones;
 
   // Asegurar que siempre devolvemos una fecha de referencia para el registro del cierre
   const finalFecha = fecha || inicio || new Date().toISOString().split('T')[0];

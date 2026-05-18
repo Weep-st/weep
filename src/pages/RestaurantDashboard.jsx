@@ -3107,8 +3107,19 @@ export default function RestaurantDashboard() {
                             <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)', fontWeight: p.credito_usado > 0 ? 600 : 400 }}>
                               {p.credito_usado > 0 ? `-$${p.credito_usado}` : '-'}
                             </td>
-                            <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
-                            <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto)).toFixed(2)}</td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>
+                              -${p.comision_monto}
+                              <br />
+                              <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: p.metodo?.toLowerCase().includes('transferencia') ? 'var(--green-600)' : 'var(--red-500)' }}>
+                                {p.metodo?.toLowerCase().includes('transferencia') ? '(saldado)' : '(sin saldar)'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>
+                              ${(p.metodo?.toLowerCase().includes('transferencia') 
+                                ? (Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto)) 
+                                : (Number(p.total) - Number(p.credito_usado || 0))
+                              ).toFixed(2)}
+                            </td>
                           </tr>
                         ))}
                         {cierreReport.pedidos.length === 0 ? (
@@ -3127,7 +3138,7 @@ export default function RestaurantDashboard() {
                                <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>CRÉDITOS A SALDAR POR WEPI</td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--blue-600)' }}>${cierreReport.totalCreditoWepi}</td>
                                <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', paddingLeft: '15px', verticalAlign: 'middle' }}>
-                                 Este monto fue pagado con crédito y Wepi lo liquidará al local.
+                                 Este monto fue financiado y Wepi lo liquidará al local.
                                </td>
                              </tr>
                              <tr style={{ background: 'var(--gray-50)' }}>

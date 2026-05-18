@@ -110,6 +110,8 @@ export default function PruebasWalletApp() {
   const [localCommission, setLocalCommission] = React.useState(0.15); // Default 15% (Despegue)
   const [userPromoUsage, setUserPromoUsage] = React.useState({});
   const [refreshingWallet, setRefreshingWallet] = React.useState(false);
+  const [couponInput, setCouponInput] = React.useState('');
+  const [appliedCoupon, setAppliedCoupon] = React.useState('');
   
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
@@ -401,7 +403,8 @@ export default function PruebasWalletApp() {
         totalPrice: grossP, // Base bruta
         deliveryFee: E, 
         items: grossItems, // Items con precios originales
-        metodoPago: method // El método elegido en el selector
+        metodoPago: method, // El método elegido en el selector
+        couponCode: appliedCoupon
       },
       user,
       orderCount,
@@ -418,6 +421,10 @@ export default function PruebasWalletApp() {
     const net_local = discountedP - net_commission;
     const total_net = discountedP + discountedE;
     
+    const cuponPromo = promoResults.appliedPromos.find(p => p.tipo === 'cupon');
+    const appliedCuponId = cuponPromo ? cuponPromo.id : null;
+    const descuentoCupon = cuponPromo ? (promoResults.discountTotal || 0) : 0;
+    
     let result;
     if (method === 'transferencia') {
       const marketplace_fee = discountedE + net_commission;
@@ -432,7 +439,9 @@ export default function PruebasWalletApp() {
         merchant_payout: Math.round(total_net - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
         platform_net: Math.round(discountedE + net_commission),
-        appliedPromos: promoResults.appliedPromos
+        appliedPromos: promoResults.appliedPromos,
+        appliedCuponId,
+        descuentoCupon
       };
     } else {
       // Default (Efectivo)
@@ -447,7 +456,9 @@ export default function PruebasWalletApp() {
         merchant_payout: Math.round(net_local),
         platform_gross: 0,
         platform_net: Math.round(net_commission + discountedE),
-        appliedPromos: promoResults.appliedPromos
+        appliedPromos: promoResults.appliedPromos,
+        appliedCuponId,
+        descuentoCupon
       };
     }
 
@@ -525,7 +536,7 @@ export default function PruebasWalletApp() {
     }
     
     return result;
-  }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission]);
+  }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission, appliedCoupon]);
 
 
   const isLocalOpen = React.useCallback((local) => {
@@ -1665,7 +1676,9 @@ export default function PruebasWalletApp() {
         precioEnvio: shipping,
         creditoWallet: useWallet ? (checkoutTotals.walletDiscount || 0) : 0,
         promociones_aplicadas: finalTotals.appliedPromos?.map(p => p.id) || [],
-        ganancia_credito: finalTotals.potentialCredit || 0
+        ganancia_credito: finalTotals.potentialCredit || 0,
+        cuponId: finalTotals.appliedCuponId || null,
+        descuentoCupon: finalTotals.descuentoCupon || 0
       };
 
       if (cart.deliveryType === 'envio' || mp === 'efectivo' || mp === 'transferencia') {
@@ -2806,10 +2819,53 @@ export default function PruebasWalletApp() {
                 )}
               </div>
 
+              <div className="coupon-section" style={{ marginTop: '15px', marginBottom: '20px' }}>
+                <label className="form-label">¿Tenés un cupón?</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Ingresá tu código" 
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
+                    onClick={() => {
+                      setAppliedCoupon(couponInput);
+                      if(couponInput) toast.success("Cupón validado");
+                    }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+                {appliedCoupon && checkoutTotals?.appliedCuponId && (
+                  <small style={{ color: 'var(--green-600)', fontWeight: 'bold' }}>¡Cupón "{appliedCoupon}" aceptado!</small>
+                )}
+                {appliedCoupon && !checkoutTotals?.appliedCuponId && (
+                  <small style={{ color: 'var(--red-600)', fontWeight: 'bold' }}>El cupón no es válido o no aplica a este pedido.</small>
+                )}
+              </div>
+
               <div className="cart-summary">
                 <div className="cart-line">
                   <span>{cart.deliveryType === 'retiro' ? 'Subtotal valor pedido' : 'Subtotal'}</span>
-                  <span>${cart.subtotal.toLocaleString('es-AR')}</span>
+                  <span>
+                    {checkoutTotals?.product_total > checkoutTotals?.discounted_product_total ? (
+                      <>
+                        <span style={{ textDecoration: 'line-through', color: 'var(--gray-400)', marginRight: '8px', fontSize: '0.85rem' }}>
+                          ${(checkoutTotals?.product_total || 0).toLocaleString('es-AR')}
+                        </span>
+                        <span style={{ color: 'var(--green-600)', fontWeight: '600' }}>
+                          ${(checkoutTotals?.discounted_product_total || 0).toLocaleString('es-AR')}
+                        </span>
+                      </>
+                    ) : (
+                      `$${(cart.subtotal || 0).toLocaleString('es-AR')}`
+                    )}
+                  </span>
                 </div>
                 {cart.deliveryType !== 'retiro' && (
                   <div className="cart-line">

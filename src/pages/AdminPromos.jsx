@@ -37,7 +37,8 @@ const AdminPromos = () => {
                 local_ids: [],
                 global: true,
                 fecha_especifica: '',
-                categorias: []
+                categorias: [],
+                codigo_cupon: ''
             },
             requisitos: {
                 min_compra_uso: 0,
@@ -201,6 +202,19 @@ const AdminPromos = () => {
                             <h4>🎯 Triggers (Disparadores)</h4>
                         </div>
                         <div className="form-grid">
+                            {formData.tipo === 'cupon' && (
+                                <div className="form-group full-width">
+                                    <label>Código del Cupón</label>
+                                    <input 
+                                        type="text" className="promo-input" 
+                                        placeholder="Ej: WEPI50"
+                                        style={{ textTransform: 'uppercase' }}
+                                        value={formData.triggers.codigo_cupon || ''} 
+                                        onChange={e => updateNestedField('triggers', 'codigo_cupon', e.target.value.toUpperCase())}
+                                    />
+                                    <small>El usuario deberá ingresar este código exacto para activar la promoción.</small>
+                                </div>
+                            )}
                             <div className="form-group">
                                 <label>Compra Mínima para Activar ($)</label>
                                 <input 
