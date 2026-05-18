@@ -641,6 +641,41 @@ export default function PruebasWalletApp() {
           const plusFound = boosted.filter(l => l.plan_id === PLAN_PLUS).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
           const freeFound = boosted.filter(l => l.plan_id === PLAN_FREEMIUM).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
 
+          // Helper to format carousels: featured first + non-adjacent locals
+          const formatCarouselItems = (sortedItems) => {
+            if (!sortedItems || sortedItems.length === 0) return [];
+            
+            const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+            const result = [];
+            let remaining = [...sortedItems];
+
+            const featuredIndex = remaining.findIndex(item => {
+              const loc = allLocs.find(l => l.id === item.local_id);
+              return loc && loc.plan_id === PLAN_PRO;
+            });
+
+            if (featuredIndex !== -1) {
+              result.push(remaining[featuredIndex]);
+              remaining.splice(featuredIndex, 1);
+            } else if (remaining.length > 0) {
+              result.push(remaining[0]);
+              remaining.splice(0, 1);
+            }
+
+            while (remaining.length > 0) {
+              const lastLocalId = result[result.length - 1]?.local_id;
+              const nextIndex = remaining.findIndex(item => item.local_id !== lastLocalId);
+              
+              if (nextIndex !== -1) {
+                result.push(remaining[nextIndex]);
+                remaining.splice(nextIndex, 1);
+              } else {
+                break; // strictly enforce no adjacent locales
+              }
+            }
+            return result;
+          };
+
           // Combinar candidatos: Promos específicas + Lo más pedido + Explorar
           const allCandidates = [
             ...(prms || []),
@@ -651,6 +686,51 @@ export default function PruebasWalletApp() {
           // Eliminar duplicados por ID
           const uniqueCandidates = Array.from(new Map(allCandidates.map(item => [item.id, item])).values());
 
+          let rawPromos = uniqueCandidates.filter(p => {
+            if (!p.imagen_url) return false;
+            const l = allLocs.find(loc => loc.id === p.local_id);
+            if (!l || !isLocalOpen(l)) return false;
+
+            // Evaluar con el motor para detectar beneficios dinámicos
+            const promoResults = evaluatePromotions({
+              cart: { totalPrice: Number(p.precio), items: [{ ...p, qty: 1, cantidad: 1 }], deliveryFee: 500 },
+              user,
+              orderCount,
+              userPromoUsage,
+              promotions: allPrms,
+              currentLocalId: p.local_id
+            });
+
+            const earnsCredit = promoResults.potentialCashback > 0;
+            const hasFreeShipping = promoResults.freeShipping;
+            const hasDynamicDiscount = promoResults.discountTotal > 0;
+            const hasBaseDiscount = p.descuento > 0;
+            const isCombo = p.categoria?.toLowerCase().includes('combo');
+            const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
+
+            // Excluir COMBOS por pedido explícito
+            if (isCombo) return false;
+
+            return hasBaseDiscount || hasDayDiscount || earnsCredit || hasFreeShipping || hasDynamicDiscount;
+          }).sort((a, b) => {
+            const locA = allLocs.find(l => l.id === a.local_id);
+            const locB = allLocs.find(l => l.id === b.local_id);
+            const openA = isLocalOpen(locA) ? 1 : 0;
+            const openB = isLocalOpen(locB) ? 1 : 0;
+            if (openA !== openB) return openB - openA;
+            const discA = Number(a.precio) - calculateDiscountedPrice(a);
+            const discB = Number(b.precio) - calculateDiscountedPrice(b);
+            return discB - discA;
+          });
+
+          let rawMostOrdered = (most || []).filter(item => item.imagen_url).sort((a, b) => {
+            const locA = allLocs.find(l => l.id === a.local_id);
+            const locB = allLocs.find(l => l.id === b.local_id);
+            const openA = isLocalOpen(locA) ? 1 : 0;
+            const openB = isLocalOpen(locB) ? 1 : 0;
+            return openB - openA;
+          });
+
           return {
             ...prev,
             dynamicTitle: timeInfo.title,
@@ -658,48 +738,8 @@ export default function PruebasWalletApp() {
             dynamicRubros: timeInfo.rubros,
             allLocales: boosted,
             dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
-            promosOfDay: uniqueCandidates.filter(p => {
-              const l = allLocs.find(loc => loc.id === p.local_id);
-              if (!l || !isLocalOpen(l)) return false;
-
-              // Evaluar con el motor para detectar beneficios dinámicos
-              const promoResults = evaluatePromotions({
-                cart: { totalPrice: Number(p.precio), items: [{ ...p, qty: 1, cantidad: 1 }], deliveryFee: 500 },
-                user,
-                orderCount,
-                userPromoUsage,
-                promotions: allPrms,
-                currentLocalId: p.local_id
-              });
-
-              const earnsCredit = promoResults.potentialCashback > 0;
-              const hasFreeShipping = promoResults.freeShipping;
-              const hasDynamicDiscount = promoResults.discountTotal > 0;
-              const hasBaseDiscount = p.descuento > 0;
-              const isCombo = p.categoria?.toLowerCase().includes('combo');
-              const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
-
-              // Excluir COMBOS por pedido explícito
-              if (isCombo) return false;
-
-              return hasBaseDiscount || hasDayDiscount || earnsCredit || hasFreeShipping || hasDynamicDiscount;
-            }).sort((a, b) => {
-              const locA = allLocs.find(l => l.id === a.local_id);
-              const locB = allLocs.find(l => l.id === b.local_id);
-              const openA = isLocalOpen(locA) ? 1 : 0;
-              const openB = isLocalOpen(locB) ? 1 : 0;
-              if (openA !== openB) return openB - openA;
-              const discA = Number(a.precio) - calculateDiscountedPrice(a);
-              const discB = Number(b.precio) - calculateDiscountedPrice(b);
-              return discB - discA;
-            }).slice(0, 40),
-            mostOrdered: (most || boosted.slice(0, 12)).sort((a, b) => {
-              const locA = allLocs.find(l => l.id === a.local_id);
-              const locB = allLocs.find(l => l.id === b.local_id);
-              const openA = isLocalOpen(locA) ? 1 : 0;
-              const openB = isLocalOpen(locB) ? 1 : 0;
-              return openB - openA;
-            }),
+            promosOfDay: formatCarouselItems(rawPromos).slice(0, 40),
+            mostOrdered: formatCarouselItems(rawMostOrdered),
             newLocales: [...allLocs].filter(l => l.admin_status === 'Aceptado').sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10),
             exploreItems: expl || [],
             featuredProLocales: proFound,
