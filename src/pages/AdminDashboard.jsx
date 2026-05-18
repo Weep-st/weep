@@ -15,6 +15,7 @@ import AdminConfig from './AdminConfig';
 import AdminPruebas from './AdminPruebas';
 import AdminReportes from './AdminReportes';
 import AdminPromos from './AdminPromos';
+import AdminCRM from './AdminCRM';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -72,6 +73,7 @@ const AdminDashboard = () => {
             case 'pruebas': return <AdminPruebas />;
             case 'promos': return <AdminPromos />;
             case 'reports': return <AdminReportes />;
+            case 'crm': return <AdminCRM />;
             default: return <AdminLocales />;
         }
     };
@@ -113,6 +115,9 @@ const AdminDashboard = () => {
                     </button>
                     <button className={activeTab === 'promos' ? 'active' : ''} onClick={() => handleTabClick('promos')}>
                         <span className="icon">🚀</span> Promos y Descuentos
+                    </button>
+                    <button className={activeTab === 'crm' ? 'active' : ''} onClick={() => handleTabClick('crm')}>
+                        <span className="icon">🤝</span> CRM / Clientes
                     </button>
                     <button className={activeTab === 'reports' ? 'active' : ''} onClick={() => handleTabClick('reports')}>
                         <span className="icon">📊</span> Informes de Gestión

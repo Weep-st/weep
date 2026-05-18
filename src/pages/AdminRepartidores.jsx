@@ -377,6 +377,41 @@ const AdminRepartidores = () => {
         });
     };
 
+    const handleCopyAcceptedContacts = () => {
+        const accepted = repartidores.filter(r => r.admin_status === 'Aceptado');
+        const validPhones = accepted
+            .map(r => r.telefono?.replace(/[\s-]/g, ''))
+            .filter(phone => phone && phone.length > 5);
+
+        if (validPhones.length === 0) {
+            toast.error('No hay números válidos para copiar');
+            return;
+        }
+
+        const stringList = validPhones.join(',');
+        navigator.clipboard.writeText(stringList).then(() => {
+            toast.success(`Se copiaron ${validPhones.length} números`);
+        }).catch(err => {
+            toast.error('Error al copiar');
+            console.error(err);
+        });
+    };
+
+    const handleCopyBroadcastTemplate = () => {
+        const text = `*PEDIDOS PENDIENTES* en el panel
+
+Tomalo ahora y genera ingresos extra wepi.com.ar/repartidores
+
+_Este es un mensaje de difusión. No responder_`;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success('Mensaje copiado al portapapeles');
+        }).catch(err => {
+            toast.error('Error al copiar mensaje');
+            console.error(err);
+        });
+    };
+
     if (loading) return <div className="loading-state">Cargando repartidores...</div>;
 
     return (
@@ -413,7 +448,15 @@ const AdminRepartidores = () => {
                         Config. Rubros
                     </button>
                 </div>
-                <button className="btn btn-primary" onClick={loadRepartidores}>Refrescar</button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-sm" style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} onClick={handleCopyBroadcastTemplate}>
+                        💬 Copiar Mensaje
+                    </button>
+                    <button className="btn btn-sm" style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} onClick={handleCopyAcceptedContacts}>
+                        📋 Copiar Contactos
+                    </button>
+                    <button className="btn btn-primary" onClick={loadRepartidores}>Refrescar</button>
+                </div>
             </header>
             
             {activeTab === 'gestion' ? (
