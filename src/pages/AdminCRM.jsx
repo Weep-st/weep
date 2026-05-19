@@ -13,10 +13,16 @@ const AdminCRM = () => {
     const [statusFilter, setStatusFilter] = useState('Todos');
     const [countryFilter, setCountryFilter] = useState('Todos');
     const [localFilter, setLocalFilter] = useState('Todos');
+    const [followUpFilter, setFollowUpFilter] = useState('Todos');
+    const [estadoSeguimientoFilter, setEstadoSeguimientoFilter] = useState('Todos');
+    const [walletFilter, setWalletFilter] = useState('Todos');
     const [inactivityDays, setInactivityDays] = useState(7); // Configurable inactivity filter
     
     // Locales list
     const [locales, setLocales] = useState([]);
+    
+    // Wallet Data
+    const [walletTransactions, setWalletTransactions] = useState([]);
     
     // Selection
     const [selectedUsers, setSelectedUsers] = useState(new Set());
@@ -35,15 +41,17 @@ const AdminCRM = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [usersData, ordersData, closuresData, localesData] = await Promise.all([
+            const [usersData, ordersData, closuresData, localesData, walletData] = await Promise.all([
                 api.adminGetUsuarios(),
                 api.adminGetPedidosGeneral(),
                 api.getHistorialCierresLocales('Todos'),
-                api.adminGetLocales()
+                api.adminGetLocales(),
+                api.adminGetWalletTransactions()
             ]);
             
             const activeLocales = (localesData || []).filter(l => l.admin_status === 'Aceptado');
             setLocales(activeLocales);
+            setWalletTransactions(walletData || []);
             
             // Extract archived orders from closures
             let archivedOrders = [];
@@ -115,6 +123,33 @@ const AdminCRM = () => {
         localStorage.setItem('crm_templates', JSON.stringify(updated));
     };
 
+    const handleUpdateFollowUp = async (userId, field, value) => {
+        try {
+            await api.adminUpdateUsuarioSeguimiento(userId, field, value);
+            setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, [field]: value } : u));
+            toast.success('Seguimiento actualizado');
+        } catch (err) {
+            toast.error('Error al actualizar');
+            console.error(err);
+        }
+    };
+
+    const handleBulkUpdateFollowUp = async (field, value) => {
+        if (selectedUsers.size === 0) return;
+        if (!window.confirm(`¿Marcar a ${selectedUsers.size} clientes con ${value}?`)) return;
+        
+        try {
+            const promises = Array.from(selectedUsers).map(id => api.adminUpdateUsuarioSeguimiento(id, field, value));
+            await Promise.all(promises);
+            
+            setUsuarios(prev => prev.map(u => selectedUsers.has(u.id) ? { ...u, [field]: value } : u));
+            toast.success(`Se actualizaron ${selectedUsers.size} clientes`);
+        } catch (err) {
+            toast.error('Error al actualizar seguimientos');
+            console.error(err);
+        }
+    };
+
     const enrichedUsers = useMemo(() => {
         const now = new Date();
         
@@ -167,6 +202,33 @@ const AdminCRM = () => {
                 pais = 'Brasil';
             }
 
+            const nivelSeguimiento = user.nivel_seguimiento || 'Sin Seguimiento';
+            const estadoSeguimiento = user.estado_seguimiento || 'Pendiente';
+
+            // Wallet calculation
+            const userTx = walletTransactions.filter(t => t.user_id === user.id);
+            let walletBalance = 0;
+            let nearestExpiration = null;
+            userTx.forEach(t => {
+                const amt = Number(t.amount);
+                if (t.type === 'earn') {
+                    const isExpired = t.expires_at && new Date(t.expires_at) < new Date();
+                    if (!isExpired) {
+                        walletBalance += amt;
+                        if (t.expires_at) {
+                            const exp = new Date(t.expires_at);
+                            if (!nearestExpiration || exp < nearestExpiration) {
+                                nearestExpiration = exp;
+                            }
+                        }
+                    }
+                } else if (t.type === 'spend' || t.type === 'expire') {
+                    walletBalance -= amt;
+                }
+            });
+            walletBalance = Math.max(0, walletBalance);
+            if (walletBalance === 0) nearestExpiration = null;
+
             return {
                 ...user,
                 total_pedidos: deliveredOrders.length,
@@ -175,10 +237,14 @@ const AdminCRM = () => {
                 estado_crm: estadoCRM,
                 clean_phone: cleanPhone,
                 pais,
-                locales_ids: Array.from(localesIds)
+                locales_ids: Array.from(localesIds),
+                nivel_seguimiento: nivelSeguimiento,
+                estado_seguimiento: estadoSeguimiento,
+                wallet_balance: walletBalance,
+                nearest_expiration: nearestExpiration
             };
         });
-    }, [usuarios, pedidos, inactivityDays]);
+    }, [usuarios, pedidos, inactivityDays, walletTransactions]);
 
     const filteredUsers = useMemo(() => {
         return enrichedUsers.filter(user => {
@@ -190,10 +256,24 @@ const AdminCRM = () => {
             const matchesStatus = statusFilter === 'Todos' || user.estado_crm === statusFilter;
             const matchesCountry = countryFilter === 'Todos' || user.pais === countryFilter;
             const matchesLocal = localFilter === 'Todos' || user.locales_ids.includes(localFilter);
+            const matchesFollowUp = followUpFilter === 'Todos' || user.nivel_seguimiento === followUpFilter;
+            const matchesEstadoFollowUp = estadoSeguimientoFilter === 'Todos' || user.estado_seguimiento === estadoSeguimientoFilter;
             
-            return matchesSearch && matchesStatus && matchesCountry && matchesLocal;
+            let matchesWallet = true;
+            if (walletFilter === 'Con Crédito') {
+                matchesWallet = user.wallet_balance > 0;
+            } else if (walletFilter === 'Crédito por Vencer (7 días)') {
+                if (user.wallet_balance > 0 && user.nearest_expiration) {
+                    const diffDays = (user.nearest_expiration - new Date()) / (1000 * 60 * 60 * 24);
+                    matchesWallet = diffDays >= 0 && diffDays <= 7;
+                } else {
+                    matchesWallet = false;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesCountry && matchesLocal && matchesFollowUp && matchesEstadoFollowUp && matchesWallet;
         }).sort((a, b) => (b.total_pedidos || 0) - (a.total_pedidos || 0));
-    }, [enrichedUsers, searchTerm, statusFilter, countryFilter, localFilter]);
+    }, [enrichedUsers, searchTerm, statusFilter, countryFilter, localFilter, followUpFilter, estadoSeguimientoFilter, walletFilter]);
 
     // Statistics
     const stats = useMemo(() => {
@@ -344,6 +424,39 @@ const AdminCRM = () => {
                     </select>
                 </div>
 
+                <div className="crm-filter-group">
+                    <label>Nivel Seguimiento</label>
+                    <select value={followUpFilter} onChange={(e) => setFollowUpFilter(e.target.value)}>
+                        <option value="Todos">Todos</option>
+                        <option value="Sin Seguimiento">Sin Seguimiento</option>
+                        <option value="Seguimiento 1">Seguimiento 1</option>
+                        <option value="Seguimiento 2">Seguimiento 2</option>
+                        <option value="Seguimiento 3">Seguimiento 3</option>
+                        <option value="Finalizado">Finalizado</option>
+                    </select>
+                </div>
+
+                <div className="crm-filter-group">
+                    <label>Estado Seguimiento</label>
+                    <select value={estadoSeguimientoFilter} onChange={(e) => setEstadoSeguimientoFilter(e.target.value)}>
+                        <option value="Todos">Todos</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Prospecto">Prospecto</option>
+                        <option value="Contactado">Contactado</option>
+                        <option value="Interesado">Interesado</option>
+                        <option value="No Interesado">No Interesado</option>
+                    </select>
+                </div>
+
+                <div className="crm-filter-group">
+                    <label>Crédito Wallet</label>
+                    <select value={walletFilter} onChange={(e) => setWalletFilter(e.target.value)}>
+                        <option value="Todos">Todos</option>
+                        <option value="Con Crédito">Con Crédito</option>
+                        <option value="Crédito por Vencer (7 días)">Crédito por Vencer (7 días)</option>
+                    </select>
+                </div>
+
                 <div className="crm-filter-group" style={{ maxWidth: '120px' }}>
                     <label>Días Inactividad</label>
                     <input 
@@ -354,13 +467,54 @@ const AdminCRM = () => {
                     />
                 </div>
 
-                <div className="crm-actions">
-                    <button className="btn-crm-action btn-crm-secondary" onClick={() => setShowTemplatesModal(true)}>
-                        📝 Plantillas
-                    </button>
-                    <button className="btn-crm-action" onClick={copySelectedPhones}>
-                        📋 Copiar Números
-                    </button>
+                <div className="crm-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end', width: '100%' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn-crm-action btn-crm-secondary" onClick={() => setShowTemplatesModal(true)}>
+                            📝 Plantillas
+                        </button>
+                        <button className="btn-crm-action" onClick={copySelectedPhones}>
+                            📋 Copiar Números
+                        </button>
+                    </div>
+                    {selectedUsers.size > 0 && (
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>Acciones Masivas:</span>
+                            <select 
+                                className="template-select"
+                                style={{ padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                                onChange={(e) => {
+                                    if(e.target.value) {
+                                        handleBulkUpdateFollowUp('nivel_seguimiento', e.target.value);
+                                        e.target.value = '';
+                                    }
+                                }}
+                            >
+                                <option value="">Nivel de seguimiento...</option>
+                                <option value="Sin Seguimiento">Sin Seguimiento</option>
+                                <option value="Seguimiento 1">Seguimiento 1</option>
+                                <option value="Seguimiento 2">Seguimiento 2</option>
+                                <option value="Seguimiento 3">Seguimiento 3</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
+                            <select 
+                                className="template-select"
+                                style={{ padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                                onChange={(e) => {
+                                    if(e.target.value) {
+                                        handleBulkUpdateFollowUp('estado_seguimiento', e.target.value);
+                                        e.target.value = '';
+                                    }
+                                }}
+                            >
+                                <option value="">Estado de seguimiento...</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Prospecto">Prospecto</option>
+                                <option value="Contactado">Contactado</option>
+                                <option value="Interesado">Interesado</option>
+                                <option value="No Interesado">No Interesado</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -379,14 +533,17 @@ const AdminCRM = () => {
                             <th>Teléfono</th>
                             <th>País</th>
                             <th>Pedidos</th>
+                            <th>Crédito</th>
                             <th>Última Compra</th>
-                            <th>Estado</th>
+                            <th>Estado CRM</th>
+                            <th>Nivel</th>
+                            <th>Estado de Seg.</th>
                             <th>Contacto Rápido (WA)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.length === 0 ? (
-                            <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No se encontraron clientes</td></tr>
+                            <tr><td colSpan="11" style={{ textAlign: 'center', padding: '2rem' }}>No se encontraron clientes</td></tr>
                         ) : (
                             filteredUsers.map(user => (
                                 <tr key={user.id}>
@@ -414,6 +571,20 @@ const AdminCRM = () => {
                                         <strong>{user.total_pedidos}</strong>
                                     </td>
                                     <td>
+                                        {user.wallet_balance > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontWeight: 'bold', color: '#059669' }}>${user.wallet_balance.toLocaleString('es-AR')}</span>
+                                                {user.nearest_expiration && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#ef4444', whiteSpace: 'nowrap' }}>
+                                                        Vence: {user.nearest_expiration.toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span style={{ color: '#94a3b8' }}>-</span>
+                                        )}
+                                    </td>
+                                    <td>
                                         {formatDate(user.ultimo_pedido_fecha)}
                                         {user.dias_inactivo !== null && (
                                             <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Hace {user.dias_inactivo} días</div>
@@ -421,6 +592,32 @@ const AdminCRM = () => {
                                     </td>
                                     <td>
                                         <span className={renderBadgeClass(user.estado_crm)}>{user.estado_crm}</span>
+                                    </td>
+                                    <td>
+                                        <select 
+                                            value={user.nivel_seguimiento} 
+                                            onChange={(e) => handleUpdateFollowUp(user.id, 'nivel_seguimiento', e.target.value)}
+                                            style={{ padding: '4px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: user.nivel_seguimiento !== 'Sin Seguimiento' ? '#f0fdf4' : 'white', maxWidth: '120px' }}
+                                        >
+                                            <option value="Sin Seguimiento">Sin Seguimiento</option>
+                                            <option value="Seguimiento 1">Seg 1</option>
+                                            <option value="Seguimiento 2">Seg 2</option>
+                                            <option value="Seguimiento 3">Seg 3</option>
+                                            <option value="Finalizado">Finalizado</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select 
+                                            value={user.estado_seguimiento} 
+                                            onChange={(e) => handleUpdateFollowUp(user.id, 'estado_seguimiento', e.target.value)}
+                                            style={{ padding: '4px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: user.estado_seguimiento !== 'Pendiente' ? '#eff6ff' : 'white', maxWidth: '120px' }}
+                                        >
+                                            <option value="Pendiente">Pendiente</option>
+                                            <option value="Prospecto">Prospecto</option>
+                                            <option value="Contactado">Contactado</option>
+                                            <option value="Interesado">Interesado</option>
+                                            <option value="No Interesado">No Interesa</option>
+                                        </select>
                                     </td>
                                     <td>
                                         <div className="crm-row-actions">

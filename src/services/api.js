@@ -1874,6 +1874,14 @@ export async function adminGetUsuarios() {
   return data || [];
 }
 
+export async function adminUpdateUsuarioSeguimiento(userId, field, value) {
+  const { error } = await supabase
+    .from('usuarios')
+    .update({ [field]: value })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
 export async function adminToggleBloqueoUsuario(userId, blockedStatus) {
   const { error } = await supabase
     .from('usuarios')
@@ -3893,6 +3901,15 @@ export async function getWalletTransactions(userId) {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminGetWalletTransactions() {
+  const { data, error } = await supabase
+    .from('wallet_transactions')
+    .select('user_id, type, amount, expires_at');
   
   if (error) throw error;
   return data || [];
