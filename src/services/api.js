@@ -4,19 +4,24 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY };
 
-// Cloudinary config
-const CLOUD_NAME = 'dw10wkbac';
-const UPLOAD_PRESET = 'ml_default';
+// Cloudflare R2 Storage (vía Supabase Edge Function)
+const R2_PUBLIC_URL = 'https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev';
 
 // ─── Image Upload ───
 export async function uploadImage(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', UPLOAD_PRESET);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/cloudflare-r2-upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'x-file-name': file.name,
+      'Content-Type': file.type
+    },
+    body: file
+  });
+  
   const data = await res.json();
-  if (!data.secure_url) throw new Error('Error al subir imagen');
-  return data.secure_url;
+  if (!data.url) throw new Error(data.error || 'Error al subir imagen');
+  return data.url;
 }
 
 // ═══════════════════════════════════════════════════
@@ -3115,7 +3120,7 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
         const htmlBody = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
             <div style="text-align: center; margin: 20px 0;">
-              <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" width="120" style="border-radius:12px;">
+              <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" width="120" style="border-radius:12px;">
             </div>
             <h2 style="color: #9b1913;">¡Nuevo Pedido para ${localData.nombre}!</h2>
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -3207,7 +3212,7 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="text-align: center; margin: 20px 0;">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" width="120" style="border-radius:12px;">
+          <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" width="120" style="border-radius:12px;">
         </div>
         <h2 style="color: #9b1913;">¡Pedido Confirmado! #${pedidoId}</h2>
         <p>Hola <strong>${nombreCliente}</strong>, hemos recibido tu pedido correctamente.</p>
@@ -3306,7 +3311,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="text-align:center; margin: 20px 0;">
-          <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" width="120" style="border-radius:12px;">
+          <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" width="120" style="border-radius:12px;">
         </div>
         <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
         <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>

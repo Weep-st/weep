@@ -25,7 +25,7 @@ const AdminEmails = () => {
             const htmlBody = `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <img src="https://res.cloudinary.com/dw10wkbac/image/upload/v1775247653/yx783qpsywxzxnagsosv.png" alt="Wepi" style="width: 120px; height: auto;">
+                        <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" style="width: 120px; height: auto;">
                     </div>
                     <div style="background-color: #6366f1; padding: 2px; border-radius: 4px; margin-bottom: 30px;"></div>
                     <h1 style="color: #1e293b; font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 20px;">${subject}</h1>
