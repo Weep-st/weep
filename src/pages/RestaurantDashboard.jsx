@@ -873,6 +873,16 @@ export default function RestaurantDashboard() {
       const cat = fd.get('categoria');
       const subcat = fd.get('subcategoria');
 
+      const isBase = cat === 'Base';
+      const isAvailable = fd.get('disponibilidad') === 'true';
+      const hasImage = (imgUrl && imgUrl.trim() !== '') || (editItem && editItem.imagen_url && editItem.imagen_url.trim() !== '');
+
+      if (!isBase && isAvailable && !hasImage) {
+        toast.error('No puedes guardar un producto disponible sin foto. Sube una foto o cámbialo a "Oculto/No disponible".');
+        setItemLoading(false);
+        return;
+      }
+
       if (cat === 'Helados') {
         if (subcat === 'Helado por kg') {
           const iceCreamConfig = {
@@ -970,6 +980,13 @@ export default function RestaurantDashboard() {
   };
 
   const handleToggleDisp = async (id, current) => {
+    const item = menuItems.find(m => m.id === id);
+    if (!current) {
+      if (item && item.categoria !== 'Base' && (!item.imagen_url || item.imagen_url.trim() === '')) {
+        toast.error('No puedes activar la disponibilidad de un producto sin foto');
+        return;
+      }
+    }
     try {
       await api.updateMenuItemAvailability(id, !current);
       setMenuItems(menuItems.map(m => m.id === id ? { ...m, disponibilidad: !current } : m));
