@@ -21,6 +21,7 @@ const AdminLocales = () => {
     const [editingLocal, setEditingLocal] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [deudas, setDeudas] = useState({});
+    const [uploadingProductId, setUploadingProductId] = useState(null);
 
     const loadLocales = async () => {
         setLoading(true);
@@ -171,6 +172,12 @@ const AdminLocales = () => {
         const fd = new FormData(e.target);
         
         try {
+            let fotoUrl = editingLocal.foto_url;
+            const logoFile = fd.get('logo');
+            if (logoFile && logoFile.size > 0) {
+                fotoUrl = await api.uploadImage(logoFile);
+            }
+            
             const updates = {
                 localId: editingLocal.id,
                 nombre: fd.get('nombre'),
@@ -181,7 +188,8 @@ const AdminLocales = () => {
                 horario_cierre: fd.get('horario_cierre'),
                 horario_apertura2: fd.get('horario_apertura2'),
                 horario_cierre2: fd.get('horario_cierre2'),
-                modo_automatico: fd.get('modo_automatico') === 'true'
+                modo_automatico: fd.get('modo_automatico') === 'true',
+                foto_url: fotoUrl
             };
             
             if (!updates.password) delete updates.password; // Double check
@@ -203,6 +211,22 @@ const AdminLocales = () => {
         const now = new Date();
         const diffDays = (now - created) / (1000 * 60 * 60 * 24);
         return diffDays < 14;
+    };
+
+    const handleUploadProductImage = async (itemId, file) => {
+        if (!file || file.size === 0) return;
+        const toastId = toast.loading('Subiendo imagen de producto...');
+        setUploadingProductId(itemId);
+        try {
+            const newUrl = await api.uploadImage(file);
+            await api.updateMenuItem({ itemId, imagen_url: newUrl });
+            toast.success('¡Imagen de producto actualizada!', { id: toastId });
+            loadMenuCompleto();
+        } catch (err) {
+            toast.error('Error al subir imagen: ' + (err.message || err), { id: toastId });
+        } finally {
+            setUploadingProductId(null);
+        }
     };
 
     if (loading && activeTab === 'gestion') return <div className="loading-state">Cargando locales...</div>;
@@ -486,9 +510,38 @@ const AdminLocales = () => {
                             ) : (
                                 filteredMenu.map(item => (
                                     <div key={item.id} className="menu-admin-card">
-                                        <div className="card-img-container">
+                                        <div className="card-img-container" style={{ position: 'relative' }}>
                                             <img src={item.imagen_url || 'https://placehold.co/400x300'} alt={item.nombre} />
                                             <div className="card-badge-local">{item.local_nombre}</div>
+                                            
+                                            <label style={{
+                                                position: 'absolute',
+                                                bottom: '8px',
+                                                right: '8px',
+                                                background: 'rgba(15, 23, 42, 0.75)',
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                color: '#fff',
+                                                padding: '4px 8px',
+                                                borderRadius: '6px',
+                                                fontSize: '0.75rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                zIndex: 2,
+                                                backdropFilter: 'blur(4px)',
+                                                transition: 'background 0.2s',
+                                                fontWeight: '600'
+                                            }}>
+                                                📷 {uploadingProductId === item.id ? 'Subiendo...' : 'Cambiar Foto'}
+                                                <input 
+                                                    type="file" 
+                                                    accept="image/*" 
+                                                    style={{ display: 'none' }} 
+                                                    disabled={uploadingProductId === item.id}
+                                                    onChange={(e) => handleUploadProductImage(item.id, e.target.files[0])} 
+                                                />
+                                            </label>
                                         </div>
                                         <div className="card-content">
                                             <div className="card-header">
@@ -591,9 +644,24 @@ const AdminLocales = () => {
                             <button className="close-btn" onClick={() => setEditingLocal(null)}>✕</button>
                         </header>
                         <form onSubmit={handleSaveLocalDetails} className="admin-edit-form">
-                            <div className="form-group">
-                                <label>Nombre del Local</label>
-                                <input name="nombre" defaultValue={editingLocal.nombre} required />
+                            <div className="form-row">
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Nombre del Local</label>
+                                    <input name="nombre" defaultValue={editingLocal.nombre} required />
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Logo del Local (Foto)</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        {editingLocal.foto_url && (
+                                            <img 
+                                                src={editingLocal.foto_url} 
+                                                alt="Logo" 
+                                                style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} 
+                                            />
+                                        )}
+                                        <input name="logo" type="file" accept="image/*" style={{ fontSize: '0.8rem', width: '100%' }} />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="form-row">
