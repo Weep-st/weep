@@ -205,29 +205,44 @@ const AdminCRM = () => {
             const nivelSeguimiento = user.nivel_seguimiento || 'Sin Seguimiento';
             const estadoSeguimiento = user.estado_seguimiento || 'Pendiente';
 
-            // Wallet calculation
+            // Wallet calculation (FIFO active balance calculation to handle expired credits spent properly)
             const userTx = walletTransactions.filter(t => t.user_id === user.id);
-            let walletBalance = 0;
-            let nearestExpiration = null;
+            const activeDeposits = [];
             userTx.forEach(t => {
                 const amt = Number(t.amount);
-                if (t.type === 'earn') {
-                    const isExpired = t.expires_at && new Date(t.expires_at) < new Date();
-                    if (!isExpired) {
-                        walletBalance += amt;
-                        if (t.expires_at) {
-                            const exp = new Date(t.expires_at);
-                            if (!nearestExpiration || exp < nearestExpiration) {
-                                nearestExpiration = exp;
-                            }
+                if (t.type === 'earn' || t.type === 'refund' || t.type === 'admin_adjustment') {
+                    activeDeposits.push({
+                        amount: amt,
+                        expires_at: t.expires_at ? new Date(t.expires_at) : null
+                    });
+                } else if (t.type === 'spend' || t.type === 'expire') {
+                    let remainingSpend = amt;
+                    for (const dep of activeDeposits) {
+                        if (remainingSpend <= 0) break;
+                        if (dep.amount > 0) {
+                            const deduct = Math.min(dep.amount, remainingSpend);
+                            dep.amount -= deduct;
+                            remainingSpend -= deduct;
                         }
                     }
-                } else if (t.type === 'spend' || t.type === 'expire') {
-                    walletBalance -= amt;
                 }
             });
-            walletBalance = Math.max(0, walletBalance);
-            if (walletBalance === 0) nearestExpiration = null;
+
+            let walletBalance = 0;
+            let nearestExpiration = null;
+            const crmNow = new Date();
+            
+            activeDeposits.forEach(dep => {
+                const isExpired = dep.expires_at && dep.expires_at < crmNow;
+                if (!isExpired && dep.amount > 0) {
+                    walletBalance += dep.amount;
+                    if (dep.expires_at) {
+                        if (!nearestExpiration || dep.expires_at < nearestExpiration) {
+                            nearestExpiration = dep.expires_at;
+                        }
+                    }
+                }
+            });
 
             return {
                 ...user,

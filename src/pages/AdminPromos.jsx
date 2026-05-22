@@ -448,6 +448,7 @@ const AdminPromos = () => {
                                     <option value="envio_gratis">Envío Gratis</option>
                                     <option value="envio_fijo">Envío Valor Fijo</option>
                                     <option value="producto_gratis">Producto Gratis</option>
+                                    <option value="regalo_wallet">Crédito de Regalo (Wallet)</option>
                                 </select>
                             </div>
                             {formData.beneficios.tipo_beneficio !== 'envio_gratis' && (
@@ -492,6 +493,20 @@ const AdminPromos = () => {
                                         onChange={e => updateNestedField('beneficios', 'categoria_id', e.target.value)}
                                         placeholder="Ej: Pizzas"
                                     />
+                                </div>
+                            )}
+                            {formData.tipo === 'cupon' && formData.beneficios.tipo_beneficio === 'regalo_wallet' && (
+                                <div className="form-group full-width" style={{
+                                    background: '#ecfdf5',
+                                    border: '1px solid #a7f3d0',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    color: '#065f46',
+                                    fontSize: '0.88rem',
+                                    marginTop: '15px',
+                                    lineHeight: '1.4'
+                                }}>
+                                    💡 <strong>Nota Importante:</strong> Este cupón no se aplicará como descuento en el carrito de compras del usuario. En su lugar, el usuario lo canjeará directamente ingresando el código exacto desde su Billetera (Wallet) para cargar saldo de regalo.
                                 </div>
                             )}
                         </div>
@@ -610,7 +625,8 @@ const AdminPromos = () => {
                                     <span className="value">
                                         {promo.beneficios?.tipo_beneficio === 'porcentaje' ? `${promo.beneficios.valor}%` : 
                                          promo.beneficios?.tipo_beneficio === 'fijo' ? `$${promo.beneficios.valor}` : 
-                                         promo.beneficios?.tipo_beneficio === 'envio_gratis' ? 'GRATIS' : 'PROMO'}
+                                         promo.beneficios?.tipo_beneficio === 'envio_gratis' ? 'GRATIS' : 
+                                         promo.beneficios?.tipo_beneficio === 'regalo_wallet' ? `$${promo.beneficios.valor} Wallet` : 'PROMO'}
                                     </span>
                                 </div>
 

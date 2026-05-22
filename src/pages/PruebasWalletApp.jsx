@@ -113,6 +113,22 @@ export default function PruebasWalletApp() {
   const [couponInput, setCouponInput] = React.useState('');
   const [appliedCoupon, setAppliedCoupon] = React.useState('');
   
+  const refreshWallet = async () => {
+    if (user?.id) {
+      const localId = selectedLocal?.id || (cart.items.length > 0 ? cart.items[0].local_id : null);
+      try {
+        const [bal, bdown] = await Promise.all([
+          api.getUserWalletBalance(user.id, localId),
+          api.getUserWalletBreakdown(user.id)
+        ]);
+        setWalletBalance(bal);
+        setWalletBreakdown(bdown);
+      } catch (err) {
+        console.error("Error refreshing wallet:", err);
+      }
+    }
+  };
+  
   // States for Address Selector
   const [showAddressSelector, setShowAddressSelector] = React.useState(false);
   const [showProfileAddressSelector, setShowProfileAddressSelector] = React.useState(false);
@@ -3749,6 +3765,8 @@ export default function PruebasWalletApp() {
           balance={walletBalance}
           transactions={walletBreakdown}
           promotions={allPromotions}
+          userId={user?.id}
+          onRefresh={refreshWallet}
         />
       )}
     </div>
@@ -3756,8 +3774,67 @@ export default function PruebasWalletApp() {
 }
 
 // --- SUB-COMPONENT: WalletDetailsPanel ---
-function WalletDetailsPanel({ onClose, balance, transactions, promotions }) {
+function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId, onRefresh }) {
   const [selectedPromo, setSelectedPromo] = React.useState(null);
+  const [couponCode, setCouponCode] = React.useState('');
+  const [redeemLoading, setRedeemLoading] = React.useState(false);
+
+  const handleShowPromoTerms = async (campaignId) => {
+    if (!campaignId) return;
+    const promo = promotions.find(p => p.id === campaignId);
+    if (promo) {
+      setSelectedPromo(promo);
+    } else {
+      try {
+        const { data, error } = await api.supabase
+          .from('promociones')
+          .select('*')
+          .eq('id', campaignId)
+          .single();
+        if (error) {
+          console.error("Error fetching promo terms:", error);
+          toast.error("No se pudieron cargar los términos de esta promoción.");
+          return;
+        }
+        if (data) {
+          setSelectedPromo(data);
+        }
+      } catch (err) {
+        console.error("Error in handleShowPromoTerms:", err);
+      }
+    }
+  };
+
+  const handleRedeemCoupon = async (e) => {
+    e.preventDefault();
+    if (!couponCode.trim()) {
+      toast.error('Por favor ingresa un código de cupón');
+      return;
+    }
+    if (!userId) {
+      toast.error('Inicia sesión para canjear un cupón');
+      return;
+    }
+
+    setRedeemLoading(true);
+    try {
+      const response = await api.redeemWalletCoupon(userId, couponCode.trim());
+      if (response && response.success) {
+        toast.success(response.message || `¡Cupón canjeado con éxito! Recibiste $${response.amount} de crédito.`);
+        setCouponCode('');
+        if (onRefresh) {
+          await onRefresh();
+        }
+      } else {
+        toast.error(response?.message || 'Error al canjear el cupón.');
+      }
+    } catch (error) {
+      console.error('Error redeeming wallet coupon:', error);
+      toast.error(error.message || 'Error al procesar el cupón.');
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
 
   return (
     <div className="wallet-drawer-overlay animate-fade-in" onClick={onClose}>
@@ -3777,12 +3854,41 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions }) {
             <p className="balance-hint">Dinero acumulado para tus próximos pedidos</p>
           </div>
 
+          {/* Premium Coupon Redemption Card */}
+          <div className="drawer-section coupon-redemption-card">
+            <h4>🎟️ ¿Tienes un cupón de regalo?</h4>
+            <form onSubmit={handleRedeemCoupon} className="coupon-redeem-form">
+              <div className="coupon-input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Ej: INSTA1000"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  disabled={redeemLoading}
+                  className="coupon-redeem-input"
+                />
+                <button 
+                  type="submit" 
+                  disabled={redeemLoading} 
+                  className="coupon-redeem-button"
+                >
+                  {redeemLoading ? (
+                    <span className="spinner-small"></span>
+                  ) : (
+                    'Canjear'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
           <div className="drawer-section">
             <h4>📜 Historial de Movimientos</h4>
             <div className="credits-list">
               {transactions && transactions.length > 0 ? transactions.map(trans => {
                 const isExpired = trans.type === 'earn' && trans.expires_at && new Date(trans.expires_at) < new Date();
                 const isEarn = trans.type === 'earn';
+                const hasCampaign = !!trans.campaign_id;
                 
                 return (
                   <div key={trans.id} className={`credit-item-card ${isExpired ? 'expired-trans' : ''}`}>
@@ -3803,6 +3909,16 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions }) {
                         )}
                       </div>
                     </div>
+                    {hasCampaign && (
+                      <button 
+                        type="button" 
+                        className="btn-info-legal" 
+                        onClick={() => handleShowPromoTerms(trans.campaign_id)}
+                        style={{ marginLeft: '12px', flexShrink: 0 }}
+                      >
+                        ℹ️ Ver T&C
+                      </button>
+                    )}
                   </div>
                 );
               }) : (

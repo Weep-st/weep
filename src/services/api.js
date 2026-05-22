@@ -3856,8 +3856,9 @@ export async function getUserWalletBalance(userId) {
   if (!userId) return 0;
   const { data, error } = await supabase
     .from('wallet_transactions')
-    .select('type, amount, expires_at')
-    .eq('user_id', userId);
+    .select('type, amount, expires_at, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
     
   if (error) {
     console.error("Error fetching wallet balance:", error);
@@ -3866,20 +3867,35 @@ export async function getUserWalletBalance(userId) {
   
   if (!data || data.length === 0) return 0;
 
-  return Math.max(0, data.reduce((acc, t) => {
+  const activeDeposits = [];
+
+  for (const t of data) {
     const amt = Number(t.amount);
-    if (t.type === 'earn') {
-      const isExpired = t.expires_at && new Date(t.expires_at) < new Date();
-      return isExpired ? acc : acc + amt;
+    if (t.type === 'earn' || t.type === 'refund' || t.type === 'admin_adjustment') {
+      activeDeposits.push({
+        amount: amt,
+        expires_at: t.expires_at ? new Date(t.expires_at) : null
+      });
+    } else if (t.type === 'spend' || t.type === 'expire') {
+      let remainingSpend = amt;
+      for (const dep of activeDeposits) {
+        if (remainingSpend <= 0) break;
+        if (dep.amount > 0) {
+          const deduct = Math.min(dep.amount, remainingSpend);
+          dep.amount -= deduct;
+          remainingSpend -= deduct;
+        }
+      }
     }
-    if (t.type === 'spend' || t.type === 'expire') {
-      return acc - amt;
-    }
-    if (t.type === 'refund' || t.type === 'admin_adjustment') {
-      return acc + amt;
-    }
-    return acc;
-  }, 0));
+  }
+
+  const now = new Date();
+  const activeBalance = activeDeposits.reduce((sum, dep) => {
+    const isExpired = dep.expires_at && dep.expires_at < now;
+    return isExpired ? sum : sum + dep.amount;
+  }, 0);
+
+  return Math.max(0, activeBalance);
 }
 
 export async function getUserWalletBreakdown(userId) {
@@ -3914,7 +3930,8 @@ export async function getWalletTransactions(userId) {
 export async function adminGetWalletTransactions() {
   const { data, error } = await supabase
     .from('wallet_transactions')
-    .select('user_id, type, amount, expires_at');
+    .select('user_id, type, amount, expires_at, created_at')
+    .order('created_at', { ascending: true });
   
   if (error) throw error;
   return data || [];
@@ -3940,6 +3957,16 @@ export async function applyWalletCredit(userId, amount, orderId) {
   if (error) throw error;
   return data;
 }
+
+export async function redeemWalletCoupon(userId, couponCode) {
+  const { data, error } = await supabase.rpc('redeem_wallet_coupon', {
+    p_user_id: userId,
+    p_coupon_code: couponCode
+  });
+  if (error) throw error;
+  return data;
+}
+
 
 export async function getAdminWalletStats() {
   const { data: transactions } = await supabase
