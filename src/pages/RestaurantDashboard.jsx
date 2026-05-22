@@ -112,7 +112,7 @@ export default function RestaurantDashboard() {
 
   
   // Advanced Burger State
-  const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '' }]);
+  const [burgerVariants, setBurgerVariants] = React.useState([{ nombre: '', precio: '', disponible: true }]);
   const [burgerExtras, setBurgerExtras] = React.useState([{ nombre: '', precio: '' }]);
   const [burgerOfferPapas, setBurgerOfferPapas] = React.useState(false);
   const [burgerPrecioPapas, setBurgerPrecioPapas] = React.useState('');
@@ -485,25 +485,25 @@ export default function RestaurantDashboard() {
       if (cat !== 'Base' && (cat !== 'Helados' || (cat === 'Helados' && sub !== 'Helado por kg'))) {
         try {
           const cfg = typeof editItem.variantes === 'string' ? JSON.parse(editItem.variantes) : (editItem.variantes || {});
-          setBurgerVariants(cfg.variants?.length > 0 ? cfg.variants : [{ nombre: '', precio: '' }]);
+          setBurgerVariants(cfg.variants?.length > 0 ? cfg.variants.map(v => ({ ...v, disponible: v.disponible !== false })) : [{ nombre: '', precio: '', disponible: true }]);
           setBurgerExtras(cfg.extras?.length > 0 ? cfg.extras : [{ nombre: '', precio: '' }]);
           setBurgerOfferPapas(!!cfg.con_papas);
           setBurgerPrecioPapas(cfg.precio_papas || '');
         } catch (e) {
-          setBurgerVariants([{ nombre: '', precio: '' }]);
+          setBurgerVariants([{ nombre: '', precio: '', disponible: true }]);
           setBurgerExtras([{ nombre: '', precio: '' }]);
           setBurgerOfferPapas(false);
           setBurgerPrecioPapas('');
         }
       } else {
-        setBurgerVariants([{ nombre: '', precio: '' }]);
+        setBurgerVariants([{ nombre: '', precio: '', disponible: true }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
         setBurgerOfferPapas(false);
         setBurgerPrecioPapas('');
       }
     } else if (view === 'addItem' && !editItem) {
         setItemCategory('');
-        setBurgerVariants([{ nombre: '', precio: '' }]);
+        setBurgerVariants([{ nombre: '', precio: '', disponible: true }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
         setBurgerOfferPapas(false);
         setBurgerPrecioPapas('');
@@ -2717,13 +2717,26 @@ export default function RestaurantDashboard() {
                       <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
                       <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>El cliente debe elegir una sola opción. Cada una tiene su propio precio total.</p>
                       {burgerVariants.map((v, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                           <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
                           <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].precio = e.target.value; setBurgerVariants(newV); }} />
+                          <label className="toggle" style={{ transform: 'scale(0.8)', flexShrink: 0, margin: 0 }} title="Variante disponible">
+                            <input 
+                              type="checkbox" 
+                              checked={v.disponible !== false} 
+                              onChange={(e) => {
+                                const newV = [...burgerVariants];
+                                newV[idx].disponible = e.target.checked;
+                                setBurgerVariants(newV);
+                              }} 
+                            />
+                            <span className="toggle-track" />
+                            <span className="toggle-thumb" />
+                          </label>
                           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
                         </div>
                       ))}
-                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '' }])}>+ Añadir Variante</button>
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '', disponible: true }])}>+ Añadir Variante</button>
                     </div>
 
                     <div style={{ marginBottom: '20px' }}>

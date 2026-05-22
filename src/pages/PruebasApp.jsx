@@ -633,7 +633,7 @@ export default function PruebasApp() {
 
     if (isBurgerOrCombo) {
       setBurgerModal(menu);
-      setSelectedVariant(cfg.variants?.[0] || null);
+      setSelectedVariant(cfg.variants?.find(v => v.disponible !== false) || null);
       setSelectedBurgerExtras([]);
       setWithFries(false);
       return; 
@@ -2140,7 +2140,7 @@ export default function PruebasApp() {
                     <div style={{ marginBottom: 24 }}>
                       <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Seleccioná la opción:</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                        {cfg.variants.map((v, i) => (
+                        {cfg.variants.filter(v => v.disponible !== false).map((v, i) => (
                           <div 
                             key={i}
                             className={`selection-card ${selectedVariant?.nombre === v.nombre ? 'active' : ''}`}
