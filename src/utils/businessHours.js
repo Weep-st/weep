@@ -90,7 +90,6 @@ export const isLocalOpen = (local) => {
  */
 export const getNextStatusChange = (local) => {
   if (!local) return '';
-  if (local.nombre?.toUpperCase() === 'FULL') return 'Próximamente';
   
   const isOpen = isLocalOpen(local);
   const now = new Date();

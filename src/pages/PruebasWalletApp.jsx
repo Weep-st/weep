@@ -583,17 +583,33 @@ export default function PruebasWalletApp() {
   }, [locals]);
 
   const getLocalStatusText = React.useCallback((local) => {
-    if (!local) return '';
-    if (local.nombre?.toUpperCase() === 'FULL') return 'Próximamente';
-    
+    if (!local) return null;
     const isOpen = isLocalOpen(local);
-    const { nextStatus, time } = getNextStatusChange(local);
+    const statusStr = getNextStatusChange(local) || '';
+
+    let mainText = isOpen ? 'Abierto' : 'Cerrado';
+    let subText = null;
 
     if (isOpen) {
-      return time ? `cierra ${time}` : 'Abierto';
+      if (statusStr.includes('cierra')) {
+        const time = statusStr.replace('cierra', '').trim();
+        subText = `HASTA ${time}`;
+      } else if (statusStr.toLowerCase().includes('24hs')) {
+        subText = '24 HS';
+      }
     } else {
-      return time ? `abre ${time}` : 'Cerrado';
+      if (statusStr.includes('abre')) {
+        const time = statusStr.replace('abre', '').trim();
+        subText = `ABRE ${time}`;
+      }
     }
+
+    return (
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
+        <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.62rem', color: isOpen ? '#2ecc71' : '#ef4444' }}>{mainText}</span>
+        {subText && <span style={{ fontSize: '0.52rem', color: '#888', marginTop: '1px', fontWeight: '600' }}>{subText}</span>}
+      </span>
+    );
   }, [isLocalOpen]);
   React.useEffect(() => {
     console.log("🚀 PruebasWalletApp: Main data useEffect running");
@@ -1354,11 +1370,7 @@ export default function PruebasWalletApp() {
       : (locals.find(l => l.id === menu.local_id) || menu);
 
     if (!isLocalOpen(localRef)) {
-      if (localRef.nombre?.toUpperCase() === 'FULL') {
-        toast.error('Este local estará disponible próximamente');
-      } else {
-        toast.error('Este local está cerrado por el momento');
-      }
+      toast.error('Este local está cerrado por el momento');
       return;
     }
 
@@ -1507,7 +1519,7 @@ export default function PruebasWalletApp() {
                 </button>
               ) : (
                 <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
-                  {selectedLocal?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                  CERRADO
                 </span>
               )}
               <button 
@@ -2180,7 +2192,9 @@ export default function PruebasWalletApp() {
                             <img src={local.logo} alt={local.nombre} />
                             {open && <span className="online-dot-mini" />}
                           </div>
-                          <span className="local-status-label">{getLocalStatusText(local)}</span>
+                          <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
+                            {getLocalStatusText(local)}
+                          </span>
                         </div>
                       );
                     })}
@@ -2239,7 +2253,7 @@ export default function PruebasWalletApp() {
                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                 ) : (
                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
-                                    {item.local_nombre?.toUpperCase() === 'FULL' ? 'Próximamente' : 'Cerrado'}
+                                    Cerrado
                                   </span>
                                 )}
                               </div>
@@ -2265,7 +2279,9 @@ export default function PruebasWalletApp() {
                             <img src={local.logo} alt={local.nombre} />
                             {open && <span className="online-dot-mini" />}
                           </div>
-                          <span className="local-status-label">{getLocalStatusText(local)}</span>
+                          <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
+                            {getLocalStatusText(local)}
+                          </span>
                         </div>
                       );
                     })}
@@ -2325,7 +2341,7 @@ export default function PruebasWalletApp() {
                                    <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
                                  ) : (
                                    <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
-                                     {item.local_nombre?.toUpperCase() === 'FULL' ? 'Próximamente' : 'Cerrado'}
+                                     Cerrado
                                    </span>
                                  )}
                               </div>
@@ -2351,7 +2367,9 @@ export default function PruebasWalletApp() {
                             <img src={local.logo} alt={local.nombre} />
                             {open && <span className="online-dot-mini" />}
                           </div>
-                          <span className="local-status-label">{getLocalStatusText(local)}</span>
+                          <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
+                            {getLocalStatusText(local)}
+                          </span>
                         </div>
                       );
                     })}
@@ -2464,7 +2482,7 @@ export default function PruebasWalletApp() {
                                 }
                                 return (
                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
-                                    {loc?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                                    CERRADO
                                   </span>
                                 );
                               })()}
@@ -2550,7 +2568,7 @@ export default function PruebasWalletApp() {
                               </div>
                             ) : (
                               <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                {local.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                                CERRADO
                               </div>
                             )}
                           </div>
@@ -2618,7 +2636,7 @@ export default function PruebasWalletApp() {
                                 }
                                 return (
                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
-                                    {loc?.nombre?.toUpperCase() === 'FULL' ? 'PRÓXIMAMENTE' : 'CERRADO'}
+                                    CERRADO
                                   </span>
                                 );
                               })()}
