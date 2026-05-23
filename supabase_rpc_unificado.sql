@@ -9,6 +9,15 @@ ALTER TABLE public.pedidos_general ADD COLUMN IF NOT EXISTS ganancia_credito NUM
 ALTER TABLE public.pedidos_general ADD COLUMN IF NOT EXISTS cupon_id UUID;
 ALTER TABLE public.pedidos_general ADD COLUMN IF NOT EXISTS descuento_cupon NUMERIC DEFAULT 0;
 
+-- 1b. Eliminar de forma explícita TODAS las versiones antiguas y sobrecargadas para evitar conflictos de tipo (UUID vs TEXT)
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb);
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb, numeric);
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb, numeric, text, text);
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb, numeric, text, text, uuid, numeric);
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb, numeric, text, text, text, numeric);
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb, numeric, text, text, uuid, numeric, jsonb, numeric);
+DROP FUNCTION IF EXISTS public.create_pedido_completo(text, text, text, text, text, numeric, text, text, text, numeric, numeric, jsonb, numeric, text, text, text, numeric, jsonb, numeric);
+
 -- 2. Función Unificada
 CREATE OR REPLACE FUNCTION public.create_pedido_completo(
   p_user_id TEXT,
@@ -49,20 +58,8 @@ BEGIN
         -- Extraer el ID del local desde el primer item
         v_local_id := COALESCE(p_cart->0->>'local_id', 'unknown');
 
-        -- Asignar repartidor si es envío
+        -- Asignar repartidor: Siempre NULL al inicio (el repartidor debe tomarlo vía broadcast)
         v_repartidor_id := NULL;
-        IF p_tipo_entrega = 'Con Envío' THEN
-            SELECT id INTO v_repartidor_id 
-            FROM repartidores 
-            WHERE estado = 'Activo' 
-            AND sesion_vence_en > (NOW() - INTERVAL '3 hours')
-            ORDER BY random() 
-            LIMIT 1;
-
-            IF v_repartidor_id IS NOT NULL THEN
-                UPDATE repartidores SET estado = 'Ocupado' WHERE id = v_repartidor_id;
-            END IF;
-        END IF;
 
         -- Registrar en pedidos_general
         INSERT INTO pedidos_general (

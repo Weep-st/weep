@@ -32,17 +32,8 @@ BEGIN
   -- Extraer el ID del local desde el primer item del carrito
   v_local_id := COALESCE(p_cart->0->>'local_id', 'unknown');
 
-  IF p_tipo_entrega = 'Con Envío' THEN
-    SELECT id INTO v_repartidor_id 
-    FROM repartidores 
-    WHERE estado = 'Activo' 
-    ORDER BY random() 
-    LIMIT 1;
-
-    IF v_repartidor_id IS NOT NULL THEN
-      UPDATE repartidores SET estado = 'Ocupado' WHERE id = v_repartidor_id;
-    END IF;
-  END IF;
+  -- Asignar repartidor: Siempre NULL al inicio (el repartidor debe tomarlo vía broadcast)
+  v_repartidor_id := NULL;
 
   INSERT INTO pedidos_general (id, usuario_id, direccion, estado, total, metodo_pago, observaciones, tipo_entrega, email_cliente, nombre_cliente, lat, lng, repartidor_id, local_id, num_confirmacion, fecha, created_at)
   VALUES (v_pedido_id, p_user_id, p_direccion, p_estado, p_total, p_metodo_pago, p_observaciones, p_tipo_entrega, p_email_cliente, p_nombre_cliente, p_lat, p_lng, v_repartidor_id, v_local_id, v_num_confirmacion, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours');

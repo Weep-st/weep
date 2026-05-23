@@ -1825,8 +1825,8 @@ export default function PruebasWalletApp() {
           .eq('id', pendingOrderId)
           .single();
           
-        if (data && (data.estado === 'Pendiente de Pago' || data.estado === 'Confirmado') && !foundDriver) {
-          console.log("âœ… Order accepted (Detected via Polling/Initial Check)!");
+        if (data && (data.estado === 'Pendiente de Pago' || data.estado === 'Confirmado') && data.repartidor_id && !foundDriver) {
+          console.log("✅ Order accepted with driver (Detected via Polling/Initial Check)!");
           handleDriverFound(data);
           return true;
         }
@@ -1849,8 +1849,8 @@ export default function PruebasWalletApp() {
         filter: `id=eq.${pendingOrderId}`
       }, (payload) => {
         const newOrder = payload.new;
-        console.log("🔄 Realtime update:", newOrder.id, newOrder.estado);
-        if ((newOrder.estado === 'Pendiente de Pago' || newOrder.estado === 'Confirmado') && !foundDriver) {
+        console.log("🔄 Realtime update:", newOrder.id, newOrder.estado, "Driver ID:", newOrder.repartidor_id);
+        if ((newOrder.estado === 'Pendiente de Pago' || newOrder.estado === 'Confirmado') && newOrder.repartidor_id && !foundDriver) {
           handleDriverFound(newOrder);
         }
       })
@@ -1869,6 +1869,10 @@ export default function PruebasWalletApp() {
   }, [pendingOrderId, searchingDriver, foundDriver]);
 
   const handleDriverFound = async (orderData) => {
+    if (!orderData || !orderData.repartidor_id) {
+      console.warn("⚠️ handleDriverFound called but no repartidor_id is present.");
+      return;
+    }
     try {
       const { data: rep } = await api.supabase
         .from('repartidores')
