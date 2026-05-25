@@ -19,7 +19,7 @@ export default function PruebasWalletApp() {
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
-    console.error("â Œ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
   }
 
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
@@ -29,7 +29,7 @@ export default function PruebasWalletApp() {
   });
 
   if (loadError) {
-    console.error("â Œ Error loading Google Maps in CustomerApp:", loadError);
+    console.error("❌ Error loading Google Maps in CustomerApp:", loadError);
   }
   
   const { user, loginAsUser, loginWithGoogle, logoutUser: doLogout, updateUserAddress } = useAuth();
@@ -66,6 +66,19 @@ export default function PruebasWalletApp() {
   const [drinks, setDrinks] = React.useState([]);
   const [hasRepartidores, setHasRepartidores] = React.useState(true);
   const [metodoPago, setMetodoPago] = React.useState('');
+  const getIsCashOrder = () => {
+    if (metodoPago === 'efectivo') return true;
+    try {
+      const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
+      if (pendingRaw) {
+        const pendingData = JSON.parse(pendingRaw);
+        return pendingData.metodoPago === 'efectivo';
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  };
   const [hasActiveOrder, setHasActiveOrder] = React.useState(false);
   const [orderCount, setOrderCount] = React.useState(null);
   const [showRegretModal, setShowRegretModal] = React.useState(false);
@@ -1219,7 +1232,7 @@ export default function PruebasWalletApp() {
       const r = await api.toggleFavorito(user.id, menuId);
       if (r.added) {
         setFavorites(prev => [...prev, menuId]);
-        toast.success('â™¥ Agregado a favoritos');
+        toast.success('❤️ Agregado a favoritos');
       } else {
         setFavorites(prev => prev.filter(id => id !== menuId));
         toast.success('Quitado de favoritos');
@@ -1827,7 +1840,7 @@ export default function PruebasWalletApp() {
   React.useEffect(() => {
     if (!pendingOrderId || !searchingDriver || foundDriver) return;
 
-    console.log("ðŸ“¡ Subscribing to order updates for:", pendingOrderId);
+    console.log("📡 Subscribing to order updates for:", pendingOrderId);
 
     const checkStatus = async () => {
       try {
@@ -1893,7 +1906,7 @@ export default function PruebasWalletApp() {
         .single();
       
       setFoundDriver(rep || { nombre: 'Repartidor' });
-      setEstimatedTime('25-45 min');
+      setEstimatedTime('15-30 min');
       toast.success('¡Repartidor encontrado! 🚀');
       
       // Clear flags and close modal after a short delay
@@ -1997,7 +2010,7 @@ export default function PruebasWalletApp() {
         <div className="header-actions">
           {user && (
             <div className="wallet-header-badge" onClick={() => setWalletDetailsOpen(true)}>
-               <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" className="wallet-icon-img" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+               <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" className="wallet-icon-img" />
                <span className="wallet-val">
                  {walletBalance === null ? '...' : `$${(walletBalance || 0).toLocaleString()}`}
                </span>
@@ -2020,16 +2033,8 @@ export default function PruebasWalletApp() {
                      }
                    }
                  }}
-                 className={refreshingWallet ? 'refresh-spinning' : ''}
+                 className={`wallet-refresh-btn ${refreshingWallet ? 'refresh-spinning' : ''}`}
                  disabled={refreshingWallet}
-                 style={{
-                   alignItems: 'center',
-                   justifyContent: 'center',
-                   cursor: 'pointer',
-                   marginLeft: '8px',
-                   fontSize: '12px',
-                   color: '#0369a1'
-                 }}
                  title="Actualizar saldo"
                >
                  🔄
@@ -3671,7 +3676,7 @@ export default function PruebasWalletApp() {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <span>âš ï¸</span> 
+                  <span>⚠️</span> 
                   <span><strong>NO CIERRES ESTA VENTANA:</strong> Una vez que encontremos repartidor, deberás realizar el pago para confirmar tu pedido.</span>
                 </div>
                 <div className="searching-timer">
@@ -3707,23 +3712,25 @@ export default function PruebasWalletApp() {
             ) : (
               <div className="found-driver-animation">
                 <div className="success-check">
-                  <span className="check-icon">ðŸš€</span>
+                  <span className="check-icon">🚀</span>
                 </div>
                 <h2>¡Repartidor encontrado!</h2>
                 <p className="success-msg">Ya encontramos un repartidor para llevar tu pedido.</p>
                 
                 <div className="found-driver-info">
-                  <img src={foundDriver.foto_url || 'https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png'} alt={foundDriver.nombre} className="driver-img" />
+                  <img src={foundDriver.foto_url || 'https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png'} alt="Repartidor" className="driver-img" />
                   <div className="driver-details">
                     <span className="driver-name">{foundDriver.nombre}</span>
                     <span className="estimated-tag">Llega en {estimatedTime}</span>
                   </div>
                 </div>
 
-                <div className="opening-mp">
-                  <div className="spinner-small"></div>
-                  <span>Abriendo checkout de Mercado Pago...</span>
-                </div>
+                {!getIsCashOrder() && (
+                  <div className="opening-mp">
+                    <div className="spinner-small"></div>
+                    <span>Abriendo app de Mercado Pago...</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -3733,7 +3740,7 @@ export default function PruebasWalletApp() {
       {driverSearchTimeout && (
         <div className="searching-modal-overlay">
           <div className="searching-modal-card animate-slide-up">
-            <div className="timeout-icon">ðŸ“£</div>
+            <div className="timeout-icon">📢</div>
             <h2>Seguimos buscando...</h2>
             <p>Los repartidores están un poco ocupados en este momento. ¿Quieres seguir esperando un poco más? Seguiremos notificándolos.</p>
             
@@ -3747,7 +3754,7 @@ export default function PruebasWalletApp() {
                   toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
                 }}
               >
-                âœ… Sí, seguir esperando
+                ✅ Sí, seguir esperando
               </button>
               <button 
                 className="btn btn-outline btn-full"

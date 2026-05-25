@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './HelpChatbot.css';
 
-const ASSISTANT_IMAGE = "https://i.postimg.cc/NF3Kf3p6/Gemini-Generated-Image-jlkkysjlkkysjlkk-(2).png";
+const ASSISTANT_IMAGE = "https://i.postimg.cc/RV8VGysv/wepi-(10).png";
 const WHATSAPP_NUMBER = "5493756543610";
 
 const HelpChatbot = () => {

@@ -134,6 +134,63 @@
   .search-wrapper { order: 3; width: 100%; flex-basis: 100%; }
 }
 
+@media (max-width: 480px) {
+  .app-header {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .app-logo {
+    height: 42px;
+  }
+  .header-actions {
+    gap: 6px;
+  }
+  .wallet-header-badge {
+    height: 34px;
+    padding: 0 8px;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+  .wallet-icon-img {
+    width: 18px;
+    height: 18px;
+  }
+  .wallet-val {
+    font-size: 0.8rem;
+  }
+  .wallet-refresh-btn {
+    margin-left: 4px;
+    font-size: 10px;
+  }
+  .profile-btn {
+    padding: 6px;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .profile-avatar-img {
+    width: 20px;
+    height: 20px;
+  }
+  .cart-btn {
+    width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+  }
+  .cart-icon-img {
+    width: 20px;
+    height: 20px;
+  }
+  .cart-badge {
+    top: -3px;
+    right: -3px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.65rem;
+  }
+}
+
 .app-greeting {
   text-align: center;
   color: var(--red-600);
@@ -2153,7 +2210,24 @@
   border: 1px solid rgba(255,255,255,0.3);
 }
 .wallet-header-badge:hover { background: rgba(255,255,255,0.3); }
+.wallet-icon-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
 .wallet-val { font-weight: 850; font-size: 0.9rem; }
+.wallet-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 12px;
+  color: #0369a1;
+  padding: 0;
+}
 
 .refresh-spinning {
   animation: spin 0.8s linear infinite;

@@ -328,6 +328,7 @@ export default function DriverDashboard() {
   const [showMap, setShowMap] = React.useState(false);
   const [showSessionModal, setShowSessionModal] = React.useState(false);
   const [activePedido, setActivePedido] = React.useState(null);
+  const [cashConfirmPedido, setCashConfirmPedido] = React.useState(null);
 
   // Sesion Timer Effect - ELIMINADO (Always active)
   React.useEffect(() => {
@@ -847,6 +848,13 @@ export default function DriverDashboard() {
     const pedidoId = typeof pedido === 'string' ? pedido : pedido.id;
     const isBroadcast = typeof pedido === 'object' ? pedido.esBroadcast : false;
 
+    // Si es un pedido en efectivo disponible para broadcast, requerimos confirmar que se tiene el dinero
+    const isCash = typeof pedido === 'object' && (pedido.pago || '').toLowerCase() === 'efectivo';
+    if (isBroadcast && isCash && !pedido.skipCashCheck) {
+      setCashConfirmPedido(pedido);
+      return;
+    }
+
     toast.loading('Aceptando...', { id: 'ac' });
     try {
       const res = isBroadcast 
@@ -1248,6 +1256,10 @@ export default function DriverDashboard() {
               <div className="detail-item">
                 <span className="detail-icon">📍</span>
                 <span className="detail-text">{p.direccion}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-icon">💳</span>
+                <span className="detail-text"><strong>Método de pago:</strong> {p.pago || 'Efectivo'}</span>
               </div>
             </div>
           </div>
@@ -2211,6 +2223,56 @@ export default function DriverDashboard() {
                 onClick={() => finalizarEntrega(activePedido)}
               >
                 Confirmar Entrega
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Confirmation Modal */}
+      {cashConfirmPedido && (
+        <div className="dd-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setCashConfirmPedido(null)}>
+          <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
+            <div className="dd-modal-header" style={{ borderBottom: '1px solid #fee2e2', background: '#fef2f2' }}>
+              <h5 style={{ color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                ⚠️ Confirmación de Efectivo
+              </h5>
+              <button className="dd-modal-close" onClick={() => setCashConfirmPedido(null)}>×</button>
+            </div>
+            <div className="dd-modal-body" style={{ textAlign: 'center', padding: '24px' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>💸</div>
+              <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--gray-800)', margin: '0 0 12px 0', lineHeight: '1.4' }}>
+                ¿Tenés el efectivo necesario para abonar el pedido al local?
+              </p>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', display: 'block', fontWeight: '600' }}>
+                  VALOR DEL SUBTOTAL A PAGAR AL LOCAL:
+                </span>
+                <span style={{ fontSize: '1.5rem', fontWeight: '850', color: '#10b981' }}>
+                  ${Number(cashConfirmPedido.monto_local || 0).toLocaleString('es-AR')}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic', margin: 0, lineHeight: '1.4', background: '#f1f5f9', padding: '10px', borderRadius: '6px' }}>
+                💡 <strong>Aclaración:</strong> Wepi no abonará doble viaje en caso de no tener el efectivo necesario para retirar el pedido.
+              </p>
+            </div>
+            <div className="dd-modal-footer" style={{ display: 'flex', gap: '12px', padding: '16px' }}>
+              <button 
+                className="dd-btn-rojo dd-btn-large" 
+                style={{ flex: 1, background: '#64748b', color: 'white' }}
+                onClick={() => setCashConfirmPedido(null)}
+              >
+                No
+              </button>
+              <button 
+                className="dd-btn-verde dd-btn-large" 
+                style={{ flex: 1, background: '#10b981', color: 'white' }}
+                onClick={() => {
+                  aceptarPedido({ ...cashConfirmPedido, skipCashCheck: true });
+                  setCashConfirmPedido(null);
+                }}
+              >
+                Sí
               </button>
             </div>
           </div>
