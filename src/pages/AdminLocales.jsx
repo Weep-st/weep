@@ -229,6 +229,23 @@ const AdminLocales = () => {
         }
     };
 
+    const handleToggleDisp = async (id, current) => {
+        const item = menuItems.find(m => m.id === id);
+        if (!current) {
+            if (item && item.categoria !== 'Base' && (!item.imagen_url || item.imagen_url.trim() === '')) {
+                toast.error('No puedes activar la disponibilidad de un producto sin foto');
+                return;
+            }
+        }
+        try {
+            await api.updateMenuItemAvailability(id, !current);
+            setMenuItems(menuItems.map(m => m.id === id ? { ...m, disponibilidad: !current } : m));
+            toast.success(`Producto marcado como ${!current ? 'Disponible' : 'Sin Stock'}`);
+        } catch (e) {
+            toast.error('Error al actualizar disponibilidad');
+        }
+    };
+
     if (loading && activeTab === 'gestion') return <div className="loading-state">Cargando locales...</div>;
 
     return (
@@ -550,10 +567,22 @@ const AdminLocales = () => {
                                             </div>
                                             <span className="card-category">{item.categoria}</span>
                                             <p className="card-desc">{item.descripcion || 'Sin descripción'}</p>
-                                            <div className="card-footer">
-                                                <div className="status-indicator">
-                                                    <div className={`dot ${item.disponibilidad ? 'active' : 'inactive'}`}></div>
-                                                    {item.disponibilidad ? 'Disponible' : 'Sin Stock'}
+                                            <div className="card-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <label className="toggle" onClick={() => {
+                                                        if (item.categoria === 'Base') {
+                                                            toast.error('Los productos base no pueden marcarse como disponibles/fuera de servicio. Su visibilidad depende del stock real.');
+                                                            return;
+                                                        }
+                                                        handleToggleDisp(item.id, item.disponibilidad);
+                                                    }} style={{ transform: 'scale(0.8)', margin: 0 }}>
+                                                        <input type="checkbox" checked={item.disponibilidad === true} readOnly disabled={item.categoria === 'Base'} />
+                                                        <span className="toggle-track" />
+                                                        <span className="toggle-thumb" />
+                                                    </label>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: item.disponibilidad ? '#22c55e' : '#ef4444' }}>
+                                                        {item.disponibilidad ? 'Disponible' : 'Sin Stock'}
+                                                    </span>
                                                 </div>
                                                 <div className="card-id" style={{fontSize: '0.7rem', color: '#64748b'}}>#{item.id.split('-').pop()}</div>
                                             </div>

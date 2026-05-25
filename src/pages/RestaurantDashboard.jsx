@@ -1862,12 +1862,7 @@ export default function RestaurantDashboard() {
               className={`btn btn-ghost btn-sm ${view === 'profile' ? 'active' : ''}`} 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                if (isUnlocked) {
-                  setProfileMenuOpen(!profileMenuOpen);
-                } else {
-                  setOnSecuritySuccess(() => () => setProfileMenuOpen(true));
-                  setSecurityModalOpen(true);
-                }
+                setProfileMenuOpen(!profileMenuOpen);
               }}
               style={{ color: 'white' }}
             >
@@ -1876,16 +1871,48 @@ export default function RestaurantDashboard() {
             
             {profileMenuOpen && (
               <div className="rd-dropdown-menu animate-fade-in" style={{ right: 0, left: 'auto' }}>
-                <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('ventas'); loadOrders(); setProfileMenuOpen(false); }}>
+                <button className="rd-dropdown-item" onClick={() => { 
+                  if (isUnlocked) {
+                    setView('profile'); setProfileSubView('ventas'); loadOrders(); setProfileMenuOpen(false); 
+                  } else {
+                    setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('ventas'); loadOrders(); });
+                    setSecurityModalOpen(true);
+                    setProfileMenuOpen(false);
+                  }
+                }}>
                   💰 Mis Ventas
                 </button>
-                <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('cobros'); loadCobros(); setProfileMenuOpen(false); }}>
+                <button className="rd-dropdown-item" onClick={() => { 
+                  if (isUnlocked) {
+                    setView('profile'); setProfileSubView('cobros'); loadCobros(); setProfileMenuOpen(false); 
+                  } else {
+                    setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('cobros'); loadCobros(); });
+                    setSecurityModalOpen(true);
+                    setProfileMenuOpen(false);
+                  }
+                }}>
                   🏦 Gestión de Pagos
                 </button>
-                <button className="rd-dropdown-item" onClick={() => { setView('profile'); setProfileSubView('edit'); loadProfile(); setProfileMenuOpen(false); }}>
+                <button className="rd-dropdown-item" onClick={() => { 
+                  if (isUnlocked) {
+                    setView('profile'); setProfileSubView('edit'); loadProfile(); setProfileMenuOpen(false); 
+                  } else {
+                    setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('edit'); loadProfile(); });
+                    setSecurityModalOpen(true);
+                    setProfileMenuOpen(false);
+                  }
+                }}>
                   👤 Editar Perfil
                 </button>
-                <button className="rd-dropdown-item" onClick={() => { setView('settings'); setProfileSubView('edit'); setProfileMenuOpen(false); }}>
+                <button className="rd-dropdown-item" onClick={() => { 
+                  if (isUnlocked) {
+                    setView('settings'); setProfileSubView('edit'); setProfileMenuOpen(false); 
+                  } else {
+                    setOnSecuritySuccess(() => () => { setView('settings'); setProfileSubView('edit'); });
+                    setSecurityModalOpen(true);
+                    setProfileMenuOpen(false);
+                  }
+                }}>
                   ⚙️ Configuración
                 </button>
                 <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }}>
