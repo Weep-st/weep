@@ -1470,17 +1470,107 @@ export async function reOrderItems(userId, pedidoId) {
       .eq('id', item.item_id)
       .single();
     if (menu) {
+      // Determinar el precio actual de este producto
+      let currentPrice = menu.precio;
+
+      // Parsear la configuración de variantes si existe
+      let cfg = null;
+      if (menu.variantes) {
+        try {
+          if (typeof menu.variantes === 'string') cfg = JSON.parse(menu.variantes);
+          else if (typeof menu.variantes === 'object') cfg = menu.variantes;
+        } catch (e) {
+          console.error("Error al parsear variantes para el item", menu.id, e);
+        }
+      }
+
+      if (cfg) {
+        if (cfg.es_helado || menu.categoria === 'Helados') {
+          // Lógica de Helados
+          if (cfg.precios && typeof cfg.precios === 'object') {
+            const sizes = Object.keys(cfg.precios);
+            const matchedSize = sizes.find(size => item.nombre.toLowerCase().includes(size.toLowerCase()));
+            if (matchedSize) {
+              currentPrice = parseFloat(cfg.precios[matchedSize].precio || 0);
+
+              // Consultar los adicionales de helado de la base de datos para ver si coinciden con los extras listados en el nombre
+              try {
+                const { data: adicionales } = await supabase
+                  .from('helado_adicionales')
+                  .select('nombre, precio')
+                  .eq('local_id', menu.local_id);
+                if (adicionales && adicionales.length > 0) {
+                  const lowerName = item.nombre.toLowerCase();
+                  for (const ad of adicionales) {
+                    if (lowerName.includes(ad.nombre.toLowerCase())) {
+                      currentPrice += parseFloat(ad.precio || 0);
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error("Error al obtener helado_adicionales para el reorder:", err);
+              }
+            } else {
+              // Si no coincide ningún tamaño, usamos el precio histórico de la orden como fallback seguro
+              currentPrice = item.precio_unitario;
+            }
+          } else {
+            currentPrice = item.precio_unitario;
+          }
+        } else if (cfg.es_hamburguesa || cfg.es_combo || cfg.es_pancho || cfg.con_papas || (cfg.variants?.length > 0) || (cfg.extras?.length > 0)) {
+          // Lógica de Hamburguesas/Combos y productos con variantes generales
+          let baseVariantPrice = 0;
+          let variantMatched = false;
+
+          if (cfg.variants && Array.isArray(cfg.variants)) {
+            const matchedVariant = cfg.variants.find(v => item.nombre.toLowerCase().includes(v.nombre.toLowerCase()));
+            if (matchedVariant) {
+              baseVariantPrice = parseFloat(matchedVariant.precio || 0);
+              variantMatched = true;
+            }
+          }
+
+          if (!variantMatched) {
+            baseVariantPrice = parseFloat(menu.precio || 0);
+          }
+
+          let extrasPrice = 0;
+          if (cfg.extras && Array.isArray(cfg.extras)) {
+            const lowerName = item.nombre.toLowerCase();
+            for (const ex of cfg.extras) {
+              if (lowerName.includes(ex.nombre.toLowerCase())) {
+                extrasPrice += parseFloat(ex.precio || 0);
+              }
+            }
+          }
+
+          let friesPrice = 0;
+          if (cfg.con_papas && (item.nombre.toLowerCase().includes('papas') || item.nombre.toLowerCase().includes('combo'))) {
+            friesPrice = parseFloat(cfg.precio_papas || 0);
+          }
+
+          currentPrice = baseVariantPrice + extrasPrice + friesPrice;
+        }
+      }
+
+      // Caída segura (Fallback): Si el precio calculado es 0 o inválido, usar el precio cobrado históricamente
+      if (!currentPrice || isNaN(currentPrice) || currentPrice <= 0) {
+        currentPrice = item.precio_unitario || menu.precio || 0;
+      }
+
       menuItems.push({
-        ...menu, // Keep all base menu info
-        menuId: menu.id, // Save original menu ID
-        id: `reorder-${item.id}`, // Use the primary key of the order item to keep it unique but stable for reorders
-        nombre: item.nombre, // USE THE CUSTOMIZED NAME FROM THE ORDER
+        ...menu,
+        menuId: menu.id,
+        id: `reorder-${item.id}`,
+        nombre: item.nombre,
         categoria: menu.categoria,
-        descripcion: menu.descripcion, 
-        precio: menu.precio, // Use CURRENT price
-        imagen_url: menu.imagen_url, local_id: menu.local_id,
+        descripcion: menu.descripcion,
+        precio: currentPrice, // Usar el precio recalculado correctamente
+        imagen_url: menu.imagen_url,
+        local_id: menu.local_id,
         variantes: menu.variantes,
-        local_nombre: menu.locales?.nombre || '', local_logo: menu.locales?.foto_url || '',
+        local_nombre: menu.locales?.nombre || '',
+        local_logo: menu.locales?.foto_url || '',
         qty: item.cantidad,
       });
     }
