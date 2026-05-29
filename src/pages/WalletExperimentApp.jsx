@@ -423,7 +423,8 @@ export default function PruebasApp() {
           // Re-enviar Push cada 20 segundos para incentivar (en 20s y 40s)
           if (prev > 0 && prev % 20 === 0 && pendingOrderId) {
             console.log("📣 Re-enviando push de incentivo...");
-            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, shipping);
+            const currentShipping = cart.deliveryType === 'envio' ? (cart.shippingCost || 0) : 0;
+            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, currentShipping);
           }
           
           return prev + 1;
