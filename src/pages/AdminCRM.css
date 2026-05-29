@@ -1,0 +1,330 @@
+.admin-crm-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 30px;
+}
+
+.crm-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.crm-kpi-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.crm-kpi-card h3 {
+    margin: 0 0 5px 0;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.crm-kpi-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.crm-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    align-items: flex-end;
+}
+
+.crm-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 150px;
+}
+
+.crm-filter-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.crm-filter-group input,
+.crm-filter-group select {
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.crm-filter-group input:focus,
+.crm-filter-group select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.crm-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.btn-crm-action {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s;
+}
+
+.btn-crm-action:hover {
+    background: #059669;
+}
+
+.btn-crm-secondary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-crm-secondary:hover {
+    background: #2563eb;
+}
+
+/* Modal Plantillas */
+.crm-templates-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.crm-templates-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 12px;
+    padding: 25px;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+}
+
+.crm-templates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 15px;
+}
+
+.crm-templates-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #1e293b;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.template-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.template-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 15px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.template-item h4 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+    color: #334155;
+}
+
+.template-item p {
+    margin: 0 0 10px 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.template-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-edit { background: #e0f2fe; color: #0284c7; }
+.btn-delete { background: #fee2e2; color: #ef4444; }
+
+.add-template-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f1f5f9;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.add-template-form input,
+.add-template-form textarea {
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.add-template-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.btn-save {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* CRM Table */
+.crm-table-container {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.crm-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.crm-table th, .crm-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.crm-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.crm-table td {
+    font-size: 0.9rem;
+    color: #334155;
+}
+
+.crm-table tr:hover {
+    background: #f8fafc;
+}
+
+.crm-table td .user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.crm-table td .user-name {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.crm-table td .user-email {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.badge-crm {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge-prospecto { background: #e0e7ff; color: #4338ca; }
+.badge-activo { background: #dcfce7; color: #166534; }
+.badge-inactivo { background: #fee2e2; color: #b91c1c; }
+.badge-compro-ayer { background: #fef3c7; color: #b45309; }
+
+.crm-row-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-wa {
+    background: #25D366;
+    color: white;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-wa:hover {
+    background: #1ebc5a;
+}

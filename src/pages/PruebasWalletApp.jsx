@@ -1,0 +1,4001 @@
+import * as React from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useJsApiLoader } from '@react-google-maps/api';
+import * as api from '../services/api';
+import { iniciarPagoMercadoPago } from '../services/mercadopago';
+import { isValidEmail } from '../utils/validation';
+import toast from 'react-hot-toast';
+import AddressSelector from '../components/AddressSelector';
+import HelpChatbot from '../components/HelpChatbot';
+import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
+import { evaluatePromotions } from '../utils/promoEngine';
+import './PruebasWalletApp.css';
+
+export default function PruebasWalletApp() {
+  const { slug } = useParams();
+  console.log("🚀 PruebasWalletApp: Initialization started");
+  // Map Loading
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!googleMapsApiKey) {
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+  }
+
+  const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: googleMapsApiKey,
+    libraries: ['places']
+  });
+
+  if (loadError) {
+    console.error("❌ Error loading Google Maps in CustomerApp:", loadError);
+  }
+  
+  const { user, loginAsUser, loginWithGoogle, logoutUser: doLogout, updateUserAddress } = useAuth();
+  const cart = useCart();
+  const navigate = useNavigate();
+
+  const [locals, setLocals] = React.useState([]);
+  const [menus, setMenus] = React.useState([]);
+  const [menuTitle, setMenuTitle] = React.useState('');
+  const [showMenus, setShowMenus] = React.useState(false);
+  const [loadingMenus, setLoadingMenus] = React.useState(false);
+  const [favorites, setFavorites] = React.useState([]);
+  const [cartOpen, setCartOpen] = React.useState(false);
+  const [filteredLocals, setFilteredLocals] = React.useState(null);
+  const [selectedCategory, setSelectedCategory] = React.useState(null);
+  const [loadingLocals, setLoadingLocals] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const [modal, setModal] = React.useState(null);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [iceCreamModal, setIceCreamModal] = React.useState(null);
+  const [iceCreamFlavors, setIceCreamFlavors] = React.useState([]);
+  const [iceCreamSauces, setIceCreamSauces] = React.useState([]);
+  const [iceCreamExtras, setIceCreamExtras] = React.useState([]);
+  const [selectedSize, setSelectedSize] = React.useState('1/4kg');
+  const [selectedFlavors, setSelectedFlavors] = React.useState([]);
+  const [selectedSauces, setSelectedSauces] = React.useState([]);
+  const [selectedExtras, setSelectedExtras] = React.useState([]);
+  const [burgerModal, setBurgerModal] = React.useState(null);
+  const [selectedVariant, setSelectedVariant] = React.useState(null);
+  const [selectedBurgerExtras, setSelectedBurgerExtras] = React.useState([]);
+  const [withFries, setWithFries] = React.useState(false);
+  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
+  const [drinks, setDrinks] = React.useState([]);
+  const [hasRepartidores, setHasRepartidores] = React.useState(true);
+  const [metodoPago, setMetodoPago] = React.useState('');
+  const getIsCashOrder = () => {
+    if (metodoPago === 'efectivo') return true;
+    try {
+      const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
+      if (pendingRaw) {
+        const pendingData = JSON.parse(pendingRaw);
+        return pendingData.metodoPago === 'efectivo';
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  };
+  const [hasActiveOrder, setHasActiveOrder] = React.useState(false);
+  const [orderCount, setOrderCount] = React.useState(null);
+  const [showRegretModal, setShowRegretModal] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [banners, setBanners] = React.useState([]);
+  const [bannersLoading, setBannersLoading] = React.useState(true);
+  const [promoItems, setPromoItems] = React.useState([]);
+  const [allPromotions, setAllPromotions] = React.useState([]);
+  const [loadingPromos, setLoadingPromos] = React.useState(false);
+  const [walletDetailsOpen, setWalletDetailsOpen] = React.useState(false);
+
+  // Home Optimization States
+  const [homeLayout, setHomeLayout] = React.useState({
+    dynamicTitle: '',
+    dynamicLocales: [],
+    promosOfDay: [],
+    mostOrdered: [],
+    newLocales: [],
+    allLocales: [],
+    categories: [
+      { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
+      { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
+      { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+      { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
+      { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' }
+    ],
+    dynamicBanner: '',
+    dynamicRubros: [],
+    exploreItems: [],
+    featuredProLocales: [],
+    recommendedPlusLocales: [],
+    newFreemiumLocales: []
+  });
+
+  // Wallet States
+  const [walletBalance, setWalletBalance] = React.useState(null);
+  const [walletBreakdown, setWalletBreakdown] = React.useState([]);
+  const [useWallet, setUseWallet] = React.useState(false);
+  const [walletConfig, setWalletConfig] = React.useState(null);
+  const [allWalletConfigs, setAllWalletConfigs] = React.useState({});
+  const [loadingConfig, setLoadingConfig] = React.useState(false);
+  const [localCommission, setLocalCommission] = React.useState(0.15); // Default 15% (Despegue)
+  const [userPromoUsage, setUserPromoUsage] = React.useState({});
+  const [refreshingWallet, setRefreshingWallet] = React.useState(false);
+  const [couponInput, setCouponInput] = React.useState('');
+  const [appliedCoupon, setAppliedCoupon] = React.useState('');
+  
+  const refreshWallet = async () => {
+    if (user?.id) {
+      const localId = selectedLocal?.id || (cart.items.length > 0 ? cart.items[0].local_id : null);
+      try {
+        const [bal, bdown] = await Promise.all([
+          api.getUserWalletBalance(user.id, localId),
+          api.getUserWalletBreakdown(user.id)
+        ]);
+        setWalletBalance(bal);
+        setWalletBreakdown(bdown);
+      } catch (err) {
+        console.error("Error refreshing wallet:", err);
+      }
+    }
+  };
+  
+  // States for Address Selector
+  const [showAddressSelector, setShowAddressSelector] = React.useState(false);
+  const [showProfileAddressSelector, setShowProfileAddressSelector] = React.useState(false);
+  
+  const [addressData, setAddressData] = React.useState({
+    address: user?.address || '',
+    lat: user?.lat || null,
+    lng: user?.lng || null,
+    reference: ''
+  });
+
+  const [unavailableLocal, setUnavailableLocal] = React.useState(null);
+  const [selectedLocal, setSelectedLocal] = React.useState(null);
+
+  // Actualizar addressData cuando el usuario carga (login)
+  React.useEffect(() => {
+    if (user && !addressData.address) {
+      setAddressData(prev => ({
+        ...prev,
+        address: user.direccion || '',
+        lat: user.lat || null,
+        lng: user.lng || null
+      }));
+    }
+  }, [user]);
+
+  // Session ID for demand tracking
+  const sessionId = React.useMemo(() => {
+    let sid = sessionStorage.getItem('wepi_demand_session');
+    if (!sid) {
+      sid = 'SESS-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      sessionStorage.setItem('wepi_demand_session', sid);
+    }
+    return sid;
+  }, []);
+
+  const searchTimeout = React.useRef(null);
+  const [exploreRubroFilter, setExploreRubroFilter] = React.useState('');
+  const [exploreCatFilter, setExploreCatFilter] = React.useState('');
+  const [targetMenuCategory, setTargetMenuCategory] = React.useState(null);
+  const [discoveryItems, setDiscoveryItems] = React.useState([]);
+  const [loadingDiscovery, setLoadingDiscovery] = React.useState(false);
+
+  // States for Searching Driver
+  const [searchingDriver, setSearchingDriver] = React.useState(false);
+  const [foundDriver, setFoundDriver] = React.useState(null);
+  const [driverSearchTimeout, setDriverSearchTimeout] = React.useState(false);
+  const [searchSeconds, setSearchSeconds] = React.useState(0);
+  const [pendingOrderId, setPendingOrderId] = React.useState(null);
+  const [estimatedTime, setEstimatedTime] = React.useState(null);
+
+  const getTimeBasedTitle = React.useCallback(() => {
+    const hour = new Date().getHours();
+    
+    // 00 a 06 hs (antojo nocturno)
+    if (hour >= 0 && hour < 6) return { 
+        title: "Antojo nocturno... ¿Sale algo?", 
+        banner: "https://i.postimg.cc/PxVCPtBd/Gemini-Generated-Image-gf1rg2gf1rg2gf1r.png",
+        rubros: ['Restaurante', 'Heladería', 'Market'],
+        marketCats: ['Golosinas', 'Snacks', 'Bebidas']
+    };
+    // 06 a 11 hs (desayuno)
+    if (hour >= 6 && hour < 11) return { 
+        title: "¡Buenos días! Un rico desayuno", 
+        banner: "https://i.postimg.cc/HnhC4bjV/Gemini-Generated-Image-pl34hbpl34hbpl34.png",
+        rubros: ['Panadería', 'Market'],
+        marketCats: ['Snacks', 'Bebidas']
+    };
+    // 11 hs a 13 hs (almuerzo)
+    if (hour >= 11 && hour < 13) return { 
+        title: "Hora del almuerzo: Pedí algo rico", 
+        banner: "https://i.postimg.cc/wMPSsHbc/Gemini-Generated-Image-chrryrchrryrchrr.png",
+        rubros: ['Restaurante', 'Market'],
+        marketCats: ['Bebidas']
+    };
+    // 13 hs a 16 hs (helado y postre)
+    if (hour >= 13 && hour < 16) return { 
+        title: "Postres y Tentaciones", 
+        banner: "https://i.postimg.cc/9QHk3x3q/Gemini-Generated-Image-fzn3nyfzn3nyfzn3.png",
+        rubros: ['Heladería', 'Market'],
+        marketCats: ['Golosinas']
+    };
+    // 16 a 20 hs (merienda)
+    if (hour >= 16 && hour < 20) return { 
+        title: "Merienda: Un break para vos", 
+        banner: "https://i.postimg.cc/JzgG4Bqb/Gemini-Generated-Image-nut1r8nut1r8nut1.png",
+        rubros: ['Panadería', 'Heladería', 'Market'],
+        marketCats: ['Snacks', 'Bebidas']
+    };
+    // 20 a 00 hs (cena)
+    if (hour >= 20 || hour < 0) return { 
+        title: "¿Qué pedimos para cenar?", 
+        banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
+        rubros: ['Restaurante', 'Market'],
+        marketCats: ['Bebidas']
+    };
+    
+    // Default
+    return { 
+        title: "¿Qué se te antoja hoy?", 
+        banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
+        rubros: ['Restaurante'],
+        marketCats: []
+    };
+  }, []);
+
+  const getBoostedLocales = React.useCallback((locs) => {
+    return [...locs].sort((a, b) => {
+      // Pro: PLAN-PRO (o similar), Plus: PLAN-PLUS
+      const weightA = (a.plan_id?.includes('PRO') ? 3 : (a.plan_id?.includes('PLUS') ? 2 : 1));
+      const weightB = (b.plan_id?.includes('PRO') ? 3 : (b.plan_id?.includes('PLUS') ? 2 : 1));
+      
+      if (weightA !== weightB) return weightB - weightA;
+      // Deterministic "performance" (pseudo-random based on id)
+      const perfA = (parseInt(a.id?.split('-')[1]) || 0) % 100;
+      const perfB = (parseInt(b.id?.split('-')[1]) || 0) % 100;
+      return perfB - perfA;
+    });
+  }, []);
+
+  const getBadgeForLocal = React.useCallback((local, index) => {
+    // Máximo 30-40% (1 de cada 3)
+    if (index % 3 !== 0) return null;
+    
+    const isPro = local.plan_id?.includes('PRO');
+    const isPlus = local.plan_id?.includes('PLUS');
+    
+    if (isPro) {
+      // Alternar entre Top y Destacado
+      return (index % 6 === 0) ? { label: 'Top', type: 'top' } : { label: 'Destacado', type: 'destacado' };
+    }
+    if (isPlus) {
+      return { label: 'Recomendado', type: 'recomendado' };
+    }
+    return null;
+  }, []);
+  
+  const isClosedToday = React.useCallback((local) => {
+    if (!local) return false;
+    const config = local.config_horarios || {};
+    const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDayName = daysMap[new Date().getDay()];
+    
+    // Si tiene la nueva configuración, verificamos si ese día está "cerrado"
+    if (config[currentDayName]) {
+      return config[currentDayName].tipo === 'cerrado';
+    }
+
+    // Fallback a lógica vieja si no hay config_horarios
+    if (local.modo_automatico && local.dias_apertura && Array.isArray(local.dias_apertura)) {
+      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normalizedDays = local.dias_apertura.map(normalize);
+      const normalizedCurrentDay = normalize(currentDayName);
+      return !normalizedDays.includes(normalizedCurrentDay);
+    }
+    return false;
+  }, []);
+
+  console.log("🚀 PruebasWalletApp: Logic functions defined");
+
+  const calculateDiscountedPrice = React.useCallback((item) => {
+    if (!item) return 0;
+    let basePrice = Number(item.precio);
+    let finalPrice = basePrice;
+    
+    // 1. Evaluar Promociones Unificadas (Engine)
+    // Filtramos promos de tipo 'diario', 'cupon', 'combo' que apliquen directamente al precio
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: basePrice, 
+        items: [{ ...item, cantidad: 1, qty: 1 }],
+        metodoPago: metodoPago // Inyectar método actual
+      },
+      user,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: item.local_id
+    });
+
+    if (promoResults.discountTotal > 0) {
+      finalPrice = basePrice - promoResults.discountTotal;
+    } else {
+      // 2. Fallback: Lógica Antigua (Descuento estático en tabla menu o local)
+      if (item.descuento > 0) {
+        finalPrice = basePrice * (1 - Number(item.descuento) / 100);
+      } else {
+        const discountDays = item.local_dias_descuento || item.dias_descuento || [];
+        const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
+        const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
+        
+        if (generalDiscount > 0 && discountDays.length > 0) {
+          const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+          const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const todayNorm = normalize(today);
+          
+          const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+          const isCorrectCategory = !categoryDiscount || categoryDiscount === item.categoria;
+
+          if (isCorrectDay && isCorrectCategory) {
+            finalPrice = basePrice * (1 - generalDiscount / 100);
+          }
+        }
+      }
+    }
+    
+    return Math.round(finalPrice);
+  }, [allPromotions, user, userPromoUsage]);
+
+  const renderCreditBadge = React.useCallback((item, isPremium = false) => {
+    if (!item) return null;
+    const localId = item.local_id || item.id || selectedLocal?.id;
+    
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: calculateDiscountedPrice(item),
+        metodoPago: metodoPago 
+      },
+      user,
+      orderCount,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: localId
+    });
+
+    if (promoResults.potentialCashback <= 0) return null;
+
+    const earned = promoResults.potentialCashback;
+    const promoCredito = promoResults.appliedPromos.find(p => p.tipo === 'credito');
+    const isFirstOrderPromo = promoCredito?.triggers?.primera_compra === true;
+    
+    if (isPremium) {
+      const isLocalRestricted = promoCredito?.requisitos?.uso_local_exclusivo === true;
+      const localName = item.local_nombre || selectedLocal?.nombre || '';
+      const locationText = isLocalRestricted ? ` en ${localName}` : '';
+      const orderText = isFirstOrderPromo ? 'en tu 1er pedido' : 'para tu proxima compra';
+      
+      return (
+        <div className="credit-earn-label animate-fade-in" style={{ fontSize: '0.7rem', opacity: 0.9, marginTop: '-2px', marginBottom: '4px' }}>
+          Ganás ${earned.toLocaleString()} de credito {orderText}{locationText}
+        </div>
+      );
+    }
+
+    // Texto simplificado para Home
+    const homeLabel = isFirstOrderPromo 
+      ? `+$${earned.toLocaleString()} en 1er pedido` 
+      : `Ganás $${earned.toLocaleString()}`;
+
+    return (
+      <div className="credit-earn-label animate-fade-in">
+        {homeLabel}
+      </div>
+    );
+  }, [allPromotions, calculateDiscountedPrice, selectedLocal, user, userPromoUsage]);
+  
+  const doesItemEarnCredit = React.useCallback((item) => {
+    if (!item) return false;
+    const localId = item.local_id || item.id || selectedLocal?.id;
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: calculateDiscountedPrice(item),
+        metodoPago: metodoPago 
+      },
+      user,
+      orderCount,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: localId
+    });
+    return promoResults.potentialCashback > 0;
+  }, [allPromotions, calculateDiscountedPrice, selectedLocal, user, userPromoUsage]);
+
+
+  const calculateCheckoutTotals = React.useCallback((P, E, method) => {
+    // 1. Evaluar Promociones Unificadas
+    const localId = cart.items.length > 0 ? cart.items[0].local_id : null;
+    
+    // IMPORTANTE: Crear una versión del carrito con precios ORIGINALES para el motor
+    const grossItems = cart.items.map(i => ({
+      ...i,
+      precio: Number(i.precioOriginal || i.precio)
+    }));
+    
+    const grossP = grossItems.reduce((sum, i) => sum + (i.precio * i.qty), 0);
+
+    const promoResults = evaluatePromotions({
+      cart: { 
+        totalPrice: grossP, // Base bruta
+        deliveryFee: E, 
+        items: grossItems, // Items con precios originales
+        metodoPago: method, // El método elegido en el selector
+        couponCode: appliedCoupon
+      },
+      user,
+      orderCount,
+      userPromoUsage,
+      promotions: allPromotions,
+      currentLocalId: localId
+    });
+
+    // Aplicar descuentos de promos al subtotal bruto y envío
+    const discountedP = Math.max(0, grossP - (promoResults.discountTotal || 0));
+    const discountedE = promoResults.freeShipping ? 0 : Math.max(0, E - (promoResults.shippingDiscount || 0));
+
+    const net_commission = discountedP * localCommission;
+    const net_local = discountedP - net_commission;
+    const total_net = discountedP + discountedE;
+    
+    const cuponPromo = promoResults.appliedPromos.find(p => p.tipo === 'cupon');
+    const appliedCuponId = cuponPromo ? cuponPromo.id : null;
+    const descuentoCupon = cuponPromo ? (promoResults.discountTotal || 0) : 0;
+    
+    let result;
+    if (method === 'transferencia') {
+      const marketplace_fee = discountedE + net_commission;
+      result = {
+        total: Math.round(total_net),
+        product_total: P,
+        discounted_product_total: discountedP,
+        delivery_fee: E,
+        discounted_delivery_fee: discountedE,
+        commission: Math.round(net_commission),
+        mp_fee: 0,
+        merchant_payout: Math.round(total_net - marketplace_fee),
+        platform_gross: Math.round(marketplace_fee),
+        platform_net: Math.round(discountedE + net_commission),
+        appliedPromos: promoResults.appliedPromos,
+        appliedCuponId,
+        descuentoCupon
+      };
+    } else {
+      // Default (Efectivo)
+      result = {
+        total: Math.round(discountedP + discountedE),
+        product_total: P,
+        discounted_product_total: discountedP,
+        delivery_fee: E,
+        discounted_delivery_fee: discountedE,
+        commission: Math.round(net_commission),
+        mp_fee: 0,
+        merchant_payout: Math.round(net_local),
+        platform_gross: 0,
+        platform_net: Math.round(net_commission + discountedE),
+        appliedPromos: promoResults.appliedPromos,
+        appliedCuponId,
+        descuentoCupon
+      };
+    }
+
+    // 2. Validación de uso de Billetera (Soberanía de Promo Admin)
+    let walletValidation = { canUse: true, reason: null };
+    let maxDiscount = 0;
+
+    if (walletBalance > 0) {
+      // Determinar si es primer pedido para el filtrado de promo de uso
+      const hasOrdered = user?.ya_realizo_pedidos === true || user?.ya_realizo_pedidos === 'true' || user?.ya_realizo_pedidos === 1 || user?.ya_realizo_pedidos === '1' || user?.ya_realizo_pedidos === 'TRUE' || (orderCount > 0);
+      const isFirstOrder = !user || !user.id || !hasOrdered;
+
+      // Buscar la configuración maestra (Promo Activa de Crédito que aplique al usuario)
+      const creditPromo = allPromotions.find(p => {
+        if (p.tipo !== 'credito' || !p.activo) return false;
+        const triggers = p.triggers || {};
+        const requisitos = p.requisitos || {};
+        
+        // Validar Primera Compra
+        if (triggers.primera_compra === true && !isFirstOrder) return false;
+        
+        // Validar Método de Pago (Triggers)
+        if (triggers.metodo_pago && triggers.metodo_pago !== 'todos' && method && method !== triggers.metodo_pago) return false;
+        
+        // Validar Método de Pago (Requisitos)
+        if (requisitos.metodo_pago && requisitos.metodo_pago !== 'todos' && method && method !== requisitos.metodo_pago) return false;
+        
+        return true;
+      });
+      
+      // Combinar requisitos: Prioridad Promo > Local Config > Global Config
+      const currentLocalId = cart.items.length > 0 ? cart.items[0].local_id : null;
+      const localConfig = allWalletConfigs[currentLocalId] || allWalletConfigs['global'] || {};
+      
+      const config = creditPromo 
+        ? { ...localConfig, ...creditPromo.requisitos } // La promo sobreescribe al config
+        : localConfig;
+
+      // 1. Compra Mínima
+      const minUso = Number(config.min_compra_uso || config.compra_minima_uso || 0);
+      if (discountedP < minUso) {
+        walletValidation = {
+          canUse: false,
+          reason: `Compra mínima de $${minUso.toLocaleString()} para usar crédito`
+        };
+        maxDiscount = 0;
+      } else {
+        // 2. Si califica, aplicamos los topes de sostenibilidad
+        maxDiscount = walletBalance;
+
+        // Tope % (max_porcentaje_uso o max_porcentaje_pedido)
+        const perc = Number(config.max_porcentaje_uso || config.max_porcentaje_pedido || 100);
+        if (perc < 100) {
+          maxDiscount = Math.min(maxDiscount, Math.round(discountedP * (perc / 100)));
+        }
+
+        // Tope Monto ($)
+        const topeValue = Number(config.tope_max_descuento || 999999);
+        if (topeValue < 999999) {
+          maxDiscount = Math.min(maxDiscount, topeValue);
+        }
+      }
+    }
+
+    result.walletValidation = walletValidation;
+    result.maxAvailableDiscount = maxDiscount;
+    result.potentialCredit = promoResults.potentialCashback;
+
+    if (useWallet && walletValidation.canUse) {
+      const discount = Math.min(discountedP, maxDiscount);
+      if (discount > 0) {
+        result.total -= discount;
+        result.walletDiscount = discount;
+      }
+    }
+    
+    return result;
+  }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission, appliedCoupon]);
+
+
+  const isLocalOpen = React.useCallback((local) => {
+    if (!local) return false;
+
+    // Red de seguridad: si es un item de menú (tiene local_id) pero no tiene config_horarios,
+    // intentar buscar el local completo en la lista de locales cargados.
+    const localId = local.local_id || local.id;
+    const realLocal = (locals.find(l => l.id === localId)) || local;
+    
+    // Mapeo de compatibilidad para items que vienen de api.getPromos() u otros joins
+    const localToPass = {
+      ...realLocal,
+      disponible_desde: realLocal.disponible_desde || realLocal.local_disponible_desde
+    };
+
+    // 1. Verificar si ya pasó la fecha de disponibilidad
+    if (localToPass.disponible_desde) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = localToPass.disponible_desde.split('-');
+      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (today < availableDate) return false;
+    }
+
+    // 2. Usar utilidad flexible
+    return isLocalOpenFlexible(localToPass);
+  }, [locals]);
+
+  const getLocalStatusText = React.useCallback((local) => {
+    if (!local) return null;
+    const isOpen = isLocalOpen(local);
+    const statusStr = getNextStatusChange(local) || '';
+
+    let mainText = isOpen ? 'Abierto' : 'Cerrado';
+    let subText = null;
+
+    if (isOpen) {
+      if (statusStr.includes('cierra')) {
+        const time = statusStr.replace('cierra', '').trim();
+        subText = `HASTA ${time}`;
+      } else if (statusStr.toLowerCase().includes('24hs')) {
+        subText = '24 HS';
+      }
+    } else {
+      if (statusStr.includes('abre')) {
+        const time = statusStr.replace('abre', '').trim();
+        subText = `ABRE ${time}`;
+      }
+    }
+
+    return (
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
+        <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.62rem', color: isOpen ? '#2ecc71' : '#ef4444' }}>{mainText}</span>
+        {subText && <span style={{ fontSize: '0.52rem', color: '#888', marginTop: '1px', fontWeight: '600' }}>{subText}</span>}
+      </span>
+    );
+  }, [isLocalOpen]);
+  React.useEffect(() => {
+    console.log("🚀 PruebasWalletApp: Main data useEffect running");
+    api.trackDemandSignal('page_view', sessionId).catch(() => {});
+
+    const loadHomeData = async () => {
+      try {
+        // 1. Cargar promociones activas, locales y configs de wallet primero para saber qué buscar
+        const [allPrms, locs, wcfgsRaw] = await Promise.all([
+          api.getActivePromotions(),
+          api.getLocales(),
+          api.getAllWalletConfigs()
+        ]);
+        setAllPromotions(allPrms || []);
+        setLocals(locs || []);
+        
+        // Mapear configs de wallet por local_id para uso rápido
+        const configMap = {};
+        if (Array.isArray(wcfgsRaw)) {
+          wcfgsRaw.forEach(c => {
+            if (c.local_id) configMap[c.local_id] = c;
+            else configMap['global'] = c;
+          });
+        }
+        setAllWalletConfigs(configMap);
+        
+        // Extraer categorías que tienen promos específicas
+        const targetCats = allPrms.flatMap(p => p.triggers?.categorias || []);
+        
+        // Extraer si hay promociones globales activas
+        const hasGlobalPromo = allPrms.some(p => p.activo && p.triggers?.global);
+        
+        // Extraer locales que tienen:
+        // a) Alguna promoción global activa (aplica a todos)
+        // b) Descuento general activo
+        // c) Configuración de Wallet activa (genera crédito)
+        const targetLocalIds = (locs || []).filter(l => {
+          if (hasGlobalPromo) return true;
+          const hasGenDiscount = Number(l.descuento_general) > 0;
+          const wcfg = configMap[l.id] || configMap['global'];
+          const generatesCredit = wcfg && wcfg.activo && Number(wcfg.porcentaje_ganancia) > 0;
+          return hasGenDiscount || generatesCredit;
+        }).map(l => l.id);
+
+        // 2. Cargar el resto de datos
+        const [deks, bans, prms, most, expl] = await Promise.all([
+          api.getBebidas(),
+          api.getBanners(),
+          api.getPromos(targetCats, targetLocalIds),
+          api.getMostOrderedItems(),
+          api.getExploreItems()
+        ]);
+
+        const allLocs = locs || [];
+        const boosted = getBoostedLocales(allLocs);
+        const timeInfo = getTimeBasedTitle();
+        
+        // El configMap ya se seteó arriba
+
+        setDrinks(deks || []);
+        setBanners(bans || []);
+        setPromoItems(prms || []);
+        setBannersLoading(false);
+        setLoadingPromos(false);
+
+        setHomeLayout(prev => {
+          const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+          const PLAN_PLUS = 'ab9be1bd-f535-476e-90f4-f03ba074ba7d';
+          const PLAN_FREEMIUM = 'b404e2f7-6716-499b-8ebf-200ce417e4cb';
+
+          const proFound = boosted.filter(l => l.plan_id === PLAN_PRO).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+          const plusFound = boosted.filter(l => l.plan_id === PLAN_PLUS).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+          const freeFound = boosted.filter(l => l.plan_id === PLAN_FREEMIUM).sort((a, b) => (isLocalOpen(b) ? 1 : 0) - (isLocalOpen(a) ? 1 : 0));
+
+          // Helper to format carousels: featured first + non-adjacent locals
+          const formatCarouselItems = (sortedItems) => {
+            if (!sortedItems || sortedItems.length === 0) return [];
+            
+            const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+            const result = [];
+            let remaining = [...sortedItems];
+
+            const featuredIndex = remaining.findIndex(item => {
+              const loc = allLocs.find(l => l.id === item.local_id);
+              return loc && loc.plan_id === PLAN_PRO;
+            });
+
+            if (featuredIndex !== -1) {
+              result.push(remaining[featuredIndex]);
+              remaining.splice(featuredIndex, 1);
+            } else if (remaining.length > 0) {
+              result.push(remaining[0]);
+              remaining.splice(0, 1);
+            }
+
+            while (remaining.length > 0) {
+              const lastLocalId = result[result.length - 1]?.local_id;
+              const nextIndex = remaining.findIndex(item => item.local_id !== lastLocalId);
+              
+              if (nextIndex !== -1) {
+                result.push(remaining[nextIndex]);
+                remaining.splice(nextIndex, 1);
+              } else {
+                break; // strictly enforce no adjacent locales
+              }
+            }
+            return result;
+          };
+
+          // Combinar candidatos: Promos específicas + Lo más pedido + Explorar
+          const allCandidates = [
+            ...(prms || []),
+            ...(most || []),
+            ...(expl || [])
+          ];
+
+          // Eliminar duplicados por ID
+          const uniqueCandidates = Array.from(new Map(allCandidates.map(item => [item.id, item])).values());
+
+          let rawPromos = uniqueCandidates.filter(p => {
+            if (!p.imagen_url) return false;
+            const l = allLocs.find(loc => loc.id === p.local_id);
+            if (!l || !isLocalOpen(l)) return false;
+
+            // Evaluar con el motor para detectar beneficios dinámicos
+            const promoResults = evaluatePromotions({
+              cart: { totalPrice: Number(p.precio), items: [{ ...p, qty: 1, cantidad: 1 }], deliveryFee: 500 },
+              user,
+              orderCount,
+              userPromoUsage,
+              promotions: allPrms,
+              currentLocalId: p.local_id
+            });
+
+            const earnsCredit = promoResults.potentialCashback > 0;
+            const hasFreeShipping = promoResults.freeShipping;
+            const hasDynamicDiscount = promoResults.discountTotal > 0;
+            const hasBaseDiscount = p.descuento > 0;
+            const isCombo = p.categoria?.toLowerCase().includes('combo');
+            const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
+
+            // Excluir COMBOS por pedido explícito
+            if (isCombo) return false;
+
+            return hasBaseDiscount || hasDayDiscount || earnsCredit || hasFreeShipping || hasDynamicDiscount;
+          }).sort((a, b) => {
+            const locA = allLocs.find(l => l.id === a.local_id);
+            const locB = allLocs.find(l => l.id === b.local_id);
+            const openA = isLocalOpen(locA) ? 1 : 0;
+            const openB = isLocalOpen(locB) ? 1 : 0;
+            if (openA !== openB) return openB - openA;
+            const discA = Number(a.precio) - calculateDiscountedPrice(a);
+            const discB = Number(b.precio) - calculateDiscountedPrice(b);
+            return discB - discA;
+          });
+
+          let rawMostOrdered = (most || []).filter(item => item.imagen_url).sort((a, b) => {
+            const locA = allLocs.find(l => l.id === a.local_id);
+            const locB = allLocs.find(l => l.id === b.local_id);
+            const openA = isLocalOpen(locA) ? 1 : 0;
+            const openB = isLocalOpen(locB) ? 1 : 0;
+            return openB - openA;
+          });
+
+          return {
+            ...prev,
+            dynamicTitle: timeInfo.title,
+            dynamicBanner: timeInfo.banner,
+            dynamicRubros: timeInfo.rubros,
+            allLocales: boosted,
+            dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
+            promosOfDay: formatCarouselItems(rawPromos).slice(0, 40),
+            mostOrdered: formatCarouselItems(rawMostOrdered),
+            newLocales: [...allLocs].filter(l => l.admin_status === 'Aceptado').sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10),
+            exploreItems: expl || [],
+            featuredProLocales: proFound,
+            recommendedPlusLocales: plusFound,
+            newFreemiumLocales: freeFound.slice(0, 12)
+          };
+        });
+      } catch (err) {
+        console.error("Error loading home data:", err);
+      }
+    };
+
+    loadHomeData();
+
+    if (user) {
+      api.getFavoritos(user.id).then(d => {
+        if (Array.isArray(d)) setFavorites(d);
+      }).catch(() => {});
+      
+      api.getMisPedidos(user.id).then(res => {
+        setHasActiveOrder(!!(res.enCurso && res.enCurso.length > 0));
+      }).catch(() => {});
+
+      // Order Count & Promo Usage & Breakdown
+      if (user?.id) {
+        api.getUserOrderCount(user.id).then(res => setOrderCount(res.count)).catch(() => {});
+        api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
+        api.getUserWalletBreakdown(user.id).then(setWalletBreakdown).catch(() => {});
+      }
+    } else {
+      setOrderCount(null);
+      setWalletBalance(0);
+    }
+  }, [user, sessionId, getBoostedLocales, getTimeBasedTitle]);
+
+  
+  // Fetch Wallet Config and applicable Balance when local changes
+  React.useEffect(() => {
+    const localId = selectedLocal?.id || (cart.items.length > 0 ? cart.items[0].local_id : null);
+    
+    // Reset config when local changes to avoid stale data
+    setWalletConfig(null);
+
+    if (localId && user?.id) {
+      setLoadingConfig(true);
+      api.getWalletConfigForLocal(localId)
+        .then(setWalletConfig)
+        .catch(console.error)
+        .finally(() => setLoadingConfig(false));
+      
+      // Update balance respecting potential local restriction
+      api.getUserWalletBalance(user.id, localId)
+        .then(setWalletBalance)
+        .catch(console.error);
+
+      // Fetch history for the panel
+      api.getUserWalletBreakdown(user.id)
+        .then(setWalletBreakdown)
+        .catch(() => {});
+        
+      // Fetch dynamic commission for the local
+      api.getPlanInfo(localId)
+        .then(res => {
+          if (res.success && res.comision_actual) {
+            console.log(`📊 PruebasWalletApp: Comisión para local ${localId}: ${res.comision_actual}%`);
+            setLocalCommission(res.comision_actual / 100);
+          } else {
+            setLocalCommission(0.15); // Fallback to 15%
+          }
+        })
+        .catch(() => setLocalCommission(0.15));
+    } else {
+      setWalletConfig(null);
+      setLocalCommission(0.15);
+      if (user?.id) {
+        api.getUserWalletBalance(user.id).then(setWalletBalance).catch(console.error);
+        api.getUserWalletBreakdown(user.id).then(setWalletBreakdown).catch(() => {});
+      }
+    }
+  }, [selectedLocal, cart.items, user?.id]);
+
+
+  // MP Return URL Parse
+  React.useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const status = query.get('status');
+    const payment_id = query.get('payment_id');
+    const preference_id = query.get('preference_id');
+
+    if (status && payment_id) {
+      const pendingRaw = localStorage.getItem('pendingOrderData');
+      if (pendingRaw) {
+        try {
+          const pendingData = JSON.parse(pendingRaw);
+          if (status === 'approved') {
+            toast.success(`¡Pago confirmado! Tu pedido #${pendingData.pedidoId} está siendo procesado.`);
+            
+            // Actualizar estado del pedido en la base de datos
+            api.markOrderAsPaid(
+              pendingData.pedidoId, 
+              payment_id, 
+              preference_id, 
+              pendingData.externalReference
+            ).then(async (res) => {
+              if (res.success) {
+                // Refrescar balance de wallet tras pago exitoso
+                api.getUserWalletBalance(user.id).then(setWalletBalance).catch(() => {});
+                
+                // Si el pedido tiene un repartidor asignado, notificarlo
+                try {
+                  const orderRes = await api.getOrderDetail(user.id, pendingData.pedidoId);
+                  if (orderRes.success && orderRes.detalle.repartidor_id) {
+                    await api.notifyDriverAboutPaymentApproved(
+                      pendingData.pedidoId, 
+                      orderRes.detalle.repartidor_id
+                    );
+                  }
+                } catch (err) {
+                  console.error("Error al notificar al repartidor:", err);
+                }
+              }
+            }).catch(e => console.error("Error al marcar pedido como pagado:", e));
+            
+            // Facebook Pixel: Purchase
+            if (window.fbq) {
+              window.fbq('track', 'Purchase', {
+                value: pendingData.total,
+                currency: 'ARS',
+                content_ids: [pendingData.pedidoId],
+                content_type: 'product_group'
+              });
+            }
+
+            // Google Analytics: purchase
+            if (window.gtag) {
+              window.gtag('event', 'purchase', {
+                transaction_id: pendingData.pedidoId,
+                value: pendingData.total,
+                currency: 'ARS',
+                items: pendingData.cart.map(i => ({
+                  item_id: i.id,
+                  item_name: i.nombre,
+                  quantity: i.qty,
+                  price: i.price || i.precio
+                }))
+              });
+            }
+
+            // Notificar a los locales sobre el nuevo pedido pagado
+            api.notifyLocalsAboutNewOrder(
+              pendingData.pedidoId, pendingData.cart,
+              pendingData.direccion, pendingData.tipoEntrega,
+              pendingData.observaciones, pendingData.metodoPago
+            ).catch(e => console.error("Error notificando locales (MP Success):", e));
+
+            cart.clearCart();
+          } else if (status === 'pending') {
+            toast.error('El pago está pendiente de aprobación');
+          } else {
+            toast.error('El pago no fue aprobado');
+          }
+        } catch(e) { console.error('Error parsing pending order data', e); }
+        finally {
+          localStorage.removeItem('pendingOrderData');
+        }
+      }
+      
+      const newUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [cart]);
+
+
+  // Search
+  React.useEffect(() => {
+    clearTimeout(searchTimeout.current);
+    if (search.length >= 3) {
+      searchTimeout.current = setTimeout(() => {
+        setLoadingMenus(true);
+        api.buscarMenu(search).then(d => {
+          setMenus(d || []);
+          setMenuTitle(`Resultados para "${search}"`);
+          setShowMenus(true);
+        }).catch(() => toast.error('Error en búsqueda')).finally(() => setLoadingMenus(false));
+      }, 500);
+    } else if (search === '') {
+      setShowMenus(false);
+    }
+    setTargetMenuCategory(null);
+  }, [search]);
+
+  const fetchMenusByLocal = React.useCallback((localId, catId = null) => {
+    setLoadingMenus(true);
+    const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
+    setSelectedLocal(local);
+
+    // Tracking: Local View
+    api.trackDemandSignal('local_view', sessionId).catch(() => {});
+    
+    // Auto-select delivery type if only one is available
+    if (local) {
+      if (local.acepta_envio === false && cart.deliveryType === 'envio') {
+        if (local.acepta_retiro === true) cart.setDeliveryType('retiro');
+      } else if (local.acepta_retiro !== true && cart.deliveryType === 'retiro') {
+        if (local.acepta_envio !== false) cart.setDeliveryType('envio');
+      }
+    }
+
+    api.getMenuByLocalId(localId).then(d => {
+      let mapped = (d || [])
+        .filter(i => i.disponibilidad !== false)
+        .map(i => ({
+          ...i, 
+          local_nombre: local?.nombre || 'Local', 
+          local_logo: local?.logo || '',
+          local_disponible_desde: local?.disponible_desde || null,
+        }));
+      if (catId) {
+        mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
+      }
+      setMenus(mapped);
+      setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `Menú de ${local?.nombre || 'Local'}`);
+      setShowMenus(true);
+    }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
+  }, [locals, filteredLocals]);
+  
+  // Auto-scroll to category if coming from rubro click
+  React.useEffect(() => {
+    if (showMenus && menus.length > 0 && targetMenuCategory) {
+      const timer = setTimeout(() => {
+        const normalizedTarget = targetMenuCategory.toLowerCase().trim();
+        const categories = Array.from(new Set(menus.map(m => m.categoria))).filter(Boolean);
+        
+        // Match logic: exact, partial, or special cases
+        let match = categories.find(c => c.toLowerCase().trim() === normalizedTarget);
+        if (!match) {
+          match = categories.find(c => 
+            c.toLowerCase().includes(normalizedTarget) || 
+            normalizedTarget.includes(c.toLowerCase())
+          );
+        }
+        if (!match && normalizedTarget.includes('helado')) {
+          match = categories.find(c => c.toLowerCase().includes('helado'));
+        }
+
+        if (match) {
+          console.log(`🎯 Auto-scrolling to category: ${match}`);
+          const el = document.getElementById(`cat-${match}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [showMenus, menus, targetMenuCategory]);
+
+  // Carga automática por slug (Landing Page de Local)
+  React.useEffect(() => {
+    if (slug) {
+      console.log("🔗 PruebasWalletApp: Slug detectado en URL:", slug);
+      api.getLocalBySlug(slug).then(local => {
+        if (local && local.admin_status === 'Aceptado') {
+          console.log("✅ PruebasWalletApp: Local encontrado y aceptado:", local.nombre);
+          fetchMenusByLocal(local.id);
+        } else if (local && local.admin_status !== 'Aceptado') {
+          console.warn("⚠️ PruebasWalletApp: Local no aceptado:", local.nombre);
+          toast.error("Este local aún no está habilitado.");
+          navigate('/pruebas');
+        } else {
+          console.warn("⚠️ PruebasWalletApp: Local no encontrado para el slug:", slug);
+          toast.error("El local solicitado no existe.");
+          navigate('/pruebas');
+        }
+      }).catch(err => {
+        console.error("❌ PruebasWalletApp: Error cargando local por slug:", err);
+        toast.error("Error al cargar el menú del local.");
+      });
+    } else {
+      setShowMenus(false);
+      setSelectedLocal(null);
+    }
+  }, [slug, navigate, fetchMenusByLocal]);
+
+  const handleBannerClick = React.useCallback(async () => {
+    const info = getTimeBasedTitle();
+    if (!info.rubros || info.rubros.length === 0) return;
+
+    setLoadingLocals(true);
+    setLoadingDiscovery(true);
+    setDiscoveryItems([]);
+    setExploreRubroFilter('');
+    setExploreCatFilter('');
+    setTargetMenuCategory(null);
+
+    try {
+      // 1. Fetch locales for all rubros in parallel
+      const rubroPromises = info.rubros.map(r => api.getLocalesByRubro(r).catch(() => []));
+      const results = await Promise.all(rubroPromises);
+      
+      const allLocales = results.flat().map(l => ({
+        id: l.local_id, 
+        nombre: l.nombre_local, 
+        logo: l.logo_url,
+        estado: l.estado, 
+        precio_min: l.precio_min_categoria || 0,
+        horario_apertura: l.horario_apertura, 
+        horario_cierre: l.horario_cierre,
+        horario_apertura2: l.horario_apertura2,
+        horario_cierre2: l.horario_cierre2,
+        modo_automatico: l.modo_automatico, 
+        dias_apertura: l.dias_apertura,
+        disponible_desde: l.disponible_desde, 
+        config_horarios: l.config_horarios || {},
+        rubro: l.rubro_local || l.rubro,
+        plan_id: l.plan_id
+      }));
+
+      // Sort and Deduplicate
+      const mapped = allLocales.sort((a, b) => {
+        const openA = isLocalOpen(a) ? 1 : 0;
+        const openB = isLocalOpen(b) ? 1 : 0;
+        if (openA !== openB) return openB - openA;
+        
+        const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+        const isFeaturedA = a.plan_id === PLAN_PRO ? 1 : 0;
+        const isFeaturedB = b.plan_id === PLAN_PRO ? 1 : 0;
+        if (isFeaturedA !== isFeaturedB) return isFeaturedB - isFeaturedA;
+        
+        return 0;
+      });
+
+      const unique = [];
+      const seen = new Set();
+      mapped.forEach(l => {
+        if (!seen.has(l.id)) {
+          unique.push(l);
+          seen.add(l.id);
+        }
+      });
+
+      setFilteredLocals(unique);
+      setSelectedCategory(info.title);
+      setTimeout(() => {
+        document.querySelector('.locals-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+
+      // 2. Fetch menu items for discovery (Market cats + top from locales)
+      const allItems = await api.getMenuCompleto();
+      const filteredItems = (allItems || []).filter(item => {
+        const matchesMarket = info.marketCats?.includes(item.categoria);
+        const matchesRubro = info.rubros?.includes(item.local_rubro);
+        return (matchesMarket || matchesRubro) && item.disponibilidad;
+      });
+      
+      // Only keep items from open locales
+      const finalDiscovery = filteredItems.filter(item => {
+        const local = allLocales.find(l => l.id === item.local_id);
+        return local && isLocalOpen(local);
+      }).slice(0, 30);
+
+      setDiscoveryItems(finalDiscovery);
+      setShowMenus(false); 
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al cargar recomendaciones');
+    } finally {
+      setLoadingLocals(false);
+      setLoadingDiscovery(false);
+    }
+  }, [getTimeBasedTitle, isLocalOpen]);
+
+  const fetchByCategory = React.useCallback((cat, label = null) => {
+    setDiscoveryItems([]); // Clear discovery when entering specific category
+    api.trackDemandSignal('category_view', sessionId).catch(() => {});
+    if (cat === 'favoritos') {
+      if (!user) { setModal('login'); return; }
+      setLoadingMenus(true);
+      api.getMenuCompleto().then(all => {
+        const favMenus = all.filter(m => favorites.includes(m.id));
+        setMenus(favMenus);
+        setMenuTitle('Mis Favoritos');
+        setShowMenus(true);
+      }).catch(() => toast.error('Error al cargar favoritos')).finally(() => setLoadingMenus(false));
+      return;
+    }
+    
+    setLoadingLocals(true);
+    api.getLocalesByRubro(cat).then(d => {
+      const mapped = (d || []).map(l => ({
+        id: l.local_id,
+        nombre: l.nombre_local,
+        logo: l.logo_url,
+        estado: l.estado,
+        precio_min: l.precio_min_categoria || 0,
+        horario_apertura: l.horario_apertura,
+        horario_cierre: l.horario_cierre,
+        horario_apertura2: l.horario_apertura2,
+        horario_cierre2: l.horario_cierre2,
+        modo_automatico: l.modo_automatico,
+        dias_apertura: l.dias_apertura,
+        disponible_desde: l.disponible_desde,
+        config_horarios: l.config_horarios || {},
+        rubro: l.rubro,
+        plan_id: l.plan_id
+      })).sort((a, b) => {
+        const openA = isLocalOpen(a) ? 1 : 0;
+        const openB = isLocalOpen(b) ? 1 : 0;
+        
+        if (openA !== openB) return openB - openA;
+        
+        // Entre locales abiertos, priorizar los destacados
+        const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+        const isFeaturedA = a.plan_id === PLAN_PRO ? 1 : 0;
+        const isFeaturedB = b.plan_id === PLAN_PRO ? 1 : 0;
+        
+        if (isFeaturedA !== isFeaturedB) return isFeaturedB - isFeaturedA;
+        
+        return 0;
+      });
+      setFilteredLocals(mapped);
+      setSelectedCategory(cat);
+      setTargetMenuCategory(label);
+      setShowMenus(false);
+      setTimeout(() => {
+        document.querySelector('.locals-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }).catch(() => toast.error('Error al cargar locales')).finally(() => setLoadingLocals(false));
+  }, [user, favorites]);
+
+  const toggleFav = React.useCallback(async (menuId) => {
+    if (!user) { setModal('login'); return; }
+    try {
+      const r = await api.toggleFavorito(user.id, menuId);
+      if (r.added) {
+        setFavorites(prev => [...prev, menuId]);
+        toast.success('❤️ Agregado a favoritos');
+      } else {
+        setFavorites(prev => prev.filter(id => id !== menuId));
+        toast.success('Quitado de favoritos');
+      }
+    } catch { toast.error('Error'); }
+  }, [user, favorites]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    setAuthLoading(true);
+    try {
+      const d = await api.loginUsuario(fd.get('email').toLowerCase(), fd.get('password'));
+      if (d.success) {
+        loginAsUser({ 
+          userId: d.userId, 
+          name: d.nombre, 
+          email: d.email || fd.get('email'), 
+          address: d.direccion, 
+          telefono: d.telefono, 
+          emailConfirmado: d.emailConfirmado 
+        });
+        setModal(null);
+        toast.success('¡Bienvenido!');
+      } else toast.error('Credenciales incorrectas');
+    } catch { toast.error('Error de conexión'); }
+    setAuthLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    setAuthLoading(true);
+    const res = await loginWithGoogle();
+    if (res.success) {
+      setModal(null);
+      if (res.isNew) {
+        toast.success('¡Bienvenido! Recordá completar tu teléfono en el perfil para pedir.');
+      } else {
+        toast.success('¡Bienvenido!');
+      }
+    } else {
+      toast.error(res.error || 'Error al iniciar sesión con Google');
+    }
+    setAuthLoading(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!user?.email) return;
+    const loading = toast.loading('Reenviando email...');
+    try {
+      const res = await api.reenviarEmailConfirmacion(user.email, 'usuario');
+      if (res.success) toast.success('¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
+      else toast.error(res.error || 'Error al reenviar', { id: loading });
+    } catch { toast.error('Error de conexión', { id: loading }); }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const email = fd.get('email').toLowerCase();
+    const nombre = fd.get('nombre');
+    const password = fd.get('password');
+    const direccion = ''; // Removido del form
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
+
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
+    
+    setAuthLoading(true);
+    try {
+      const d = await api.registerUsuario(
+        nombre, email, password, direccion, telefono,
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
+      );
+      if (d.success) {
+        loginAsUser({ 
+          userId: d.userId, 
+          name: nombre, 
+          email: email, 
+          address: direccion,
+          telefono: telefono
+        });
+        setModal(null);
+        toast.success('¡Registro exitoso!');
+      } else toast.error('Error al registrar');
+    } catch (err) { toast.error(err.message || 'Error de conexión'); }
+    setAuthLoading(false);
+  };
+
+  const handleEditProfile = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const nombre = fd.get('nombre');
+    const email = fd.get('email');
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
+    const newPass = fd.get('newPassword');
+
+    if (!nombre || !email || !localNumber) { toast.error('Nombre, email y teléfono son obligatorios'); return; }
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (newPass && newPass.length < 6) { toast.error('La nueva contraseña debe tener 6+ caracteres'); return; }
+    
+    setAuthLoading(true);
+    try {
+      await api.updateProfile(user.id, nombre, email, telefono, newPass || null);
+      // Update local state
+      loginAsUser({ userId: user.id, name: nombre, email, address: user.address, telefono });
+      toast.success('Perfil actualizado');
+      setModal('profile');
+    } catch { toast.error('Error al actualizar perfil'); }
+    setAuthLoading(false);
+  };
+
+  const checkoutTotals = React.useMemo(() => {
+    return calculateCheckoutTotals(cart.subtotal, cart.shippingCost, metodoPago);
+  }, [calculateCheckoutTotals, cart.subtotal, cart.shippingCost, metodoPago]);
+
+  const totalConComision = checkoutTotals.total;
+  const visibleMpFee = checkoutTotals.mp_fee;
+  
+  const potentialCredit = checkoutTotals.potentialCredit || 0;
+  const walletDiscountUI = checkoutTotals.walletDiscount || 0;
+  const visibleShipping = cart.deliveryType === 'envio' ? cart.shippingCost : 0;
+
+
+
+  const handleAddToCart = async (menu) => {
+    // Red de seguridad: Verificar disponibilidad antes de cualquier acción
+    const availabilityDate = menu.local_disponible_desde;
+    if (availabilityDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = availabilityDate.split('-');
+      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (today < availableDate) {
+        toast.error(`Este local abrirá el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}`);
+        return;
+      }
+    }
+
+    // Verificar si el local está abierto
+    const localRef = (selectedLocal && selectedLocal.id === menu.local_id) 
+      ? selectedLocal 
+      : (locals.find(l => l.id === menu.local_id) || menu);
+
+    if (!isLocalOpen(localRef)) {
+      toast.error('Este local está cerrado por el momento');
+      return;
+    }
+
+    // Detect category and configuration
+    let cfg = null;
+    try {
+      if (typeof menu.variantes === 'string') cfg = JSON.parse(menu.variantes);
+      else if (typeof menu.variantes === 'object') cfg = menu.variantes;
+    } catch (e) {}
+
+    const isIceCream = cfg?.es_helado;
+    const isBurgerOrCombo = cfg?.es_hamburguesa || cfg?.es_combo || cfg?.es_pancho || cfg?.con_papas || (cfg?.variants?.length > 0) || (cfg?.extras?.length > 0);
+
+    if (isIceCream) {
+      setSelectedSize('1/4kg');
+      setSelectedFlavors([]);
+      setSelectedSauces([]);
+      setSelectedExtras([]);
+      try {
+        const [flavors, extras] = await Promise.all([
+          api.getSaboresByLocal(menu.local_id),
+          api.getAdicionalesByLocal(menu.local_id)
+        ]);
+        
+        const filteredFlavors = flavors.filter(f => f.disponible && (f.tipo === 'Sabor' || f.tipo === 'sabor'));
+        const filteredSauces = flavors.filter(f => f.disponible && (f.tipo === 'Salsa' || f.tipo === 'salsa'));
+        
+        setIceCreamFlavors(filteredFlavors);
+        setIceCreamSauces(filteredSauces);
+        setIceCreamExtras(extras.filter(e => e.disponible));
+        
+        setIceCreamModal({
+          ...menu,
+          salsasDisponibles: filteredSauces
+        });
+        return; 
+      } catch {
+        toast.error('Error al cargar opciones de helado');
+      }
+    }
+
+    if (isBurgerOrCombo) {
+      setBurgerModal(menu);
+      setSelectedVariant(cfg.variants?.find(v => v.disponible !== false) || null);
+      setSelectedBurgerExtras([]);
+      setWithFries(false);
+      return; 
+    }
+
+    // Facebook Pixel: AddToCart
+    if (window.fbq) {
+      window.fbq('track', 'AddToCart', {
+        content_name: menu.nombre,
+        content_ids: [menu.id],
+        content_type: 'product',
+        value: menu.precio,
+        currency: 'ARS'
+      });
+    }
+
+    // Google Analytics: add_to_cart
+    if (window.gtag) {
+      window.gtag('event', 'add_to_cart', {
+        currency: 'ARS',
+        value: menu.precio,
+        items: [{
+          item_id: menu.id,
+          item_name: menu.nombre,
+          price: menu.precio,
+          quantity: 1
+        }]
+      });
+    }
+
+    // Tracking: Add to Cart
+    api.trackDemandSignal('add_to_cart', sessionId).catch(() => {});
+
+    // Calculate final price once here
+    const discountedPrice = calculateDiscountedPrice(menu);
+    console.log("🛒 handleAddToCart: Price calculation", { 
+      name: menu.nombre, 
+      original: menu.precio, 
+      final: discountedPrice 
+    });
+    
+    const itemToAdd = {
+      ...menu,
+      precio: discountedPrice,
+      precioOriginal: menu.precioOriginal || menu.precio
+    };
+
+    // Default addition for other items
+    cart.addItem(itemToAdd);
+    toast((t) => (
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        ¡{menu.nombre} agregado! ✓
+        <button onClick={() => { openCart(); toast.dismiss(t.id); }} style={{ background: 'var(--red-500)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+          Ver carrito
+        </button>
+      </span>
+    ), { duration: 3000, style: { padding: '12px 16px' } });
+  };
+
+  const renderMenuItem = React.useCallback((item) => {
+    const itemCfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes || '{}') : (item.variantes || {});
+    const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas || (itemCfg.variants?.length > 0) || (itemCfg.extras?.length > 0);
+    
+    return (
+      <div 
+        key={item.id} 
+        className="menu-card card card-hover" 
+        style={{ cursor: 'pointer' }}
+        onClick={() => handleAddToCart(item)}
+      >
+        <div className="menu-card-img-container">
+          <img src={item.imagen_url || 'https://placehold.co/120x120?text=Sin+Imagen'} alt={item.nombre} className="menu-card-img" />
+          {(() => {
+            const discountedPrice = calculateDiscountedPrice(item);
+            if (discountedPrice < Number(item.precio)) {
+              const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+              return <div className="menu-discount-badge">{percent}% OFF</div>;
+            }
+            return null;
+          })()}
+          </div>
+        <div className="menu-card-body">
+          <div className="menu-card-local" style={{ marginBottom: '2px' }}>
+             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)' }}>{item.categoria}</span>
+          </div>
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '4px' }}>{item.nombre}</h3>
+          {renderCreditBadge(item, true)}
+          <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '8px', lineHeight: '1.2' }}>{item.descripcion}</p>
+          <div className="menu-card-footer">
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="menu-card-price">${calculateDiscountedPrice(item).toLocaleString()}</span>
+              {calculateDiscountedPrice(item) < Number(item.precio) && (
+                <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                  ${Number(item.precio).toLocaleString()}
+                </span>
+              )}
+            </div>
+            <div className="menu-card-actions">
+              {isLocalOpen(selectedLocal) ? (
+                <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
+                  {needsCustomization ? 'Elegir' : 'Agregar'}
+                </button>
+              ) : (
+                <span style={{ fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                  CERRADO
+                </span>
+              )}
+              <button 
+                 className={`fav-btn ${favorites.includes(item.id) ? 'active' : ''}`}
+                 onClick={(e) => { e.stopPropagation(); toggleFav(item.id); }}
+              >
+                 <img 
+                   src={favorites.includes(item.id) ? "https://i.postimg.cc/BZYZmSz1/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find.png" : "https://i.postimg.cc/W4Gb8MRV/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find(1).png"} 
+                   style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+                   alt="Favorito" 
+                 />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }, [calculateDiscountedPrice, handleAddToCart, renderCreditBadge, selectedLocal, isLocalOpen, favorites, toggleFav]);
+
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    if (!user) { setModal('login'); return; }
+    if (!user.telefono) {
+      toast.error('Por favor, configurá tu teléfono en el perfil antes de realizar un pedido.');
+      setModal('editProfile');
+      return;
+    }
+    if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
+    const fd = new FormData(e.target);
+    const mp = metodoPago; // Use state instead of FormData
+    const dir = addressData.address;
+    if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
+
+    // Validación de dirección correcta (no solo el nombre de la ciudad)
+    if (cart.deliveryType === 'envio') {
+      const lowerAddr = dir.toLowerCase();
+      const cityStrings = [
+        'santo tomé, corrientes', 
+        'santo tomé', 
+        'santo tome, corrientes', 
+        'santo tome',
+        'santo tomé, corrientes province',
+        'santo tome, corrientes province',
+        'santo tomé, provincia de corrientes',
+        'santo tome, provincia de corrientes'
+      ];
+      const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 60;
+
+      if (isJustCity) {
+        toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
+        setShowAddressSelector(true);
+        return;
+      }
+    }
+
+    if (!mp) { toast.error('Seleccioná un método de pago'); return; }
+    
+    // Facebook Pixel: InitiateCheckout
+    if (window.fbq) {
+      window.fbq('track', 'InitiateCheckout');
+    }
+
+    // Google Analytics: begin_checkout
+    if (window.gtag) {
+      window.gtag('event', 'begin_checkout', {
+        currency: 'ARS',
+        value: cart.subtotal,
+        items: cart.items.map(i => ({
+          item_id: i.id,
+          item_name: i.nombre,
+          price: i.precio,
+          quantity: i.qty
+        }))
+      });
+    }
+
+    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+
+
+    if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
+      toast.error('Este local no ofrece la opción de retiro en el local.');
+      return;
+    }
+
+    // Validación de primer pedido por transferencia
+    if (mp === 'efectivo' && (orderCount === 0 || orderCount === null)) {
+      // Si es null, por seguridad asumimos que es el primero si ya logramos obtener user e intentamos cargar orderCount
+      toast.error('Por seguridad, tu primer pedido debe ser por transferencia / Mercado Pago.');
+      setMetodoPago('transferencia');
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      // --- NUEVA VALIDACIÃ“N DE DISPONIBILIDAD EN TIEMPO REAL ---
+      const uniqueLocalIds = [...new Set(cart.items.map(i => i.local_id).filter(Boolean))];
+      const uniqueItemIds = [...new Set(cart.items.map(i => i.menuId || i.id))];
+
+      const availability = await api.validateOrderAvailability(uniqueLocalIds, uniqueItemIds);
+
+      // 1. Validar Locales
+      for (const localId of uniqueLocalIds) {
+        const freshLocal = availability.locales.find(l => l.id === localId);
+        if (!freshLocal) {
+          toast.error("Uno de los locales ya no está disponible.");
+          setCheckoutLoading(false);
+          return;
+        }
+        if (!isLocalOpen(freshLocal)) {
+          toast.error(`El local "${freshLocal.nombre}" acaba de cerrar o no está aceptando pedidos en este momento.`);
+          setCheckoutLoading(false);
+          return;
+        }
+      }
+
+      // 2. Validar Platos
+      for (const item of cart.items) {
+        const freshItem = availability.items.find(i => i.id === (item.menuId || item.id));
+        if (!freshItem || !freshItem.disponibilidad) {
+          toast.error(`El plato "${item.nombre}" ya no está disponible.`);
+          setCheckoutLoading(false);
+          return;
+        }
+      }
+      // --- FIN VALIDACIÃ“N ---
+
+      // 7. Calculate exact prices using new logic
+      const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
+      const shipping = cart.deliveryType === 'envio' ? cart.COSTO_ENVIO : 0;
+      
+      const finalTotals = calculateCheckoutTotals(calcSubtotal, shipping, mp);
+      const exactTotal = finalTotals.total;
+
+      const orderItems = cart.items.map(i => ({
+        id: i.menuId || i.id, 
+        nombre: i.descripcion ? `${i.nombre} (${i.descripcion})` : i.nombre,
+        precio: Number(i.precio),
+        cantidad: i.qty, 
+        local_id: i.local_id || '',
+        subtotal: Number(i.precio) * i.qty
+      }));
+
+      const orderInfo = {
+        direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
+        tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
+        metodoPago: mp, 
+        observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
+        emailCliente: user.email, 
+        nombreCliente: user.name,
+        totalCalculado: exactTotal,
+        lat: addressData.lat,
+        lng: addressData.lng,
+        precioEnvio: shipping,
+        walletDiscount: finalTotals.walletDiscount || 0,
+        platform_gross: finalTotals.platform_gross || 0,
+        platform_net: finalTotals.platform_net || 0,
+        merchant_payout: finalTotals.merchant_payout || 0,
+        promociones_aplicadas: finalTotals.appliedPromos?.map(p => p.id) || [],
+        ganancia_credito: finalTotals.potentialCredit || 0
+      };
+
+      // 3. Handle Flow
+      const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
+      
+      // Unificamos el estado inicial: si es envío, buscamos repartidor broadcast
+      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Confirmado' : 'Pendiente de Pago');
+
+      const orderDataForCreation = {
+        userId: user.id,
+        pedidoId: pregeneratedId,
+        direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
+        tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
+        metodoPago: mp, 
+        observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
+        items: orderItems,
+        emailCliente: user.email, 
+        nombreCliente: user.name,
+        estadoInicial: initialState,
+        totalCalculado: exactTotal,
+        lat: addressData.lat,
+        lng: addressData.lng,
+        precioEnvio: shipping,
+        creditoWallet: useWallet ? (checkoutTotals.walletDiscount || 0) : 0,
+        promociones_aplicadas: finalTotals.appliedPromos?.map(p => p.id) || [],
+        ganancia_credito: finalTotals.potentialCredit || 0,
+        cuponId: finalTotals.appliedCuponId || null,
+        descuentoCupon: finalTotals.descuentoCupon || 0
+      };
+
+      if (cart.deliveryType === 'envio' || mp === 'efectivo' || mp === 'transferencia') {
+         // Creamos el pedido base
+         const response = await api.crearPedido(orderDataForCreation);
+
+         if (!response.success) throw new Error("No se pudo crear el pedido base.");
+
+         const pendingOrderInfo = {
+            pedidoId: pregeneratedId,
+            cart: cart.items,
+            total: exactTotal,
+            localId: cart.items[0]?.local_id,
+            metodoPago: mp,
+            orderItems: orderItems,
+            direccion: orderDataForCreation.direccion,
+            tipoEntrega: orderDataForCreation.tipoEntrega,
+            observaciones: orderDataForCreation.observaciones,
+            platform_gross: finalTotals.platform_gross || 0
+         };
+
+         localStorage.setItem('pendingOrderDataPruebas', JSON.stringify(pendingOrderInfo));
+
+         if (cart.deliveryType === 'envio') {
+            setPendingOrderId(pregeneratedId);
+            setSearchingDriver(true);
+            setSearchSeconds(0);
+            setFoundDriver(null);
+            setDriverSearchTimeout(false);
+            setCartOpen(false);
+
+            // Iniciamos el broadcast centralizado
+            await api.broadcastOrderToDrivers(pregeneratedId, exactTotal, cart.items[0]?.local_id, shipping).catch(console.error);
+            return;
+         } else {
+            // RETIRO + EFECTIVO
+            if (mp === 'efectivo') {
+              toast.success(`¡Pedido #${pregeneratedId} registrado exitosamente!`);
+              // Refrescar balance y estado tras pedido exitoso
+              api.getUserWalletBalance(user.id).then(setWalletBalance).catch(() => {});
+              api.getUserOrderCount(user.id).then(cnt => {
+                setOrderCount(cnt.count);
+                if (cnt.count > 0 && !user.ya_realizo_pedidos) {
+                  loginAsUser({ ...user, userId: user.id, ya_realizo_pedidos: true });
+                }
+              }).catch(() => {});
+              
+              api.notifyLocalsAboutNewOrder(pregeneratedId, cart.items, 'Retiro en local', 'Para Retirar', orderDataForCreation.observaciones, mp).catch(e => console.error(e));
+              cart.clearCart();
+              setCartOpen(false);
+            } else {
+              // RETIRO + TRANSFERENCIA: Redirigir a MP
+              triggerMPCheckout(pendingOrderInfo);
+            }
+            return;
+         }
+      }
+    } catch (err) { 
+      toast.error('Error al realizar el pedido: ' + err.message); 
+      console.error("DETALLE ERROR CHECKOUT:", err);
+    }
+    setCheckoutLoading(false);
+  };
+
+  // Check repartidores when cart opens
+  const openCart = async () => {
+    if (user?.id) {
+      try {
+        // Sincronizar estado de pedidos en tiempo real para evitar discrepancias en promos
+        const res = await api.getUserOrderCount(user.id);
+        api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
+        const hasOrdered = res.count > 0;
+        if (hasOrdered !== user.ya_realizo_pedidos) {
+          console.log("🔄 Syncing user order status:", hasOrdered);
+          loginAsUser({ ...user, userId: user.id, ya_realizo_pedidos: hasOrdered });
+          // Pequeña espera para asegurar propagación de estado
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (err) {
+        console.error("Error syncing order status:", err);
+      }
+    }
+    
+    try {
+      const r = await api.checkActiveRepartidores();
+      setHasRepartidores(r.hasActive);
+    } catch (err) { 
+      console.error("Error in openCart check:", err);
+    }
+    setCartOpen(true);
+  };
+
+  // Effect to handle search timer
+  React.useEffect(() => {
+    let timer;
+    if (searchingDriver && !foundDriver && !driverSearchTimeout) {
+      timer = setInterval(() => {
+        setSearchSeconds(prev => {
+          if (prev >= 60) { // After 1 minute of UNACCEPTED search
+            setDriverSearchTimeout(true);
+            return 60; 
+          }
+          
+          // Re-enviar Push cada 25 segundos para incentivar
+          if (prev > 0 && prev % 25 === 0 && pendingOrderId) {
+            console.log("📢 Re-enviando push de incentivo...");
+            api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, shipping).catch(console.error);
+          }
+          
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [searchingDriver, foundDriver, driverSearchTimeout, pendingOrderId, cart.total]);
+
+  // Effect to listen for driver acceptance via Realtime + Polling Fallback
+  React.useEffect(() => {
+    if (!pendingOrderId || !searchingDriver || foundDriver) return;
+
+    console.log("📡 Subscribing to order updates for:", pendingOrderId);
+
+    const checkStatus = async () => {
+      try {
+        const { data } = await api.supabase
+          .from('pedidos_general')
+          .select('estado, repartidor_id')
+          .eq('id', pendingOrderId)
+          .single();
+          
+        if (data && (data.estado === 'Pendiente de Pago' || data.estado === 'Confirmado') && data.repartidor_id && !foundDriver) {
+          console.log("✅ Order accepted with driver (Detected via Polling/Initial Check)!");
+          handleDriverFound(data);
+          return true;
+        }
+      } catch (err) {
+        console.error("Error checking order status:", err);
+      }
+      return false;
+    };
+
+    // 1. Initial Check
+    checkStatus();
+
+    // 2. Realtime Listener
+    const channel = api.supabase
+      .channel(`order_status_${pendingOrderId}`)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'pedidos_general',
+        filter: `id=eq.${pendingOrderId}`
+      }, (payload) => {
+        const newOrder = payload.new;
+        console.log("🔄 Realtime update:", newOrder.id, newOrder.estado, "Driver ID:", newOrder.repartidor_id);
+        if ((newOrder.estado === 'Pendiente de Pago' || newOrder.estado === 'Confirmado') && newOrder.repartidor_id && !foundDriver) {
+          handleDriverFound(newOrder);
+        }
+      })
+      .subscribe();
+
+    // 3. Polling Fallback (Every 8 seconds) to reduce load during high demand
+    const pollInterval = setInterval(() => {
+      if (!foundDriver) checkStatus();
+      else clearInterval(pollInterval);
+    }, 8000);
+
+    return () => {
+      clearInterval(pollInterval);
+      api.supabase.removeChannel(channel);
+    };
+  }, [pendingOrderId, searchingDriver, foundDriver]);
+
+  const handleDriverFound = async (orderData) => {
+    if (!orderData || !orderData.repartidor_id) {
+      console.warn("⚠️ handleDriverFound called but no repartidor_id is present.");
+      return;
+    }
+    try {
+      const { data: rep } = await api.supabase
+        .from('repartidores')
+        .select('nombre, foto_url')
+        .eq('id', orderData.repartidor_id)
+        .single();
+      
+      setFoundDriver(rep || { nombre: 'Repartidor' });
+      setEstimatedTime('15-30 min');
+      toast.success('¡Repartidor encontrado! 🚀');
+      
+      // Clear flags and close modal after a short delay
+      setTimeout(async () => {
+        const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
+        if (pendingRaw) {
+          const pendingData = JSON.parse(pendingRaw);
+          if (pendingData.metodoPago === 'efectivo') {
+            try {
+              toast.success('¡Pedido confirmado!');
+              setSearchingDriver(false);
+              setFoundDriver(null);
+              setPendingOrderId(null);
+              localStorage.removeItem('pendingOrderDataPruebas');
+            } catch (err) {
+              console.error("Error confirming cash order UI:", err);
+            }
+          } else {
+            triggerMPCheckout(orderData);
+          }
+        }
+      }, 3500);
+
+    } catch (e) {
+      console.error("Error fetching driver info:", e);
+    }
+  };
+
+  const triggerMPCheckout = async (originalOrder) => {
+    const loadingToast = toast.loading('Abriendo Mercado Pago...');
+    try {
+      const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
+      if (!pendingRaw) throw new Error('No se encontró la información del pedido');
+      
+      const pendingData = JSON.parse(pendingRaw);
+      const successUrl = "https://wepi.com.ar/pedir";
+      
+      const paymentData = {
+        external_reference: pendingData.pedidoId,
+        back_urls: { success: successUrl, failure: successUrl, pending: successUrl },
+        auto_return: "approved",
+        items: [{
+          title: `Pedido Wepi #${pendingData.pedidoId}`,
+          quantity: 1,
+          currency_id: "ARS",
+          unit_price: Number(pendingData.total)
+        }],
+        local_id: cart.items[0]?.local_id,
+        marketplace_fee: pendingData.platform_gross
+      };
+
+      const paymentResponse = await iniciarPagoMercadoPago(paymentData);
+
+      if (paymentResponse?.init_point) {
+        toast.dismiss(loadingToast);
+        
+        // Use standard key for return handling
+        localStorage.setItem('pendingOrderData', JSON.stringify({
+           ...pendingData,
+           preferenceId: paymentResponse.id,
+           externalReference: pendingData.pedidoId
+        })); 
+        localStorage.removeItem('pendingOrderDataPruebas');
+        
+        window.location.href = paymentResponse.init_point;
+      } else {
+        throw new Error(paymentResponse?.error || 'No se pudo generar el link de pago');
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error('Error al iniciar Mercado Pago: ' + err.message);
+      setSearchingDriver(false);
+    }
+  };
+
+  const categories = [
+    { type: 'Hamburguesas', label: 'Burguers', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
+    { type: 'Helados', label: 'Helados', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
+    { type: 'Pizzas', label: 'Pizzas', img: 'https://i.postimg.cc/cJkcvmFw/descarga-(1)-(10).jpg' },
+    { type: 'Empanadas', label: 'Empanadas', img: 'https://i.postimg.cc/KYjPhTmk/descarga-(1)-(11).jpg' },
+    { type: 'Panchos', label: 'Panchos', img: 'https://i.postimg.cc/XqcCXxZr/buscamos-repartidores-(30).png' },
+    { type: 'Panadería', label: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+    { type: 'Combos', label: 'Combos', img: 'https://i.postimg.cc/1X1wQDX5/buscamos-repartidores-(19).png' },
+    { type: 'Bebidas', label: 'Bebidas', img: 'https://i.postimg.cc/KvhCcGkT/descarga-(1)-(14).jpg' },
+    { type: 'favoritos', label: 'Mis favoritos', img: 'https://i.postimg.cc/RCktgLyZ/buscamos-repartidores-(7).png' },
+  ];
+
+  // Show drinks carousel when no drink in cart and delivery is envio
+  const showDrinks = cart.items.length > 0 && cart.deliveryType === 'envio' && !cart.hasDrink && drinks.length > 0;
+
+  return (
+    <div className="customer-app">
+      <header className="app-header">
+        <Link to="/" className="app-logo-link">
+          <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="app-logo" />
+        </Link>
+        <div className="search-wrapper">
+          <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          <input type="text" placeholder="Buscar menús o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
+        </div>
+        <div className="header-actions">
+          {user && (
+            <div className="wallet-header-badge" onClick={() => setWalletDetailsOpen(true)}>
+               <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" className="wallet-icon-img" />
+               <span className="wallet-val">
+                 {walletBalance === null ? '...' : `$${(walletBalance || 0).toLocaleString()}`}
+               </span>
+               <button 
+                 onClick={async (e) => {
+                   e.stopPropagation();
+                   if (user?.id && !refreshingWallet) {
+                     setRefreshingWallet(true);
+                     setWalletBalance(null);
+                     try {
+                       const newBalance = await api.getUserWalletBalance(user.id);
+                       setWalletBalance(newBalance);
+                       const res = await api.getUserOrderCount(user.id);
+                       setOrderCount(res.count);
+                       api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
+                     } catch (err) {
+                       console.error(err);
+                     } finally {
+                       setTimeout(() => setRefreshingWallet(false), 800);
+                     }
+                   }
+                 }}
+                 className={`wallet-refresh-btn ${refreshingWallet ? 'refresh-spinning' : ''}`}
+                 disabled={refreshingWallet}
+                 title="Actualizar saldo"
+               >
+                 🔄
+               </button>
+            </div>
+          )}
+          <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
+            <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
+            <span className="hide-mobile">{user ? 'Mi Perfil' : 'Ingresar'}</span>
+          </button>
+          <button className="cart-btn" onClick={openCart}>
+            <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito" className="cart-icon-img" />
+            {cart.totalItems > 0 && <span className="cart-badge">{cart.totalItems}</span>}
+          </button>
+        </div>
+      </header>
+
+      {!hasRepartidores && (
+          <div className="no-drivers-alert animate-fade-in" style={{
+            backgroundColor: '#fffbeb',
+            borderBottom: '1px solid #fef3c7',
+            padding: '10px 20px',
+            textAlign: 'center',
+            color: '#92400e',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <span>⚠️</span> No hay repartidores disponibles en este momento, vuelve intentar en unos minutos. Solo retiro en local disponible.
+          </div>
+        )}
+
+      <main className="app-main">
+        <div className="banners-container" style={{ marginBottom: '20px' }}>
+          {user && hasActiveOrder && (
+            <div className="active-order-banner" style={{
+              background: '#ff9800',
+              color: 'white',
+              padding: '12px 20px',
+              textAlign: 'center',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              borderBottom: '2px solid #e68a00',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(255,152,0,0.3)',
+              fontWeight: '600',
+              zIndex: 90
+            }}>
+              <span>🛵 ¡Tienes un pedido en proceso!</span>
+                            <button 
+                onClick={() => navigate('/mis-pedidos')} 
+                style={{
+                  background: 'white',
+                  color: '#ff9800',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+              >
+                Ver Mis Pedidos
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* ——— Banners Carousel ——— */}
+        {!bannersLoading && banners.length > 0 && (
+          <div className="banners-carousel-wrapper animate-fade-in">
+            <div className="banners-carousel">
+              {banners.map(b => (
+                <div 
+                  key={b.id} 
+                  className={`banner-slide ${b.link ? 'clickable' : ''}`}
+                  onClick={() => b.link && window.open(b.link, '_blank')}
+                >
+                  <img 
+                    src={b.imagen_url} 
+                    alt="Promo" 
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="app-greeting-container">
+          {user && !user.telefono && (
+            <div className="missing-phone-banner">
+              <div className="missing-phone-content">
+                <span className="missing-phone-icon">📞</span>
+                <div>
+                  <p style={{ margin: 0 }}>¡Completá tu cuenta!</p>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Agregá tu teléfono para que el repartidor pueda contactarte.</span>
+                </div>
+              </div>
+              <button className="btn btn-sm" onClick={() => setModal('editProfile')}>
+                Agregar ahora
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ─── HOME SCREEN ─── */}
+        {!showMenus && !filteredLocals && (
+          <div className="home-screen animate-fade-in">
+             {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
+             <section className="home-section dynamic-banner-section">
+               <div 
+                 className="dynamic-banner animate-fade-in" 
+                 onClick={handleBannerClick}
+               >
+                 <img src={homeLayout.dynamicBanner} alt={homeLayout.dynamicTitle} />
+                 <div className="banner-overlay">
+                   <h2>{homeLayout.dynamicTitle}</h2>
+                   <button className="banner-btn">Ver locales ➔</button>
+                 </div>
+               </div>
+             </section>
+              <div className="home-brand-message-box" style={{ padding: '0 20px', margin: '24px 0 12px', textAlign: 'center' }}>
+                <p className="home-brand-quote" style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--gray-900)', margin: 0, letterSpacing: '-0.5px' }}>
+                  Todo lo que buscás, <span style={{ color: 'var(--red-600)' }}>está en Wepi.</span>
+                </p>
+              </div>
+             {/* 2. RUBROS PRINCIPALES (Imágenes circulares) */}
+             <section className="home-section rubros-categories">
+
+               <div className="categories-grid-home">
+                 {homeLayout.categories.map(cat => (
+                   <div key={cat.label} className="home-category-card-square" onClick={() => fetchByCategory(cat.type, cat.label)}>
+                     <img src={cat.img} alt={cat.label} />
+                     <div className="category-overlay">
+                       <span>{cat.label}</span>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             </section>
+             {/* 3. LOCALES DESTACADOS (PRO) */}
+             {homeLayout.featuredProLocales.length > 0 && (
+               <section className="home-section pro-locales">
+                  <div className="section-header-simple">
+                    <h2>Locales destacados <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" style={{ height: '26px', marginLeft: '10px', verticalAlign: 'middle' }} alt="" /></h2>
+                  </div>
+                  <div className="horizontal-scroll-premium">
+                    {homeLayout.featuredProLocales.map((local) => {
+                      const open = isLocalOpen(local);
+                      return (
+                        <div key={local.id} className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} onClick={() => fetchMenusByLocal(local.id)}>
+                          <div className={`logo-box ${open ? 'online' : 'offline'}`} style={{ border: open ? '2px solid #a855f7' : '' }}>
+                            <img src={local.logo} alt={local.nombre} />
+                            {open && <span className="online-dot-mini" />}
+                          </div>
+                          <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
+                            {getLocalStatusText(local)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+               </section>
+             )}
+
+             
+             {/* 4. PROMOS DEL DÍA */}
+             {homeLayout.promosOfDay.length > 0 && (
+               <section className="home-section promos-imperdibles">
+                 <div className="section-header-with-link">
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      PROMOS IMPERDIBLES
+                      <img src="https://i.postimg.cc/c4T1cbZf/descarga-(31)-(6).png" alt="" style={{ height: '28px', width: '28px', objectFit: 'contain' }} />
+                    </h2>
+                   <button className="view-all-btn">Ver más</button>
+                 </div>
+                 <div className="horizontal-scroll-items" style={{ gap: '12px', padding: '10px 4px' }}>
+                     {homeLayout.promosOfDay.map((item) => {
+                        const loc = locals.find(l => l.id === item.local_id);
+                        const open = isLocalOpen(loc);
+                        const isPremium = loc?.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
+                        return (
+                          <div 
+                            key={item.id} 
+                            className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'} ${isPremium ? 'is-premium' : ''}`}
+                            onClick={() => open && handleAddToCart(item)}
+                          >
+                            <div className="promo-vertical-img">
+                              <img src={item.imagen_url} alt={item.nombre} />
+                              {(() => {
+                                const discountedPrice = calculateDiscountedPrice(item);
+                                if (discountedPrice < Number(item.precio)) {
+                                  const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+                                  return <div className="menu-discount-badge">{percent}% OFF</div>;
+                                }
+                                return null;
+                              })()}
+
+                            </div>
+                            <div className="promo-vertical-info">
+                              <span className="promo-item-name">{item.nombre}</span>
+                              {renderCreditBadge(item)}
+                              <div className="promo-price-row">
+                                <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
+                                {calculateDiscountedPrice(item) < Number(item.precio) && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {item.local_nombre}
+                                  {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
+                                </span>
+                                {open ? (
+                                  <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
+                                ) : (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
+                                    Cerrado
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                </section>
+              )}
+{/* 5. LOCALES RECOMENDADOS (PLUS) */}
+             {homeLayout.recommendedPlusLocales.length > 0 && (
+               <section className="home-section plus-locales">
+                  <div className="section-header-simple">
+                    <h2>Locales recomendados <img src="https://i.postimg.cc/K8dcHQg5/descarga-(31)-(4).png" style={{ height: '26px', marginLeft: '10px', verticalAlign: 'middle' }} alt="" /></h2>
+                  </div>
+                  <div className="horizontal-scroll-premium">
+                    {homeLayout.recommendedPlusLocales.map((local) => {
+                      const open = isLocalOpen(local);
+                      return (
+                        <div key={local.id} className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} onClick={() => fetchMenusByLocal(local.id)}>
+                          <div className={`logo-box ${open ? 'online' : 'offline'}`} style={{ border: open ? '2px solid #f59e0b' : '' }}>
+                            <img src={local.logo} alt={local.nombre} />
+                            {open && <span className="online-dot-mini" />}
+                          </div>
+                          <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
+                            {getLocalStatusText(local)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+               </section>
+             )}
+
+             
+                           {/* 5.5 LO MÁS PEDIDO (Igual a Promos, sin Corazón) */}
+             {homeLayout.mostOrdered && homeLayout.mostOrdered.length > 0 && (
+               <section className="home-section top-ordered">
+                  <div className="section-header-simple">
+                    <h2>Lo más pedido 🔥</h2>
+                  </div>
+                  <div className="horizontal-scroll-items" style={{ gap: '12px', padding: '10px 4px' }}>
+                    {homeLayout.mostOrdered.map((item) => {
+                      const loc = locals.find(l => l.id === item.local_id);
+                      const open = isLocalOpen(loc);
+                      const isPremium = loc?.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'} ${isPremium ? 'is-premium' : ''}`} 
+                          onClick={() => open && handleAddToCart(item)}
+                        >
+                           <div className="promo-vertical-img">
+                              <img src={item.imagen_url} alt={item.nombre} />
+                              {(() => {
+                                const discountedPrice = calculateDiscountedPrice(item);
+                                if (discountedPrice < Number(item.precio)) {
+                                  const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+                                  return <div className="menu-discount-badge">{percent}% OFF</div>;
+                                }
+                                return null;
+                              })()}
+
+                              
+                           </div>
+                           <div className="promo-vertical-info">
+                              <span className="promo-item-name">{item.nombre}</span>
+                              {renderCreditBadge(item)}
+                              <div className="promo-price-row">
+                                 <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
+                                  {calculateDiscountedPrice(item) < Number(item.precio) && (
+                                    <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)', marginLeft: '8px' }}>
+                                      ${Number(item.precio).toLocaleString()}
+                                    </span>
+                                  )}
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                 <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                   {item.local_nombre}
+                                   {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
+                                 </span>
+                                 {open ? (
+                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
+                                 ) : (
+                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
+                                     Cerrado
+                                   </span>
+                                 )}
+                              </div>
+                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+               </section>
+             )}
+{/* 6. NUEVOS LOCALES (FREEMIUM) */}
+             {homeLayout.newFreemiumLocales.length > 0 && (
+               <section className="home-section new-locales-home">
+                  <div className="section-header-simple">
+                    <h2>Otros locales <img src="https://i.postimg.cc/0249zZZy/descarga-(31)-(5).png" style={{ height: '26px', marginLeft: '10px', verticalAlign: 'middle' }} alt="" /></h2>
+                  </div>
+                  <div className="horizontal-scroll-premium">
+                    {homeLayout.newFreemiumLocales.map((local) => {
+                      const open = isLocalOpen(local);
+                      return (
+                        <div key={local.id} className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} onClick={() => fetchMenusByLocal(local.id)}>
+                          <div className={`logo-box ${open ? 'online' : 'offline'}`}>
+                            <img src={local.logo} alt={local.nombre} />
+                            {open && <span className="online-dot-mini" />}
+                          </div>
+                          <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
+                            {getLocalStatusText(local)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+               </section>
+             )}
+{/* 7. EXPLORAR (Grid de Items) */}
+             <section className="home-section explore-items">
+                <div className="section-header-simple">
+                  <h2>Explorar más productos 🛵</h2>
+                </div>
+
+                {/* FILTROS EXPLORAR */}
+                <div className="explore-filters" style={{ padding: '0 16px', marginBottom: '24px' }}>
+                  <div className="filter-group" style={{ marginBottom: '16px' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--gray-700)', marginBottom: '8px', display: 'block' }}>Rubros</label>
+                    <div className="horizontal-scroll-chips" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                      <button 
+                        className={`filter-chip ${exploreRubroFilter === '' ? 'active' : ''}`}
+                        onClick={() => { setExploreRubroFilter(''); }}
+                      >
+                        Todo
+                      </button>
+                      {[...new Set(homeLayout.exploreItems.map(i => i.local_rubro).filter(Boolean))].map(rubro => (
+                        <button 
+                          key={rubro}
+                          className={`filter-chip ${exploreRubroFilter === rubro ? 'active' : ''}`}
+                          onClick={() => { setExploreRubroFilter(rubro); }}
+                        >
+                          {rubro}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="filter-group" style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--gray-700)', marginBottom: '8px', display: 'block' }}>Categorías</label>
+                    <div className="horizontal-scroll-chips" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                      <button 
+                        className={`filter-chip ${exploreCatFilter === '' ? 'active' : ''}`}
+                        onClick={() => setExploreCatFilter('')}
+                      >
+                        Todas
+                      </button>
+                      {[...new Set(homeLayout.exploreItems.map(i => i.categoria).filter(Boolean))].sort().map(cat => (
+                        <button 
+                          key={cat}
+                          className={`filter-chip ${exploreCatFilter === cat ? 'active' : ''}`}
+                          onClick={() => setExploreCatFilter(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="explore-items-list">
+                   {exploreRubroFilter || exploreCatFilter ? (
+                     homeLayout.exploreItems
+                      .filter(item => {
+                        const rubroOk = !exploreRubroFilter || item.local_rubro === exploreRubroFilter;
+                        const catOk = !exploreCatFilter || item.categoria === exploreCatFilter;
+                        return rubroOk && catOk;
+                      })
+                      .map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="menu-card card card-hover" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => fetchMenusByLocal(item.local_id)}
+                      >
+                        <div className="menu-card-img-container">
+                          <img src={item.imagen_url} alt={item.nombre} className="menu-card-img" />
+                          {(() => {
+                            const discountedPrice = calculateDiscountedPrice(item);
+                            if (discountedPrice < Number(item.precio)) {
+                              const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+                              return <div className="menu-discount-badge">{percent}% OFF</div>;
+                            }
+                            return null;
+                          })()}
+                          </div>
+                        <div className="menu-card-body">
+                          <div className="menu-card-local">
+                            {item.local_logo && <img src={item.local_logo} alt="" className="menu-local-logo" />}
+                            <span>{item.local_nombre}</span>
+                          </div>
+                          <h3>{item.nombre}</h3>
+                          {renderCreditBadge(item)}
+                          {item.descripcion && <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', margin: '4px 0', lineClamp: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.descripcion}</p>}
+                          <div className="menu-card-footer">
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span className="menu-card-price" style={{ color: 'inherit' }}>${calculateDiscountedPrice(item).toLocaleString()}</span>
+                              {calculateDiscountedPrice(item) < Number(item.precio) && (
+                                <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                                  ${Number(item.precio).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="menu-card-actions">
+                              {(() => {
+                                const loc = locals.find(l => l.id === item.local_id);
+                                if (loc && isLocalOpen(loc)) {
+                                  return (
+                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
+                                      Agregar
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                                    CERRADO
+                                  </span>
+                                );
+                              })()}
+                              <button 
+                                className={`fav-btn ${favorites.includes(item.id) ? 'active' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); toggleFav(item.id); }}
+                              >
+                                <img 
+                                  src={favorites.includes(item.id) ? "https://i.postimg.cc/BZYZmSz1/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find.png" : "https://i.postimg.cc/W4Gb8MRV/Instagram-Heart-Png-Love-Heart-Transparent-Png(1000x1000)-Png-Find(1).png"} 
+                                  style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+                                  alt="Favorito" 
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                   ) : (
+                     <div style={{ height: '40px' }}></div>
+                   )}
+                </div>
+             </section>
+          </div>
+        )}
+
+        {/* ─── RUBRO EXPLORER (Explorer View) ─── */}
+        {filteredLocals && !showMenus && (
+          <div className="explorer-view animate-fade-in">
+             <div className="category-chips-sticky">
+                <button className={`chip ${!selectedCategory ? 'active' : ''}`} onClick={() => { 
+                  setFilteredLocals(null); 
+                  setSelectedCategory(null); 
+                  setTargetMenuCategory(null);
+                  setSelectedLocal(null);
+                }}>
+                  Inicio
+               </button>
+               {homeLayout.categories.map(cat => (
+                 <button 
+                  key={cat.label} 
+                  className={`chip ${selectedCategory === cat.type ? 'active' : ''}`} 
+                  onClick={() => fetchByCategory(cat.type, cat.label)}
+                >
+                   {cat.label}
+                 </button>
+               ))}
+             </div>
+
+              <section className="locals-section">
+                <div className="section-header-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h2 className="locals-title">Locales con {selectedCategory || 'Explorar'}</h2>
+                  <button className="btn btn-ghost btn-sm" style={{ padding: '6px 12px' }} onClick={() => { setFilteredLocals(null); setSelectedCategory(null); }}>✕ Ver todos</button>
+                </div>
+                
+                {loadingLocals ? (
+                  <div className="loading-state-premium">Buscando los mejores locales...</div>
+                ) : filteredLocals.length === 0 ? (
+                  <div className="empty-state-premium">Próximamente en Wepi</div>
+                ) : (
+                  <div className="locals-scroll" style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '16px 16px', margin: '0 -16px' }}>
+                    {filteredLocals.map((local) => {
+                      const open = isLocalOpen(local);
+                      const isPremium = local.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
+                      return (
+                        <button 
+                          key={local.id} 
+                          className={`suggestion-categoria ${open ? 'open' : 'closed'} ${isPremium ? 'is-premium' : ''}`} 
+                          onClick={() => fetchMenusByLocal(local.id)}
+                          style={{ flex: '0 0 auto', border: 'none', outline: 'none' }}
+                        >
+                          {isPremium && <div className="premium-badge-mini">DESTACADO</div>}
+                          <img src={local.logo} alt={local.nombre} />
+                          <div className="suggestion-info">
+                            <div className="local-name">{local.nombre}</div>
+                            {open ? (
+                              <div className="categoria-precio">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                  <span className="cat">{local.rubro}</span>
+                                </div>
+                                <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
+                              </div>
+                            ) : (
+                              <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                CERRADO
+                              </div>
+                            )}
+                          </div>
+                          {open && <span className="open-dot" style={{ position: 'absolute', top: '5px', right: '5px', width: '12px', height: '12px', borderRadius: '50%', background: '#00c853', border: '2px solid white' }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              {/* Discovery Items (Menu Cards in Explorer View) */}
+              {(loadingDiscovery || discoveryItems.length > 0) && (
+                <section className="locals-section items-discovery-section animate-fade-in" style={{ marginTop: '32px', borderTop: '1px solid var(--gray-100)', paddingTop: '24px' }}>
+                  <div className="section-header-premium" style={{ marginBottom: '16px' }}>
+                    <h2 className="locals-title">Productos Sugeridos ✨</h2>
+                  </div>
+                  
+                  {loadingDiscovery ? (
+                    <div className="loading-state-premium">Buscando productos...</div>
+                  ) : (
+                    <div className="explore-items-list">
+                      {discoveryItems.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="menu-card card card-hover" 
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => fetchMenusByLocal(item.local_id)}
+                        >
+                          <div className="menu-card-img-container">
+                            <img src={item.imagen_url} alt={item.nombre} className="menu-card-img" />
+                            {(() => {
+                              const discountedPrice = calculateDiscountedPrice(item);
+                              if (discountedPrice < Number(item.precio)) {
+                                const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+                                return <div className="menu-discount-badge">{percent}% OFF</div>;
+                              }
+                              return null;
+                            })()}
+                            </div>
+                          <div className="menu-card-body">
+                            <div className="menu-card-local">
+                              {item.local_logo && <img src={item.local_logo} alt="" className="menu-local-logo" />}
+                              <span>{item.local_nombre}</span>
+                            </div>
+                            <h3>{item.nombre}</h3>
+                            {renderCreditBadge(item)}
+                            <div className="menu-card-footer">
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span className="menu-card-price">${calculateDiscountedPrice(item).toLocaleString()}</span>
+                                {calculateDiscountedPrice(item) < Number(item.precio) && (
+                                  <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                                    ${Number(item.precio).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                              {(() => {
+                                const loc = locals.find(l => l.id === item.local_id);
+                                if (loc && isLocalOpen(loc)) {
+                                  return (
+                                    <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
+                                      Agregar
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: 'bold' }}>
+                                    CERRADO
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+          </div>
+        )}
+
+        {/* ─── LOCAL MENU (Menu View) ─── */}
+        {showMenus && (
+          <div className="menu-view animate-fade-in">
+             <div className="menu-header-sticky">
+                <button className="back-btn-premium" onClick={() => { setShowMenus(false); setSelectedLocal(null); }}>← Volver</button>
+                <h2 className="menu-local-title">{selectedLocal?.nombre}</h2>
+             </div>
+
+             <div className="menu-content-premium">
+               {loadingMenus ? (
+                 <div className="loading-state-premium">Cargando el menú...</div>
+               ) : (
+                 <>
+                   {/* Categorías del Local */}
+                   <div className="local-categories-nav">
+                                           {menus.some(m => doesItemEarnCredit(m)) && (
+                        <button className="local-cat-chip" style={{ background: 'var(--sky-50)', color: 'var(--sky-700)', borderColor: 'var(--sky-200)', fontWeight: 'bold' }} onClick={() => {
+                          document.getElementById(`cat-credito`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}>
+                          Ganá créditos 💰
+                        </button>
+                      )}
+                      {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
+
+                       <button key={cat} className="local-cat-chip" onClick={() => {
+                         document.getElementById(`cat-${cat}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                       }}>
+                         {cat}
+                       </button>
+                     ))}
+                   </div>
+
+                   {/* Listado de Productos Agrupados */}
+                                       {/* Sección Especial: Ganá Créditos */}
+                    {menus.some(m => doesItemEarnCredit(m)) && (
+                      <section id="cat-credito" className="menu-category-section">
+                         <h3 className="category-group-title" style={{ color: 'var(--sky-700)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           Ganá créditos 💰
+                         </h3>
+                         <div className="menu-list-wallet" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {menus
+                              .filter(m => doesItemEarnCredit(m))
+                              .map((item) => renderMenuItem(item))}
+                         </div>
+                      </section>
+                    )}
+
+                    {/* Listado de Productos Agrupados */}
+                    {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
+                      <section key={cat} id={`cat-${cat}`} className="menu-category-section">
+                         <h3 className="category-group-title">{cat}</h3>
+                         <div className="menu-list-wallet" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {menus
+                              .filter(m => m.categoria === cat)
+                              .sort((a, b) => (doesItemEarnCredit(b) ? 1 : 0) - (doesItemEarnCredit(a) ? 1 : 0))
+                              .map((item) => renderMenuItem(item))}
+                         </div>
+                      </section>
+                    ))}
+                 </>
+               )}
+             </div>
+          </div>
+        )}      </main>
+      {/* ─── Cart Sidebar ─── */}
+      <div className={`cart-backdrop ${cartOpen ? 'active' : ''}`} onClick={() => setCartOpen(false)} />
+      <aside className={`cart-sidebar ${cartOpen ? 'active' : ''}`}>
+        <div className="cart-header-bar">
+          <h2>Tu Carrito</h2>
+          <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
+        </div>
+        <div className="cart-body-content">
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="form-label">Tipo de entrega</label>
+            <select 
+              className="form-select" 
+              value={cart.deliveryType} 
+              onChange={e => cart.setDeliveryType(e.target.value)}
+            >
+              {(() => {
+                const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+                return (
+                  <>
+                    {(currentLocal?.acepta_envio !== false) && (
+                      <option value="envio">Con envío a domicilio</option>
+                    )}
+                    {(currentLocal?.acepta_retiro === true) && (
+                      <option value="retiro">🥡 Retirar en local</option>
+                    )}
+                  </>
+                );
+              })()}
+            </select>
+          </div>
+
+          {cart.items.length === 0 ? (
+            <div className="cart-empty">
+              <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito Vacío" style={{ width: '64px', height: '64px', margin: '0 auto 16px', opacity: 0.8 }} />
+              <p>Tu carrito está vacío</p>
+              <button className="btn btn-secondary btn-sm" onClick={() => setCartOpen(false)}>Seguir comprando</button>
+            </div>
+          ) : (
+            <>
+              {cart.items.map(item => (
+                <div key={item.id} className="cart-item-row">
+                  <div className="cart-item-info">
+                    <span className="cart-item-name">{item.nombre}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {item.precioOriginal > item.precio && (
+                        <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
+                          ${(Number(item.precioOriginal) * item.qty).toLocaleString('es-AR')}
+                        </span>
+                      )}
+                      <span className="cart-item-price" style={{ color: item.precioOriginal > item.precio ? 'var(--red-600)' : 'inherit' }}>
+                        ${(Number(item.precio) * item.qty).toLocaleString('es-AR')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="cart-item-controls">
+                    <button className="qty-btn" onClick={() => cart.updateQty(item.id, -1)}>−</button>
+                    <span className="qty-display">{item.qty}</span>
+                    <button className="qty-btn" onClick={() => cart.updateQty(item.id, 1)}>+</button>
+                    <button className="remove-btn-small" onClick={() => cart.removeItem(item.id)}>🗑️</button>
+                  </div>
+                </div>
+              ))}
+
+              <div className="payment-method-selector" style={{ marginTop: '20px', marginBottom: '10px' }}>
+                <label className="form-label">Seleccionar método de pago</label>
+                <select 
+                  className="form-select" 
+                  value={metodoPago} 
+                  onChange={e => setMetodoPago(e.target.value)}
+                  style={{ marginBottom: '5px' }}
+                >
+                  <option value="" disabled>Elegí cómo pagar</option>
+                  <option value="transferencia">Mercado Pago</option>
+                  <option 
+                    value="efectivo" 
+                    disabled={!user || user.ya_realizo_pedidos === false || user.ya_realizo_pedidos === 'false' || orderCount === 0 || orderCount === null}
+                    style={{ color: (!user || user.ya_realizo_pedidos === false || user.ya_realizo_pedidos === 'false' || orderCount === 0 || orderCount === null) ? '#999' : 'inherit' }}
+                  >
+                    { (!user || user.ya_realizo_pedidos === false || user.ya_realizo_pedidos === 'false' || orderCount === 0 || orderCount === null) ? 'Efectivo (Inhabilitado 1er pedido)' : 'Efectivo' }
+                  </option>
+                </select>
+                
+                {walletBalance > 0 && (
+                  <div className="wallet-usage-cart animate-slide-up" style={{
+                    padding: '12px',
+                    background: '#f0f9ff',
+                    borderRadius: '12px',
+                    border: '1px solid #bae6fd',
+                    marginTop: '15px'
+                  }}>
+                    <label className="wallet-cb-label" style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px', 
+                      cursor: checkoutTotals.walletValidation?.canUse ? 'pointer' : 'not-allowed',
+                      opacity: checkoutTotals.walletValidation?.canUse ? 1 : 0.7
+                    }}>
+                      <input 
+                        type="checkbox" 
+                        checked={useWallet && checkoutTotals.walletValidation?.canUse} 
+                        onChange={e => checkoutTotals.walletValidation?.canUse && setUseWallet(e.target.checked)} 
+                        disabled={!checkoutTotals.walletValidation?.canUse}
+                      />
+                      <div className="wallet-cb-info">
+                        <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', color: '#0369a1' }}>Utilizar crédito Wepi Wallet</span>
+                        <span style={{ fontSize: '0.75rem', color: '#0ea5e9' }}>
+                          Saldo disponible: <strong>{walletBalance === null ? 'Cargando...' : `$${(walletBalance || 0).toLocaleString()}`}</strong>
+                        </span>
+                        
+                        {!checkoutTotals.walletValidation?.canUse && checkoutTotals.walletValidation?.reason && (
+                          <div className="wallet-usage-warning" style={{
+                            marginTop: '4px',
+                            color: '#b91c1c',
+                            fontSize: '0.7rem',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <span>⚠️</span> {checkoutTotals.walletValidation.reason}
+                          </div>
+                        )}
+
+                        {checkoutTotals.walletValidation?.canUse && checkoutTotals.maxAvailableDiscount < walletBalance && checkoutTotals.maxAvailableDiscount > 0 && (
+                           <div style={{ fontSize: '0.68rem', color: '#0369a1', marginTop: '2px', fontStyle: 'italic' }}>
+                             * Podés usar hasta ${checkoutTotals.maxAvailableDiscount.toLocaleString()} en este pedido.
+                           </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+
+                {(orderCount === 0 || orderCount === null) && (
+                  <p style={{ fontSize: '0.7rem', color: 'var(--red-500)', marginTop: '4px', fontStyle: 'italic' }}>
+                    * Por seguridad, tu primer pedido debe ser con Transferencia.
+                  </p>
+                )}
+              </div>
+
+              <div className="coupon-section" style={{ marginTop: '15px', marginBottom: '20px' }}>
+                <label className="form-label">¿Tenés un cupón?</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Ingresá tu código" 
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                  <button 
+                    type="button"
+                    className="btn btn-secondary" 
+                    onClick={() => {
+                      setAppliedCoupon(couponInput);
+                      if(couponInput) toast.success("Cupón validado");
+                    }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+                {appliedCoupon && checkoutTotals?.appliedCuponId && (
+                  <small style={{ color: 'var(--green-600)', fontWeight: 'bold' }}>¡Cupón "{appliedCoupon}" aceptado!</small>
+                )}
+                {appliedCoupon && !checkoutTotals?.appliedCuponId && (
+                  <small style={{ color: 'var(--red-600)', fontWeight: 'bold' }}>El cupón no es válido o no aplica a este pedido.</small>
+                )}
+              </div>
+
+              <div className="cart-summary">
+                <div className="cart-line">
+                  <span>{cart.deliveryType === 'retiro' ? 'Subtotal valor pedido' : 'Subtotal'}</span>
+                  <span>
+                    {checkoutTotals?.product_total > checkoutTotals?.discounted_product_total ? (
+                      <>
+                        <span style={{ textDecoration: 'line-through', color: 'var(--gray-400)', marginRight: '8px', fontSize: '0.85rem' }}>
+                          ${(checkoutTotals?.product_total || 0).toLocaleString('es-AR')}
+                        </span>
+                        <span style={{ color: 'var(--green-600)', fontWeight: '600' }}>
+                          ${(checkoutTotals?.discounted_product_total || 0).toLocaleString('es-AR')}
+                        </span>
+                      </>
+                    ) : (
+                      `$${(cart.subtotal || 0).toLocaleString('es-AR')}`
+                    )}
+                  </span>
+                </div>
+                {cart.deliveryType !== 'retiro' && (
+                  <div className="cart-line">
+                    <span>
+                      Envío
+                      {cart.incentivoActivo > 0 && (
+                        <span style={{ color: 'var(--red-500)', fontWeight: 600, marginLeft: 8, fontSize: '0.75rem' }}>
+                          ⚡ Dinámica
+                        </span>
+                      )}
+                    </span>
+                    <span>{visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`}</span>
+                  </div>
+                )}
+                {visibleMpFee > 0 && (
+                  <div className="cart-line comision-line">
+                    <span>Gestión de pago</span>
+                    <span>+${visibleMpFee.toLocaleString('es-AR')}</span>
+                  </div>
+                )}
+                {useWallet && walletDiscountUI > 0 && (
+                  <div className="cart-line wallet-discount-line" style={{ color: '#0369a1', fontWeight: '700' }}>
+                    <span>Descuento Wepi Wallet</span>
+                    <span>−${walletDiscountUI.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="cart-line total-line">
+                  <span>Total</span>
+                  <span>${totalConComision.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+                {potentialCredit > 0 && (
+                  <div className="potential-credit-banner animate-pulse" style={{
+                    marginTop: '12px',
+                    padding: '8px 12px',
+                    background: 'linear-gradient(90deg, #f0f9ff, #e0f2fe)',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    color: '#0284c7',
+                    fontWeight: '800',
+                    textAlign: 'center',
+                    border: '1px solid #bae6fd'
+                  }}>
+                    {(() => {
+                      const promoCredito = checkoutTotals.appliedPromos?.find(p => p.tipo === 'credito');
+                      const isFirstOrderPromo = promoCredito?.triggers?.primera_compra === true;
+                      return (
+                        <>
+                          ✨ ¡Sumarás <strong>${potentialCredit.toLocaleString()}</strong> de crédito {isFirstOrderPromo ? 'por tu 1er pedido' : 'con esta compra'}!
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={handleCheckout} className="checkout-form">
+                {cart.deliveryType === 'envio' && (
+                  <div className="address-selector-input-group" style={{ marginBottom: '16px', position: 'relative' }}>
+                    <label className="form-label" style={{ display: 'block', textAlign: 'left', marginBottom: '8px' }}>
+                      Dirección de entrega
+                    </label>
+                    <div 
+                      className="input-with-icon" 
+                      onClick={() => setShowAddressSelector(true)}
+                      style={{ cursor: 'pointer', position: 'relative' }}
+                    >
+                      <input 
+                        type="text"
+                        className="form-input"
+                        placeholder="📍 Seleccioná tu dirección en el mapa..."
+                        value={addressData.address || ''}
+                        readOnly
+                        style={{ paddingLeft: '40px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #ddd' }}
+                      />
+                      <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.2rem' }}>
+                        📍
+                      </span>
+                    </div>
+                    {addressData.address && (
+                      <button 
+                        type="button" 
+                        className="btn-text" 
+                        style={{ display: 'block', margin: '4px 0', fontSize: '0.8rem', color: 'var(--red-500)', fontWeight: 'bold' }}
+                        onClick={() => setShowAddressSelector(true)}
+                      >
+                        (Cambiar ubicación)
+                      </button>
+                    )}
+                    {addressData.reference && (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '4px', textAlign: 'left' }}>
+                        Ref: {addressData.reference}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {/* Observaciones removidas por solicitud */}
+                <input type="hidden" name="observaciones" value="" />
+                <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading}>
+                  {checkoutLoading ? <span className="spinner spinner-white" /> : 'Realizar Pedido'}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </aside>
+
+      {/* ─── Modals ─── */}
+      {modal && (
+        <div className="modal-overlay" onClick={() => { setModal(null); setShowPassword(false); }}>
+          <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>✕</button>
+
+            {modal === 'login' && (
+              <form onSubmit={handleLogin}>
+                <h2>Iniciar Sesión</h2>
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <div className="password-container">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    className="form-input" 
+                    placeholder="Contraseña" 
+                    required 
+                    autoComplete="current-password" 
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                      alt="Ver" 
+                    />
+                  </button>
+                </div>
+                <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+                  {authLoading ? <span className="spinner spinner-white" /> : 'Entrar'}
+                </button>
+
+                <div className="auth-separator">
+                  <span>O</span>
+                </div>
+
+                <button type="button" className="btn btn-google btn-full" onClick={handleGoogleLogin} disabled={authLoading}>
+                  <img src="https://i.postimg.cc/4yg7FY6B/channels4-profile.jpg" alt="Google" className="google-icon" />
+                  Continuar con Google
+                </button>
+
+                <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
+              </form>
+            )}
+
+            {modal === 'register' && (
+              <form onSubmit={handleRegister}>
+                <h2>Registro</h2>
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <input name="nombre" className="form-input" placeholder="Nombre completo" required autoComplete="name" />
+                <div className="password-container">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    className="form-input" 
+                    placeholder="Contraseña (6+ caracteres)" 
+                    required 
+                    autoComplete="new-password" 
+                  />
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    <img 
+                      src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                      alt="Ver" 
+                    />
+                  </button>
+                </div>
+                <div className="phone-input-group">
+                  <select name="prefix" className="phone-prefix-select">
+                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+55">🇧🇷 +55</option>
+                  </select>
+                  <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Número (ej: 1123456789)" required autoComplete="tel-national" />
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
+                  <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+                  <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setModal('terms')}>Términos y Condiciones y Política de Privacidad</button> para Usuarios.
+                  </label>
+                </div>
+
+                <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+                  {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
+                </button>
+
+                <div className="auth-separator">
+                  <span>O</span>
+                </div>
+
+                <button type="button" className="btn btn-google btn-full" onClick={handleGoogleLogin} disabled={authLoading}>
+                  <img src="https://i.postimg.cc/4yg7FY6B/channels4-profile.jpg" alt="Google" className="google-icon" />
+                  Registrarme con Google
+                </button>
+
+                <p className="modal-switch">¿Ya tenés cuenta? <button type="button" onClick={() => { setModal('login'); setShowPassword(false); }}>Iniciar sesión</button></p>
+              </form>
+            )}
+
+            {modal === 'profile' && user && (
+              <div>
+                <h2>Mi Perfil</h2>
+                <div className="profile-info">
+                  <p><strong>Nombre:</strong> {user.name}</p>
+                  <p><strong>Email:</strong> {user.email}</p>
+                  <p><strong>Teléfono:</strong> {user.telefono || 'No configurado'}</p>
+                  <p><strong>Dirección:</strong> {user.address || 'No configurada'}</p>
+                  <div className="wallet-profile-status" style={{
+                    marginTop: '12px',
+                    padding: '10px',
+                    background: '#f0f9ff',
+                    borderRadius: '8px',
+                    border: '1px solid #bae6fd',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span style={{ fontSize: '0.9rem', color: '#0369a1', fontWeight: '600' }}>Crédito Wepi Wallet:</span>
+                    <span style={{ fontSize: '1rem', color: '#0369a1', fontWeight: '800' }}>
+                      {walletBalance === null ? 'Cargando...' : `$${(walletBalance || 0).toLocaleString()}`}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <button className="btn btn-primary btn-full" onClick={() => setModal('editProfile')}>✍️  Editar perfil</button>
+                  <button className="btn btn-secondary btn-full" onClick={() => setModal('editAddress')}>📍 Cambiar dirección</button>
+                  <button className="btn btn-secondary btn-full" onClick={() => navigate('/mis-pedidos')}>📦 Mis Pedidos</button>
+                  <button className="btn btn-ghost btn-full" onClick={() => { doLogout(); setModal(null); toast.success('Sesión cerrada'); }}>
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {modal === 'editProfile' && user && (
+              <form onSubmit={handleEditProfile}>
+                <h2>Editar Perfil</h2>
+                <label className="form-label">Nombre completo</label>
+                <input name="nombre" className="form-input" defaultValue={user.name} required />
+                <label className="form-label">Email</label>
+                <input name="email" type="email" className="form-input" defaultValue={user.email} required />
+                <label className="form-label">Teléfono</label>
+                <div className="phone-input-group">
+                  <select name="prefix" className="phone-prefix-select" defaultValue={user.telefono?.startsWith('+55') ? '+55' : '+54'}>
+                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+55">🇧🇷 +55</option>
+                  </select>
+                  <input 
+                    name="telefono" 
+                    type="tel" 
+                    className="form-input phone-number-input" 
+                    defaultValue={user.telefono ? user.telefono.replace(/^\+54|^\+55/, '') : ''} 
+                    placeholder="Número (ej: 1123456789)" 
+                    required 
+                  />
+                </div>
+                <label className="form-label">Nueva contraseña (opcional)</label>
+                <input name="newPassword" type="password" className="form-input" placeholder="Dejar en blanco si no deseas cambiarla" />
+                <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+                  {authLoading ? <span className="spinner spinner-white" /> : 'Guardar cambios'}
+                </button>
+              </form>
+            )}
+
+            {modal === 'editAddress' && (
+              <div>
+                <h2>Cambiar Mi Dirección</h2>
+                <p style={{ fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '16px' }}>
+                  Seleccioná tu ubicación predeterminada en el mapa para futuras compras.
+                </p>
+                <button 
+                  className="btn btn-primary btn-full" 
+                  onClick={() => setShowProfileAddressSelector(true)}
+                >
+                  📍 Abrir Mapa de Dirección
+                </button>
+                <p style={{ marginTop: '12px', fontSize: '0.85rem' }}>
+                  <strong>Actual:</strong> {user?.address || 'No configurada'}
+                </p>
+              </div>
+            )}
+            {modal === 'terms' && (
+              <div>
+                <h2>Términos y Condiciones y Política de Privacidad</h2>
+                <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, maxHeight: '350px', overflowY: 'auto', paddingRight: '10px', textAlign: 'left' }}>
+                  <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 1. USUARIOS – TÉRMINOS Y CONDICIONES</h3>
+                  <p><strong>1. Naturaleza del servicio</strong></p>
+                  <p>Wepi es una plataforma que Intermedia entre usuarios y comercios, facilita la gestión de pedidos y coordina la logística de entrega. Wepi no elabora ni comercializa productos.</p>
+                  <p><strong>2. Relación contractual</strong></p>
+                  <p>El usuario acepta que la compra es con el comercio, la entrega es realizada por repartidores independientes, y Wepi no es parte directa de dichas relaciones.</p>
+                  <p><strong>3. Productos</strong></p>
+                  <p>Los comercios son los únicos responsables de Calidad, Ingredientes, Higiene y Estado. Wepi no garantiza los productos.</p>
+                  <p><strong>4. Entregas</strong></p>
+                  <p>Wepi coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logística.</p>
+                  <p><strong>5. Limitación de responsabilidad</strong></p>
+                  <p>Wepi no será responsable por intoxicaciones, problemas de salud, daños derivados del producto, demoras razonables o fallas de terceros.</p>
+                  <p><strong>6. Pagos</strong></p>
+                  <p>Los pagos se procesan mediante Mercado Pago. Wepi no es entidad financiera, no fija precios y puede aplicar comisiones.</p>
+                  <p><strong>7. Cancelaciones</strong></p>
+                  <p>Dependen del comercio y estado del pedido.</p>
+                  <p><strong>8. Indemnidad</strong></p>
+                  <p>El usuario mantiene indemne a Wepi ante reclamos derivados del uso.</p>
+                  <p><strong>9. Aceptación</strong></p>
+                  <p>Mediante registro y confirmación electrónica.</p>
+                  <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+                  <h3 style={{ color: 'var(--red-600)' }}>🔒 USUARIOS – POLÍTICA DE PRIVACIDAD</h3>
+                  <p><strong>Datos recolectados:</strong></p>
+                  <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                    <li>Nombre, teléfono, email</li>
+                    <li>Dirección</li>
+                    <li>Ubicación en tiempo real</li>
+                    <li>Historial de pedidos</li>
+                  </ul>
+                  <p><strong>Uso de datos:</strong></p>
+                  <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                    <li>Procesar pedidos</li>
+                    <li>Coordinar entregas</li>
+                    <li>Asignar repartidores</li>
+                  </ul>
+                  <p><strong>Compartición:</strong></p>
+                  <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+                    <li>Comercios</li>
+                    <li>Repartidores</li>
+                    <li>Proveedores de pago (Mercado Pago)</li>
+                  </ul>
+                </div>
+                <button className="btn btn-secondary btn-full" onClick={() => setModal('register')} style={{ marginTop: 16 }}>Volver al Registro</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ——— Ice Cream Modal ——— */}
+      {iceCreamModal && (
+        <div className="modal-overlay" onClick={() => setIceCreamModal(null)}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '20px' }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.4rem' }}>{iceCreamModal.nombre}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
+            
+            <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
+            <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
+              {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
+                <div 
+                  key={size}
+                  className={`selection-card ${selectedSize === size ? 'active' : ''}`}
+                  onClick={() => { setSelectedSize(size); setSelectedFlavors([]); }}
+                  style={{ 
+                    padding: '16px 8px', borderRadius: '12px', border: selectedSize === size ? '2px solid var(--red-500)' : '2px solid #eee',
+                    backgroundColor: selectedSize === size ? '#fff5f5' : '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease',
+                    boxShadow: selectedSize === size ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: selectedSize === size ? 'var(--red-600)' : 'inherit' }}>{size}</div>
+                  <div style={{ color: 'var(--gray-500)', fontSize: '0.72rem', marginTop: '2px' }}>
+                    ${JSON.parse(iceCreamModal.variantes).precios[size].precio}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>
+               2. Seleccioná tus sabores:
+               <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '400', marginTop: '2px' }}>
+                Máximo {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max} sabores
+               </div>
+            </h3>
+            
+            <div className="flavors-list" style={{ maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20, padding: '4px' }}>
+              {iceCreamFlavors.map(flavor => {
+                const isSelected = selectedFlavors.includes(flavor.nombre);
+                const max = JSON.parse(iceCreamModal.variantes).precios[selectedSize].max;
+                const canSelect = selectedFlavors.length < max;
+                
+                return (
+                  <button 
+                    key={flavor.id}
+                    className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ 
+                      justifyContent: 'flex-start', textAlign: 'left', minHeight: 40, borderRadius: '10px',
+                      borderWidth: isSelected ? '2px' : '1px', fontSize: '0.75rem', padding: '4px 8px'
+                    }}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedFlavors(prev => prev.filter(f => f !== flavor.nombre));
+                      } else if (canSelect) {
+                        setSelectedFlavors(prev => [...prev, flavor.nombre]);
+                      } else {
+                        toast.error(`Máximo ${max} sabores para este tamaño`);
+                      }
+                    }}
+                  >
+                    {flavor.nombre}
+                    {isSelected && <span style={{ marginLeft: 'auto' }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sección de Salsas Forzada */}
+            {(iceCreamModal.salsasDisponibles || []).length > 0 && (
+              <div style={{ background: '#fff9f0', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffe4bc' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700', color: '#b45309' }}>
+                  🍯 ¿Querés agregar salsas?
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {(iceCreamModal.salsasDisponibles || []).map(sauce => {
+                    const isSelected = selectedSauces.includes(sauce.nombre);
+                    return (
+                      <button 
+                        key={sauce.id}
+                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ borderRadius: '20px', padding: '4px 10px', fontSize: '0.72rem' }}
+                        onClick={() => {
+                          if (isSelected) setSelectedSauces(prev => prev.filter(s => s !== sauce.nombre));
+                          else setSelectedSauces(prev => [...prev, sauce.nombre]);
+                        }}
+                      >
+                        {sauce.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {iceCreamExtras.length > 0 && (
+              <>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>{(iceCreamModal.salsasDisponibles || []).length > 0 ? '4' : '3'}. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
+                <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
+                  {iceCreamExtras.map(extra => {
+                    const isSelected = selectedExtras.some(e => e.id === extra.id);
+                    return (
+                      <button 
+                        key={extra.id}
+                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ borderRadius: '20px', padding: '6px 14px' }}
+                        onClick={() => {
+                          if (isSelected) setSelectedExtras(prev => prev.filter(e => e.id !== extra.id));
+                          else setSelectedExtras(prev => [...prev, extra]);
+                        }}
+                      >
+                        {extra.nombre} (+${extra.precio})
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {(() => {
+              const configuration = JSON.parse(iceCreamModal.variantes);
+              const basePrice = parseFloat(configuration.precios[selectedSize].precio || 0);
+              const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
+              const rawTotal = basePrice + extrasPrice;
+              const currentTotal = calculateDiscountedPrice({ ...iceCreamModal, precio: rawTotal });
+              const hasDiscount = currentTotal < rawTotal;
+
+              return (
+                <button 
+                  className="btn btn-primary btn-full btn-lg"
+                  disabled={selectedFlavors.length === 0}
+                  style={{ borderRadius: '12px', height: '56px', fontSize: '1.1rem' }}
+                  onClick={() => {
+                    const details = [];
+                    details.push(`Sabores: ${selectedFlavors.join(', ')}`);
+                    if (selectedSauces.length > 0) details.push(`Salsas: ${selectedSauces.join(', ')}`);
+                    if (selectedExtras.length > 0) details.push(`Extras: ${selectedExtras.map(e => e.nombre).join(', ')}`);
+
+                    const finalItem = {
+                      ...iceCreamModal,
+                      menuId: iceCreamModal.id,
+                      id: `${iceCreamModal.id}-${selectedSize}-${Date.now()}`,
+                      nombre: `${iceCreamModal.nombre} ${selectedSize}`,
+                      precioOriginal: rawTotal,
+                      precio: currentTotal,
+                      flavors: selectedFlavors,
+                      sauces: selectedSauces,
+                      extras: selectedExtras,
+                      descripcion: details.join(' | ')
+                    };
+                    cart.addItem(finalItem);
+                    setIceCreamModal(null);
+                    toast.success('¡Helado agregado!');
+                  }}
+                >
+                  Agregar • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${currentTotal}
+                </button>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {burgerModal && (
+        <div className="modal-overlay" onClick={() => setBurgerModal(null)}>
+          <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '24px' }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setBurgerModal(null)}>✕</button>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.5rem' }}>{burgerModal.nombre}</h2>
+            <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 24 }}>{burgerModal.descripcion}</p>
+            
+            {(() => {
+              const cfg = JSON.parse(burgerModal.variantes);
+              const baseVariantPrice = Number(selectedVariant?.precio || burgerModal.precio);
+              const extrasPriceTotal = selectedBurgerExtras.reduce((sum, e) => sum + Number(e.precio || 0), 0);
+              const friesPrice = withFries ? Number(cfg.precio_papas || 0) : 0;
+              const rawTotal = baseVariantPrice + extrasPriceTotal + friesPrice;
+              const totalCalculated = calculateDiscountedPrice({ ...burgerModal, precio: rawTotal });
+              const hasDiscount = totalCalculated < rawTotal;
+
+              return (
+                <>
+                  {cfg.variants?.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Seleccioná la opción:</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                        {cfg.variants.filter(v => v.disponible !== false).map((v, i) => (
+                          <div 
+                            key={i}
+                            className={`selection-card ${selectedVariant?.nombre === v.nombre ? 'active' : ''}`}
+                            onClick={() => setSelectedVariant(v)}
+                            style={{ 
+                              padding: '12px 6px', borderRadius: '12px', border: selectedVariant?.nombre === v.nombre ? '2px solid var(--red-500)' : '1px solid #eee',
+                              backgroundColor: selectedVariant?.nombre === v.nombre ? '#fff5f5' : '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{v.nombre}</div>
+                            <div style={{ color: 'var(--red-600)', fontWeight: '700', fontSize: '0.85rem', marginTop: '4px' }}>${v.precio}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {cfg.extras?.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>2. Adicionales:</h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {cfg.extras.map((ex, i) => {
+                          const isIncluded = selectedBurgerExtras.some(e => e.nombre === ex.nombre);
+                          return (
+                            <button 
+                              key={i}
+                              className={`btn btn-xs ${isIncluded ? 'btn-primary' : 'btn-outline'}`}
+                              style={{ borderRadius: '20px', padding: '6px 14px' }}
+                              onClick={() => {
+                                if (isIncluded) setSelectedBurgerExtras(prev => prev.filter(e => e.nombre !== ex.nombre));
+                                else setSelectedBurgerExtras(prev => [...prev, ex]);
+                              }}
+                            >
+                              {ex.nombre} (+${ex.precio})
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {cfg.con_papas && (
+                    <div style={{ marginBottom: 28 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. ¿Lo hacemos COMBO?</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div 
+                          className={`selection-card ${withFries ? 'active' : ''}`}
+                          onClick={() => setWithFries(true)}
+                          style={{ 
+                            padding: '20px 10px', borderRadius: '12px', border: withFries ? '2px solid var(--red-500)' : '1px solid #eee',
+                            backgroundColor: withFries ? '#fff5f5' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                            boxShadow: withFries ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
+                          }}
+                        >
+                          <div style={{ fontSize: '2.5rem' }}>🍟</div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>¡Si, papas!</div>
+                            <div style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '0.9rem' }}>+ ${cfg.precio_papas}</div>
+                          </div>
+                        </div>
+
+                        <div 
+                          className={`selection-card ${!withFries ? 'active' : ''}`}
+                          onClick={() => setWithFries(false)}
+                          style={{ 
+                            padding: '20px 10px', borderRadius: '12px', border: !withFries ? '2px solid var(--gray-600)' : '1px solid #eee',
+                            backgroundColor: !withFries ? '#f9fafb' : '#fff', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                            opacity: !withFries ? 1 : 0.7
+                          }}
+                        >
+                          <div style={{ fontSize: '2.5rem' }}>{cfg.es_pancho ? '🌭' : (cfg.es_hamburguesa ? '🍔' : '🍽️')}</div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>{cfg.es_pancho ? 'Solo el pancho' : (cfg.es_hamburguesa ? 'Solo la hamburguesa' : 'Solo el plato')}</div>
+                            <div style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Sin papas</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button 
+                    className="btn btn-primary btn-full btn-lg"
+                    style={{ borderRadius: '12px', height: '56px', fontSize: '1.1rem' }}
+                    onClick={() => {
+                      const variantText = selectedVariant ? `${selectedVariant.nombre}` : '';
+                      const extrasText = selectedBurgerExtras.map(e => e.nombre).join(' + ');
+                      const friesText = withFries ? ' + PAPAS' : '';
+                      
+                      let finalName = burgerModal.nombre;
+                      if (variantText) finalName += ` ${variantText}`;
+                      if (extrasText) finalName += ` c/ ${extrasText}`;
+                      finalName += friesText;
+
+                      const finalItem = {
+                        ...burgerModal,
+                        menuId: burgerModal.id,
+                        id: `${burgerModal.id}-${Date.now()}`,
+                        nombre: finalName,
+                        precioOriginal: rawTotal,
+                        precio: totalCalculated,
+                        variant: selectedVariant,
+                        burgerExtras: selectedBurgerExtras,
+                        withFries: withFries
+                      };
+                      cart.addItem(finalItem);
+                      setBurgerModal(null);
+                      toast.success(`¡Agregado al carrito!`);
+                    }}
+                  >
+                    Agregar • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${totalCalculated}
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+
+
+      <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
+        <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '80px', objectFit: 'contain' }} />
+        <p>© 2026 <strong>Wepi</strong> — Plataforma de Pedidos y Delivery</p>
+        <p>
+          <Link to="/locales">Registrá tu local</Link> •{' '}
+          <button className="footer-link" style={{ color: 'white' }} onClick={() => setModal('terms')}>Términos</button> •{' '}
+          <a href="mailto:bajoneando.st@gmail.com">Soporte</a> •{' '}
+          <button 
+            className="footer-link" 
+            style={{ color: 'white', fontWeight: 'bold' }} 
+            onClick={() => setShowRegretModal(true)}
+          >
+            Botón de Arrepentimiento
+          </button>
+        </p>
+      </footer>
+
+      {/* Regret Modal */}
+      {showRegretModal && (
+        <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
+            <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta permanentemente de Wepi? <br/>
+              <strong>Esta acción no se puede deshacer.</strong>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button 
+                className="btn btn-primary" 
+                style={{ background: 'var(--red-600)' }} 
+                disabled={deleting}
+                onClick={async () => {
+                  if (!user?.userId) {
+                    toast.error("Debes iniciar sesión para eliminar tu cuenta.");
+                    setShowRegretModal(false);
+                    return;
+                  }
+                  setDeleting(true);
+                  try {
+                    await api.deleteUsuarioAccount(user.userId);
+                    toast.success("Cuenta eliminada correctamente.");
+                    doLogout();
+                    window.location.href = "/";
+                  } catch (e) {
+                    toast.error("No se pudo eliminar la cuenta. Es posible que tengas pedidos activos.");
+                  } finally {
+                    setDeleting(false);
+                    setShowRegretModal(false);
+                  }
+                }}
+              >
+                {deleting ? 'Eliminando...' : 'Sí, eliminar mi registro'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* â”€â”€â”€ Address Selector Modals â”€â”€â”€ */}
+      {showAddressSelector && (
+        <AddressSelector
+          isLoaded={isMapLoaded}
+          initialAddress={addressData.address}
+          initialCoords={addressData.lat ? { lat: addressData.lat, lng: addressData.lng } : null}
+          onConfirm={(data) => {
+            setAddressData(data);
+            setShowAddressSelector(false);
+          }}
+          onCancel={() => setShowAddressSelector(false)}
+        />
+      )}
+
+      {showProfileAddressSelector && (
+        <AddressSelector
+          isLoaded={isMapLoaded}
+          initialAddress={user?.direccion || ''}
+          initialCoords={user?.lat ? { lat: user.lat, lng: user.lng } : null}
+          onConfirm={async (data) => {
+            try {
+              await api.updateDireccion(user.id, data.address, data.lat, data.lng);
+              updateUserAddress(data.address);
+              // Podríamos necesitar recargar el usuario localmente o actualizar el context
+              toast.success('Dirección de perfil actualizada');
+              setShowProfileAddressSelector(false);
+              setModal('profile');
+            } catch (e) {
+              toast.error('Error al actualizar perfil');
+            }
+          }}
+          onCancel={() => setShowProfileAddressSelector(false)}
+        />
+      )}
+
+      {/* Modal de Búsqueda de Repartidor */}
+      {searchingDriver && (
+        <div className="searching-modal-overlay">
+          <div className="searching-modal-card">
+            {!foundDriver ? (
+              <>
+                <div className="searching-animation">
+                  <div className="radar"></div>
+                  <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Buscando" className="moving-moto" />
+                </div>
+                <h2>Confirmando pedido...</h2>
+                <div className="searching-status-pill">
+                  {searchSeconds < 10 ? 'Iniciando búsqueda...' : 
+                   searchSeconds < 30 ? 'Notificando a repartidores cercanos...' :
+                   searchSeconds < 60 ? 'Estamos esperando una aceptación...' :
+                   'Ampliando zona de búsqueda...'}
+                </div>
+                <p className="searching-description">
+                  Estamos buscando al mejor repartidor disponible para llevar tu pedido. Esto puede demorar unos minutos.
+                </p>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#dc2626',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  marginTop: '10px',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>⚠️</span> 
+                  <span><strong>NO CIERRES ESTA VENTANA:</strong> Una vez que encontremos repartidor, deberás realizar el pago para confirmar tu pedido.</span>
+                </div>
+                <div className="searching-timer">
+                  Buscando repartidor... 
+                  <span style={{ fontWeight: 800, color: 'var(--red-600)', marginLeft: '8px', fontSize: '1.1rem' }}>
+                    0{Math.floor((60 - searchSeconds) / 60)}:{( (60 - searchSeconds) % 60 ).toString().padStart(2, '0')}
+                  </span>
+                </div>
+                <button 
+                  className="searching-cancel-btn"
+                  onClick={async () => {
+                    const orderIdToCancel = pendingOrderId;
+                    setSearchingDriver(false);
+                    setPendingOrderId(null);
+                    localStorage.removeItem('pendingOrderDataPruebas');
+                    
+                    if (orderIdToCancel) {
+                      try {
+                        await Promise.all([
+                          api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
+                          api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
+                        ]);
+                        toast.success('Búsqueda cancelada');
+                      } catch (e) {
+                        console.error("Error cancelling order:", e);
+                      }
+                    }
+                  }}
+                >
+                  Cancelar búsqueda
+                </button>
+              </>
+            ) : (
+              <div className="found-driver-animation">
+                <div className="success-check">
+                  <span className="check-icon">🚀</span>
+                </div>
+                <h2>¡Repartidor encontrado!</h2>
+                <p className="success-msg">Ya encontramos un repartidor para llevar tu pedido.</p>
+                
+                <div className="found-driver-info">
+                  <img src={foundDriver.foto_url || 'https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png'} alt="Repartidor" className="driver-img" />
+                  <div className="driver-details">
+                    <span className="driver-name">{foundDriver.nombre}</span>
+                    <span className="estimated-tag">Llega en {estimatedTime}</span>
+                  </div>
+                </div>
+
+                {!getIsCashOrder() && (
+                  <div className="opening-mp">
+                    <div className="spinner-small"></div>
+                    <span>Abriendo app de Mercado Pago...</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {driverSearchTimeout && (
+        <div className="searching-modal-overlay">
+          <div className="searching-modal-card animate-slide-up">
+            <div className="timeout-icon">📢</div>
+            <h2>Seguimos buscando...</h2>
+            <p>Los repartidores están un poco ocupados en este momento. ¿Quieres seguir esperando un poco más? Seguiremos notificándolos.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '20px' }}>
+              <button 
+                className="btn btn-primary btn-full"
+                onClick={() => {
+                  setDriverSearchTimeout(false);
+                  setSearchSeconds(0); 
+                  api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, shipping);
+                  toast.success('¡Enviamos otro aviso a los repartidores! 🛵');
+                }}
+              >
+                ✅ Sí, seguir esperando
+              </button>
+              <button 
+                className="btn btn-outline btn-full"
+                onClick={async () => {
+                  const orderIdToCancel = pendingOrderId;
+                  setDriverSearchTimeout(false);
+                  setSearchingDriver(false);
+                  setPendingOrderId(null);
+                  localStorage.removeItem('pendingOrderDataPruebas');
+                  
+                  if (orderIdToCancel) {
+                    try {
+                      await Promise.all([
+                        api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
+                        api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
+                      ]);
+                      toast.success('Búsqueda cancelada');
+                    } catch (e) {
+                      console.error("Error cancelling order:", e);
+                    }
+                  }
+                }}
+              >
+                ✖ No, cancelar pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chatbot de Ayuda */}
+      <HelpChatbot />
+      
+      {walletDetailsOpen && (
+        <WalletDetailsPanel 
+          onClose={() => setWalletDetailsOpen(false)}
+          balance={walletBalance}
+          transactions={walletBreakdown}
+          promotions={allPromotions}
+          userId={user?.id}
+          onRefresh={refreshWallet}
+        />
+      )}
+    </div>
+  );
+}
+
+// --- SUB-COMPONENT: WalletDetailsPanel ---
+function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId, onRefresh }) {
+  const [selectedPromo, setSelectedPromo] = React.useState(null);
+  const [couponCode, setCouponCode] = React.useState('');
+  const [redeemLoading, setRedeemLoading] = React.useState(false);
+
+  const handleShowPromoTerms = async (campaignId) => {
+    if (!campaignId) return;
+    const promo = promotions.find(p => p.id === campaignId);
+    if (promo) {
+      setSelectedPromo(promo);
+    } else {
+      try {
+        const { data, error } = await api.supabase
+          .from('promociones')
+          .select('*')
+          .eq('id', campaignId)
+          .single();
+        if (error) {
+          console.error("Error fetching promo terms:", error);
+          toast.error("No se pudieron cargar los términos de esta promoción.");
+          return;
+        }
+        if (data) {
+          setSelectedPromo(data);
+        }
+      } catch (err) {
+        console.error("Error in handleShowPromoTerms:", err);
+      }
+    }
+  };
+
+  const handleRedeemCoupon = async (e) => {
+    e.preventDefault();
+    if (!couponCode.trim()) {
+      toast.error('Por favor ingresa un código de cupón');
+      return;
+    }
+    if (!userId) {
+      toast.error('Inicia sesión para canjear un cupón');
+      return;
+    }
+
+    setRedeemLoading(true);
+    try {
+      const response = await api.redeemWalletCoupon(userId, couponCode.trim());
+      if (response && response.success) {
+        toast.success(response.message || `¡Cupón canjeado con éxito! Recibiste $${response.amount} de crédito.`);
+        setCouponCode('');
+        if (onRefresh) {
+          await onRefresh();
+        }
+      } else {
+        toast.error(response?.message || 'Error al canjear el cupón.');
+      }
+    } catch (error) {
+      console.error('Error redeeming wallet coupon:', error);
+      toast.error(error.message || 'Error al procesar el cupón.');
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
+  return (
+    <div className="wallet-drawer-overlay animate-fade-in" onClick={onClose}>
+      <div className="wallet-drawer-content" onClick={e => e.stopPropagation()}>
+        <header className="drawer-header">
+          <div className="drawer-title">
+            <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" style={{width: 28}} />
+            <h3>Mi Wepi Wallet</h3>
+          </div>
+          <button className="close-drawer" onClick={onClose}>×</button>
+        </header>
+
+        <div className="drawer-body">
+          <div className="balance-hero">
+            <label>Saldo Disponible</label>
+            <div className="amount">${(balance || 0).toLocaleString()}</div>
+            <p className="balance-hint">Dinero acumulado para tus próximos pedidos</p>
+          </div>
+
+          {/* Premium Coupon Redemption Card */}
+          <div className="drawer-section coupon-redemption-card">
+            <h4>🎟️ ¿Tienes un cupón de regalo?</h4>
+            <form onSubmit={handleRedeemCoupon} className="coupon-redeem-form">
+              <div className="coupon-input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Ej: INSTA1000"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  disabled={redeemLoading}
+                  className="coupon-redeem-input"
+                />
+                <button 
+                  type="submit" 
+                  disabled={redeemLoading} 
+                  className="coupon-redeem-button"
+                >
+                  {redeemLoading ? (
+                    <span className="spinner-small"></span>
+                  ) : (
+                    'Canjear'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="drawer-section">
+            <h4>📜 Historial de Movimientos</h4>
+            <div className="credits-list">
+              {transactions && transactions.length > 0 ? transactions.map(trans => {
+                const isExpired = trans.type === 'earn' && trans.expires_at && new Date(trans.expires_at) < new Date();
+                const isEarn = trans.type === 'earn';
+                const hasCampaign = !!trans.campaign_id;
+                
+                return (
+                  <div key={trans.id} className={`credit-item-card ${isExpired ? 'expired-trans' : ''}`}>
+                    <div className="item-info">
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span className="item-name">{isEarn ? 'Crédito Ganado' : 'Crédito Usado'}</span>
+                        {isExpired && <span className="badge-vencido">Vencido</span>}
+                      </div>
+                      <span className={`item-value ${isEarn ? 'plus' : 'minus'}`}>
+                        {isEarn ? '+' : '−'}${Number(trans.amount).toLocaleString()}
+                      </span>
+                      <div className="item-meta">
+                        <span>{trans.description}</span>
+                        {isEarn && trans.expires_at && (
+                          <span style={{display: 'block', marginTop: '2px'}}>
+                            ⏳ {isExpired ? 'Venció el' : 'Vence el'} {new Date(trans.expires_at).toLocaleDateString('es-AR')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {hasCampaign && (
+                      <button 
+                        type="button" 
+                        className="btn-info-legal" 
+                        onClick={() => handleShowPromoTerms(trans.campaign_id)}
+                        style={{ marginLeft: '12px', flexShrink: 0 }}
+                      >
+                        ℹ️ Ver T&C
+                      </button>
+                    )}
+                  </div>
+                );
+              }) : (
+                <div className="empty-state-simple">
+                  No tienes movimientos en tu billetera.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="drawer-section">
+             <h4>🎁 Promos Disponibles</h4>
+             <div className="credits-list">
+                {promotions.filter(p => p.tipo === 'credito' && p.activo).map(promo => (
+                  <div key={promo.id} className="credit-item-card promo-hint-card">
+                     <div className="item-info">
+                        <span className="item-name">{promo.nombre}</span>
+                        <span className="item-meta">¡Ganá hasta ${promo.beneficios?.tope_valor || ''} con esta promo!</span>
+                     </div>
+                     <button className="btn-info-legal" onClick={() => setSelectedPromo(promo)}>Ver T&C</button>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </div>
+
+        {selectedPromo && (
+          <div className="legal-popup-overlay" onClick={() => setSelectedPromo(null)}>
+            <div className="legal-popup-content" onClick={e => e.stopPropagation()}>
+              <header>
+                <h5>Términos y Condiciones</h5>
+                <button onClick={() => setSelectedPromo(null)}>×</button>
+              </header>
+              <div className="legal-text">
+                <h6>{selectedPromo.nombre}</h6>
+                <p>{selectedPromo.metadata?.terminos || 'Válido para pedidos que cumplan los requisitos de la promoción.'}</p>
+                <div className="legal-details">
+                  <div>• Compra mínima: ${selectedPromo.triggers?.min_compra || 0}</div>
+                  <div>• Vencimiento: {selectedPromo.requisitos?.vencimiento_dias || 7} días</div>
+                  <div>• Máx. uso: {selectedPromo.requisitos?.max_porcentaje_uso || 100}% del pedido</div>
+                </div>
+              </div>
+              <button className="btn btn-primary btn-full" onClick={() => setSelectedPromo(null)}>Entendido</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

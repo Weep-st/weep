@@ -1,0 +1,95 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+Deno.serve(async (req) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
+
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { items, external_reference, back_urls, local_id, marketplace_fee } = await req.json()
+
+    if (!items || !external_reference || !local_id) {
+      throw new Error("Missing required parameters: items, external_reference, or local_id")
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseServiceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    const supabase = createClient(supabaseUrl, supabaseServiceRole)
+
+    const { data: localData, error: localError } = await supabase
+      .from('locales')
+      .select('mp_access_token')
+      .eq('id', local_id)
+      .single()
+
+    // Si el local tiene configurado su propio token, se cobra a su cuenta.
+    // De lo contrario, usamos el token global (central) como se hacía en idea.html
+    const masterToken = 'APP_USR-595288641172928-010710-d915bce4137b3ee26e0c6e04873f1ac1-695835795';
+    const accessToken = localData?.mp_access_token || Deno.env.get('MP_ACCESS_TOKEN_GLOBAL') || masterToken;
+
+    const successUrl = "https://wepi.com.ar/pedir";
+    const safeBackUrls = {
+      success: successUrl,
+      failure: successUrl,
+      pending: successUrl
+    };
+
+    const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-mp?local_id=${local_id}`;
+    
+    // Configuración de la preferencia base
+    const body: any = {
+      items,
+      external_reference,
+      back_urls: safeBackUrls,
+      auto_return: safeBackUrls.success.startsWith('https') ? "approved" : undefined,
+      notification_url: notificationUrl
+    }
+
+    console.log(`[Create MP Preference] External Reference: ${external_reference}`);
+    console.log(`[Create MP Preference] Notification URL: ${notificationUrl}`);
+
+    // Calcula el total del pedido
+    const totalAmount = items.reduce((sum: number, item: any) => sum + (item.unit_price * item.quantity), 0);
+    // Usamos el marketplace_fee indicado por el frontend (Comisión + Envío + Ajuste)
+    // El fallback ahora es más coherente al modelo de negocio que el 5% inicial.
+    const FEE_ADJUSTMENT_FACTOR = 0.85;
+    const weepFee = marketplace_fee !== undefined 
+      ? Number(marketplace_fee) 
+      : Number((totalAmount * 0.20 * FEE_ADJUSTMENT_FACTOR).toFixed(2)); // Estimado ~20% (envío+comisión) x factor
+
+    // Si se usó el token del local y está configurado, le aplicamos la comisión del Marketplace
+    if (localData?.mp_access_token && accessToken === localData.mp_access_token) {
+      body.marketplace_fee = weepFee;
+    }
+
+    const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || "Error creating Mercado Pago preference")
+    }
+
+    return new Response(JSON.stringify({ init_point: data.init_point, id: data.id }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200
+    })
+  }
+})

@@ -1,0 +1,139 @@
+import React, { useState, useEffect, useRef } from 'react';
+import './HelpChatbot.css';
+
+const ASSISTANT_IMAGE = "https://i.postimg.cc/RV8VGysv/wepi-(10).png";
+const WHATSAPP_NUMBER = "5493756543610";
+
+const HelpChatbot = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { id: 1, text: "¡Hola! 👋 Soy tu asistente de Wepi. ¿En qué puedo ayudarte hoy?", isBot: true }
+  ]);
+  const [showButtons, setShowButtons] = useState(true);
+  const chatEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
+
+  const handleOptionClick = (option) => {
+    const userMsg = { id: Date.now(), text: option.label, isBot: false };
+    setMessages(prev => [...prev, userMsg]);
+    setShowButtons(false);
+
+    setTimeout(() => {
+      let botResponse = "";
+      let action = null;
+
+      switch (option.id) {
+        case 'dev':
+          botResponse = "Entiendo. Para gestionar la devolución de un pedido rechazado, te derivaré con nuestro equipo de reembolsos por WhatsApp.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, necesito gestionar la devolucion de un pedido rechazado.`, '_blank');
+          break;
+        case 'no_llego':
+          botResponse = "Lamento escuchar eso. Por favor, indícame tu número de pedido por WhatsApp para que podamos contactar al repartidor de inmediato.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, mi pedido no ha llegado. Necesito ayuda.`, '_blank');
+          break;
+        case 'no_envio':
+          botResponse = "En este momento todos nuestros repartidores están ocupados procesando otros pedidos para garantizar la mejor calidad de servicio. Por favor, vuelve a intentarlo en unos minutos.";
+          break;
+        case 'seguimiento':
+          botResponse = "Podés ver la ubicación de tu repartidor ingresando a 'Mis Pedidos', seleccionando tu pedido activo y presionando en 'Ver Seguimiento'.";
+          break;
+        case 'sugerencias':
+          botResponse = "¡Nos encanta escucharte! Por favor, envíanos tu sugerencia por WhatsApp para que podamos seguir mejorando Wepi.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, tengo una sugerencia para mejorar Wepi: `, '_blank');
+          break;
+        case 'pago':
+          botResponse = "Si tuviste problemas con Mercado Pago o transferencia, por favor envíanos una captura del comprobante por WhatsApp para verificarlo.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, tuve un problema con el pago de mi pedido.`, '_blank');
+          break;
+        case 'local':
+          botResponse = "¡Excelente! Puedes registrar tu local ingresando a wepi.com.ar/locales y siguiendo los pasos de registro.";
+          break;
+        case 'soporte':
+          botResponse = "Para cualquier otro inconveniente técnico o duda, podés escribirnos directamente aquí.";
+          action = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hola, necesito soporte con la plataforma Wepi.`, '_blank');
+          break;
+        default:
+          botResponse = "Un representante se pondrá en contacto contigo a la brevedad via WhatsApp.";
+      }
+
+      const botMsg = { id: Date.now() + 1, text: botResponse, isBot: true };
+      setMessages(prev => [...prev, botMsg]);
+      
+      if (action) {
+        setTimeout(action, 1500);
+      }
+    }, 1000);
+  };
+
+  const options = [
+    { id: 'dev', label: '💸 Devolución' },
+    { id: 'no_llego', label: '🛵 Pedido no llegó' },
+    { id: 'no_envio', label: '🚚 ¿Por qué no hay envíos?' },
+    { id: 'seguimiento', label: '📍 Seguimiento real' },
+    { id: 'sugerencias', label: '💡 Sugerencias' },
+    { id: 'pago', label: '💳 Problemas pago' },
+    { id: 'local', label: '🏪 Registrar local' },
+    { id: 'soporte', label: '🛠️ Soporte' },
+  ];
+
+  return (
+    <div className={`chatbot-container ${isOpen ? 'open' : ''}`}>
+      {!isOpen && (
+        <button className="chatbot-toggle" onClick={() => setIsOpen(true)}>
+          <img src={ASSISTANT_IMAGE} alt="Ayuda" />
+          <span className="toggle-badge">Ayuda</span>
+        </button>
+      )}
+
+      {isOpen && (
+        <div className="chatbot-window">
+          <div className="chatbot-header">
+            <div className="assistant-info">
+              <img src={ASSISTANT_IMAGE} alt="Assistant" />
+              <div>
+                <h4>Asistente Wepi</h4>
+                <span>En línea</span>
+              </div>
+            </div>
+            <button className="close-btn" onClick={() => setIsOpen(false)}>×</button>
+          </div>
+
+          <div className="chatbot-messages">
+            {messages.map(msg => (
+              <div key={msg.id} className={`message ${msg.isBot ? 'bot' : 'user'}`}>
+                {msg.isBot && <img src={ASSISTANT_IMAGE} className="msg-avatar" alt="bot" />}
+                <div className="message-text">{msg.text}</div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+
+          <button className="toggle-options-btn" onClick={() => setShowButtons(!showButtons)}>
+            {showButtons ? '🔽 Ocultar sugerencias' : '🔼 Mostrar sugerencias de ayuda'}
+          </button>
+
+          {showButtons && (
+            <div className="chatbot-options">
+              {options.map(opt => (
+                <button key={opt.id} onClick={() => handleOptionClick(opt)}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default HelpChatbot;
