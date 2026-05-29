@@ -212,6 +212,7 @@ export default function PruebasApp() {
     const preference_id = query.get('preference_id');
 
     if (status && payment_id) {
+      if (!user) return; // Guard for async auth restoration
       const pendingRaw = localStorage.getItem('pendingOrderData');
       if (pendingRaw) {
         try {
@@ -226,7 +227,7 @@ export default function PruebasApp() {
               preference_id, 
               pendingData.externalReference
             ).then(async (res) => {
-              if (res.success) {
+              if (res.success && user?.id) {
                 // Si el pedido tiene un repartidor asignado, notificarlo
                 try {
                   const orderRes = await api.getOrderDetail(user.id, pendingData.pedidoId);
@@ -289,7 +290,7 @@ export default function PruebasApp() {
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [cart]);
+  }, [cart, user]);
 
   // Refrescar repartidores cada vez que el carrito se abre
   React.useEffect(() => {

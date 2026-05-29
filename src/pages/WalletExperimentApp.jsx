@@ -295,6 +295,7 @@ export default function PruebasApp() {
     const preference_id = query.get('preference_id');
 
     if (status && payment_id) {
+      if (!user) return; // Guard for async auth restoration
       const pendingRaw = localStorage.getItem('pendingOrderData');
       if (pendingRaw) {
         try {
@@ -383,7 +384,7 @@ export default function PruebasApp() {
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [cart]);
+  }, [cart, user]);
 
   // Refrescar repartidores cada vez que el carrito se abre
   React.useEffect(() => {

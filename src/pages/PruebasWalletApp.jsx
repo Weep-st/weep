@@ -886,6 +886,7 @@ export default function PruebasWalletApp() {
     const preference_id = query.get('preference_id');
 
     if (status && payment_id) {
+      if (!user) return; // Guard for async auth restoration
       const pendingRaw = localStorage.getItem('pendingOrderData');
       if (pendingRaw) {
         try {
@@ -900,7 +901,7 @@ export default function PruebasWalletApp() {
               preference_id, 
               pendingData.externalReference
             ).then(async (res) => {
-              if (res.success) {
+              if (res.success && user?.id) {
                 // Refrescar balance de wallet tras pago exitoso
                 api.getUserWalletBalance(user.id).then(setWalletBalance).catch(() => {});
                 
@@ -966,7 +967,7 @@ export default function PruebasWalletApp() {
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [cart]);
+  }, [cart, user]);
 
 
   // Search
