@@ -1345,10 +1345,6 @@ export async function getMisPedidos(userId) {
     .select(`
       *,
       repartidor:repartidores(nombre, telefono),
-      pedidos_locales:pedidos_locales(
-        *,
-        locales(nombre)
-      ),
       pedidos_items:pedidos_items(
         *
       )
@@ -1362,6 +1358,38 @@ export async function getMisPedidos(userId) {
   }
 
   if (!pedidos || pedidos.length === 0) return { enCurso: [], historial: [] };
+
+  // Fetch pedidos_locales separately due to missing database foreign key constraint in the schema cache
+  try {
+    const pedidoIds = pedidos.map(p => p.id);
+    const { data: localesRelation, error: localesError } = await supabase
+      .from('pedidos_locales')
+      .select(`
+        *,
+        locales(nombre)
+      `)
+      .in('pedido_id', pedidoIds);
+
+    if (localesError) {
+      console.error("Error fetching corresponding pedidos_locales:", localesError);
+    } else if (localesRelation) {
+      // Group pedidos_locales by pedido_id
+      const localesMap = {};
+      for (const pl of localesRelation) {
+        if (!localesMap[pl.pedido_id]) {
+          localesMap[pl.pedido_id] = [];
+        }
+        localesMap[pl.pedido_id].push(pl);
+      }
+
+      // Merge into pedidos
+      for (const p of pedidos) {
+        p.pedidos_locales = localesMap[p.id] || [];
+      }
+    }
+  } catch (e) {
+    console.error("Error processing pedidos_locales separate query:", e);
+  }
 
   const enCurso = [];
   const historial = [];
