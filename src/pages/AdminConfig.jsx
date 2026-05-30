@@ -6,7 +6,8 @@ const AdminConfig = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [config, setConfig] = useState({
-        valor_envio: 2000
+        valor_envio: 2000,
+        codigo_acceso: ''
     });
 
     useEffect(() => {
@@ -32,7 +33,8 @@ const AdminConfig = () => {
                 valor_envio: Number(config.valor_envio),
                 mantenimiento_pedir: config.mantenimiento_pedir,
                 mantenimiento_locales: config.mantenimiento_locales,
-                mantenimiento_repartidores: config.mantenimiento_repartidores
+                mantenimiento_repartidores: config.mantenimiento_repartidores,
+                codigo_acceso: config.codigo_acceso
             });
             toast.success('Configuración guardada correctamente');
         } catch (err) {
@@ -76,6 +78,31 @@ const AdminConfig = () => {
                     />
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                         Este valor se aplicará a todos los pedidos con envío en la plataforma.
+                    </p>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                        Código de Acceso para Registro de Locales
+                    </label>
+                    <input
+                        type="text"
+                        value={config.codigo_acceso || ''}
+                        onChange={(e) => setConfig({ ...config, codigo_acceso: e.target.value })}
+                        className="admin-input"
+                        placeholder="Ej: WEPI123"
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '0.5rem',
+                            color: 'white',
+                            fontSize: '1rem'
+                        }}
+                    />
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                        Este código será requerido a los nuevos locales para poder completar el registro.
                     </p>
                 </div>
 

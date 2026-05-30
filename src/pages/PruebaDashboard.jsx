@@ -617,6 +617,20 @@ export default function PruebaDashboard() {
     setAuthLoading(false);
   };
 
+  const handleSolicitarCodigo = () => {
+    const nombre = document.querySelector('input[name="nombre"]')?.value || '';
+    const codigoArea = document.querySelector('select[name="codigo_area"]')?.value || '+549';
+    const telefono = document.querySelector('input[name="telefono"]')?.value || '';
+    const contacto = telefono ? `${codigoArea}${telefono}` : '';
+    let text = "Hola! Quiero registrar mi local en Wepi y solicitar un código de acceso.";
+    if (nombre || contacto) {
+      text += ` Mi local se llama: ${nombre}.`;
+      if (contacto) text += ` Celular de contacto: ${contacto}.`;
+    }
+    const url = `https://wa.me/5493756543610?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -624,19 +638,36 @@ export default function PruebaDashboard() {
     if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
     setAuthLoading(true);
     try {
+      const config = await api.getConfiguracion();
+      const enteredCode = fd.get('codigo_acceso')?.trim();
+      const expectedCode = config.codigo_acceso?.trim() || 'WEPI123';
+      
+      if (enteredCode !== expectedCode) {
+        toast.error('El código de acceso ingresado es incorrecto. Solicítalo por WhatsApp.');
+        setAuthLoading(false);
+        return;
+      }
+
+      const codigoArea = fd.get('codigo_area') || '';
+      const telefono = fd.get('telefono') || '';
+      const contactoFull = telefono ? `${codigoArea}${telefono}` : '';
+
       await api.registerLocal(
         fd.get('nombre'), '', email, fd.get('password'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         selectedPlan, // Pasamos el tipo de plan
         null,
-        null
+        null,
+        contactoFull
       );
       toast.success('¡Local registrado! Iniciá sesión.');
       setAuthEmail(email);
       setAuthView('login');
       setSelectedPlan(null); // Reset plan selection after registration
-    } catch { toast.error('Error al registrar'); }
+    } catch (err) { 
+      toast.error('Error al registrar: ' + (err.message || err)); 
+    }
     setAuthLoading(false);
   };
 
@@ -1076,6 +1107,44 @@ export default function PruebaDashboard() {
                       src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
                       alt="Ver" 
                     />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <select 
+                    name="codigo_area" 
+                    className="form-input" 
+                    style={{ width: '105px', margin: 0, padding: '0 8px', height: '42px', minHeight: '42px' }}
+                  >
+                    <option value="+549">🇦🇷 +549</option>
+                    <option value="+55">🇧🇷 +55</option>
+                  </select>
+                  <input 
+                    name="telefono" 
+                    type="tel" 
+                    className="form-input" 
+                    placeholder="Celular (ej: 3756123456)" 
+                    required 
+                    autoComplete="tel-national" 
+                    style={{ margin: 0, flex: 1 }}
+                  />
+                </div>
+
+                <div className="access-code-container" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <input 
+                    name="codigo_acceso" 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Código de Acceso" 
+                    required 
+                    style={{ margin: 0, flex: 1 }} 
+                  />
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={handleSolicitarCodigo} 
+                    style={{ whiteSpace: 'nowrap', padding: '0 12px', fontSize: '0.85rem' }}
+                  >
+                    Solicitar Código
                   </button>
                 </div>
                 

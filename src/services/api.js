@@ -173,7 +173,7 @@ export async function loginLocal(email, password) {
   return { success: false };
 }
 
-export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null) {
+export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null) {
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
@@ -186,7 +186,8 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
     token_confirmacion: code,
     plan_id: planType === 'Empresa' ? 'ab9be1bd-f535-476e-90f4-f03ba074ba7d' : 'b404e2f7-6716-499b-8ebf-200ce417e4cb',
     lat,
-    lng
+    lng,
+    contacto
   });
   if (error) throw new Error(error.message);
   

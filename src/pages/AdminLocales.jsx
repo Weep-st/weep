@@ -182,6 +182,7 @@ const AdminLocales = () => {
                 localId: editingLocal.id,
                 nombre: fd.get('nombre'),
                 email: fd.get('email'),
+                contacto: fd.get('contacto'),
                 password: fd.get('password') || undefined, // Only send if not empty
                 rubros: fd.getAll('rubros'), // Get all checked rubros
                 horario_apertura: fd.get('horario_apertura'),
@@ -312,7 +313,14 @@ const AdminLocales = () => {
                                                     alt="" 
                                                     style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
                                                 />
-                                                {local.nombre}
+                                                <div>
+                                                    <div style={{ fontWeight: 600 }}>{local.nombre}</div>
+                                                    {local.contacto && (
+                                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                                            📱 {local.contacto}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td>{local.email}</td>
@@ -694,11 +702,15 @@ const AdminLocales = () => {
                             </div>
 
                             <div className="form-row">
-                                <div className="form-group">
+                                <div className="form-group" style={{ flex: 1 }}>
                                     <label>Email de Acceso</label>
                                     <input name="email" type="email" defaultValue={editingLocal.email} required />
                                 </div>
-                                <div className="form-group">
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Celular de Contacto</label>
+                                    <input name="contacto" defaultValue={editingLocal.contacto || ''} placeholder="Ej: +5493756..." />
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
                                     <label>Contraseña Actual (Ver/Editar)</label>
                                     <input 
                                         name="password" 

@@ -1863,7 +1863,7 @@ export default function CustomerApp() {
                 <input name="direccion" className="form-input" placeholder="Dirección (opcional)" autoComplete="street-address" />
                 <div className="phone-input-group">
                   <select name="prefix" className="phone-prefix-select">
-                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+549">🇦🇷 +549</option>
                     <option value="+55">🇧🇷 +55</option>
                   </select>
                   <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Número (ej: 1123456789)" required autoComplete="tel-national" />
@@ -1912,15 +1912,15 @@ export default function CustomerApp() {
                 <input name="email" type="email" className="form-input" defaultValue={user.email} required />
                 <label className="form-label">Teléfono</label>
                 <div className="phone-input-group">
-                  <select name="prefix" className="phone-prefix-select" defaultValue={user.telefono?.startsWith('+55') ? '+55' : '+54'}>
-                    <option value="+54">🇦🇷 +54</option>
+                  <select name="prefix" className="phone-prefix-select" defaultValue={user.telefono?.startsWith('+55') ? '+55' : '+549'}>
+                    <option value="+549">🇦🇷 +549</option>
                     <option value="+55">🇧🇷 +55</option>
                   </select>
                   <input 
                     name="telefono" 
                     type="tel" 
                     className="form-input phone-number-input" 
-                    defaultValue={user.telefono ? user.telefono.replace(/^\+54|^\+55/, '') : ''} 
+                    defaultValue={user.telefono ? user.telefono.replace(/^\+549|^\+54|^\+55/, '') : ''} 
                     placeholder="Número (ej: 1123456789)" 
                     required 
                   />

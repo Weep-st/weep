@@ -784,10 +784,14 @@ export default function DriverDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     setAuthLoading(true);
     try {
       const d = await api.repartidorRegister({
-        nombre: fd.get('nombre'), telefono: fd.get('telefono'),
+        nombre: fd.get('nombre'), telefono,
         email: fd.get('email'), password: fd.get('password'),
         patente: fd.get('patente').toUpperCase(), marcaModelo: fd.get('marcaModelo'),
         termsAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
@@ -829,6 +833,10 @@ export default function DriverDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     
     const file = fd.get('foto');
     const selectedDays = [];
@@ -846,7 +854,7 @@ export default function DriverDashboard() {
       const params = {
         driverId: driver.id,
         nombre: fd.get('nombre'),
-        telefono: fd.get('telefono'),
+        telefono,
         email: fd.get('email'),
         patente: fd.get('patente'),
         marca_modelo: fd.get('marca_modelo'),
@@ -1048,7 +1056,13 @@ export default function DriverDashboard() {
           <form onSubmit={handleRegister} className="dd-form" key="register">
             <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
             <input name="nombre" className="form-input" placeholder="Nombre completo" required autoComplete="name" />
-            <input name="telefono" type="tel" className="form-input" placeholder="Teléfono (ej: +54911...)" required autoComplete="tel" />
+            <div className="phone-input-group">
+              <select name="prefix" className="phone-prefix-select">
+                <option value="+549">🇦🇷 +549</option>
+                <option value="+55">🇧🇷 +55</option>
+              </select>
+              <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Teléfono (ej: 1123456789)" required autoComplete="tel-national" />
+            </div>
             <div className="password-container">
               <input 
                 name="password" 
@@ -1617,7 +1631,20 @@ export default function DriverDashboard() {
             </div>
             <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Teléfono</label>
-              <input name="telefono" className="form-input" defaultValue={driverData?.Telefono} required />
+              <div className="phone-input-group">
+                <select name="prefix" className="phone-prefix-select" defaultValue={driverData?.Telefono?.startsWith('+55') ? '+55' : '+549'}>
+                  <option value="+549">🇦🇷 +549</option>
+                  <option value="+55">🇧🇷 +55</option>
+                </select>
+                <input 
+                  name="telefono" 
+                  type="tel" 
+                  className="form-input phone-number-input" 
+                  defaultValue={driverData?.Telefono ? driverData.Telefono.replace(/^\+549|^\+54|^\+55/, '') : ''} 
+                  placeholder="Número (ej: 1123456789)" 
+                  required 
+                />
+              </div>
             </div>
             <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Nueva Contraseña (opcional)</label>
