@@ -4878,7 +4878,7 @@ export async function canjearCuponMundialista(userId, codigo) {
   return data;
 }
 
-export async function completarMisionCliente(userId, misionId, puntosPremio) {
+export async function completarMisionCliente(userId, misionId, puntosPremio, sobresPremio = 0) {
   if (!userId || !misionId) return { success: false };
   
   const { error: insErr } = await supabase
@@ -4892,21 +4892,35 @@ export async function completarMisionCliente(userId, misionId, puntosPremio) {
 
   const { data: st } = await supabase
     .from('mundial_usuario_stats')
-    .select('puntos_totales')
+    .select('puntos_totales, sobres_disponibles')
     .eq('usuario_id', userId)
     .maybeSingle();
   
-  const newPoints = (st ? st.puntos_totales : 0) + puntosPremio;
+  const newPoints = (st ? (st.puntos_totales || 0) : 0) + (puntosPremio || 0);
+  const newSobres = (st ? (st.sobres_disponibles || 0) : 0) + (sobresPremio || 0);
   
   const { error: updErr } = await supabase
     .from('mundial_usuario_stats')
-    .upsert({ usuario_id: userId, puntos_totales: newPoints });
+    .upsert({ 
+      usuario_id: userId, 
+      puntos_totales: newPoints,
+      sobres_disponibles: newSobres
+    });
 
   if (updErr) {
-    console.error("Error updating user stats points:", updErr);
+    console.error("Error updating user stats:", updErr);
   }
 
-  return { success: true, message: `¡Misión completada con éxito! +${puntosPremio} puntos.` };
+  let msg = `¡Misión completada con éxito!`;
+  if (puntosPremio > 0 && sobresPremio > 0) {
+    msg += ` +${puntosPremio} puntos y +${sobresPremio} sobres.`;
+  } else if (puntosPremio > 0) {
+    msg += ` +${puntosPremio} puntos.`;
+  } else if (sobresPremio > 0) {
+    msg += ` +${sobresPremio} sobres.`;
+  }
+
+  return { success: true, message: msg };
 }
 
 
