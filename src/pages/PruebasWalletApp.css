@@ -3833,3 +3833,75 @@
   animation: rotateSpinner 0.8s linear infinite;
 }
 
+/* --- Floating Mundial Trophy Widget --- */
+.floating-mundial-trophy {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 30px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 25px rgba(251, 191, 36, 0.35);
+  cursor: pointer;
+  z-index: 999;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: bounceSlow 3s ease-in-out infinite;
+}
+
+.floating-mundial-trophy:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 15px 30px rgba(251, 191, 36, 0.5);
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border-color: #ffffff;
+}
+
+.floating-mundial-trophy:hover .trophy-text {
+  color: #0f172a;
+}
+
+.floating-mundial-trophy .trophy-emoji {
+  font-size: 1.4rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  animation: rotateSlightly 3s ease-in-out infinite;
+}
+
+.floating-mundial-trophy .trophy-text {
+  color: #fbbf24;
+  font-weight: 850;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
+@keyframes bounceSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes rotateSlightly {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@media (max-width: 768px) {
+  .floating-mundial-trophy {
+    bottom: 80px; /* Clear of mobile cart and bottom tab bars */
+    left: 15px;
+    padding: 8px 14px;
+  }
+  .floating-mundial-trophy .trophy-emoji {
+    font-size: 1.2rem;
+  }
+  .floating-mundial-trophy .trophy-text {
+    font-size: 0.75rem;
+  }
+}
+
+

@@ -15,6 +15,7 @@ import MisPedidos from './pages/MisPedidos';
 import ConfirmarEmail from './pages/ConfirmarEmail';
 import AdminDashboard from './pages/AdminDashboard';
 import ConsentBanner from './components/ConsentBanner';
+import Mundialista from './pages/Mundialista';
 import { useAuth } from './context/AuthContext';
 import * as api from './services/api';
 
@@ -185,6 +186,11 @@ export default function App() {
           <Route path="/pedir" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
               <PruebasWalletApp />
+            </MaintenanceGuard>
+          } />
+          <Route path="/mundialista" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <Mundialista />
             </MaintenanceGuard>
           } />
           <Route path="/mis-pedidos" element={

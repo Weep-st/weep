@@ -3997,6 +3997,12 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
             </div>
           </div>
         )}
+
+        {/* Widget Mundialista Flotante */}
+        <Link to="/mundialista" className="floating-mundial-trophy" title="¡Campaña Mundialista Wepi! 🏆">
+          <span className="trophy-emoji">🏆</span>
+          <span className="trophy-text">Mundial Wepi</span>
+        </Link>
       </div>
     </div>
   );
