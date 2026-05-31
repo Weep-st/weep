@@ -599,8 +599,10 @@ const Mundialista = () => {
                         style={{
                             position: 'absolute',
                             bottom: '24px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
+                            left: 0,
+                            right: 0,
+                            margin: '0 auto',
+                            width: 'fit-content',
                             background: 'rgba(198, 40, 40, 0.95)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                             color: '#ffffff',
@@ -612,8 +614,7 @@ const Mundialista = () => {
                             boxShadow: '0 4px 15px var(--wepi-red-glow)',
                             pointerEvents: 'none',
                             animation: 'pulse 1.8s infinite',
-                            textAlign: 'center',
-                            width: 'fit-content'
+                            textAlign: 'center'
                         }}
                     >
                         {isMobileView ? '¡TOCÁ PARA ABRIR! 📖' : '¡HAZ CLIC AQUÍ PARA ABRIR! 📖'}
