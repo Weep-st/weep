@@ -4584,3 +4584,329 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
     }))
   };
 }
+
+// ═══════════════════════════════════════════════════
+// CAMPAÑA MUNDIALISTA - FRONTEND & ADMIN
+// ═══════════════════════════════════════════════════
+
+export async function getMundialConfig() {
+  const { data, error } = await supabase
+    .from('mundial_config')
+    .select('*')
+    .eq('id', 'global')
+    .single();
+  if (error) {
+    console.error("Error fetching mundial config:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateMundialConfig(updates) {
+  const { error } = await supabase
+    .from('mundial_config')
+    .update(updates)
+    .eq('id', 'global');
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getMundialPartidos() {
+  const { data, error } = await supabase
+    .from('mundial_partidos')
+    .select('*')
+    .order('fecha_partido', { ascending: true });
+  if (error) {
+    console.error("Error fetching partidos:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function adminSavePartido(partido) {
+  const { id, ...data } = partido;
+  if (id) {
+    const { error } = await supabase
+      .from('mundial_partidos')
+      .update(data)
+      .eq('id', id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('mundial_partidos')
+      .insert(data);
+    if (error) throw error;
+  }
+  return { success: true };
+}
+
+export async function adminDeletePartido(partidoId) {
+  const { error } = await supabase
+    .from('mundial_partidos')
+    .delete()
+    .eq('id', partidoId);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getMundialFiguritas() {
+  const { data, error } = await supabase
+    .from('mundial_figuritas')
+    .select('*')
+    .order('numero', { ascending: true });
+  if (error) {
+    console.error("Error fetching figuritas:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function adminSaveFigurita(fig) {
+  const { id, ...data } = fig;
+  const { error } = await supabase
+    .from('mundial_figuritas')
+    .update(data)
+    .eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getMundialUsuarioStats(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from('mundial_usuario_stats')
+    .select('*')
+    .eq('usuario_id', userId)
+    .maybeSingle();
+  
+  if (error) {
+    console.error("Error fetching mundial user stats:", error);
+    return null;
+  }
+  
+  // Si no existen stats, crearlas automáticamente
+  if (!data) {
+    const { data: newStats, error: createError } = await supabase
+      .from('mundial_usuario_stats')
+      .insert({ usuario_id: userId })
+      .select()
+      .single();
+    if (createError) {
+      console.error("Error creating user stats:", createError);
+      return null;
+    }
+    return newStats;
+  }
+  return data;
+}
+
+export async function getMundialPronosticos(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('mundial_pronosticos')
+    .select('*')
+    .eq('usuario_id', userId);
+  if (error) {
+    console.error("Error fetching pronosticos:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function saveMundialPronostico(userId, partidoId, golesA, golesB) {
+  const { error } = await supabase
+    .from('mundial_pronosticos')
+    .upsert({
+      usuario_id: userId,
+      partido_id: partidoId,
+      pronostico_a: golesA,
+      pronostico_b: golesB,
+      procesado: false
+    }, {
+      onConflict: 'usuario_id,partido_id'
+    });
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getMundialMisiones(userId) {
+  // Cargar misiones de hoy
+  const todayStr = new Date().toISOString().split('T')[0];
+  const { data: misiones, error: errorMisiones } = await supabase
+    .from('mundial_misiones')
+    .select('*')
+    .eq('fecha', todayStr);
+  
+  if (errorMisiones) {
+    console.error("Error fetching misiones:", errorMisiones);
+    return [];
+  }
+
+  if (!userId) {
+    return misiones?.map(m => ({ ...m, completada: false })) || [];
+  }
+
+  // Cargar misiones completadas por el usuario hoy
+  const { data: completadas, error: errorCompletadas } = await supabase
+    .from('mundial_misiones_usuarios')
+    .select('mision_id')
+    .eq('usuario_id', userId);
+
+  if (errorCompletadas) {
+    console.error("Error fetching completed misiones:", errorCompletadas);
+    return misiones?.map(m => ({ ...m, completada: false })) || [];
+  }
+
+  const completadasIds = new Set(completadas.map(c => c.mision_id));
+
+  return misiones.map(m => ({
+    ...m,
+    completada: completadasIds.has(m.id)
+  }));
+}
+
+export async function getMundialCalendario(userId) {
+  const { data: premios, error: errorPremios } = await supabase
+    .from('mundial_calendario_premios')
+    .select('*')
+    .order('dia', { ascending: true });
+  
+  if (errorPremios) {
+    console.error("Error fetching calendario premios:", errorPremios);
+    return [];
+  }
+
+  if (!userId) {
+    return premios.map(p => ({ ...p, reclamado: false }));
+  }
+
+  const { data: reclamos, error: errorReclamos } = await supabase
+    .from('mundial_calendario_reclamos')
+    .select('dia')
+    .eq('usuario_id', userId);
+
+  if (errorReclamos) {
+    console.error("Error fetching reclamos:", errorReclamos);
+    return premios.map(p => ({ ...p, reclamado: false }));
+  }
+
+  const reclamosDias = new Set(reclamos.map(r => r.dia));
+
+  return premios.map(p => ({
+    ...p,
+    reclamado: reclamosDias.has(p.dia)
+  }));
+}
+
+export async function reclamarDiaCalendario(userId, dia) {
+  const { data, error } = await supabase.rpc('fn_reclamar_premio_calendario', {
+    p_usuario_id: userId,
+    p_dia: dia
+  });
+  if (error) throw error;
+  return data; // Retorna { success, message, tipo, cantidad }
+}
+
+export async function abrirSobreMundialista(userId) {
+  const { data, error } = await supabase.rpc('fn_abrir_sobre_mundialista', {
+    p_usuario_id: userId
+  });
+  if (error) throw error;
+  return data; // Retorna { success, figuritas: [...] }
+}
+
+export async function pegarFiguritaMundialista(userId, figuritaId) {
+  const { data, error } = await supabase.rpc('fn_pegar_figurita_mundialista', {
+    p_usuario_id: userId,
+    p_figurita_id: figuritaId
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function reciclarRepetidasMundialista(userId, fig1, fig2, fig3) {
+  const { data, error } = await supabase.rpc('fn_reciclar_repetidas_mundialista', {
+    p_usuario_id: userId,
+    p_fig1: fig1,
+    p_fig2: fig2,
+    p_fig3: fig3
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getMundialRanking() {
+  const { data, error } = await supabase
+    .from('mundial_usuario_stats')
+    .select('usuario_id, puntos_totales, racha_actual, usuarios(nombre, email)')
+    .order('puntos_totales', { ascending: false })
+    .limit(10);
+  
+  if (error) {
+    console.error("Error fetching mundial ranking:", error);
+    return [];
+  }
+
+  return data.map((d, index) => ({
+    posicion: index + 1,
+    usuario_id: d.usuario_id,
+    nombre: d.usuarios?.nombre || d.usuarios?.email?.split('@')[0] || 'Participante',
+    puntos: d.puntos_totales || 0,
+    racha: d.racha_actual || 0
+  }));
+}
+
+export async function completarLoginMision(userId) {
+  if (!userId) return { success: false };
+  const { data, error } = await supabase.rpc('fn_mision_login_diario', {
+    p_usuario_id: userId
+  });
+  if (error) {
+    console.error("Error tracking daily login mission:", error);
+    return { success: false };
+  }
+  return data;
+}
+
+export async function canjearCuponMundialista(userId, codigo) {
+  if (!userId || !codigo) return { success: false, message: 'Faltan datos para realizar el canje.' };
+  const { data, error } = await supabase.rpc('fn_canjear_cupon_mundialista', {
+    p_usuario_id: userId,
+    p_codigo: codigo.trim().toUpperCase()
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function completarMisionCliente(userId, misionId, puntosPremio) {
+  if (!userId || !misionId) return { success: false };
+  
+  const { error: insErr } = await supabase
+    .from('mundial_misiones_usuarios')
+    .insert({ usuario_id: userId, mision_id: misionId });
+    
+  if (insErr) {
+    console.error("Error inserting completed mission:", insErr);
+    return { success: false, message: 'Ya has completado esta misión o hubo un error.' };
+  }
+
+  const { data: st } = await supabase
+    .from('mundial_usuario_stats')
+    .select('puntos_totales')
+    .eq('usuario_id', userId)
+    .maybeSingle();
+  
+  const newPoints = (st ? st.puntos_totales : 0) + puntosPremio;
+  
+  const { error: updErr } = await supabase
+    .from('mundial_usuario_stats')
+    .upsert({ usuario_id: userId, puntos_totales: newPoints });
+
+  if (updErr) {
+    console.error("Error updating user stats points:", updErr);
+  }
+
+  return { success: true, message: `¡Misión completada con éxito! +${puntosPremio} puntos.` };
+}
+
+
