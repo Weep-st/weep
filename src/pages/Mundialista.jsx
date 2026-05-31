@@ -623,7 +623,28 @@ const Mundialista = () => {
         }
 
         if (currentPage === 1) {
-            // Página 1 (Pág 2 y 3 del álbum físico): SELECCIÓN ARGENTINA LADO A LADO
+            // Página 1 (Pág 1 del álbum físico): Wepi y el Mundial (30 a 38)
+            // Incluye: Logo Wepi, Mascota Wepi, Logo Mundial, Países Anfitriones y Mascotas Mundial
+            return (
+                <div className="album-revista-page pag-normal animate-page-flip">
+                    <div className="page-header-premium" style={{ marginBottom: '15px' }}>
+                        <span>Pág 1</span>
+                        <h3 className="argentina-title" style={{ color: '#fbbf24' }}>🌍 Wepi • Bienvenidos al Mundial 2026</h3>
+                    </div>
+                    
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-10px', marginBottom: '20px' }}>
+                        El puntapié inicial de la fiesta: Coleccioná los stickers corporativos de Wepi, logos del torneo y las mascotas oficiales.
+                    </p>
+
+                    <div className="argentina-grid">
+                        {[30, 31, 32, 33, 34, 35, 36, 37, 38].map(num => renderStickerSlot(num))}
+                    </div>
+                </div>
+            );
+        }
+
+        if (currentPage === 2) {
+            // Página 2 (Pág 2 y 3 del álbum físico): SELECCIÓN ARGENTINA LADO A LADO
             // Slots 27,28,29 + 1-12 a la izquierda, 13-26 a la derecha
             const page2Slots = [27, 28, 29, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
             const page3Slots = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
@@ -695,31 +716,34 @@ const Mundialista = () => {
             );
         }
 
-        if (currentPage === 2) {
-            // Página 2 (Pág 4 del álbum físico): Estrellas Globales (30 a 34)
-            return (
-                <div className="album-revista-page pag-normal">
-                    <div className="page-header-premium">
-                        <span>Pág 4</span>
-                        <h3>🌍 Estrellas de la Copa</h3>
-                    </div>
-                    <div className="stickers-grid-flex row-grid">
-                        {[30, 31, 32, 33, 34].map(num => renderStickerSlot(num))}
-                    </div>
-                </div>
-            );
-        }
-
         if (currentPage === 3) {
-            // Página 3 (Pág 5 del álbum físico): Leyendas Históricas & Estadios (35 a 39)
+            // Página 3 (Pág 4 del álbum físico): Salón de la Fama (figurita 39)
             return (
-                <div className="album-revista-page pag-normal">
-                    <div className="page-header-premium">
-                        <span>Pág 5</span>
-                        <h3>🏆 Leyendas de Oro</h3>
+                <div 
+                    className="album-revista-page pag-normal animate-page-flip" 
+                    style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        minHeight: isMobileView ? '430px' : '520px', 
+                        background: 'radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)', 
+                        border: '2px dashed var(--gold-primary)', 
+                        borderRadius: '16px',
+                        padding: '30px'
+                    }}
+                >
+                    <div className="page-header-premium" style={{ width: '100%', textAlign: 'center', marginBottom: '15px' }}>
+                        <span>Pág 4</span>
+                        <h3 style={{ color: 'var(--gold-primary)', margin: 0, textShadow: '0 0 10px rgba(251, 191, 36, 0.3)' }}>🏆 Leyenda de Leyendas</h3>
                     </div>
-                    <div className="stickers-grid-flex row-grid">
-                        {[35, 36, 37, 38, 39].map(num => renderStickerSlot(num))}
+                    
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', margin: '-10px 0 24px 0', maxWidth: '300px', lineHeight: '1.4' }}>
+                        El lugar dorado reservado únicamente para la historia viviente de nuestro fútbol y el Salón de la Fama de Wepi.
+                    </p>
+
+                    <div style={{ width: '150px', filter: 'drop-shadow(0 0 15px rgba(251, 191, 36, 0.4))', margin: '0 auto' }}>
+                        {renderStickerSlot(39)}
                     </div>
                 </div>
             );
@@ -788,16 +812,16 @@ const Mundialista = () => {
     };
 
     const handlePrevPage = () => {
-        if (currentPage === 2 && isMobileView) {
-            setCurrentPage(1);
+        if (currentPage === 3 && isMobileView) {
+            setCurrentPage(2);
             setScalonetaSubPage(2);
-        } else if (currentPage === 1 && isMobileView) {
+        } else if (currentPage === 2 && isMobileView) {
             if (scalonetaSubPage === 2) {
                 setScalonetaSubPage(1);
             } else if (scalonetaSubPage === 1) {
                 setScalonetaSubPage(0);
             } else {
-                setCurrentPage(0);
+                setCurrentPage(1);
             }
         } else {
             setCurrentPage(currentPage - 1);
@@ -805,16 +829,16 @@ const Mundialista = () => {
     };
 
     const handleNextPage = () => {
-        if (currentPage === 0 && isMobileView) {
-            setCurrentPage(1);
+        if (currentPage === 1 && isMobileView) {
+            setCurrentPage(2);
             setScalonetaSubPage(0);
-        } else if (currentPage === 1 && isMobileView) {
+        } else if (currentPage === 2 && isMobileView) {
             if (scalonetaSubPage === 0) {
                 setScalonetaSubPage(1);
             } else if (scalonetaSubPage === 1) {
                 setScalonetaSubPage(2);
             } else {
-                setCurrentPage(2);
+                setCurrentPage(3);
             }
         } else {
             setCurrentPage(currentPage + 1);
@@ -825,6 +849,9 @@ const Mundialista = () => {
         if (currentPage === 0) return 'Portada';
         if (currentPage === 4) return 'Contraportada';
         if (currentPage === 1) {
+            return 'Wepi y el Mundial (Pág 1)';
+        }
+        if (currentPage === 2) {
             if (isMobileView) {
                 if (scalonetaSubPage === 0) return 'La Scaloneta (Pág 2A)';
                 if (scalonetaSubPage === 1) return 'La Scaloneta (Pág 2B)';
@@ -832,7 +859,8 @@ const Mundialista = () => {
             }
             return 'La Scaloneta (Págs 2 y 3)';
         }
-        return `Página ${currentPage + 2}`;
+        if (currentPage === 3) return 'Salón de la Fama (Pág 4)';
+        return `Página ${currentPage}`;
     };
 
     return (
