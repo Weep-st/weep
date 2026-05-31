@@ -604,17 +604,19 @@ const Mundialista = () => {
                             background: 'rgba(198, 40, 40, 0.95)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                             color: '#ffffff',
-                            padding: '12px 28px',
+                            padding: isMobileView ? '10px 22px' : '12px 28px',
                             borderRadius: '50px',
-                            fontSize: '0.9rem',
+                            fontSize: isMobileView ? '0.82rem' : '0.9rem',
                             fontWeight: 'bold',
                             whiteSpace: 'nowrap',
                             boxShadow: '0 4px 15px var(--wepi-red-glow)',
                             pointerEvents: 'none',
-                            animation: 'pulse 1.8s infinite'
+                            animation: 'pulse 1.8s infinite',
+                            textAlign: 'center',
+                            width: 'fit-content'
                         }}
                     >
-                        ¡HAZ CLIC AQUÍ PARA ABRIR! 📖
+                        {isMobileView ? '¡TOCÁ PARA ABRIR! 📖' : '¡HAZ CLIC AQUÍ PARA ABRIR! 📖'}
                     </div>
                 </div>
             );
@@ -877,6 +879,18 @@ const Mundialista = () => {
             </nav>
 
             <main className="mundial-main-content">
+                {/* Banner de Campaña Configurable */}
+                {config?.banner_url && (
+                    <div className="mundialista-campaign-banner-container" style={{ width: '100%', marginBottom: '20px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', cursor: config.banner_link ? 'pointer' : 'default' }}>
+                        {config.banner_link ? (
+                            <a href={config.banner_link} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                <img src={config.banner_url} alt="Campaña Mundialista Banner" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '180px', objectFit: 'cover' }} />
+                            </a>
+                        ) : (
+                            <img src={config.banner_url} alt="Campaña Mundialista Banner" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '180px', objectFit: 'cover' }} />
+                        )}
+                    </div>
+                )}
                 {/* 1. SECCION ALBUM */}
                 {activeTab === 'album' && (
                     <div className="album-module-wrapper">
@@ -1070,46 +1084,62 @@ const Mundialista = () => {
 
                                             {!m.completada && (
                                                 <div className="mision-interactive-action" style={{ borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px', marginTop: '4px' }}>
-                                                    {m.tipo === 'imagen_verificacion' && (
-                                                        pendingVerifications.includes(m.id) ? (
-                                                            <span style={{ fontSize: '0.8rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                                                                📸 Foto enviada • Pendiente de verificación manual
-                                                            </span>
-                                                        ) : (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                {previewUrls[m.id] ? (
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                                        <img src={previewUrls[m.id]} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--wepi-red)' }} />
-                                                                        <button className="btn btn-secondary btn-sm" onClick={() => handleClearImage(m.id)}>
-                                                                            Quitar foto ❌
-                                                                        </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', border: '1px dashed rgba(255,255,255,0.3)', width: 'fit-content' }}>
-                                                                        <span>📷 Subir foto para completar</span>
-                                                                        <input 
-                                                                            type="file" 
-                                                                            accept="image/*" 
-                                                                            style={{ display: 'none' }} 
-                                                                            onChange={(e) => handleImageSelect(e, m.id)} 
-                                                                        />
-                                                                    </label>
-                                                                )}
-                                                                {uploadingMisionId === m.id && (
-                                                                    <span style={{ fontSize: '0.75rem', color: '#fbbf24' }}>Subiendo archivo... 🚀</span>
-                                                                )}
-                                                                {previewUrls[m.id] && (
-                                                                    <button 
-                                                                        className="btn btn-primary btn-sm" 
-                                                                        onClick={() => handleUploadVerification(m.id)}
-                                                                        disabled={uploadingMisionId !== null}
-                                                                        style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', width: 'fit-content' }}
+                                                    {(m.tipo === 'imagen_verificacion' || m.tipo === 'link_verificacion') && (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                                                            {m.tipo === 'link_verificacion' && m.enlace_url && (
+                                                                <div style={{ marginBottom: '6px' }}>
+                                                                    <a 
+                                                                        href={m.enlace_url} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer" 
+                                                                        className="btn btn-secondary btn-sm animate-pulse"
+                                                                        style={{ padding: '8px 16px', fontSize: '0.78rem', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(251, 191, 36, 0.15)', border: '1px solid #fbbf24', color: '#fbbf24', borderRadius: '8px' }}
                                                                     >
-                                                                        Enviar Foto para Validar 📤
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )
+                                                                        🔗 Completar en Enlace Externo
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {pendingVerifications.includes(m.id) ? (
+                                                                <span style={{ fontSize: '0.8rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                                                                    📸 Captura enviada • Pendiente de verificación
+                                                                </span>
+                                                            ) : (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                    {previewUrls[m.id] ? (
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                            <img src={previewUrls[m.id]} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--wepi-red)' }} />
+                                                                            <button className="btn btn-secondary btn-sm" onClick={() => handleClearImage(m.id)}>
+                                                                                Quitar foto ❌
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', border: '1px dashed rgba(255,255,255,0.3)', width: 'fit-content' }}>
+                                                                            <span>📷 Subir foto para completar</span>
+                                                                            <input 
+                                                                                type="file" 
+                                                                                accept="image/*" 
+                                                                                style={{ display: 'none' }} 
+                                                                                onChange={(e) => handleImageSelect(e, m.id)} 
+                                                                            />
+                                                                        </label>
+                                                                    )}
+                                                                    {uploadingMisionId === m.id && (
+                                                                        <span style={{ fontSize: '0.75rem', color: '#fbbf24' }}>Subiendo archivo... 🚀</span>
+                                                                    )}
+                                                                    {previewUrls[m.id] && (
+                                                                        <button 
+                                                                            className="btn btn-primary btn-sm" 
+                                                                            onClick={() => handleUploadVerification(m.id)}
+                                                                            disabled={uploadingMisionId !== null}
+                                                                            style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', width: 'fit-content' }}
+                                                                        >
+                                                                            Enviar Foto para Validar 📤
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     )}
 
                                                     {m.tipo === 'minijuego_penales' && (
