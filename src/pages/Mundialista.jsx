@@ -841,7 +841,7 @@ const Mundialista = () => {
                     <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="app-logo-img-mundial" />
                 </Link>
                 <div className="header-campaign-title-mundial">
-                    <h2>🏆 Campaña Mundialista</h2>
+                    <h2>Campaña Mundialista</h2>
                 </div>
                 <div className="user-stats-pill">
                     <div className="stat-pill-item">
@@ -863,16 +863,16 @@ const Mundialista = () => {
 
             <nav className="mundial-tabs-nav">
                 <button className={activeTab === 'album' ? 'active' : ''} onClick={() => setActiveTab('album')}>
-                    📖 Álbum
+                    📖 {isMobileView ? 'Álbum' : 'Álbum'}
                 </button>
                 <button className={activeTab === 'premios' ? 'active' : ''} onClick={() => setActiveTab('premios')}>
-                    🎁 Misiones y Regalos
+                    🎁 {isMobileView ? 'Misiones' : 'Misiones y Regalos'}
                 </button>
                 <button className={activeTab === 'ranking' ? 'active' : ''} onClick={() => setActiveTab('ranking')}>
-                    🏆 Ranking Local
+                    🏆 {isMobileView ? 'Ranking' : 'Ranking Local'}
                 </button>
                 <button className={activeTab === 'fixture' ? 'active' : ''} onClick={() => setActiveTab('fixture')}>
-                    🗓️ Fixture
+                    🗓️ {isMobileView ? 'Fixture' : 'Fixture'}
                 </button>
             </nav>
 
@@ -880,6 +880,11 @@ const Mundialista = () => {
                 {/* 1. SECCION ALBUM */}
                 {activeTab === 'album' && (
                     <div className="album-module-wrapper">
+                        {/* Revista Fiel Layout */}
+                        <div className="magazine-booklet-container">
+                            {renderAlbumPage()}
+                        </div>
+
                         <div className="album-controls-top">
                             <button 
                                 className="btn btn-secondary" 
@@ -898,11 +903,6 @@ const Mundialista = () => {
                             >
                                 Página Siguiente ▶
                             </button>
-                        </div>
-
-                        {/* Revista Fiel Layout */}
-                        <div className="magazine-booklet-container">
-                            {renderAlbumPage()}
                         </div>
 
                         {/* Tray de Acciones del Álbum (Deck y Sobres) */}
@@ -969,7 +969,7 @@ const Mundialista = () => {
 
                             {/* Mercadito de Trueque (Quema de Repetidas 3 por 1) */}
                             <div className="recycle-trueque-box">
-                                <h3>🔄 Mercadito de Trueque</h3>
+                                <h3>🔄 Mercado de Trueques</h3>
                                 <p>Canjeá 3 figuritas repetidas a cambio de <strong>1 sobre cerrado gratis</strong> ✉️.</p>
                                 <div className="recycle-grid">
                                     {figuritas.map(f => {
@@ -1016,29 +1016,18 @@ const Mundialista = () => {
                             <p style={{ margin: '0 0 16px 0', color: '#64748b', fontSize: '0.82rem', lineHeight: '1.4' }}>
                                 ¿Tenés un código especial de Wepi? Ingresalo abajo para obtener tus sobres gratis, puntos de campaña o figuritas especiales al instante.
                             </p>
-                            <form onSubmit={handleRedeemCoupon} style={{ display: 'flex', gap: '10px' }}>
+                            <form onSubmit={handleRedeemCoupon} className="coupon-input-group">
                                 <input 
                                     type="text" 
                                     placeholder="EJ: SCALONETA" 
                                     value={couponCode} 
                                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px 16px',
-                                        backgroundColor: '#0f172a',
-                                        border: '1px solid #334155',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontWeight: 'bold',
-                                        fontSize: '0.95rem',
-                                        textTransform: 'uppercase'
-                                    }}
+                                    className="coupon-input"
                                 />
                                 <button 
                                     type="submit" 
                                     disabled={redeemingCoupon}
-                                    className="btn btn-primary"
-                                    style={{ padding: '0 24px', fontWeight: 'bold', borderRadius: '12px', fontSize: '0.85rem' }}
+                                    className="btn btn-primary coupon-btn"
                                 >
                                     {redeemingCoupon ? 'Procesando...' : 'Canjear'}
                                 </button>
@@ -1051,123 +1040,120 @@ const Mundialista = () => {
                 {activeTab === 'premios' && (
                     <div className="premios-module-wrapper animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         
-                        {/* ACCORDION 1: MISIONES DIARIAS */}
+                        {/* SECCION 1: MISIONES DIARIAS (Estática) */}
                         <div className="accordion-section">
-                            <div 
-                                className="accordion-header"
-                                onClick={() => setCollapsedMisiones(!collapsedMisiones)}
-                            >
+                            <div className="accordion-header" style={{ cursor: 'default' }}>
                                 <h3 className="accordion-title">
                                     ⚡ Misiones Diarias del Mundial
                                 </h3>
-                                <div className={`accordion-toggle-btn ${collapsedMisiones ? 'collapsed' : 'expanded'}`}>
-                                    <span>{collapsedMisiones ? 'Desplegar' : 'Contraer'}</span>
-                                    <span className="arrow-icon">▼</span>
-                                </div>
                             </div>
                             
-                            {!collapsedMisiones && (
-                                <div className="accordion-content">
-                                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 0, marginBottom: '20px' }}>Cumplí las tareas del día para sumar puntos extras de campaña.</p>
-                                    <div className="misiones-list">
-                                        {misiones.map(m => (
-                                            <div key={m.id} className={`mision-row-card ${m.completada ? 'completed' : ''}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', marginBottom: '10px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                        <div className="mision-check" style={{ fontSize: '1.2rem' }}>
-                                                            {m.completada ? '✅' : '⏳'}
-                                                        </div>
-                                                        <div className="mision-info">
-                                                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold', color: 'white' }}>{m.titulo}</h4>
-                                                            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>{m.descripcion}</p>
-                                                        </div>
+                            <div className="accordion-content">
+                                <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 0, marginBottom: '20px' }}>Cumplí las tareas del día para sumar puntos extras de campaña.</p>
+                                <div className="misiones-list">
+                                    {misiones.filter(m => m.tipo !== 'login_diario' && !m.titulo.toLowerCase().includes('ingreso diario')).map(m => (
+                                        <div key={m.id} className={`mision-row-card ${m.completada ? 'completed' : ''}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div className="mision-check" style={{ fontSize: '1.2rem' }}>
+                                                        {m.completada ? '✅' : '⏳'}
                                                     </div>
-                                                    <div className="mision-points" style={{ fontWeight: 'bold', color: '#10b981', fontSize: '0.95rem' }}>
-                                                        +{m.puntos_premio} Pts
+                                                    <div className="mision-info">
+                                                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold', color: 'white' }}>{m.titulo}</h4>
+                                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>{m.descripcion}</p>
                                                     </div>
                                                 </div>
-
-                                                {!m.completada && (
-                                                    <div className="mision-interactive-action" style={{ borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px', marginTop: '4px' }}>
-                                                        {m.tipo === 'imagen_verificacion' && (
-                                                            pendingVerifications.includes(m.id) ? (
-                                                                <span style={{ fontSize: '0.8rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                                                                    📸 Foto enviada • Pendiente de verificación manual
-                                                                </span>
-                                                            ) : (
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                    {previewUrls[m.id] ? (
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                                            <img src={previewUrls[m.id]} alt="Preview" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1.5px solid #c62828' }} />
-                                                                            <button 
-                                                                                className="btn btn-primary btn-sm"
-                                                                                disabled={uploadingMisionId === m.id}
-                                                                                onClick={() => handleUploadPhoto(m.id)}
-                                                                                style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 'bold' }}
-                                                                            >
-                                                                                {uploadingMisionId === m.id ? 'Subiendo... ⏳' : '🚀 Enviar para Verificación'}
-                                                                            </button>
-                                                                            <button 
-                                                                                className="btn btn-secondary btn-sm" 
-                                                                                onClick={() => setPreviewUrls({ ...previewUrls, [m.id]: null })}
-                                                                                style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                                                                            >
-                                                                                Cancelar
-                                                                            </button>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'start', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                            📸 Subir Foto con la Camiseta
-                                                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageChange(e, m.id)} />
-                                                                        </label>
-                                                                    )}
-                                                                </div>
-                                                            )
-                                                        )}
-
-                                                        {m.tipo === 'minijuego_penales' && (
-                                                            <button 
-                                                                className="btn btn-primary btn-sm" 
-                                                                onClick={() => startPenaltyGame(m)}
-                                                                style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                                                            >
-                                                                ⚽ Jugar Penales Mundialistas
-                                                            </button>
-                                                        )}
-
-                                                        {m.tipo === 'minijuego_trivia' && (
-                                                            <button 
-                                                                className="btn btn-primary btn-sm" 
-                                                                onClick={() => startTriviaGame(m)}
-                                                                style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                                                            >
-                                                                🧠 Responder Trivia
-                                                            </button>
-                                                        )}
-
-                                                        {m.tipo === 'pedido' && (
-                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                                🍔 Hacé un pedido en Delivery para completar automáticamente.
-                                                            </span>
-                                                        )}
-
-                                                        {m.tipo === 'pronostico' && (
-                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                                🔮 Completá un pronóstico para cumplir esta misión.
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                <div className="mision-points" style={{ fontWeight: 'bold', color: '#10b981', fontSize: '0.95rem' }}>
+                                                    +{m.puntos_premio} Pts
+                                                </div>
                                             </div>
-                                        ))}
-                                        {misiones.length === 0 && (
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '15px' }}>
-                                                No hay misiones listadas para hoy. ¡Vuelve más tarde!
-                                            </p>
-                                        )}
-                                    </div>
+
+                                            {!m.completada && (
+                                                <div className="mision-interactive-action" style={{ borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px', marginTop: '4px' }}>
+                                                    {m.tipo === 'imagen_verificacion' && (
+                                                        pendingVerifications.includes(m.id) ? (
+                                                            <span style={{ fontSize: '0.8rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                                                                📸 Foto enviada • Pendiente de verificación manual
+                                                            </span>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                {previewUrls[m.id] ? (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                        <img src={previewUrls[m.id]} alt="Preview" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--wepi-red)' }} />
+                                                                        <button className="btn btn-secondary btn-sm" onClick={() => handleClearImage(m.id)}>
+                                                                            Quitar foto ❌
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', border: '1px dashed rgba(255,255,255,0.3)', width: 'fit-content' }}>
+                                                                        <span>📷 Subir foto para completar</span>
+                                                                        <input 
+                                                                            type="file" 
+                                                                            accept="image/*" 
+                                                                            style={{ display: 'none' }} 
+                                                                            onChange={(e) => handleImageSelect(e, m.id)} 
+                                                                        />
+                                                                    </label>
+                                                                )}
+                                                                {uploadingMisionId === m.id && (
+                                                                    <span style={{ fontSize: '0.75rem', color: '#fbbf24' }}>Subiendo archivo... 🚀</span>
+                                                                )}
+                                                                {previewUrls[m.id] && (
+                                                                    <button 
+                                                                        className="btn btn-primary btn-sm" 
+                                                                        onClick={() => handleUploadVerification(m.id)}
+                                                                        disabled={uploadingMisionId !== null}
+                                                                        style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', width: 'fit-content' }}
+                                                                    >
+                                                                        Enviar Foto para Validar 📤
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    )}
+
+                                                    {m.tipo === 'minijuego_penales' && (
+                                                        <button 
+                                                            className="btn btn-primary btn-sm" 
+                                                            onClick={() => startPenalesGame(m)}
+                                                            style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            ⚽ Jugar Penales Wepi
+                                                        </button>
+                                                    )}
+
+                                                    {m.tipo === 'minijuego_trivia' && (
+                                                        <button 
+                                                            className="btn btn-primary btn-sm" 
+                                                            onClick={() => startTriviaGame(m)}
+                                                            style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            🧠 Responder Trivia
+                                                        </button>
+                                                    )}
+
+                                                    {m.tipo === 'pedido' && (
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                            🍔 Hacé un pedido en Delivery para completar automáticamente.
+                                                        </span>
+                                                    )}
+
+                                                    {m.tipo === 'pronostico' && (
+                                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                            🔮 Completá un pronóstico para cumplir esta misión.
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {misiones.filter(m => m.tipo !== 'login_diario' && !m.titulo.toLowerCase().includes('ingreso diario')).length === 0 && (
+                                        <p style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '15px' }}>
+                                            No hay misiones listadas para hoy. ¡Vuelve más tarde!
+                                        </p>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         {/* ACCORDION 2: PRONOSTICOS DE ARGENTINA */}
@@ -1177,7 +1163,7 @@ const Mundialista = () => {
                                 onClick={() => setCollapsedPronosticos(!collapsedPronosticos)}
                             >
                                 <h3 className="accordion-title">
-                                    🔮 Pronósticos (Solo Argentina)
+                                    🔮 Predicciones de Argentina
                                 </h3>
                                 <div className={`accordion-toggle-btn ${collapsedPronosticos ? 'collapsed' : 'expanded'}`}>
                                     <span>{collapsedPronosticos ? 'Desplegar' : 'Contraer'}</span>
@@ -1758,7 +1744,7 @@ const Mundialista = () => {
             )}
 
             {/* Premium unified footer matching /pedir theme */}
-            <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px', marginTop: '60px' }}>
+            <footer className="mundialista-footer">
                 <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '80px', objectFit: 'contain' }} />
                 <p>© 2026 <strong>Wepi</strong> — Plataforma de Pedidos y Delivery</p>
                 <p>
