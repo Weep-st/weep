@@ -36,7 +36,7 @@ const AdminMundial = () => {
     const [adminMisiones, setAdminMisiones] = useState([]);
     const [editingMision, setEditingMision] = useState(null);
     const [misionForm, setMisionForm] = useState({
-        titulo: '', descripcion: '', puntos_premio: 50, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
+        titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
     });
 
     // Cupones States
@@ -264,6 +264,7 @@ const AdminMundial = () => {
                 titulo: misionForm.titulo,
                 descripcion: misionForm.descripcion,
                 puntos_premio: Number(misionForm.puntos_premio),
+                sobres_premio: Number(misionForm.sobres_premio || 0),
                 tipo: misionForm.tipo,
                 fecha: misionForm.fecha,
                 enlace_url: misionForm.tipo === 'link_verificacion' ? misionForm.enlace_url : null
@@ -284,7 +285,7 @@ const AdminMundial = () => {
             }
             setEditingMision(null);
             setMisionForm({
-                titulo: '', descripcion: '', puntos_premio: 50, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
+                titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
             });
             loadAllData();
         } catch (err) {
@@ -299,6 +300,7 @@ const AdminMundial = () => {
             titulo: m.titulo,
             descripcion: m.descripcion,
             puntos_premio: m.puntos_premio,
+            sobres_premio: m.sobres_premio || 0,
             tipo: m.tipo,
             fecha: m.fecha,
             enlace_url: m.enlace_url || ''
@@ -888,7 +890,7 @@ const AdminMundial = () => {
                                     <thead>
                                         <tr>
                                             <th>Título</th>
-                                            <th>Puntos</th>
+                                            <th>Premios</th>
                                             <th>Tipo</th>
                                             <th>Fecha</th>
                                             <th>Acciones</th>
@@ -904,7 +906,14 @@ const AdminMundial = () => {
                                                         <strong>{m.titulo}</strong>
                                                         <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>{m.descripcion}</p>
                                                     </td>
-                                                    <td style={{ fontWeight: 'bold', color: '#10b981' }}>+{m.puntos_premio}</td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <div style={{ fontWeight: 'bold', color: '#10b981' }}>⭐ +{m.puntos_premio} pts</div>
+                                                        {m.sobres_premio > 0 && (
+                                                            <div style={{ fontWeight: 'bold', color: '#fbbf24', fontSize: '0.75rem', marginTop: '2px' }}>
+                                                                ✉️ +{m.sobres_premio} {m.sobres_premio === 1 ? 'sobre' : 'sobres'}
+                                                            </div>
+                                                        )}
+                                                    </td>
                                                     <td>
                                                         <span style={{ 
                                                             padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold',
@@ -948,12 +957,19 @@ const AdminMundial = () => {
                                         value={misionForm.descripcion} onChange={e => setMisionForm({...misionForm, descripcion: e.target.value})}
                                     />
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                                     <div>
                                         <label>Puntos Premio</label>
                                         <input 
-                                            type="number" className="filter-input-dark" required
+                                            type="number" className="filter-input-dark" required min="0"
                                             value={misionForm.puntos_premio} onChange={e => setMisionForm({...misionForm, puntos_premio: e.target.value})}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label>Sobres Premio ✉️</label>
+                                        <input 
+                                            type="number" className="filter-input-dark" required min="0"
+                                            value={misionForm.sobres_premio || 0} onChange={e => setMisionForm({...misionForm, sobres_premio: e.target.value})}
                                         />
                                     </div>
                                     <div>
@@ -1015,7 +1031,7 @@ const AdminMundial = () => {
                                         <button type="button" className="btn btn-secondary" onClick={() => {
                                             setEditingMision(null);
                                             setMisionForm({
-                                                titulo: '', descripcion: '', puntos_premio: 50, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
+                                                titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
                                             });
                                         }}>Cancelar</button>
                                     )}

@@ -189,7 +189,7 @@ const Mundialista = () => {
                 if (newScore >= 2) {
                     setPenaltyState(prev => ({ ...prev, status: 'won', message: `🏆 ¡GANASTE EL MINIJUEGO! Metiste ${newScore} goles de 3. Reclamando tus puntos...` }));
                     try {
-                        const res = await api.completarMisionCliente(user.id, activeMinigameMision.id, activeMinigameMision.puntos_premio);
+                        const res = await api.completarMisionCliente(user.id, activeMinigameMision.id, activeMinigameMision.puntos_premio, activeMinigameMision.sobres_premio || 0);
                         if (res.success) {
                             toast.success(res.message, { icon: '🏆' });
                             loadAllData();
@@ -240,7 +240,7 @@ const Mundialista = () => {
                 if (finalScore >= 2) {
                     setTriviaStatus('won');
                     try {
-                        const res = await api.completarMisionCliente(user.id, triviaMision.id, triviaMision.puntos_premio);
+                        const res = await api.completarMisionCliente(user.id, triviaMision.id, triviaMision.puntos_premio, triviaMision.sobres_premio || 0);
                         if (res.success) {
                             toast.success(res.message, { icon: '🧠' });
                             loadAllData();
@@ -1077,8 +1077,9 @@ const Mundialista = () => {
                                                         <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>{m.descripcion}</p>
                                                     </div>
                                                 </div>
-                                                <div className="mision-points" style={{ fontWeight: 'bold', color: '#10b981', fontSize: '0.95rem' }}>
-                                                    +{m.puntos_premio} Pts
+                                                <div className="mision-points" style={{ fontWeight: 'bold', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                    {m.puntos_premio > 0 && <span style={{ color: '#10b981' }}>+{m.puntos_premio} Pts</span>}
+                                                    {m.sobres_premio > 0 && <span style={{ color: '#fbbf24' }}>✉️ +{m.sobres_premio} {m.sobres_premio === 1 ? 'Sobre' : 'Sobres'}</span>}
                                                 </div>
                                             </div>
 
@@ -1543,7 +1544,14 @@ const Mundialista = () => {
                 <div className="sobre-revelado-overlay" style={{ zIndex: 9999 }}>
                     <div className="zoomed-sticker-modal animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', background: '#0f172a', border: '2px solid #fbbf24', borderRadius: '24px', padding: '24px', color: 'white', textAlign: 'center' }}>
                         <h3 style={{ color: '#fbbf24', margin: '0 0 10px 0', fontSize: '1.4rem' }}>⚽ Penales Mundialistas</h3>
-                        <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 20px 0' }}>¡Meté 2 goles o más para ganar <strong>+{activeMinigameMision.puntos_premio} puntos</strong>!</p>
+                        <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 20px 0' }}>
+                            ¡Meté 2 goles o más para ganar{' '}
+                            <strong>
+                                {activeMinigameMision.puntos_premio > 0 ? `+${activeMinigameMision.puntos_premio} puntos` : ''}
+                                {activeMinigameMision.puntos_premio > 0 && activeMinigameMision.sobres_premio > 0 ? ' y ' : ''}
+                                {activeMinigameMision.sobres_premio > 0 ? `+${activeMinigameMision.sobres_premio} ${activeMinigameMision.sobres_premio === 1 ? 'sobre' : 'sobres'}` : ''}
+                            </strong>!
+                        </p>
                         
                         {/* Penalty pitch visualization */}
                         <div style={{ position: 'relative', width: '100%', height: '180px', background: 'linear-gradient(to bottom, #1e3a8a, #15803d)', border: '4px solid white', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '20px' }}>
@@ -1689,12 +1697,14 @@ const Mundialista = () => {
                                     {triviaStatus === 'won' ? '🎉' : '😢'}
                                 </span>
                                 <h4 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 10px 0' }}>
-                                    {triviaStatus === 'won' ? '¡FELICITACIONES! ¡CONSEGUISTE LOS PUNTOS!' : '¡MÁS SUERTE LA PRÓXIMA!'}
+                                    {triviaStatus === 'won' ? '¡FELICITACIONES! ¡CONSEGUISTE LOS PREMIOS!' : '¡MÁS SUERTE LA PRÓXIMA!'}
                                 </h4>
                                 <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: '0 0 20px 0', lineHeight: '1.4' }}>
-                                    {triviaStatus === 'won' 
-                                        ? `Acertaste ${triviaScore} preguntas correctas de 3. Tus puntos (+${triviaMision.puntos_premio}) han sido otorgados.` 
-                                        : `Acertaste ${triviaScore} preguntas. Necesitabas al menos 2 correctas para pasar la trivia.`}
+                                    {triviaStatus === 'won' ? (
+                                        `Acertaste ${triviaScore} preguntas correctas de 3. Tus premios (${triviaMision.puntos_premio > 0 ? `+${triviaMision.puntos_premio} puntos` : ''}${triviaMision.puntos_premio > 0 && triviaMision.sobres_premio > 0 ? ' y ' : ''}${triviaMision.sobres_premio > 0 ? `+${triviaMision.sobres_premio} ${triviaMision.sobres_premio === 1 ? 'sobre' : 'sobres'}` : ''}) han sido otorgados.`
+                                    ) : (
+                                        `Acertaste ${triviaScore} preguntas. Necesitabas al menos 2 correctas para pasar la trivia.`
+                                    )}
                                 </p>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     {triviaStatus === 'lost' && (
