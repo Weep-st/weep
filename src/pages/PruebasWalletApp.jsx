@@ -265,10 +265,16 @@ export default function PruebasWalletApp() {
   }, []);
 
   const getBoostedLocales = React.useCallback((locs) => {
+    const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+    const PLAN_PLUS = 'ab9be1bd-f535-476e-90f4-f03ba074ba7d';
     return [...locs].sort((a, b) => {
-      // Pro: PLAN-PRO (o similar), Plus: PLAN-PLUS
-      const weightA = (a.plan_id?.includes('PRO') ? 3 : (a.plan_id?.includes('PLUS') ? 2 : 1));
-      const weightB = (b.plan_id?.includes('PRO') ? 3 : (b.plan_id?.includes('PLUS') ? 2 : 1));
+      const isProA = a.plan_id === PLAN_PRO || a.plan_id?.includes('PRO');
+      const isProB = b.plan_id === PLAN_PRO || b.plan_id?.includes('PRO');
+      const isPlusA = a.plan_id === PLAN_PLUS || a.plan_id?.includes('PLUS');
+      const isPlusB = b.plan_id === PLAN_PLUS || b.plan_id?.includes('PLUS');
+
+      const weightA = isProA ? 3 : (isPlusA ? 2 : 1);
+      const weightB = isProB ? 3 : (isPlusB ? 2 : 1);
       
       if (weightA !== weightB) return weightB - weightA;
       // Deterministic "performance" (pseudo-random based on id)
@@ -282,8 +288,10 @@ export default function PruebasWalletApp() {
     // Máximo 30-40% (1 de cada 3)
     if (index % 3 !== 0) return null;
     
-    const isPro = local.plan_id?.includes('PRO');
-    const isPlus = local.plan_id?.includes('PLUS');
+    const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+    const PLAN_PLUS = 'ab9be1bd-f535-476e-90f4-f03ba074ba7d';
+    const isPro = local.plan_id === PLAN_PRO || local.plan_id?.includes('PRO');
+    const isPlus = local.plan_id === PLAN_PLUS || local.plan_id?.includes('PLUS');
     
     if (isPro) {
       // Alternar entre Top y Destacado

@@ -594,9 +594,23 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 // LOCALES — Get all
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
-  const { data } = await supabase.from('locales')
+  let query = supabase.from('locales')
     .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, ciudad')
     .eq('admin_status', 'Aceptado');
+
+  let { data, error } = await query;
+  
+  // Fallback si la columna ciudad no existe en la base de datos de locales
+  if (error && error.message && error.message.includes('ciudad')) {
+    console.warn("⚠️ La columna 'ciudad' no existe en 'locales'. Reintentando sin esa columna.");
+    const fallbackQuery = supabase.from('locales')
+      .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios')
+      .eq('admin_status', 'Aceptado');
+    const res = await fallbackQuery;
+    data = res.data;
+  } else if (error) {
+    console.error("Error fetching locales:", error);
+  }
     
   const baseLocales = (data || []).map(l => ({
     id: l.id, nombre: l.nombre, logo: l.foto_url || '',
