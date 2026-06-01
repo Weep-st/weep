@@ -3,22 +3,45 @@ import { GoogleMap, Autocomplete, MarkerF, useJsApiLoader } from '@react-google-
 import toast from 'react-hot-toast';
 import './AddressSelector.css';
 
+const OBERA_CENTER = { lat: -27.4856, lng: -55.1249 };
 const SANTO_TOME_CENTER = { lat: -28.5489, lng: -56.0411 };
-const CITY_STRINGS = [
-  'santo tomé, corrientes', 
-  'santo tomé', 
-  'santo tome, corrientes', 
-  'santo tome',
-  'santo tomé, corrientes province',
-  'santo tome, corrientes province',
-  'santo tomé, provincia de corrientes',
-  'santo tome, provincia de corrientes'
-];
 
-const isJustCity = (addr) => {
-  if (!addr) return true;
-  const lower = addr.toLowerCase();
-  return CITY_STRINGS.some(s => lower.startsWith(s)) && lower.length < 60;
+const CITY_STRINGS_MAP = {
+  'Santo Tomé': [
+    'santo tomé, corrientes', 
+    'santo tomé', 
+    'santo tome, corrientes', 
+    'santo tome',
+    'santo tomé, corrientes province',
+    'santo tome, corrientes province',
+    'santo tomé, provincia de corrientes',
+    'santo tome, provincia de corrientes'
+  ],
+  'Oberá': [
+    'oberá, misiones',
+    'obera, misiones',
+    'oberá',
+    'obera',
+    'oberá, misiones province',
+    'obera, misiones province',
+    'oberá, provincia de misiones',
+    'obera, provincia de misiones'
+  ]
+};
+
+const BOUNDS_MAP = {
+  'Santo Tomé': { 
+    north: -28.4, 
+    south: -28.7, 
+    east: -55.9, 
+    west: -56.2 
+  },
+  'Oberá': { 
+    north: -27.4, 
+    south: -27.6, 
+    east: -55.0, 
+    west: -55.3 
+  }
 };
 
 const AddressSelector = ({ 
@@ -28,11 +51,22 @@ const AddressSelector = ({
   initialCoords = null, 
   isLoaded,
   title = 'Confirmar Ubicación de Entrega',
-  errorMsg = 'Solo realizamos envíos dentro de Santo Tomé.'
+  errorMsg = '',
+  ciudad = 'Santo Tomé'
 }) => {
 
+  const cityStrings = CITY_STRINGS_MAP[ciudad] || CITY_STRINGS_MAP['Santo Tomé'];
+  const defaultCenter = ciudad === 'Oberá' ? OBERA_CENTER : SANTO_TOME_CENTER;
+  const activeErrorMsg = errorMsg || (ciudad === 'Oberá' ? 'Solo realizamos envíos dentro de Oberá.' : 'Solo realizamos envíos dentro de Santo Tomé.');
+
+  const isJustCity = (addr) => {
+    if (!addr) return true;
+    const lower = addr.toLowerCase();
+    return cityStrings.some(s => lower.startsWith(s)) && lower.length < 60;
+  };
+
   const [map, setMap] = useState(null);
-  const [position, setPosition] = useState(initialCoords || SANTO_TOME_CENTER);
+  const [position, setPosition] = useState(initialCoords || defaultCenter);
   const [address, setAddress] = useState(initialAddress);
   const [reference, setReference] = useState('');
   const [isValidArea, setIsValidArea] = useState(true);
@@ -40,11 +74,13 @@ const AddressSelector = ({
   const autocompleteRef = useRef(null);
   const lastResolvedAddress = useRef(initialAddress);
 
-  // Validación de área (Santo Tomé)
+  // Validación de área dinámica
   const checkArea = useCallback((lat, lng) => {
-    // Rango ampliado usado en MapComponent.jsx
+    if (ciudad === 'Oberá') {
+      return lat <= -27.3 && lat >= -27.7 && lng <= -54.9 && lng >= -55.4;
+    }
     return lat <= -28.3 && lat >= -28.8 && lng <= -55.8 && lng >= -56.3;
-  }, []);
+  }, [ciudad]);
 
   useEffect(() => {
     setIsValidArea(checkArea(position.lat, position.lng));
@@ -58,7 +94,8 @@ const AddressSelector = ({
         return;
       }
       const geocoder = new window.google.maps.Geocoder();
-      const fullAddress = `${initialAddress}, Santo Tomé, Corrientes, Argentina`;
+      const cityFmt = ciudad === 'Oberá' ? 'Oberá, Misiones' : 'Santo Tomé, Corrientes';
+      const fullAddress = `${initialAddress}, ${cityFmt}, Argentina`;
       geocoder.geocode({ address: fullAddress, componentRestrictions: { country: 'AR' } }, (results, status) => {
         if (status === 'OK' && results[0]) {
           const newPos = { 
@@ -71,7 +108,7 @@ const AddressSelector = ({
         }
       });
     }
-  }, [isLoaded, initialAddress, initialCoords]);
+  }, [isLoaded, initialAddress, initialCoords, ciudad]);
 
   const onPlaceChanged = () => {
     if (autocompleteRef.current !== null) {
@@ -128,7 +165,8 @@ const AddressSelector = ({
       
       setIsGeocoding(true);
       const geocoder = new window.google.maps.Geocoder();
-      const fullAddress = address.includes('Santo Tomé') ? address : `${address}, Santo Tomé, Corrientes, Argentina`;
+      const cityFmt = ciudad === 'Oberá' ? 'Oberá, Misiones' : 'Santo Tomé, Corrientes';
+      const fullAddress = address.includes(ciudad) ? address : `${address}, ${cityFmt}, Argentina`;
       
       geocoder.geocode({ 
         address: fullAddress, 
@@ -213,13 +251,7 @@ const AddressSelector = ({
               onPlaceChanged={onPlaceChanged}
               options={{
                 componentRestrictions: { country: 'AR' },
-                // Restrict results strictly to Santo Tomé, Corrientes area
-                bounds: { 
-                  north: -28.4, 
-                  south: -28.7, 
-                  east: -55.9, 
-                  west: -56.2 
-                },
+                bounds: BOUNDS_MAP[ciudad] || BOUNDS_MAP['Santo Tomé'],
                 strictBounds: true,
                 fields: ['address_components', 'geometry', 'icon', 'name', 'formatted_address']
               }}
@@ -262,7 +294,7 @@ const AddressSelector = ({
             </GoogleMap>
             {!isValidArea && (
               <div className="map-error-overlay">
-                ⚠️ {errorMsg}
+                ⚠️ {activeErrorMsg}
               </div>
             )}
           </div>

@@ -49,11 +49,12 @@ export async function loginUsuario(email, password) {
     email: data.email,
     emailConfirmado: data.email_confirmado,
     role: data.role || 'user',
-    ya_realizo_pedidos: data.ya_realizo_pedidos || false
+    ya_realizo_pedidos: data.ya_realizo_pedidos || false,
+    ciudad: data.ciudad || 'Santo Tomé'
   };
 }
 
-export async function registerUsuario(nombre, email, password, direccion, telefono, termsAccepted = true, privacyAccepted = true) {
+export async function registerUsuario(nombre, email, password, direccion, telefono, termsAccepted = true, privacyAccepted = true, ciudad = 'Santo Tomé') {
   const id = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('usuarios').insert({ 
@@ -63,7 +64,8 @@ export async function registerUsuario(nombre, email, password, direccion, telefo
     terms_accepted_at: new Date().toISOString(),
     terms_version: 'v1',
     email_confirmado: false,
-    token_confirmacion: code
+    token_confirmacion: code,
+    ciudad
   });
   if (error) {
     if (error.code === '23505') {
@@ -103,7 +105,8 @@ export async function syncFirebaseUser(firebaseUser) {
       telefono: existing.telefono,
       emailConfirmado: existing.email_confirmado || firebaseUser.emailVerified,
       role: existing.role || 'user',
-      ya_realizo_pedidos: existing.ya_realizo_pedidos || false
+      ya_realizo_pedidos: existing.ya_realizo_pedidos || false,
+      ciudad: existing.ciudad || 'Santo Tomé'
     };
   }
   
@@ -173,7 +176,7 @@ export async function loginLocal(email, password) {
   return { success: false };
 }
 
-export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null) {
+export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null, ciudad = 'Santo Tomé') {
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
@@ -187,7 +190,8 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
     plan_id: planType === 'Empresa' ? 'ab9be1bd-f535-476e-90f4-f03ba074ba7d' : 'b404e2f7-6716-499b-8ebf-200ce417e4cb',
     lat,
     lng,
-    contacto
+    contacto,
+    ciudad
   });
   if (error) throw new Error(error.message);
   
@@ -290,7 +294,8 @@ export async function repartidorRegister(params) {
     terms_accepted_at: new Date().toISOString(),
     terms_version: 'v1',
     email_confirmado: false,
-    token_confirmacion: code
+    token_confirmacion: code,
+    ciudad: params.ciudad || 'Santo Tomé'
   });
   if (error) return { success: false, error: error.message };
   
@@ -590,7 +595,7 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, ciudad')
     .eq('admin_status', 'Aceptado');
     
   const baseLocales = (data || []).map(l => ({
@@ -609,7 +614,8 @@ export async function getLocales() {
     rubros: l.rubros || [],
     admin_status: l.admin_status,
     slug: l.slug,
-    config_horarios: l.config_horarios || {}
+    config_horarios: l.config_horarios || {},
+    ciudad: l.ciudad || 'Santo Tomé'
   }));
 
   return enrichLocalesWithMinPrices(baseLocales, 'id');

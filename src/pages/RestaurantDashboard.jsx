@@ -869,7 +869,8 @@ export default function RestaurantDashboard() {
         'Emprendedor', // Default plan
         null,
         null,
-        contactoFull
+        contactoFull,
+        fd.get('ciudad') || 'Santo Tomé'
       );
       toast.success('¡Local registrado! Iniciá sesión.');
       setAuthEmail(email);
@@ -1688,6 +1689,20 @@ export default function RestaurantDashboard() {
                     autoComplete="tel-national" 
                     style={{ margin: 0, flex: 1 }}
                   />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <select 
+                    name="ciudad" 
+                    className="form-input" 
+                    required
+                    defaultValue="Santo Tomé"
+                    style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
+                  >
+                    <option value="" disabled>Seleccioná tu Ciudad</option>
+                    <option value="Santo Tomé">Santo Tomé</option>
+                    <option value="Oberá">Oberá</option>
+                  </select>
                 </div>
 
                 <div className="access-code-container" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>

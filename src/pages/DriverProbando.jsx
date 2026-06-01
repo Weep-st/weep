@@ -685,6 +685,7 @@ export default function DriverProbando() {
         patente: fd.get('patente').toUpperCase(), marcaModelo: fd.get('marcaModelo'),
         termsAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         privacyAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        ciudad: fd.get('ciudad') || 'Santo Tomé'
       });
       if (d?.success) {
         toast.success('¡Registro exitoso! Iniciá sesión.');
@@ -1065,6 +1066,20 @@ export default function DriverProbando() {
             </div>
             <input name="patente" className="form-input" placeholder="Patente de la moto" required />
             <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
+
+            <div style={{ marginBottom: '16px' }}>
+              <select 
+                name="ciudad" 
+                className="form-input" 
+                required
+                defaultValue="Santo Tomé"
+                style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
+              >
+                <option value="" disabled>Seleccioná tu Ciudad</option>
+                <option value="Santo Tomé">Santo Tomé</option>
+                <option value="Oberá">Oberá</option>
+              </select>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
               {authView === 'register' && (

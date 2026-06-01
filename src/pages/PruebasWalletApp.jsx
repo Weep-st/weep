@@ -36,6 +36,22 @@ export default function PruebasWalletApp() {
   const cart = useCart();
   const navigate = useNavigate();
 
+  const [activeCity, setActiveCity] = React.useState(() => {
+    return user?.ciudad || localStorage.getItem('guestCiudad') || null;
+  });
+
+  const selectCity = React.useCallback((city) => {
+    setActiveCity(city);
+    localStorage.setItem('guestCiudad', city);
+    toast.success(`Ciudad seleccionada: ${city}`, { icon: '📍' });
+  }, []);
+
+  React.useEffect(() => {
+    if (user?.ciudad) {
+      setActiveCity(user.ciudad);
+    }
+  }, [user?.ciudad]);
+
   const [locals, setLocals] = React.useState([]);
   const [menus, setMenus] = React.useState([]);
   const [menuTitle, setMenuTitle] = React.useState('');
@@ -624,19 +640,24 @@ export default function PruebasWalletApp() {
       </span>
     );
   }, [isLocalOpen]);
+
   React.useEffect(() => {
-    console.log("🚀 PruebasWalletApp: Main data useEffect running");
+    console.log("🚀 PruebasWalletApp: Main data useEffect running, activeCity:", activeCity);
     api.trackDemandSignal('page_view', sessionId).catch(() => {});
 
     const loadHomeData = async () => {
       try {
         // 1. Cargar promociones activas, locales y configs de wallet primero para saber qué buscar
-        const [allPrms, locs, wcfgsRaw] = await Promise.all([
+        const [allPrms, locsRaw, wcfgsRaw] = await Promise.all([
           api.getActivePromotions(),
           api.getLocales(),
           api.getAllWalletConfigs()
         ]);
         setAllPromotions(allPrms || []);
+
+        // Filtrar locales por la ciudad activa
+        const currentCity = activeCity || 'Santo Tomé';
+        const locs = (locsRaw || []).filter(l => (l.ciudad || 'Santo Tomé') === currentCity);
         setLocals(locs || []);
         
         // Mapear configs de wallet por local_id para uso rápido
@@ -681,7 +702,7 @@ export default function PruebasWalletApp() {
         const timeInfo = getTimeBasedTitle();
         
         // El configMap ya se seteó arriba
-
+ 
         setDrinks(deks || []);
         setBanners(bans || []);
         setPromoItems(prms || []);
@@ -829,10 +850,7 @@ export default function PruebasWalletApp() {
       setOrderCount(null);
       setWalletBalance(0);
     }
-  }, [user, sessionId, getBoostedLocales, getTimeBasedTitle]);
-
-  
-  // Fetch Wallet Config and applicable Balance when local changes
+  }, [user, sessionId, getBoostedLocales, getTimeBasedTitle, activeCity]);
   React.useEffect(() => {
     const localId = selectedLocal?.id || (cart.items.length > 0 ? cart.items[0].local_id : null);
     
@@ -1299,6 +1317,7 @@ export default function PruebasWalletApp() {
     const prefix = fd.get('prefix');
     const localNumber = fd.get('telefono');
     const telefono = `${prefix}${localNumber}`;
+    const ciudad = fd.get('ciudad') || 'Santo Tomé';
 
     if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
     if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
@@ -1309,7 +1328,8 @@ export default function PruebasWalletApp() {
       const d = await api.registerUsuario(
         nombre, email, password, direccion, telefono,
         fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
-        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted')
+        fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+        ciudad
       );
       if (d.success) {
         loginAsUser({ 
@@ -1317,7 +1337,8 @@ export default function PruebasWalletApp() {
           name: nombre, 
           email: email, 
           address: direccion,
-          telefono: telefono
+          telefono: telefono,
+          ciudad: ciudad
         });
         setModal(null);
         toast.success('¡Registro exitoso!');
@@ -2043,6 +2064,23 @@ export default function PruebasWalletApp() {
                </button>
             </div>
           )}
+          {/* City Selector in Header */}
+          <div className="city-header-badge" onClick={() => setActiveCity(null)} style={{
+             display: 'flex',
+             alignItems: 'center',
+             gap: '6px',
+             background: 'rgba(255, 255, 255, 0.05)',
+             border: '1px solid rgba(255, 255, 255, 0.1)',
+             padding: '6px 12px',
+             borderRadius: '10px',
+             cursor: 'pointer',
+             fontSize: '0.85rem',
+             fontWeight: '600',
+             color: '#f1f5f9',
+             marginRight: '8px'
+           }}>
+             📍 {activeCity || 'Seleccionar Ciudad'}
+           </div>
           <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
             <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
             <span className="hide-mobile">{user ? 'Mi Perfil' : 'Ingresar'}</span>
@@ -3089,6 +3127,14 @@ export default function PruebasWalletApp() {
                   <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Número (ej: 1123456789)" required autoComplete="tel-national" />
                 </div>
                 
+                <div className="city-input-group" style={{ marginBottom: '15px', textAlign: 'left' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '600' }}>Ciudad</label>
+                  <select name="ciudad" className="form-input" required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: 'var(--slate-800, #1e293b)', color: '#f8fafc' }}>
+                    <option value="Santo Tomé">Santo Tomé (Corrientes)</option>
+                    <option value="Oberá">Oberá (Misiones)</option>
+                  </select>
+                </div>
+                
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
                   <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
                   <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
@@ -3243,6 +3289,62 @@ export default function PruebasWalletApp() {
                 <button className="btn btn-secondary btn-full" onClick={() => setModal('register')} style={{ marginTop: 16 }}>Volver al Registro</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Modal de Selección de Ciudad Obligatorio ─── */}
+      {!activeCity && (
+        <div className="modal-overlay" style={{ zIndex: 10000, background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '440px', padding: '40px 30px', textAlign: 'center', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', background: 'var(--slate-900, #0f172a)', border: '1px solid rgba(255, 255, 255, 0.08)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ marginBottom: '25px' }}>
+              <img src="https://i.postimg.cc/d1myDmBb/wepi.png" alt="Wepi Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', marginBottom: '15px', boxShadow: '0 8px 16px rgba(0,0,0,0.3)' }} />
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 10px 0', fontFamily: "'Outfit', sans-serif" }}>¡Te damos la bienvenida a Wepi!</h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>Para mostrarte los mejores locales y promociones de tu zona, selecciona tu ciudad:</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+              <button 
+                onClick={() => selectCity('Santo Tomé')} 
+                className="btn btn-full"
+                style={{ 
+                  background: 'linear-gradient(135deg, #e63946 0%, #b5179e 100%)', 
+                  color: 'white', 
+                  padding: '16px 20px', 
+                  borderRadius: '14px', 
+                  fontWeight: '700', 
+                  fontSize: '1.1rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(230, 57, 70, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+              >
+                📍 Santo Tomé (Corrientes)
+              </button>
+              
+              <button 
+                onClick={() => selectCity('Oberá')} 
+                className="btn btn-full"
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  color: '#f8fafc', 
+                  padding: '16px 20px', 
+                  borderRadius: '14px', 
+                  fontWeight: '700', 
+                  fontSize: '1.1rem',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s, transform 0.2s'
+                }}
+              >
+                📢 Oberá (Misiones)
+              </button>
+            </div>
+            
+            <div style={{ marginTop: '25px', fontSize: '0.8rem', color: '#64748b' }}>
+              ¿Sos un local o repartidor? Podés registrarte seleccionando tu ciudad.
+            </div>
           </div>
         </div>
       )}
@@ -3610,12 +3712,13 @@ export default function PruebasWalletApp() {
           </div>
         </div>
       )}
-      {/* â”€â”€â”€ Address Selector Modals â”€â”€â”€ */}
+      {/* ─── Address Selector Modals ─── */}
       {showAddressSelector && (
         <AddressSelector
           isLoaded={isMapLoaded}
           initialAddress={addressData.address}
           initialCoords={addressData.lat ? { lat: addressData.lat, lng: addressData.lng } : null}
+          ciudad={activeCity || 'Santo Tomé'}
           onConfirm={(data) => {
             setAddressData(data);
             setShowAddressSelector(false);
@@ -3629,6 +3732,7 @@ export default function PruebasWalletApp() {
           isLoaded={isMapLoaded}
           initialAddress={user?.direccion || ''}
           initialCoords={user?.lat ? { lat: user.lat, lng: user.lng } : null}
+          ciudad={activeCity || 'Santo Tomé'}
           onConfirm={async (data) => {
             try {
               await api.updateDireccion(user.id, data.address, data.lat, data.lng);
