@@ -395,7 +395,6 @@ const Mundialista = () => {
             return;
         }
         loadAllData();
-        triggerDailyLogin();
     }, [user]);
 
     const loadAllData = async () => {
@@ -444,6 +443,12 @@ const Mundialista = () => {
             setFiguritas(catalog);
             setUserFiguritas(uFigs || []);
             setRanking(rk);
+
+            // Ejecutar el check-in diario de forma secuencial una vez que las estadísticas
+            // han sido creadas e inicializadas con los sobres y puntos de bienvenida
+            if (st) {
+                await triggerDailyLogin();
+            }
 
         } catch (err) {
             toast.error('Error al cargar datos mundialistas');
