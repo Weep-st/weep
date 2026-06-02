@@ -7,6 +7,10 @@
 ALTER TABLE public.mundial_figuritas DROP CONSTRAINT IF EXISTS mundial_figuritas_numero_check;
 ALTER TABLE public.mundial_figuritas ADD CONSTRAINT mundial_figuritas_numero_check CHECK (numero >= 1);
 
+-- 1b. Eliminar la restricción de límite de 39 días en el calendario de premios y permitir extender a 48 días o más
+ALTER TABLE public.mundial_calendario_premios DROP CONSTRAINT IF EXISTS mundial_calendario_premios_dia_check;
+ALTER TABLE public.mundial_calendario_premios ADD CONSTRAINT mundial_calendario_premios_dia_check CHECK (dia >= 1);
+
 -- 2. Recrear la función de reclamar premio calendario con fecha base 2026-06-02 y límite de 48 días
 CREATE OR REPLACE FUNCTION public.fn_reclamar_premio_calendario(
     p_usuario_id TEXT,
