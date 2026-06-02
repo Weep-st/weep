@@ -49,6 +49,12 @@ const Mundialista = () => {
     // Install/Reminder Modal PWA
     const [showReminderModal, setShowReminderModal] = useState(false);
 
+    // Onboarding tutorial state
+    const [showTutorial, setShowTutorial] = useState(() => {
+        return !localStorage.getItem('wepi_mundial_tutorial_completed');
+    });
+    const [tutorialStep, setTutorialStep] = useState(0);
+
     // --- NUEVAS HERRAMIENTAS ADICIONALES (MISIONES, CUPONES Y MINIJUEGOS) ---
     // Accordion/Collapse states for Premios tab sections
     const [collapsedMisiones, setCollapsedMisiones] = useState(false);
@@ -304,12 +310,12 @@ const Mundialista = () => {
         }
     };
 
-    // Helper: Get active campaign day based on June 11 to July 19, 2026 dates
+    // Helper: Get active campaign day based on June 2 to July 19, 2026 dates
     const getActiveCampaignDay = () => {
         const now = new Date();
-        const startDate = new Date(2026, 5, 11); // June 11 (Month index 5)
+        const startDate = new Date(2026, 5, 2); // June 2 (Month index 5)
         
-        // Si estamos antes del 11/06/2026, el día de pruebas activo es el Día 1
+        // Si estamos antes del 02/06/2026, el día de pruebas activo es el Día 1
         if (now < startDate) {
             return 1;
         }
@@ -318,15 +324,68 @@ const Mundialista = () => {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         
         if (diffDays < 1) return 1;
-        if (diffDays > 39) return 39;
+        if (diffDays > 48) return 48;
         return diffDays;
     };
 
     // Helper: Get the date text for a specific campaign day
     const getDateOfCampaignDay = (dia) => {
-        const startDate = new Date(2026, 5, 11);
+        const startDate = new Date(2026, 5, 2); // June 2
         const targetDate = new Date(startDate.getTime() + (dia - 1) * 24 * 60 * 60 * 1000);
         return targetDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    };
+
+    // Onboarding tutorial steps configuration
+    const tutorialSteps = [
+        {
+            title: "🏆 ¡Bienvenido a la Campaña Mundialista! 🏆",
+            desc: "Preparate para la gran fiesta del fútbol en Wepi. Coleccioná figuritas, completá divertidas misiones, pronosticá partidos y ganá premios reales directo a tu Wallet.",
+            emoji: "⚽"
+        },
+        {
+            title: "📖 El Álbum Digital 📖",
+            desc: "Explorá el álbum interactivo navegando por sus páginas. Coleccioná a los anfitriones, leyendas y a toda 'La Scaloneta'. Completá las secciones para demostrar tu pasión mundialista.",
+            emoji: "📕"
+        },
+        {
+            title: "✉️ Sobres y Reciclaje de Repetidas 🔄",
+            desc: "Abrí paquetes desde tu bandeja para descubrir nuevos jugadores. Si tenés figuritas repetidas, no te preocupes: ¡elegí 3 repetidas y recitalas por 1 paquete nuevo totalmente gratis!",
+            emoji: "📦"
+        },
+        {
+            title: "🎮 Misiones y Minijuegos Diarios 🧠",
+            desc: "Entrá a la pestaña 'Misiones' para jugar a patear penales o poner a prueba tu conocimiento con trivias de fútbol. Completar misiones te dará sobres y puntos adicionales cada día.",
+            emoji: "🥅"
+        },
+        {
+            title: "🎁 Calendario de Regalos Mundialista 📅",
+            desc: "¡Un regalo exclusivo te espera cada día desde el 2 de Junio hasta el 19 de Julio! Podés ganar puntos, sobres cerrados y crédito de Wallet gratis. ¡No te pierdas ningún día de campaña!",
+            emoji: "💝"
+        },
+        {
+            title: "🥇 Ranking Local Wepi 🏆",
+            desc: "Competí contra la comunidad local de tu ciudad. Sumá puntos abriendo sobres, pegando figuritas y completando misiones para liderar la tabla de posiciones y llevarte la gloria máxima.",
+            emoji: "⭐"
+        }
+    ];
+
+    const handleCloseTutorial = () => {
+        localStorage.setItem('wepi_mundial_tutorial_completed', 'true');
+        setShowTutorial(false);
+    };
+
+    const handleNextTutorial = () => {
+        if (tutorialStep < tutorialSteps.length - 1) {
+            setTutorialStep(tutorialStep + 1);
+        } else {
+            handleCloseTutorial();
+        }
+    };
+
+    const handlePrevTutorial = () => {
+        if (tutorialStep > 0) {
+            setTutorialStep(tutorialStep - 1);
+        }
     };
 
     useEffect(() => {
@@ -558,7 +617,7 @@ const Mundialista = () => {
     const renderAlbumPage = () => {
         // Calcular estadísticas del álbum
         const totalPegadas = userFiguritas.filter(uf => uf.pegada).length;
-        const totalFiguritas = 39;
+        const totalFiguritas = Math.max(39, figuritas.length);
         const percentCompletado = Math.round((totalPegadas / totalFiguritas) * 100);
 
         if (currentPage === 0) {
@@ -599,9 +658,8 @@ const Mundialista = () => {
                         style={{
                             position: 'absolute',
                             bottom: '24px',
-                            left: 0,
-                            right: 0,
-                            margin: '0 auto',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
                             width: 'fit-content',
                             background: 'rgba(198, 40, 40, 0.95)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -624,21 +682,20 @@ const Mundialista = () => {
         }
 
         if (currentPage === 1) {
-            // Página 1 (Pág 1 del álbum físico): Wepi y el Mundial (30 a 38)
-            // Incluye: Logo Wepi, Mascota Wepi, Logo Mundial, Países Anfitriones y Mascotas Mundial
+            // Página 1 (Pág 1 del álbum físico): Anfitriones y Mascotas (30 a 39)
             return (
                 <div className="album-revista-page pag-normal animate-page-flip">
                     <div className="page-header-premium" style={{ marginBottom: '15px' }}>
                         <span>Pág 1</span>
-                        <h3 className="argentina-title" style={{ color: '#fbbf24' }}>🌍 Wepi • Bienvenidos al Mundial 2026</h3>
+                        <h3 className="argentina-title" style={{ color: '#fbbf24' }}>🌍 Anfitriones y Mascotas</h3>
                     </div>
                     
                     <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-10px', marginBottom: '20px' }}>
-                        El puntapié inicial de la fiesta: Coleccioná los stickers corporativos de Wepi, logos del torneo y las mascotas oficiales.
+                        El puntapié inicial de la fiesta: Coleccioná los stickers de Wepi, logos corporativos, símbolos del torneo y leyendas.
                     </p>
 
                     <div className="argentina-grid">
-                        {[30, 31, 32, 33, 34, 35, 36, 37, 38].map(num => renderStickerSlot(num))}
+                        {[30, 31, 32, 33, 34, 35, 36, 37, 38, 39].map(num => renderStickerSlot(num))}
                     </div>
                 </div>
             );
@@ -718,34 +775,57 @@ const Mundialista = () => {
         }
 
         if (currentPage === 3) {
-            // Página 3 (Pág 4 del álbum físico): Salón de la Fama (figurita 39)
+            // Página 3 (Pág 4 del álbum físico): Sponsor Oficial o Próximamente (slots >= 40)
+            const sponsorStickers = figuritas.filter(f => f.numero >= 40 || f.categoria === 'Sponsor');
+
             return (
                 <div 
                     className="album-revista-page pag-normal animate-page-flip" 
                     style={{ 
                         display: 'flex', 
                         flexDirection: 'column', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        minHeight: isMobileView ? '430px' : '520px', 
-                        background: 'radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)', 
-                        border: '2px dashed var(--gold-primary)', 
-                        borderRadius: '16px',
-                        padding: '30px'
+                        alignItems: 'stretch',
+                        justifyContent: 'flex-start',
+                        minHeight: isMobileView ? '430px' : '520px'
                     }}
                 >
-                    <div className="page-header-premium" style={{ width: '100%', textAlign: 'center', marginBottom: '15px' }}>
+                    <div className="page-header-premium" style={{ marginBottom: '15px' }}>
                         <span>Pág 4</span>
-                        <h3 style={{ color: 'var(--gold-primary)', margin: 0, textShadow: '0 0 10px rgba(251, 191, 36, 0.3)' }}>🏆 Leyenda de Leyendas</h3>
+                        <h3 className="argentina-title" style={{ color: '#ec4899' }}>✨ Sponsor Oficial del Álbum</h3>
                     </div>
-                    
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', margin: '-10px 0 24px 0', maxWidth: '300px', lineHeight: '1.4' }}>
-                        El lugar dorado reservado únicamente para la historia viviente de nuestro fútbol y el Salón de la Fama de Wepi.
-                    </p>
 
-                    <div style={{ width: '150px', filter: 'drop-shadow(0 0 15px rgba(251, 191, 36, 0.4))', margin: '0 auto' }}>
-                        {renderStickerSlot(39)}
-                    </div>
+                    {sponsorStickers.length === 0 ? (
+                        <div 
+                            style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                flex: 1,
+                                background: 'radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)', 
+                                border: '2px dashed #ec4899', 
+                                borderRadius: '16px',
+                                padding: '30px',
+                                textAlign: 'center',
+                                marginTop: '10px'
+                            }}
+                        >
+                            <span style={{ fontSize: '3rem', marginBottom: '15px', display: 'block', filter: 'drop-shadow(0 0 10px rgba(236, 72, 153, 0.5))' }}>🔒</span>
+                            <h4 style={{ color: 'white', fontWeight: 'bold', margin: '0 0 10px 0' }}>Sección Reservada</h4>
+                            <p style={{ color: '#94a3b8', fontSize: '0.82rem', maxWidth: '320px', margin: 0, lineHeight: '1.4' }}>
+                                ¡Disponible próximamente! Esta sección albergará los cromos exclusivos del sponsor oficial del álbum. Mantente atento para coleccionar las nuevas figuritas.
+                            </p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-5px', marginBottom: '15px' }}>
+                                Coleccioná las figuritas exclusivas del sponsor del torneo y completá el álbum al 100%.
+                            </p>
+                            <div className="argentina-grid">
+                                {sponsorStickers.map(f => renderStickerSlot(f.numero))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -763,8 +843,8 @@ const Mundialista = () => {
                             </div>
                         </div>
                         <div className="stats-list-box">
-                            <div>👥 Figuritas Pegadas: <strong>{totalPegadas} / 39</strong></div>
-                            <div>✉️ Sobres Abiertos: <strong>{(39 - (stats?.sobres_disponibles || 0))}</strong></div>
+                            <div>👥 Figuritas Pegadas: <strong>{totalPegadas} / {totalFiguritas}</strong></div>
+                            <div>✉️ Sobres Abiertos: <strong>{Math.max(0, totalFiguritas - (stats?.sobres_disponibles || 0))}</strong></div>
                         </div>
                         <p style={{ fontStyle: 'italic', fontSize: '0.8rem', color: '#64748b', marginTop: '20px' }}>"Todo lo que buscás, está en Wepi"</p>
                         <button className="btn btn-secondary btn-sm" onClick={() => setCurrentPage(0)} style={{ marginTop: '10px' }}>
@@ -850,7 +930,7 @@ const Mundialista = () => {
         if (currentPage === 0) return 'Portada';
         if (currentPage === 4) return 'Contraportada';
         if (currentPage === 1) {
-            return 'Wepi y el Mundial (Pág 1)';
+            return 'Anfitriones y Mascotas (Pág 1)';
         }
         if (currentPage === 2) {
             if (isMobileView) {
@@ -860,7 +940,7 @@ const Mundialista = () => {
             }
             return 'La Scaloneta (Págs 2 y 3)';
         }
-        if (currentPage === 3) return 'Salón de la Fama (Pág 4)';
+        if (currentPage === 3) return 'Sponsor del Álbum (Pág 4)';
         return `Página ${currentPage}`;
     };
 
@@ -871,8 +951,40 @@ const Mundialista = () => {
                 <Link to="/pedir" className="app-logo-link-mundial">
                     <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="app-logo-img-mundial" />
                 </Link>
-                <div className="header-campaign-title-mundial">
+                <div className="header-campaign-title-mundial" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                     <h2>Campaña Mundialista</h2>
+                    <button 
+                        onClick={() => { setTutorialStep(0); setShowTutorial(true); }}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            borderRadius: '50%',
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold',
+                            transition: 'all 0.2s',
+                            marginLeft: '5px'
+                        }}
+                        title="Ver Guía del Álbum"
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--gold-primary)';
+                            e.currentTarget.style.color = '#000000';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                            e.currentTarget.style.color = '#ffffff';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                    >
+                        ❓
+                    </button>
                 </div>
                 <div className="user-stats-pill">
                     <div className="stat-pill-item">
@@ -1808,6 +1920,148 @@ const Mundialista = () => {
                         >
                             ¡Entendido! 👍
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {showTutorial && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(9, 13, 22, 0.85)',
+                        backdropFilter: 'blur(8px)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}
+                    onClick={handleCloseTutorial}
+                >
+                    <div 
+                        style={{
+                            background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)',
+                            border: '2px solid var(--gold-primary)',
+                            borderRadius: '24px',
+                            boxShadow: '0 10px 30px rgba(251, 191, 36, 0.25)',
+                            padding: '30px',
+                            maxWidth: '480px',
+                            width: '100%',
+                            textAlign: 'center',
+                            position: 'relative',
+                            animation: 'fadeIn 0.3s ease-out'
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Cerrar superior */}
+                        <button 
+                            onClick={handleCloseTutorial}
+                            style={{
+                                position: 'absolute',
+                                top: '15px',
+                                right: '15px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94a3b8',
+                                fontSize: '1.2rem',
+                                cursor: 'pointer',
+                                transition: 'color 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                        >
+                            ✕
+                        </button>
+
+                        {/* Emoji Grande Animado */}
+                        <div 
+                            style={{ 
+                                fontSize: '3.5rem', 
+                                marginBottom: '15px',
+                                filter: 'drop-shadow(0 0 10px var(--gold-primary))',
+                                animation: 'bounceSlow 3s infinite'
+                            }}
+                        >
+                            {tutorialSteps[tutorialStep].emoji}
+                        </div>
+
+                        {/* Título de Paso */}
+                        <h3 
+                            style={{ 
+                                color: '#ffffff', 
+                                fontSize: '1.3rem', 
+                                fontWeight: '900', 
+                                margin: '0 0 12px 0',
+                                textShadow: '0 0 10px rgba(255,255,255,0.1)'
+                            }}
+                        >
+                            {tutorialSteps[tutorialStep].title}
+                        </h3>
+
+                        {/* Descripción */}
+                        <p 
+                            style={{ 
+                                color: '#94a3b8', 
+                                fontSize: '0.88rem', 
+                                lineHeight: '1.5',
+                                margin: '0 0 25px 0'
+                            }}
+                        >
+                            {tutorialSteps[tutorialStep].desc}
+                        </p>
+
+                        {/* Indicadores de Paso (Bolitas) */}
+                        <div 
+                            style={{ 
+                                display: 'flex', 
+                                justifyContent: 'center', 
+                                gap: '8px', 
+                                marginBottom: '25px' 
+                            }}
+                        >
+                            {tutorialSteps.map((_, idx) => (
+                                <div 
+                                    key={idx}
+                                    style={{
+                                        width: '10px',
+                                        height: '10px',
+                                        borderRadius: '50%',
+                                        backgroundColor: idx === tutorialStep ? 'var(--gold-primary)' : 'rgba(255, 255, 255, 0.2)',
+                                        transition: 'all 0.3s'
+                                    }}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Controles de Navegación */}
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            {tutorialStep > 0 ? (
+                                <button 
+                                    className="btn btn-secondary"
+                                    onClick={handlePrevTutorial}
+                                    style={{ flex: 1, padding: '10px 0', borderRadius: '12px' }}
+                                >
+                                    ◀ Atrás
+                                </button>
+                            ) : (
+                                <button 
+                                    className="btn btn-secondary"
+                                    onClick={handleCloseTutorial}
+                                    style={{ flex: 1, padding: '10px 0', borderRadius: '12px' }}
+                                >
+                                    Omitir Guía
+                                </button>
+                            )}
+
+                            <button 
+                                className="btn btn-primary"
+                                onClick={handleNextTutorial}
+                                style={{ flex: 1, padding: '10px 0', borderRadius: '12px', background: 'var(--wepi-red-gradient)', border: 'none', color: '#ffffff', fontWeight: 'bold' }}
+                            >
+                                {tutorialStep === tutorialSteps.length - 1 ? '¡Comenzar! 🚀' : 'Siguiente ▶'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -34,9 +34,35 @@ const MapComponent = ({
   const isWithinSantoTome = (lat, lng) => {
     const latNum = Number(lat);
     const lngNum = Number(lng);
-    // Rango ampliado para cubrir periferia de Santo Tomé, Corrientes (W3340)
-    return latNum <= -28.1 && latNum >= -28.9 && lngNum <= -55.7 && lngNum >= -56.4;
+    // Rango ampliado para cubrir Santo Tomé o Oberá
+    const isSantoTome = latNum <= -28.1 && latNum >= -28.9 && lngNum <= -55.7 && lngNum >= -56.4;
+    const isObera = latNum <= -27.3 && latNum >= -27.7 && lngNum <= -54.9 && lngNum >= -55.4;
+    return isSantoTome || isObera;
   };
+
+  const mapRestriction = useMemo(() => {
+    const latNum = center.lat;
+    if (latNum <= -27.3 && latNum >= -27.7) {
+      return {
+        latLngBounds: {
+          north: -27.3,
+          south: -27.7,
+          west: -55.4,
+          east: -54.9,
+        },
+        strictBounds: false
+      };
+    }
+    return {
+      latLngBounds: {
+        north: -28.3,
+        south: -28.8,
+        west: -56.3,
+        east: -55.8,
+      },
+      strictBounds: false
+    };
+  }, [center]);
 
   const markers = useMemo(() => {
     const m = [];
@@ -98,15 +124,7 @@ const MapComponent = ({
         fullscreenControl: true,
         draggableCursor: 'grab',
         draggingCursor: 'grabbing',
-        restriction: {
-          latLngBounds: {
-            north: -28.3,
-            south: -28.8,
-            west: -56.3,
-            east: -55.8,
-          },
-          strictBounds: false
-        }
+        restriction: mapRestriction
       }}
     >
       {markers.map((marker) => (

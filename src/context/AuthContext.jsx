@@ -22,10 +22,11 @@ export function AuthProvider({ children }) {
         emailConfirmado: localStorage.getItem('userEmailConfirmado') === 'true',
         role: localStorage.getItem('userRole') || 'user',
         ya_realizo_pedidos: localStorage.getItem('userYaRealizoPedidos') === 'true',
+        ciudad: localStorage.getItem('userCiudad') || 'Santo Tomé'
       });
     } else if (userId === 'undefined') {
       // Limpiar datos corruptos
-      ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole', 'userYaRealizoPedidos'].forEach(k => localStorage.removeItem(k));
+      ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole', 'userYaRealizoPedidos', 'userCiudad'].forEach(k => localStorage.removeItem(k));
     }
     const localToken = localStorage.getItem('localToken');
     if (localToken) {
@@ -53,6 +54,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userEmailConfirmado', String(!!(data.emailConfirmado || data.email_confirmado)));
     localStorage.setItem('userRole', data.role || 'user');
     localStorage.setItem('userYaRealizoPedidos', String(!!data.ya_realizo_pedidos));
+    localStorage.setItem('userCiudad', data.ciudad || 'Santo Tomé');
     setUser({ 
       id: data.userId || data.id, 
       name: data.name || data.nombre, 
@@ -61,7 +63,8 @@ export function AuthProvider({ children }) {
       telefono: data.telefono,
       emailConfirmado: !!(data.emailConfirmado || data.email_confirmado),
       role: data.role || 'user',
-      ya_realizo_pedidos: (data.ya_realizo_pedidos === true || data.ya_realizo_pedidos === 'true' || data.ya_realizo_pedidos === 1 || data.ya_realizo_pedidos === '1' || data.ya_realizo_pedidos === 'TRUE')
+      ya_realizo_pedidos: (data.ya_realizo_pedidos === true || data.ya_realizo_pedidos === 'true' || data.ya_realizo_pedidos === 1 || data.ya_realizo_pedidos === '1' || data.ya_realizo_pedidos === 'TRUE'),
+      ciudad: data.ciudad || 'Santo Tomé'
     });
   };
 
@@ -71,7 +74,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error("Firebase logout error:", e);
     }
-    ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole', 'userYaRealizoPedidos'].forEach(k => localStorage.removeItem(k));
+    ['userId', 'userName', 'userEmail', 'userAddress', 'userTelefono', 'userEmailConfirmado', 'userRole', 'userYaRealizoPedidos', 'userCiudad'].forEach(k => localStorage.removeItem(k));
     setUser(null);
   };
 
@@ -92,7 +95,8 @@ export function AuthProvider({ children }) {
           telefono: dbUser.telefono,
           emailConfirmado: dbUser.emailConfirmado,
           role: dbUser.role,
-          ya_realizo_pedidos: dbUser.ya_realizo_pedidos
+          ya_realizo_pedidos: dbUser.ya_realizo_pedidos,
+          ciudad: dbUser.ciudad || 'Santo Tomé'
         });
         return { success: true, isNew: dbUser.isNew };
       }

@@ -468,14 +468,39 @@ const AdminMundial = () => {
     };
 
     // --- FIGURITAS ACTIONS ---
+    const handleCreateNewFigurita = () => {
+        setEditingFigurita({ id: 'new', numero: '' });
+        setFiguritaForm({
+            numero: '',
+            nombre: '',
+            categoria: 'Argentina',
+            rareza: 'comun',
+            foto_url: ''
+        });
+    };
+
     const handleSaveFigurita = async (e) => {
         e.preventDefault();
         try {
-            await api.adminSaveFigurita({
-                id: editingFigurita.id,
-                ...figuritaForm
-            });
-            toast.success(`Figurita #${editingFigurita.numero} guardada`);
+            if (editingFigurita.id === 'new') {
+                const { error } = await supabase
+                    .from('mundial_figuritas')
+                    .insert({
+                        numero: Number(figuritaForm.numero),
+                        nombre: figuritaForm.nombre,
+                        categoria: figuritaForm.categoria,
+                        rareza: figuritaForm.rareza,
+                        foto_url: figuritaForm.foto_url || null
+                    });
+                if (error) throw error;
+                toast.success(`Figurita #${figuritaForm.numero} creada en el catálogo!`);
+            } else {
+                await api.adminSaveFigurita({
+                    id: editingFigurita.id,
+                    ...figuritaForm
+                });
+                toast.success(`Figurita #${editingFigurita.numero} guardada`);
+            }
             setEditingFigurita(null);
             loadAllData();
         } catch (err) {
@@ -487,6 +512,7 @@ const AdminMundial = () => {
     const handleEditFigurita = (fig) => {
         setEditingFigurita(fig);
         setFiguritaForm({
+            numero: fig.numero,
             nombre: fig.nombre,
             categoria: fig.categoria,
             rareza: fig.rareza,
@@ -1310,7 +1336,12 @@ const AdminMundial = () => {
                 {activeSubTab === 'figuritas' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '20px' }}>
                         <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                            <h3 style={{ color: '#fbbf24', marginTop: 0 }}>Listado de 39 Figuritas</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                <h3 style={{ color: '#fbbf24', margin: 0 }}>Listado del Catálogo ({figuritas.length} Figus)</h3>
+                                <button className="btn btn-primary btn-sm" onClick={handleCreateNewFigurita}>
+                                    ➕ Crear Nueva Figurita
+                                </button>
+                            </div>
                             <div className="table-responsive">
                                 <table className="admin-table-dark">
                                     <thead>
@@ -1359,14 +1390,25 @@ const AdminMundial = () => {
 
                         <div style={{ background: '#0f172a', padding: '20px', borderRadius: '8px', border: '1px solid #334155', height: 'fit-content' }}>
                             <h3 style={{ color: '#fbbf24', marginTop: 0 }}>
-                                {editingFigurita ? `🖼️ Editar Figu #${editingFigurita.numero}` : '👈 Selecciona una Figurita'}
+                                {editingFigurita ? (editingFigurita.id === 'new' ? '➕ Crear Figurita' : `🖼️ Editar Figu #${editingFigurita.numero}`) : '👈 Selecciona una Figurita'}
                             </h3>
                             {editingFigurita ? (
                                 <form onSubmit={handleSaveFigurita} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {editingFigurita.id === 'new' && (
+                                        <div>
+                                            <label>Número de Figurita (#)</label>
+                                            <input 
+                                                type="number" className="filter-input-dark" required min="1"
+                                                placeholder="Ej: 40"
+                                                value={figuritaForm.numero}
+                                                onChange={e => setFiguritaForm({...figuritaForm, numero: e.target.value})}
+                                            />
+                                        </div>
+                                    )}
                                     <div>
                                         <label>Nombre del Jugador / Elemento</label>
                                         <input 
-                                            type="text" className="filter-input-dark" required
+                                            type="text" className="filter-input-dark" required placeholder="Ej: Sponsor Wepi"
                                             value={figuritaForm.nombre}
                                             onChange={e => setFiguritaForm({...figuritaForm, nombre: e.target.value})}
                                         />
@@ -1382,6 +1424,7 @@ const AdminMundial = () => {
                                             <option value="Especiales">Especiales (Escudos/Mascotas)</option>
                                             <option value="Estrellas Globales">Estrellas Globales</option>
                                             <option value="Leyendas">Leyendas del Deporte</option>
+                                            <option value="Sponsor">Sponsor Oficial (Pág 3)</option>
                                         </select>
                                     </div>
                                     <div>
@@ -1416,13 +1459,13 @@ const AdminMundial = () => {
                                     )}
 
                                     <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                                        <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Guardar Datos</button>
+                                        <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>{editingFigurita.id === 'new' ? 'Crear Figurita 💾' : 'Guardar Datos 💾'}</button>
                                         <button type="button" className="btn btn-secondary" onClick={() => setEditingFigurita(null)}>Cancelar</button>
                                     </div>
                                 </form>
                             ) : (
-                                <p style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'center', padding: '20px 0' }}>
-                                    Haz clic en "Cargar Enlace" en cualquier figurita de la lista para asignar o cambiar su nombre, rareza y la imagen que creaste manualmente.
+                                <p style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'center', padding: '20px 0', lineHeight: '1.4' }}>
+                                    Haz clic en "Cargar Enlace" en cualquier figurita para editarla, o haz clic en **"Crear Nueva Figurita"** arriba para registrar un nuevo patrocinador o sponsor en el álbum digital.
                                 </p>
                             )}
                         </div>
