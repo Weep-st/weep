@@ -1194,6 +1194,22 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
     console.error("Error actualizando totales en pedidos_locales:", err);
   }
 
+  // Otorgar 250 puntos de campaña mundialista (try-catch para no romper el flujo de pedidos)
+  if (userId) {
+    try {
+      const stats = await getMundialUsuarioStats(userId);
+      if (stats) {
+        const nuevosPuntos = (stats.puntos_totales || 0) + 250;
+        await supabase
+          .from('mundial_usuario_stats')
+          .update({ puntos_totales: nuevosPuntos })
+          .eq('usuario_id', userId);
+      }
+    } catch (ptsErr) {
+      console.error("Error otorgando puntos mundialistas por pedido:", ptsErr);
+    }
+  }
+
   return { success: true, pedidoId: data.pedido_id, repartidorId: data.repartidor_id, numConfirmacion: data.num_confirmacion };
 }
 

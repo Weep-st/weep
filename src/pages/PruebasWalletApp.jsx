@@ -3913,6 +3913,43 @@ export default function PruebasWalletApp() {
           onRefresh={refreshWallet}
         />
       )}
+
+      {/* Pestañita Lateral Mundialista */}
+      <Link 
+        to="/mundialista" 
+        className="floating-lateral-tab"
+        style={{
+          position: 'fixed',
+          right: '0',
+          top: '55%',
+          transform: 'translateY(-50%)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          filter: 'drop-shadow(-2px 4px 10px rgba(0,0,0,0.25))'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1.08) translateX(-8px)';
+          e.currentTarget.style.filter = 'brightness(1.15) drop-shadow(-4px 8px 20px rgba(0,0,0,0.45))';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(-50%)';
+          e.currentTarget.style.filter = 'drop-shadow(-2px 4px 10px rgba(0,0,0,0.25))';
+        }}
+      >
+        <img 
+          src="https://i.postimg.cc/B6VcTnwf/10-(2).png" 
+          alt="Mundialista Wepi" 
+          style={{
+            height: '110px',
+            width: 'auto',
+            display: 'block',
+            borderRadius: '12px 0 0 12px',
+          }}
+        />
+      </Link>
     </div>
   );
 }
