@@ -659,7 +659,9 @@ const Mundialista = () => {
                             position: 'absolute',
                             bottom: '24px',
                             left: '50%',
+                            right: 'auto',
                             transform: 'translateX(-50%)',
+                            margin: 0,
                             width: 'fit-content',
                             background: 'rgba(198, 40, 40, 0.95)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -682,7 +684,7 @@ const Mundialista = () => {
         }
 
         if (currentPage === 1) {
-            // Página 1 (Pág 1 del álbum físico): Anfitriones y Mascotas (30 a 39)
+            // Página 1 (Pág 1 del álbum físico): Anfitriones y Mascotas (30 a 38)
             return (
                 <div className="album-revista-page pag-normal animate-page-flip">
                     <div className="page-header-premium" style={{ marginBottom: '15px' }}>
@@ -695,7 +697,7 @@ const Mundialista = () => {
                     </p>
 
                     <div className="argentina-grid">
-                        {[30, 31, 32, 33, 34, 35, 36, 37, 38, 39].map(num => renderStickerSlot(num))}
+                        {[30, 31, 32, 33, 34, 35, 36, 37, 38].map(num => renderStickerSlot(num))}
                     </div>
                 </div>
             );
@@ -864,8 +866,10 @@ const Mundialista = () => {
         }
 
         if (currentPage === 4) {
-            // Página 4 (Pág 5 del álbum físico): Sponsor Oficial (slots >= 40)
-            const sponsorStickers = figuritas.filter(f => f.numero >= 40 && f.numero < 50 || f.categoria === 'Sponsor');
+            // Página 4 (Pág 5 del álbum físico): Sponsor Oficial (slots 39 a 42)
+            // Bloqueado por el momento (próximamente) igual que el Salón de la Fama de Messi
+            const sponsorSlots = [39, 40, 41, 42];
+            const isSponsorUnlocked = false; // Bloqueado por el momento
 
             return (
                 <div 
@@ -875,7 +879,8 @@ const Mundialista = () => {
                         flexDirection: 'column', 
                         alignItems: 'stretch',
                         justifyContent: 'flex-start',
-                        minHeight: isMobileView ? '430px' : '520px'
+                        minHeight: isMobileView ? '430px' : '520px',
+                        position: 'relative'
                     }}
                 >
                     <div className="page-header-premium" style={{ marginBottom: '15px' }}>
@@ -883,37 +888,59 @@ const Mundialista = () => {
                         <h3 className="argentina-title" style={{ color: '#ec4899' }}>✨ Sponsor Oficial del Álbum</h3>
                     </div>
 
-                    {sponsorStickers.length === 0 ? (
-                        <div 
-                            style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                flex: 1,
-                                background: 'radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%)', 
-                                border: '2px dashed #ec4899', 
-                                borderRadius: '16px',
-                                padding: '30px',
-                                textAlign: 'center',
-                                marginTop: '10px'
-                            }}
-                        >
-                            <span style={{ fontSize: '3rem', marginBottom: '15px', display: 'block', filter: 'drop-shadow(0 0 10px rgba(236, 72, 153, 0.5))' }}>🔒</span>
-                            <h4 style={{ color: 'white', fontWeight: 'bold', margin: '0 0 10px 0' }}>Sección Reservada</h4>
-                            <p style={{ color: '#94a3b8', fontSize: '0.82rem', maxWidth: '320px', margin: 0, lineHeight: '1.4' }}>
-                                ¡Disponible próximamente! Esta sección albergará los cromos exclusivos del sponsor oficial del álbum. Mantente atento para coleccionar las nuevas figuritas.
-                            </p>
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-5px', marginBottom: '15px' }}>
+                        Coleccioná las figuritas exclusivas del sponsor del torneo (figuritas 39 a 42).
+                    </p>
+
+                    {isSponsorUnlocked ? (
+                        <div className="argentina-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', padding: '0 40px' }}>
+                            {sponsorSlots.map(num => renderStickerSlot(num))}
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-5px', marginBottom: '15px' }}>
-                                Coleccioná las figuritas exclusivas del sponsor del torneo y completá el álbum al 100%.
-                            </p>
-                            <div className="argentina-grid">
-                                {sponsorStickers.map(f => renderStickerSlot(f.numero))}
+                        <>
+                            <div className="argentina-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', padding: '0 40px', opacity: 0.3, pointerEvents: 'none' }}>
+                                {sponsorSlots.map(num => (
+                                    <div key={num} className="album-sticker-slot vacia" style={{ borderColor: '#ec4899' }}>
+                                        <div className="sticker-silhouette">
+                                            <span className="silhouette-trophy" style={{ opacity: 0.15 }}>✨</span>
+                                            <span className="silhouette-num">#{num}</span>
+                                            <span style={{ fontSize: '0.65rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+                                                Sponsor Oficial
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
+
+                            {/* Locked glassmorphism overlay */}
+                            <div 
+                                style={{
+                                    position: 'absolute',
+                                    top: '70px',
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(15, 23, 42, 0.7)',
+                                    backdropFilter: 'blur(5px)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '16px',
+                                    padding: '24px',
+                                    textAlign: 'center',
+                                    zIndex: 10
+                                }}
+                            >
+                                <span style={{ fontSize: '3rem', marginBottom: '12px', display: 'block', filter: 'drop-shadow(0 0 10px rgba(236, 72, 153, 0.5))' }}>🔒</span>
+                                <h4 style={{ color: 'white', fontWeight: 'bold', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Sección Bloqueada
+                                </h4>
+                                <p style={{ color: '#cbd5e1', fontSize: '0.82rem', maxWidth: '320px', margin: 0, lineHeight: '1.4' }}>
+                                    ¡Disponible próximamente! Esta sección albergará los cromos exclusivos del sponsor oficial del álbum (figuritas 39 a 42).
+                                </p>
+                            </div>
+                        </>
                     )}
                 </div>
             );
