@@ -1424,7 +1424,8 @@ const AdminMundial = () => {
                                             <option value="Especiales">Especiales (Escudos/Mascotas)</option>
                                             <option value="Estrellas Globales">Estrellas Globales</option>
                                             <option value="Leyendas">Leyendas del Deporte</option>
-                                            <option value="Sponsor">Sponsor Oficial (Pág 3)</option>
+                                            <option value="Sponsor">Sponsor Oficial</option>
+                                            <option value="Messi">Messi (Salón de la Fama)</option>
                                         </select>
                                     </div>
                                     <div>

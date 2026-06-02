@@ -775,8 +775,97 @@ const Mundialista = () => {
         }
 
         if (currentPage === 3) {
-            // Página 3 (Pág 4 del álbum físico): Sponsor Oficial o Próximamente (slots >= 40)
-            const sponsorStickers = figuritas.filter(f => f.numero >= 40 || f.categoria === 'Sponsor');
+            // Página 3 (Pág 4 del álbum físico): Salón de la Fama MESSI (slots 50 a 55)
+            const messiSlots = [50, 51, 52, 53, 54, 55];
+            const messiYears = {
+                50: "Alemania 2006 🇩🇪",
+                51: "Sudáfrica 2010 🇿🇦",
+                52: "Brasil 2014 🇧🇷",
+                53: "Rusia 2018 🇷🇺",
+                54: "Qatar 2022 🇶🇦",
+                55: "Mundial 2026 🇺🇸"
+            };
+
+            const isMessiUnlocked = figuritas.some(f => f.categoria === 'Messi' || (f.numero >= 50 && f.numero <= 55));
+
+            return (
+                <div 
+                    className="album-revista-page pag-normal animate-page-flip" 
+                    style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'stretch',
+                        justifyContent: 'flex-start',
+                        minHeight: isMobileView ? '430px' : '520px',
+                        position: 'relative'
+                    }}
+                >
+                    <div className="page-header-premium" style={{ marginBottom: '15px' }}>
+                        <span>Pág 4</span>
+                        <h3 className="argentina-title" style={{ color: 'var(--gold-primary)' }}>👑 Salón de la Fama: MESSI</h3>
+                    </div>
+
+                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-5px', marginBottom: '15px' }}>
+                        Las 6 participaciones legendarias de Leo Messi en la historia de los Mundiales.
+                    </p>
+
+                    {isMessiUnlocked ? (
+                        <div className="argentina-grid">
+                            {messiSlots.map(num => renderStickerSlot(num))}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="argentina-grid" style={{ opacity: 0.3, pointerEvents: 'none' }}>
+                                {messiSlots.map(num => (
+                                    <div key={num} className="album-sticker-slot vacia legendaria">
+                                        <div className="sticker-silhouette">
+                                            <span className="silhouette-trophy" style={{ opacity: 0.15 }}>👑</span>
+                                            <span className="silhouette-num">#{num}</span>
+                                            <span style={{ fontSize: '0.55rem', color: '#64748b', textAlign: 'center', marginTop: '4px', padding: '0 4px' }}>
+                                                {messiYears[num]}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Locked glassmorphism overlay */}
+                            <div 
+                                style={{
+                                    position: 'absolute',
+                                    top: '70px',
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(15, 23, 42, 0.7)',
+                                    backdropFilter: 'blur(5px)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '16px',
+                                    padding: '24px',
+                                    textAlign: 'center',
+                                    zIndex: 10
+                                }}
+                            >
+                                <span style={{ fontSize: '3rem', marginBottom: '12px', display: 'block', filter: 'drop-shadow(0 0 10px var(--gold-primary))' }}>🔒</span>
+                                <h4 style={{ color: 'white', fontWeight: 'bold', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Sección Bloqueada
+                                </h4>
+                                <p style={{ color: '#cbd5e1', fontSize: '0.82rem', maxWidth: '320px', margin: 0, lineHeight: '1.4' }}>
+                                    ¡Disponible próximamente! Las figuritas conmemorativas de las 6 participaciones históricas de Leo Messi se desbloquearán más adelante en la campaña.
+                                </p>
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
+        if (currentPage === 4) {
+            // Página 4 (Pág 5 del álbum físico): Sponsor Oficial (slots >= 40)
+            const sponsorStickers = figuritas.filter(f => f.numero >= 40 && f.numero < 50 || f.categoria === 'Sponsor');
 
             return (
                 <div 
@@ -790,7 +879,7 @@ const Mundialista = () => {
                     }}
                 >
                     <div className="page-header-premium" style={{ marginBottom: '15px' }}>
-                        <span>Pág 4</span>
+                        <span>Pág 5</span>
                         <h3 className="argentina-title" style={{ color: '#ec4899' }}>✨ Sponsor Oficial del Álbum</h3>
                     </div>
 
@@ -830,8 +919,8 @@ const Mundialista = () => {
             );
         }
 
-        if (currentPage === 4) {
-            // Página 4 (Pág 6 del álbum físico): Contraportada
+        if (currentPage === 5) {
+            // Página 5 (Pág 6 del álbum físico): Contraportada
             return (
                 <div className="album-revista-page contraportada">
                     <div className="contraportada-content">
@@ -928,7 +1017,7 @@ const Mundialista = () => {
 
     const getPageLabel = () => {
         if (currentPage === 0) return 'Portada';
-        if (currentPage === 4) return 'Contraportada';
+        if (currentPage === 5) return 'Contraportada';
         if (currentPage === 1) {
             return 'Anfitriones y Mascotas (Pág 1)';
         }
@@ -940,7 +1029,8 @@ const Mundialista = () => {
             }
             return 'La Scaloneta (Págs 2 y 3)';
         }
-        if (currentPage === 3) return 'Sponsor del Álbum (Pág 4)';
+        if (currentPage === 3) return 'Salón de la Fama: MESSI (Pág 4)';
+        if (currentPage === 4) return 'Sponsor del Álbum (Pág 5)';
         return `Página ${currentPage}`;
     };
 
@@ -1053,7 +1143,7 @@ const Mundialista = () => {
                             </span>
                             <button 
                                 className="btn btn-secondary" 
-                                disabled={currentPage === 4}
+                                disabled={currentPage === 5}
                                 onClick={handleNextPage}
                             >
                                 Página Siguiente ▶
