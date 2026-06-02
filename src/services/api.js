@@ -4704,11 +4704,15 @@ export async function getMundialUsuarioStats(userId) {
     return null;
   }
   
-  // Si no existen stats, crearlas automáticamente
+  // Si no existen stats, crearlas automáticamente inyectando los premios iniciales de bienvenida
   if (!data) {
     const { data: newStats, error: createError } = await supabase
       .from('mundial_usuario_stats')
-      .insert({ usuario_id: userId })
+      .insert({ 
+        usuario_id: userId,
+        sobres_disponibles: 2,
+        puntos_totales: 100 // Regalo de 100 puntos iniciales de bienvenida
+      })
       .select()
       .single();
     if (createError) {
