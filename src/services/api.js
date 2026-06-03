@@ -2905,7 +2905,7 @@ export async function getPedidosDisponibles(repartidorId) {
 
   // 6. Filtrar dinámicamente
   const ahora = Date.now();
-  const delayMs = 20000;
+  const delayMs = 10000;
 
   const filtered = (data || []).filter(p => {
     // Si el pedido ya es mío, lo muestro siempre
@@ -3929,69 +3929,18 @@ export async function suscribirAPlan(localId, planId) {
 
 export async function broadcastOrderToDrivers(pedidoId, total, localId = null, precioEnvio = null) {
   try {
-    console.log(`⚡ Broadcasting order push to all accepted drivers... (Local: ${localId})`);
+    console.log(`⚡ Requesting server-side broadcast for order: ${pedidoId}`);
     
-    let finalPrecioEnvio = precioEnvio;
-    
-    // Si no se pasó el precio de envío, intentar obtenerlo del pedido
-    if (finalPrecioEnvio === null) {
-      const { data: pData } = await supabase.from('pedidos_general').select('precio_envio').eq('id', pedidoId).single();
-      finalPrecioEnvio = pData?.precio_envio || 0;
-    }
+    const { data, error } = await supabase.functions.invoke('send-push', {
+      body: {
+        broadcastOrderId: pedidoId,
+        localId,
+        precioEnvio
+      }
+    });
 
-    let nombreLocal = '';
-    if (localId) {
-      const { data: lData } = await supabase.from('locales').select('nombre').eq('id', localId).single();
-      if (lData?.nombre) nombreLocal = lData.nombre;
-    }
-
-    const { data: drivers } = await supabase
-      .from('repartidores')
-      .select('onesignal_id, locales_prioridad')
-      .eq('admin_status', 'Aceptado')
-      .not('onesignal_id', 'is', null);
-
-    if (!drivers || drivers.length === 0) {
-      console.warn("⚠️ No drivers found with OneSignalId");
-      return { success: false, message: 'No hay repartidores con OneSignalId' };
-    }
-
-    const priorityDrivers = localId ? drivers.filter(d => d.locales_prioridad?.includes(localId)) : [];
-    const otherDrivers = drivers.filter(d => !priorityDrivers.includes(d));
-
-    const sendPush = async (recipients) => {
-      const ids = recipients.map(d => d.onesignal_id).filter(Boolean);
-      if (ids.length === 0) return;
-      
-      const message = nombreLocal 
-        ? `¡Nuevo pedido en ${nombreLocal}! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`
-        : `¡Nuevo pedido! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`;
-
-      return await sendPushNotification({
-        subscriptionIds: ids,
-        title: '¡Nuevo Pedido Disponible! 🛵',
-        message: message,
-        url: 'https://wepi.com.ar/repartidores',
-        data: { pedidoId, type: 'new_order_broadcast' }
-      });
-    };
-
-    // Lógica de envío:
-    if (priorityDrivers.length > 0) {
-      console.log(`🔔 Sending IMMEDIATE push to ${priorityDrivers.length} priority drivers`);
-      await sendPush(priorityDrivers);
-      
-      // Delay 20s para el resto
-      console.log(`⏳ Delaying push 20s for ${otherDrivers.length} other drivers...`);
-      setTimeout(() => {
-        sendPush(otherDrivers).catch(e => console.error("Error in delayed push:", e));
-      }, 20000);
-      
-      return { success: true, message: 'Notificación enviada a prioritarios, resto en 20s' };
-    } else {
-      console.log(`🔔 No priority drivers for local ${localId}, sending to all ${drivers.length} drivers`);
-      return await sendPush(drivers);
-    }
+    if (error) throw new Error(error.message);
+    return { success: true, data };
   } catch (err) {
     console.error("Error in broadcastOrderToDrivers:", err);
     return { success: false, error: err.message };
