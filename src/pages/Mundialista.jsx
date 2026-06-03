@@ -1641,6 +1641,61 @@ const Mundialista = () => {
                         <h3>🏆 Tabla de Posiciones Global</h3>
                         <p style={{ color: 'var(--gray-600)', fontSize: '0.85rem', marginTop: '-10px', marginBottom: '20px' }}>Los usuarios de Wepi que sumen mayor puntuación al final de la copa recibirán premios exclusivos.</p>
                         
+                        {/* Tarjeta de Aviso Premium: Sumar puntos haciendo pedidos */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(230, 57, 70, 0.12) 0%, rgba(220, 38, 38, 0.04) 100%)',
+                            border: '1px solid rgba(230, 57, 70, 0.25)',
+                            borderRadius: '16px',
+                            padding: '20px',
+                            marginBottom: '24px',
+                            display: 'flex',
+                            flexDirection: isMobileView ? 'column' : 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '16px',
+                            boxShadow: '0 4px 15px rgba(230, 57, 70, 0.06)',
+                            backdropFilter: 'blur(10px)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left' }}>
+                                <div style={{ fontSize: '2rem', flexShrink: 0 }}>🛍️</div>
+                                <div>
+                                    <h4 style={{ margin: 0, color: '#dc2626', fontWeight: 'bold', fontSize: '1.05rem' }}>
+                                        ¡Sumá 250 puntos con cada compra!
+                                    </h4>
+                                    <p style={{ margin: '4px 0 0 0', color: '#475569', fontSize: '0.88rem', lineHeight: '1.4' }}>
+                                        Cada pedido que realices en Wepi genera **250 puntos** de regalo para subir puestos en el Ranking.
+                                    </p>
+                                </div>
+                            </div>
+                            <Link 
+                                to="/pedir" 
+                                style={{
+                                    background: '#dc2626',
+                                    color: '#ffffff',
+                                    padding: '10px 22px',
+                                    borderRadius: '50px',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.9rem',
+                                    textDecoration: 'none',
+                                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
+                                    transition: 'all 0.2s ease',
+                                    textAlign: 'center',
+                                    whiteSpace: 'nowrap',
+                                    width: isMobileView ? '100%' : 'auto'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.45)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
+                                }}
+                            >
+                                Ir a Pedir 🛒
+                            </Link>
+                        </div>
+
                         <div className="ranking-table-card">
                             <div className="ranking-table-header">
                                 <span>Puesto</span>
