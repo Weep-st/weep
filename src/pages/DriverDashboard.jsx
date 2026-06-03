@@ -55,6 +55,7 @@ export default function DriverDashboard() {
   const [deliveryCoords, setDeliveryCoords] = React.useState({ lat: null, lng: null });
   const geocoderRef = React.useRef(null);
   const lastLocationSyncRef = React.useRef(0);
+  const timeoutsRef = React.useRef({});
 
   // New views state
   const [view, setView] = React.useState('main'); // 'main', 'cobros', 'perfil', 'historial', 'archivados'
@@ -363,6 +364,8 @@ export default function DriverDashboard() {
     };
   }, [activeChatPedidoId]);
 
+
+
   const loadData = React.useCallback(async () => {
     try {
       if (!driver) return;
@@ -522,6 +525,57 @@ export default function DriverDashboard() {
     }
   }, [driver]);
 
+  // Realtime Orders Subscription
+  React.useEffect(() => {
+    if (!driver) return;
+
+    console.log("📡 Subscribing to realtime updates for pedidos_general...");
+
+    const channel = api.supabase
+      .channel('public:pedidos_general_changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'pedidos_general'
+      }, (payload) => {
+        console.log("🔔 Realtime update on pedidos_general received:", payload);
+        fetchPedidos(true);
+
+        // Si es un nuevo pedido broadcast no asignado en un estado activo de reparto,
+        // programamos un fetchPedidos diferido para los repartidores sin prioridad (10 segundos)
+        const newOrder = payload.new;
+        if (
+          newOrder &&
+          !newOrder.repartidor_id &&
+          newOrder.tipo_entrega === 'Con Envío' &&
+          ['Pendiente', 'Buscando Repartidor', 'Confirmado'].includes(newOrder.estado)
+        ) {
+          const createdTime = new Date(newOrder.created_at).getTime();
+          const delayRemaining = 10000 - (Date.now() - createdTime);
+          
+          if (delayRemaining > 0) {
+            if (timeoutsRef.current[newOrder.id]) {
+              clearTimeout(timeoutsRef.current[newOrder.id]);
+            }
+            
+            console.log(`⏳ Scheduling delayed fetchPedidos in ${delayRemaining}ms for order ${newOrder.id}`);
+            timeoutsRef.current[newOrder.id] = setTimeout(() => {
+              console.log(`⏰ Executing delayed fetchPedidos for order ${newOrder.id}`);
+              fetchPedidos(true);
+              delete timeoutsRef.current[newOrder.id];
+            }, delayRemaining + 500);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      api.supabase.removeChannel(channel);
+      Object.values(timeoutsRef.current).forEach(clearTimeout);
+      timeoutsRef.current = {};
+    };
+  }, [driver, fetchPedidos]);
+
   // On Login/Load
   React.useEffect(() => {
     if (driver) {
@@ -616,12 +670,12 @@ export default function DriverDashboard() {
       checkAvailability();
       fetchActiveLocales();
       
-      // 2. Polling de pedidos (Siempre mientras esté logueado)
+      // 2. Polling de disponibilidad, locales activos y resguardo de pedidos (cada 20s)
       interval = setInterval(() => {
-        fetchPedidos();
+        fetchPedidos(true);
         if (isActive) checkAvailability();
         fetchActiveLocales();
-      }, 15000);
+      }, 20000);
 
       // 3. Lógica solo si está ACTIVO (Interacción y Heartbeat)
       if (isActive) {
@@ -1944,7 +1998,7 @@ export default function DriverDashboard() {
                     <div className="next-stop-icon" style={{ background: '#94a3b8' }}>🏁</div>
                     <div className="next-stop-info">
                       <span className="next-stop-label" style={{ color: '#64748b' }}>Estado</span>
-                      <span className="next-stop-address">Sin viajes pendientes</span>
+                      <span className="next-stop-address">Buscando pedidos para entregar...</span>
                     </div>
                   </div>
                 )}

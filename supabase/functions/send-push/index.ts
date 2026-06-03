@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
   const corsHeaders = {
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("📥 Payload recibido:", JSON.stringify(body, null, 2));
 
-    const { subscriptionIds, title, message, data, url } = body;
+    const { subscriptionIds, title, message, data, url, broadcastOrderId, localId, precioEnvio } = body;
     const onesignalAppId = Deno.env.get("ONESIGNAL_APP_ID");
     const onesignalApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
 
@@ -23,6 +24,139 @@ Deno.serve(async (req) => {
       throw new Error("ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY is not configured in Supabase Edge Functions");
     }
 
+    if (broadcastOrderId) {
+      console.log(`⚡ Procesando broadcast en tiempo real para pedido: ${broadcastOrderId}`);
+      
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const supabaseServiceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      if (!supabaseUrl || !supabaseServiceRole) {
+        throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
+      }
+      
+      const supabase = createClient(supabaseUrl, supabaseServiceRole);
+
+      // 1. Verificar si el pedido sigue disponible (repartidor_id es NULL)
+      const { data: order, error: orderErr } = await supabase
+        .from('pedidos_general')
+        .select('repartidor_id, estado, local_id, precio_envio')
+        .eq('id', broadcastOrderId)
+        .single();
+
+      if (orderErr || !order) {
+        console.error(`❌ [Broadcast] Error al buscar pedido ${broadcastOrderId}:`, orderErr);
+        return new Response(JSON.stringify({ success: false, error: 'Order not found or error fetching' }), {
+          headers: corsHeaders,
+          status: 200 // Consistent with Wepi error wrapper response pattern
+        });
+      }
+
+      if (order.repartidor_id) {
+        console.log(`⚠️ [Broadcast] El pedido ${broadcastOrderId} ya tiene repartidor asignado: ${order.repartidor_id}. Abortando push.`);
+        return new Response(JSON.stringify({ success: true, message: 'Already assigned' }), {
+          headers: corsHeaders
+        });
+      }
+
+      // 2. Obtener repartidores aceptados
+      const { data: drivers, error: driversErr } = await supabase
+        .from('repartidores')
+        .select('onesignal_id, locales_prioridad')
+        .eq('admin_status', 'Aceptado')
+        .not('onesignal_id', 'is', null);
+
+      if (driversErr || !drivers || drivers.length === 0) {
+        console.log("⚠️ [Broadcast] No hay repartidores con OneSignal ID en la base de datos.");
+        return new Response(JSON.stringify({ success: true, message: 'No drivers to notify' }), {
+          headers: corsHeaders
+        });
+      }
+
+      const finalLocalId = localId || order.local_id;
+      const finalPrecioEnvio = precioEnvio || order.precio_envio || 0;
+
+      // 3. Obtener nombre del local si existe localId
+      let nombreLocal = "";
+      if (finalLocalId) {
+        const { data: localData } = await supabase
+          .from('locales')
+          .select('nombre')
+          .eq('id', finalLocalId)
+          .single();
+        if (localData?.nombre) {
+          nombreLocal = localData.nombre;
+        }
+      }
+
+      const titleStr = '¡Nuevo Pedido Disponible! 🛵';
+      const messageStr = nombreLocal
+        ? `¡Nuevo pedido en ${nombreLocal}! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`
+        : `¡Nuevo pedido! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`;
+
+      // Separar prioritarios y comunes
+      const priorityDrivers = finalLocalId ? drivers.filter(d => d.locales_prioridad?.includes(finalLocalId)) : [];
+      const otherDrivers = drivers.filter(d => !priorityDrivers.includes(d));
+
+      const sendToOneSignal = async (targetDrivers: any[]) => {
+        const ids = targetDrivers.map(d => d.onesignal_id).filter(Boolean);
+        if (ids.length === 0) return;
+
+        const payload = {
+          app_id: onesignalAppId,
+          include_subscription_ids: ids,
+          headings: { "es": titleStr, "en": titleStr },
+          contents: { "es": messageStr, "en": messageStr },
+          url: "https://wepi.com.ar/repartidores",
+          data: { pedidoId: broadcastOrderId, type: 'new_order_broadcast' }
+        };
+
+        const response = await fetch("https://onesignal.com/api/v1/notifications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": `Basic ${onesignalApiKey}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        console.log(`📡 [Broadcast OneSignal] Enviado a ${ids.length} repartidores. Respuesta:`, JSON.stringify(result));
+      };
+
+      // Si hay repartidores con prioridad, enviamos inmediato a ellos, y con retraso al resto
+      if (priorityDrivers.length > 0) {
+        console.log(`🔔 [Broadcast] Enviando notificación inmediata a ${priorityDrivers.length} repartidores prioritarios.`);
+        await sendToOneSignal(priorityDrivers);
+
+        if (otherDrivers.length > 0) {
+          console.log(`⏳ [Broadcast] Esperando 10 segundos antes de enviar al resto (${otherDrivers.length})...`);
+          await new Promise(resolve => setTimeout(resolve, 10000));
+
+          // Volver a consultar estado del pedido antes de mandar al resto
+          const { data: freshOrder, error: freshErr } = await supabase
+            .from('pedidos_general')
+            .select('repartidor_id')
+            .eq('id', broadcastOrderId)
+            .single();
+
+          if (freshErr || !freshOrder) {
+            console.log(`[Broadcast] No se pudo re-verificar el pedido ${broadcastOrderId}. Abortando resto.`);
+          } else if (freshOrder.repartidor_id) {
+            console.log(`[Broadcast] El pedido fue tomado durante la espera por ${freshOrder.repartidor_id}. Cancelando envío secundario.`);
+          } else {
+            console.log(`[Broadcast] El pedido sigue libre. Enviando al resto de los ${otherDrivers.length} repartidores.`);
+            await sendToOneSignal(otherDrivers);
+          }
+        }
+      } else {
+        console.log(`🔔 [Broadcast] No hay prioritarios. Enviando notificación inmediata a todos los ${drivers.length} repartidores.`);
+        await sendToOneSignal(drivers);
+      }
+
+      return new Response(JSON.stringify({ success: true, message: 'Broadcast processed successfully' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // --- FALLBACK ORIGINAL ---
     if (!subscriptionIds || !Array.isArray(subscriptionIds) || subscriptionIds.length === 0) {
       console.error("❌ Error: subscriptionIds no es un array válido o está vacío.");
       throw new Error("Missing required parameters: subscriptionIds (Array)");
@@ -73,7 +207,7 @@ Deno.serve(async (req) => {
     console.error("🔥 Error crítico en Edge Function:", (error as Error).message);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200 // Consistent with sender pattern but useful to see logs
+      status: 200
     })
   }
 })
