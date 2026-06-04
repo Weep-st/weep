@@ -1,9 +1,13 @@
 -- ═══════════════════════════════════════════════════
--- MIGRACIÓN: LOCALES SPONSOR Y BONOS SEMANALES
+-- MIGRACIÓN: LOCALES SPONSOR Y BONOS SEMANALES (AISLADO MUNDIAL 2026)
 -- Ejecutar en Supabase (Dashboard → SQL Editor)
 -- ═══════════════════════════════════════════════════
 
--- 1. Agregar columnas de configuración a mundial_config
+-- 1. Revertir columnas directas en locales y menu si se hubieran creado
+ALTER TABLE public.locales DROP COLUMN IF EXISTS es_sponsor_mundial;
+ALTER TABLE public.menu DROP COLUMN IF EXISTS es_combo_mundial;
+
+-- 2. Agregar columnas de configuración a mundial_config
 ALTER TABLE public.mundial_config 
 ADD COLUMN IF NOT EXISTS pts_pedido_normal INT DEFAULT 250,
 ADD COLUMN IF NOT EXISTS sobres_pedido_normal INT DEFAULT 0,
@@ -31,13 +35,20 @@ SET
   pts_triplete_semanal = COALESCE(pts_triplete_semanal, 600)
 WHERE id = 'global';
 
--- 2. Agregar columna 'es_sponsor_mundial' a locales
-ALTER TABLE public.locales 
-ADD COLUMN IF NOT EXISTS es_sponsor_mundial BOOLEAN DEFAULT FALSE;
+-- 3. Crear tablas para Sponsors y Combos aislados
+CREATE TABLE IF NOT EXISTS public.mundial_sponsors_locales (
+    local_id TEXT PRIMARY KEY REFERENCES public.locales(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 3. Agregar columna 'es_combo_mundial' a menu
-ALTER TABLE public.menu 
-ADD COLUMN IF NOT EXISTS es_combo_mundial BOOLEAN DEFAULT FALSE;
+CREATE TABLE IF NOT EXISTS public.mundial_combos_productos (
+    menu_id TEXT PRIMARY KEY REFERENCES public.menu(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Deshabilitar RLS para que coincida con el resto de las tablas de la campaña
+ALTER TABLE IF EXISTS public.mundial_sponsors_locales DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.mundial_combos_productos DISABLE ROW LEVEL SECURITY;
 
 -- 4. Agregar columnas de control de bonos semanales a mundial_usuario_stats
 ALTER TABLE public.mundial_usuario_stats 
