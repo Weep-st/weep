@@ -573,7 +573,144 @@ const AdminMundial = () => {
                                         <option key={c.id} value={c.id}>{c.name} (Crédito por Completar)</option>
                                     ))}
                                 </select>
-                                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '8px' }}>El usuario recibirá el beneficio configurado en esta campaña apenas pegue la figurita #39 en su álbum.</p>
+                                 <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '8px' }}>El usuario recibirá el beneficio configurado en esta campaña apenas pegue la figurita #39 en su álbum.</p>
+                            </div>
+                        </div>
+
+                        <div style={{ background: '#0f172a', padding: '20px', borderRadius: '8px', border: '1px solid #334155', marginBottom: '20px' }}>
+                            <h3 style={{ color: '#fbbf24', marginTop: 0 }}>⚙️ Configuración de Puntos de Pedidos y Bonos</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                                    <h4 style={{ color: '#60a5fa', margin: '0 0 10px 0', fontSize: '1rem' }}>1. Pedido Normal</h4>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Puntos</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.pts_pedido_normal !== undefined && config.pts_pedido_normal !== null ? config.pts_pedido_normal : ''}
+                                                onChange={e => setConfig({...config, pts_pedido_normal: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Sobres</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.sobres_pedido_normal !== undefined && config.sobres_pedido_normal !== null ? config.sobres_pedido_normal : ''}
+                                                onChange={e => setConfig({...config, sobres_pedido_normal: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                                    <h4 style={{ color: '#60a5fa', margin: '0 0 10px 0', fontSize: '1rem' }}>2. Pedido en Local Sponsor</h4>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Puntos</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.pts_pedido_sponsor !== undefined && config.pts_pedido_sponsor !== null ? config.pts_pedido_sponsor : ''}
+                                                onChange={e => setConfig({...config, pts_pedido_sponsor: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Sobres</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.sobres_pedido_sponsor !== undefined && config.sobres_pedido_sponsor !== null ? config.sobres_pedido_sponsor : ''}
+                                                onChange={e => setConfig({...config, sobres_pedido_sponsor: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                                    <h4 style={{ color: '#60a5fa', margin: '0 0 10px 0', fontSize: '1rem' }}>3. Combo Mundialista</h4>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Puntos</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.pts_combo_mundialista !== undefined && config.pts_combo_mundialista !== null ? config.pts_combo_mundialista : ''}
+                                                onChange={e => setConfig({...config, pts_combo_mundialista: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Sobres</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.sobres_combo_mundialista !== undefined && config.sobres_combo_mundialista !== null ? config.sobres_combo_mundialista : ''}
+                                                onChange={e => setConfig({...config, sobres_combo_mundialista: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                                    <h4 style={{ color: '#60a5fa', margin: '0 0 10px 0', fontSize: '1rem' }}>4. Sponsor + Combo Mundialista</h4>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Puntos</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.pts_combo_sponsor !== undefined && config.pts_combo_sponsor !== null ? config.pts_combo_sponsor : ''}
+                                                onChange={e => setConfig({...config, pts_combo_sponsor: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Sobres</label>
+                                            <input 
+                                                type="number" 
+                                                className="filter-input-dark"
+                                                value={config.sobres_combo_sponsor !== undefined && config.sobres_combo_sponsor !== null ? config.sobres_combo_sponsor : ''}
+                                                onChange={e => setConfig({...config, sobres_combo_sponsor: e.target.value !== '' ? Number(e.target.value) : null})}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                                    <h4 style={{ color: '#34d399', margin: '0 0 10px 0', fontSize: '1rem' }}>5. Bono Doblete (2 pedidos/sem)</h4>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Puntos Extra</label>
+                                        <input 
+                                            type="number" 
+                                            className="filter-input-dark"
+                                            value={config.pts_doblete_semanal !== undefined && config.pts_doblete_semanal !== null ? config.pts_doblete_semanal : ''}
+                                            onChange={e => setConfig({...config, pts_doblete_semanal: e.target.value !== '' ? Number(e.target.value) : null})}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                                    <h4 style={{ color: '#34d399', margin: '0 0 10px 0', fontSize: '1rem' }}>6. Bono Triplete (3 pedidos/sem)</h4>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Puntos Extra</label>
+                                        <input 
+                                            type="number" 
+                                            className="filter-input-dark"
+                                            value={config.pts_triplete_semanal !== undefined && config.pts_triplete_semanal !== null ? config.pts_triplete_semanal : ''}
+                                            onChange={e => setConfig({...config, pts_triplete_semanal: e.target.value !== '' ? Number(e.target.value) : null})}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

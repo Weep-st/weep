@@ -190,6 +190,7 @@ const AdminLocales = () => {
                 horario_apertura2: fd.get('horario_apertura2'),
                 horario_cierre2: fd.get('horario_cierre2'),
                 modo_automatico: fd.get('modo_automatico') === 'true',
+                es_sponsor_mundial: fd.get('es_sponsor_mundial') === 'true',
                 foto_url: fotoUrl
             };
             
@@ -779,6 +780,14 @@ const AdminLocales = () => {
                                 <select name="modo_automatico" defaultValue={editingLocal.modo_automatico ? 'true' : 'false'}>
                                     <option value="true">Automático (Según Horario)</option>
                                     <option value="false">Manual (Controlado por Admin/Local)</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Patrocinador Campaña Mundialista</label>
+                                <select name="es_sponsor_mundial" defaultValue={editingLocal.es_sponsor_mundial ? 'true' : 'false'}>
+                                    <option value="false">No es Sponsor</option>
+                                    <option value="true">Es Sponsor Oficial 🏆</option>
                                 </select>
                             </div>
 

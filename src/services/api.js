@@ -953,6 +953,7 @@ export async function addMenuItem(params) {
     stock_minimo: params.stock_minimo || 10,
     unidades_por_venta: params.unidades_por_venta || 1,
     stock_base_id: params.stock_base_id || null,
+    es_combo_mundial: params.es_combo_mundial || false,
   });
   if (error) throw new Error(error.message);
   return { success: true };
@@ -977,6 +978,7 @@ export async function updateMenuItem(params) {
   if (params.unidades_por_venta !== undefined) updates.unidades_por_venta = params.unidades_por_venta;
   if (params.stock_base_id !== undefined) updates.stock_base_id = params.stock_base_id;
   if (params.ultima_confirmacion_stock !== undefined) updates.ultima_confirmacion_stock = params.ultima_confirmacion_stock;
+  if (params.es_combo_mundial !== undefined) updates.es_combo_mundial = params.es_combo_mundial;
 
   const { error } = await supabase.from('menu').update(updates).eq('id', params.itemId);
   if (error) throw new Error(error.message);
@@ -1194,15 +1196,86 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
     console.error("Error actualizando totales en pedidos_locales:", err);
   }
 
-  // Otorgar 250 puntos de campaña mundialista (try-catch para no romper el flujo de pedidos)
+  // Otorgar puntos de campaña mundialista (try-catch para no romper el flujo de pedidos)
   if (userId) {
     try {
-      const stats = await getMundialUsuarioStats(userId);
+      const itemIds = items.map(i => i.menuId || i.id || i.item_id).filter(Boolean);
+      const localId = items[0]?.local_id;
+
+      // Calcular inicio de semana (Lunes de la semana actual)
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      const startOfWeekIso = monday.toISOString();
+      const weekId = `${monday.getFullYear()}-${(monday.getMonth() + 1).toString().padStart(2, '0')}-${monday.getDate().toString().padStart(2, '0')}`;
+
+      // Ejecutar consultas en paralelo
+      const [stats, localRes, menuRes, configRes, countRes] = await Promise.all([
+        getMundialUsuarioStats(userId),
+        localId ? supabase.from('locales').select('es_sponsor_mundial').eq('id', localId).maybeSingle() : Promise.resolve({ data: null }),
+        itemIds.length > 0 ? supabase.from('menu').select('id').in('id', itemIds).eq('es_combo_mundial', true) : Promise.resolve({ data: [] }),
+        getMundialConfig(),
+        supabase.from('pedidos_general')
+          .select('id', { count: 'exact', head: true })
+          .eq('usuario_id', userId)
+          .gte('created_at', startOfWeekIso)
+          .neq('estado', 'Rechazado')
+          .neq('estado', 'Cancelado')
+      ]);
+
       if (stats) {
-        const nuevosPuntos = (stats.puntos_totales || 0) + 250;
+        const esSponsor = localRes?.data?.es_sponsor_mundial || false;
+        const tieneCombo = (menuRes?.data || []).length > 0;
+        const conf = configRes || {};
+
+        // 1. Determinar puntos y sobres base según Sponsor y Combo
+        let ptsBase = 250;
+        let sobresBase = 0;
+
+        if (esSponsor && tieneCombo) {
+          ptsBase = conf.pts_combo_sponsor !== undefined ? conf.pts_combo_sponsor : 700;
+          sobresBase = conf.sobres_combo_sponsor !== undefined ? conf.sobres_combo_sponsor : 2;
+        } else if (tieneCombo) {
+          ptsBase = conf.pts_combo_mundialista !== undefined ? conf.pts_combo_mundialista : 500;
+          sobresBase = conf.sobres_combo_mundialista !== undefined ? conf.sobres_combo_mundialista : 1;
+        } else if (esSponsor) {
+          ptsBase = conf.pts_pedido_sponsor !== undefined ? conf.pts_pedido_sponsor : 400;
+          sobresBase = conf.sobres_pedido_sponsor !== undefined ? conf.sobres_pedido_sponsor : 1;
+        } else {
+          ptsBase = conf.pts_pedido_normal !== undefined ? conf.pts_pedido_normal : 250;
+          sobresBase = conf.sobres_pedido_normal !== undefined ? conf.sobres_pedido_normal : 0;
+        }
+
+        let nuevosPuntos = (stats.puntos_totales || 0) + ptsBase;
+        let nuevosSobres = (stats.sobres_disponibles || 0) + sobresBase;
+
+        // 2. Determinar bonos semanales (Doblete / Triplete)
+        const totalPedidosEstaSemana = countRes?.count || 0;
+        const updates = {};
+
+        // Bono Doblete
+        if (totalPedidosEstaSemana === 2 && stats.ultimo_doblete_semana !== weekId) {
+          const ptsDoblete = conf.pts_doblete_semanal !== undefined ? conf.pts_doblete_semanal : 300;
+          nuevosPuntos += ptsDoblete;
+          updates.ultimo_doblete_semana = weekId;
+        }
+
+        // Bono Triplete
+        if (totalPedidosEstaSemana === 3 && stats.ultimo_triplete_semana !== weekId) {
+          const ptsTriplete = conf.pts_triplete_semanal !== undefined ? conf.pts_triplete_semanal : 600;
+          nuevosPuntos += ptsTriplete;
+          updates.ultimo_triplete_semana = weekId;
+        }
+
+        // 3. Guardar estadísticas actualizadas
+        updates.puntos_totales = nuevosPuntos;
+        updates.sobres_disponibles = nuevosSobres;
+
         await supabase
           .from('mundial_usuario_stats')
-          .update({ puntos_totales: nuevosPuntos })
+          .update(updates)
           .eq('usuario_id', userId);
       }
     } catch (ptsErr) {
