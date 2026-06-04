@@ -953,7 +953,6 @@ export async function addMenuItem(params) {
     stock_minimo: params.stock_minimo || 10,
     unidades_por_venta: params.unidades_por_venta || 1,
     stock_base_id: params.stock_base_id || null,
-    es_combo_mundial: params.es_combo_mundial || false,
   });
   if (error) throw new Error(error.message);
   return { success: true };
@@ -978,7 +977,6 @@ export async function updateMenuItem(params) {
   if (params.unidades_por_venta !== undefined) updates.unidades_por_venta = params.unidades_por_venta;
   if (params.stock_base_id !== undefined) updates.stock_base_id = params.stock_base_id;
   if (params.ultima_confirmacion_stock !== undefined) updates.ultima_confirmacion_stock = params.ultima_confirmacion_stock;
-  if (params.es_combo_mundial !== undefined) updates.es_combo_mundial = params.es_combo_mundial;
 
   const { error } = await supabase.from('menu').update(updates).eq('id', params.itemId);
   if (error) throw new Error(error.message);
@@ -1214,8 +1212,8 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
       // Ejecutar consultas en paralelo
       const [stats, localRes, menuRes, configRes, countRes] = await Promise.all([
         getMundialUsuarioStats(userId),
-        localId ? supabase.from('locales').select('es_sponsor_mundial').eq('id', localId).maybeSingle() : Promise.resolve({ data: null }),
-        itemIds.length > 0 ? supabase.from('menu').select('id').in('id', itemIds).eq('es_combo_mundial', true) : Promise.resolve({ data: [] }),
+        localId ? supabase.from('mundial_sponsors_locales').select('local_id').eq('local_id', localId).maybeSingle() : Promise.resolve({ data: null }),
+        itemIds.length > 0 ? supabase.from('mundial_combos_productos').select('menu_id').in('menu_id', itemIds) : Promise.resolve({ data: [] }),
         getMundialConfig(),
         supabase.from('pedidos_general')
           .select('id', { count: 'exact', head: true })
@@ -1226,7 +1224,7 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
       ]);
 
       if (stats) {
-        const esSponsor = localRes?.data?.es_sponsor_mundial || false;
+        const esSponsor = !!localRes?.data;
         const tieneCombo = (menuRes?.data || []).length > 0;
         const conf = configRes || {};
 
@@ -4983,6 +4981,64 @@ export async function completarMisionCliente(userId, misionId, puntosPremio, sob
   }
 
   return { success: true, message: msg };
+}
+
+export async function getMundialSponsors() {
+  const { data, error } = await supabase
+    .from('mundial_sponsors_locales')
+    .select('*, locales(nombre)')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error("Error fetching mundial sponsors:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function addMundialSponsor(localId) {
+  const { error } = await supabase
+    .from('mundial_sponsors_locales')
+    .insert({ local_id: localId });
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function removeMundialSponsor(localId) {
+  const { error } = await supabase
+    .from('mundial_sponsors_locales')
+    .delete()
+    .eq('local_id', localId);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getMundialCombos() {
+  const { data, error } = await supabase
+    .from('mundial_combos_productos')
+    .select('*, menu(nombre, local_id, locales(nombre))')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error("Error fetching mundial combos:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function addMundialCombo(menuId) {
+  const { error } = await supabase
+    .from('mundial_combos_productos')
+    .insert({ menu_id: menuId });
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function removeMundialCombo(menuId) {
+  const { error } = await supabase
+    .from('mundial_combos_productos')
+    .delete()
+    .eq('menu_id', menuId);
+  if (error) throw error;
+  return { success: true };
 }
 
 

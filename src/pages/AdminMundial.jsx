@@ -53,6 +53,17 @@ const AdminMundial = () => {
     const [injectForm, setInjectForm] = useState({
         premio_tipo: 'puntos', premio_cantidad: 100, figurita_numero: '', motivo: ''
     });
+
+    // Sponsors y Combos States
+    const [localesList, setLocalesList] = useState([]);
+    const [sponsorsList, setSponsorsList] = useState([]);
+    const [combosList, setCombosList] = useState([]);
+    const [selectedLocalForSponsor, setSelectedLocalForSponsor] = useState('');
+    const [selectedLocalForCombo, setSelectedLocalForCombo] = useState('');
+    const [localMenuItems, setLocalMenuItems] = useState([]);
+    const [selectedMenuItemForCombo, setSelectedMenuItemForCombo] = useState('');
+    const [loadingMenuItems, setLoadingMenuItems] = useState(false);
+
     // Helper: Render flag as image if it's a URL, or as emoji/text otherwise
     const renderFlag = (flag) => {
         if (!flag) return '🏳️';
@@ -97,6 +108,34 @@ const AdminMundial = () => {
     useEffect(() => {
         loadAllData();
     }, []);
+
+    // Effect to load products of selected store for combos
+    useEffect(() => {
+        if (!selectedLocalForCombo) {
+            setLocalMenuItems([]);
+            setSelectedMenuItemForCombo('');
+            return;
+        }
+        
+        async function fetchMenuItems() {
+            setLoadingMenuItems(true);
+            try {
+                const items = await api.getMenuByLocalId(selectedLocalForCombo);
+                setLocalMenuItems(items || []);
+                if (items && items.length > 0) {
+                    setSelectedMenuItemForCombo(items[0].id);
+                } else {
+                    setSelectedMenuItemForCombo('');
+                }
+            } catch (err) {
+                console.error("Error loading menu items:", err);
+                toast.error("Error al cargar productos");
+            } finally {
+                setLoadingMenuItems(false);
+            }
+        }
+        fetchMenuItems();
+    }, [selectedLocalForCombo]);
 
     const loadAllData = async () => {
         setLoading(true);
@@ -149,11 +188,82 @@ const AdminMundial = () => {
                 .order('nombre', { ascending: true });
             setUsersList(usr || []);
 
+            // Load Locales
+            const locs = await api.getLocales();
+            setLocalesList(locs || []);
+
+            // Load Sponsors
+            const sps = await api.getMundialSponsors();
+            setSponsorsList(sps || []);
+
+            // Load Combos
+            const cbs = await api.getMundialCombos();
+            setCombosList(cbs || []);
+
         } catch (err) {
             toast.error('Error al cargar datos del Mundial');
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // --- SPONSORS & COMBOS ACTIONS ---
+    const handleAddSponsor = async () => {
+        if (!selectedLocalForSponsor) {
+            toast.error("Selecciona un local primero");
+            return;
+        }
+        try {
+            await api.addMundialSponsor(selectedLocalForSponsor);
+            toast.success("Sponsor agregado correctamente");
+            setSelectedLocalForSponsor('');
+            const sps = await api.getMundialSponsors();
+            setSponsorsList(sps);
+        } catch (err) {
+            console.error("Error adding sponsor:", err);
+            toast.error("El local ya es sponsor o hubo un error");
+        }
+    };
+
+    const handleRemoveSponsor = async (localId) => {
+        try {
+            await api.removeMundialSponsor(localId);
+            toast.success("Sponsor removido");
+            const sps = await api.getMundialSponsors();
+            setSponsorsList(sps);
+        } catch (err) {
+            console.error("Error removing sponsor:", err);
+            toast.error("Error al remover sponsor");
+        }
+    };
+
+    const handleAddCombo = async () => {
+        if (!selectedMenuItemForCombo) {
+            toast.error("Selecciona un producto primero");
+            return;
+        }
+        try {
+            await api.addMundialCombo(selectedMenuItemForCombo);
+            toast.success("Combo agregado correctamente");
+            setSelectedMenuItemForCombo('');
+            const cbs = await api.getMundialCombos();
+            setCombosList(cbs);
+        } catch (err) {
+            console.error("Error adding combo:", err);
+            toast.error("El producto ya es combo o hubo un error");
+        }
+    };
+
+    const handleRemoveCombo = async (menuId) => {
+        try {
+            await api.removeMundialCombo(menuId);
+            toast.success("Combo removido");
+            const cbs = await api.getMundialCombos();
+            setCombosList(cbs);
+        } catch (err) {
+            console.error("Error removing combo:", err);
+            toast.error("Error al remover combo");
         }
     };
 
@@ -549,6 +659,9 @@ const AdminMundial = () => {
                     </button>
                     <button className={`btn ${activeSubTab === 'figuritas' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveSubTab('figuritas')}>
                         🖼️ Figuritas ({figuritas.length})
+                    </button>
+                    <button className={`btn ${activeSubTab === 'sponsors_combos' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveSubTab('sponsors_combos')}>
+                        📢 Sponsors y Combos
                     </button>
                 </div>
             </header>
@@ -1607,6 +1720,151 @@ const AdminMundial = () => {
                                 </p>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {/* 8. SECCION SPONSORS Y COMBOS */}
+                {activeSubTab === 'sponsors_combos' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flexWrap: 'wrap' }}>
+                        
+                        {/* A. LOCALES SPONSOR */}
+                        <div style={{ background: '#0f172a', padding: '20px', borderRadius: '8px', border: '1px solid #334155' }}>
+                            <h3 style={{ color: '#fbbf24', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🏆 Locales Sponsor Patrocinadores
+                            </h3>
+                            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '15px' }}>
+                                Las compras en estos locales otorgan puntos y sobres base configurados en la pestaña "⚙️ Config".
+                            </p>
+                            
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <select 
+                                        className="filter-input-dark" 
+                                        value={selectedLocalForSponsor}
+                                        onChange={e => setSelectedLocalForSponsor(e.target.value)}
+                                        style={{ marginTop: 0 }}
+                                    >
+                                        <option value="">-- Seleccionar Local --</option>
+                                        {localesList.map(loc => (
+                                            <option key={loc.id} value={loc.id}>{loc.nombre}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button className="btn btn-primary" onClick={handleAddSponsor}>
+                                    Hacer Sponsor ➕
+                                </button>
+                            </div>
+                            
+                            <h4 style={{ color: '#60a5fa', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>Activos</h4>
+                            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                <table className="admin-table-dark">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre del Local</th>
+                                            <th>ID</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sponsorsList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="3" style={{ textAlign: 'center', color: '#64748b' }}>No hay locales sponsor configurados.</td>
+                                            </tr>
+                                        ) : (
+                                            sponsorsList.map(sp => (
+                                                <tr key={sp.local_id}>
+                                                    <td style={{ fontWeight: 'bold', color: '#f8fafc' }}>{sp.locales?.nombre || 'Local Desconocido'}</td>
+                                                    <td style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{sp.local_id}</td>
+                                                    <td>
+                                                        <button className="btn btn-sm btn-secondary" style={{ backgroundColor: '#7f1d1d', color: '#fca5a5', border: 'none' }} onClick={() => handleRemoveSponsor(sp.local_id)}>
+                                                            Quitar Sponsor 🗑️
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* B. COMBOS MUNDIALISTAS */}
+                        <div style={{ background: '#0f172a', padding: '20px', borderRadius: '8px', border: '1px solid #334155' }}>
+                            <h3 style={{ color: '#fbbf24', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🍔 Productos Combo Mundialista
+                            </h3>
+                            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '15px' }}>
+                                Elige un comercio primero para listar sus productos y seleccionar el combo patrocinado.
+                            </p>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <select 
+                                            className="filter-input-dark" 
+                                            value={selectedLocalForCombo}
+                                            onChange={e => setSelectedLocalForCombo(e.target.value)}
+                                            style={{ marginTop: 0 }}
+                                        >
+                                            <option value="">-- 1. Seleccionar Local --</option>
+                                            {localesList.map(loc => (
+                                                <option key={loc.id} value={loc.id}>{loc.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <select 
+                                            className="filter-input-dark" 
+                                            value={selectedMenuItemForCombo}
+                                            onChange={e => setSelectedMenuItemForCombo(e.target.value)}
+                                            disabled={!selectedLocalForCombo || loadingMenuItems}
+                                            style={{ marginTop: 0 }}
+                                        >
+                                            <option value="">-- 2. Seleccionar Producto --</option>
+                                            {localMenuItems.map(item => (
+                                                <option key={item.id} value={item.id}>{item.nombre} (${item.precio})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <button className="btn btn-primary" onClick={handleAddCombo} disabled={!selectedMenuItemForCombo} style={{ alignSelf: 'flex-end' }}>
+                                    Agregar como Combo ➕
+                                </button>
+                            </div>
+                            
+                            <h4 style={{ color: '#60a5fa', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>Activos</h4>
+                            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                <table className="admin-table-dark">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Local</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {combosList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="3" style={{ textAlign: 'center', color: '#64748b' }}>No hay combos configurados.</td>
+                                            </tr>
+                                        ) : (
+                                            combosList.map(cb => (
+                                                <tr key={cb.menu_id}>
+                                                    <td style={{ fontWeight: 'bold', color: '#f8fafc' }}>{cb.menu?.nombre || 'Producto Desconocido'}</td>
+                                                    <td style={{ color: '#94a3b8' }}>{cb.menu?.locales?.nombre || 'Local Desconocido'}</td>
+                                                    <td>
+                                                        <button className="btn btn-sm btn-secondary" style={{ backgroundColor: '#7f1d1d', color: '#fca5a5', border: 'none' }} onClick={() => handleRemoveCombo(cb.menu_id)}>
+                                                            Quitar Combo 🗑️
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 )}
             </div>

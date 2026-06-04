@@ -978,7 +978,6 @@ export default function RestaurantDashboard() {
         descripcion: fd.get('descripcion'), precio: precioVal,
         descuento: fd.get('descuento') ? parseFloat(fd.get('descuento')) : 0,
         disponibilidad: fd.get('disponibilidad') === 'true',
-        es_combo_mundial: fd.get('es_combo_mundial') === 'on',
         tamano_porcion: cat === 'Helados' ? subcat : fd.get('tamano_porcion'), variantes: variantesVal,
         tiempo_preparacion: fd.get('tiempo_preparacion'),
         imagen_url: imgUrl,
@@ -2767,31 +2766,6 @@ export default function RestaurantDashboard() {
                     </select>
                   </div>
                 </div>
-
-                {/* Combo Mundialista Toggle */}
-                {!(isBaseProductMode || editItem?.categoria === 'Base') && (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px', 
-                    background: 'rgba(230, 57, 70, 0.05)', 
-                    border: '1px dashed rgba(230, 57, 70, 0.3)', 
-                    padding: '12px', 
-                    borderRadius: '8px', 
-                    marginBottom: '16px' 
-                  }}>
-                    <input 
-                      type="checkbox" 
-                      name="es_combo_mundial" 
-                      id="es_combo_mundial"
-                      defaultChecked={editItem?.es_combo_mundial || false}
-                      style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                    />
-                    <label htmlFor="es_combo_mundial" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#dc2626', cursor: 'pointer', margin: 0 }}>
-                      🏆 Combo Mundialista Wepi (Suma puntos adicionales en la campaña)
-                    </label>
-                  </div>
-                )}
                 
                 {/* ─── Helados Subcategory Selector ─── */}
                 {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') && (
