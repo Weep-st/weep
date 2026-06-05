@@ -2101,18 +2101,104 @@ export default function CustomerApp() {
                 <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>{iceCreamSauces.length > 0 ? '4' : '3'}. Adicionales <small style={{ fontWeight: '400', color: 'var(--gray-500)' }}>(Opcional)</small></h3>
                 <div className="extras-list" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
                   {iceCreamExtras.map(extra => {
-                    const isSelected = selectedExtras.some(e => e.id === extra.id);
+                    const selectedExtra = selectedExtras.find(e => e.id === extra.id);
+                    const qty = selectedExtra ? selectedExtra.cantidad : 0;
+                    
+                    if (qty > 0) {
+                      return (
+                        <div 
+                          key={extra.id}
+                          className="btn btn-xs btn-primary animate-scale-in"
+                          style={{ 
+                            borderRadius: '20px', 
+                            padding: '2px 8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: '#22c55e',
+                            color: 'white',
+                            borderColor: '#22c55e',
+                            height: '28px',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setSelectedExtras(prev => {
+                                const existing = prev.find(e => e.id === extra.id);
+                                if (existing.cantidad === 1) {
+                                  return prev.filter(e => e.id !== extra.id);
+                                } else {
+                                  return prev.map(e => e.id === extra.id ? { ...e, cantidad: e.cantidad - 1 } : e);
+                                }
+                              });
+                            }}
+                            style={{ 
+                              background: 'rgba(255,255,255,0.2)',
+                              border: 'none',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: '18px',
+                              height: '18px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              padding: 0
+                            }}
+                          >
+                            -
+                          </button>
+                          <span style={{ fontSize: '0.78rem' }}>{extra.nombre} x{qty} (+${Math.round(extra.precio * qty)})</span>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setSelectedExtras(prev => 
+                                prev.map(e => e.id === extra.id ? { ...e, cantidad: e.cantidad + 1 } : e)
+                              );
+                            }}
+                            style={{ 
+                              background: 'rgba(255,255,255,0.2)',
+                              border: 'none',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: '18px',
+                              height: '18px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              padding: 0
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <button 
                         key={extra.id}
-                        className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}`}
-                        style={{ borderRadius: '20px', padding: '6px 14px' }}
+                        type="button"
+                        className="btn btn-xs btn-outline"
+                        style={{ 
+                          borderRadius: '20px', 
+                          padding: '6px 14px',
+                          background: '#f0fdf4',
+                          color: '#166534',
+                          border: '1px solid #bbf7d0'
+                        }}
                         onClick={() => {
-                          if (isSelected) setSelectedExtras(prev => prev.filter(e => e.id !== extra.id));
-                          else setSelectedExtras(prev => [...prev, extra]);
+                          setSelectedExtras(prev => [...prev, { ...extra, cantidad: 1 }]);
                         }}
                       >
-                        {extra.nombre} (+${extra.precio})
+                        {extra.nombre} (+${Math.round(extra.precio)})
                       </button>
                     );
                   })}
@@ -2123,7 +2209,7 @@ export default function CustomerApp() {
             {(() => {
               const configuration = JSON.parse(iceCreamModal.variantes);
               const basePrice = parseFloat(configuration.precios[selectedSize].precio || 0);
-              const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0), 0);
+              const extrasPrice = selectedExtras.reduce((sum, e) => sum + parseFloat(e.precio || 0) * (e.cantidad || 1), 0);
               const rawTotal = basePrice + extrasPrice;
               const currentTotal = calculateDiscountedPrice({ ...iceCreamModal, precio: rawTotal });
               const hasDiscount = currentTotal < rawTotal;
@@ -2137,7 +2223,9 @@ export default function CustomerApp() {
                     const details = [];
                     details.push(`Sabores: ${selectedFlavors.join(', ')}`);
                     if (selectedSauces.length > 0) details.push(`Salsas: ${selectedSauces.join(', ')}`);
-                    if (selectedExtras.length > 0) details.push(`Extras: ${selectedExtras.map(e => e.nombre).join(', ')}`);
+                    if (selectedExtras.length > 0) {
+                      details.push(`Extras: ${selectedExtras.map(e => `${e.nombre}${e.cantidad > 1 ? ` (x${e.cantidad})` : ''}`).join(', ')}`);
+                    }
 
                     const finalItem = {
                       ...iceCreamModal,

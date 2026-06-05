@@ -22,7 +22,7 @@ import './AdminDashboard.css';
 const AdminDashboard = () => {
     const { user, logoutUser } = useAuth();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('locales');
+    const [activeTab, setActiveTab] = useState('pedidos');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [stats, setStats] = useState({ locales: 0, pendingTasks: 0, users: 0 });
 
