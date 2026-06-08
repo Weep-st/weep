@@ -57,6 +57,14 @@ Deno.serve(async (req) => {
         });
       }
 
+      // CRÍTICO: El pedido debe estar en un estado activo de búsqueda de repartidor ('Buscando Repartidor' o 'Pendiente')
+      if (order.estado !== 'Buscando Repartidor' && order.estado !== 'Pendiente') {
+        console.log(`⚠️ [Broadcast] El pedido ${broadcastOrderId} no está en estado activo de búsqueda (Estado: ${order.estado}). Abortando push.`);
+        return new Response(JSON.stringify({ success: true, message: `Order not in active search state: ${order.estado}` }), {
+          headers: corsHeaders
+        });
+      }
+
       // 2. Obtener repartidores aceptados
       const { data: drivers, error: driversErr } = await supabase
         .from('repartidores')
@@ -121,29 +129,55 @@ Deno.serve(async (req) => {
         console.log(`📡 [Broadcast OneSignal] Enviado a ${ids.length} repartidores. Respuesta:`, JSON.stringify(result));
       };
 
-      // Si hay repartidores con prioridad, enviamos inmediato a ellos, y con retraso al resto
+      // Si hay repartidores con prioridad, enviamos inmediato a ellos, y programamos con waitUntil el resto
       if (priorityDrivers.length > 0) {
         console.log(`🔔 [Broadcast] Enviando notificación inmediata a ${priorityDrivers.length} repartidores prioritarios.`);
         await sendToOneSignal(priorityDrivers);
 
         if (otherDrivers.length > 0) {
-          console.log(`⏳ [Broadcast] Esperando 10 segundos antes de enviar al resto (${otherDrivers.length})...`);
-          await new Promise(resolve => setTimeout(resolve, 10000));
+          const delayedTask = async () => {
+            try {
+              console.log(`⏳ [Broadcast-Delayed] Esperando 10 segundos antes de enviar al resto (${otherDrivers.length})...`);
+              await new Promise(resolve => setTimeout(resolve, 10000));
 
-          // Volver a consultar estado del pedido antes de mandar al resto
-          const { data: freshOrder, error: freshErr } = await supabase
-            .from('pedidos_general')
-            .select('repartidor_id')
-            .eq('id', broadcastOrderId)
-            .single();
+              // Volver a consultar estado del pedido y repartidor_id antes de mandar al resto
+              const { data: freshOrder, error: freshErr } = await supabase
+                .from('pedidos_general')
+                .select('repartidor_id, estado')
+                .eq('id', broadcastOrderId)
+                .single();
 
-          if (freshErr || !freshOrder) {
-            console.log(`[Broadcast] No se pudo re-verificar el pedido ${broadcastOrderId}. Abortando resto.`);
-          } else if (freshOrder.repartidor_id) {
-            console.log(`[Broadcast] El pedido fue tomado durante la espera por ${freshOrder.repartidor_id}. Cancelando envío secundario.`);
+              if (freshErr || !freshOrder) {
+                console.log(`[Broadcast-Delayed] No se pudo re-verificar el pedido ${broadcastOrderId}. Abortando resto.`);
+                return;
+              }
+
+              if (freshOrder.repartidor_id) {
+                console.log(`[Broadcast-Delayed] El pedido fue tomado durante la espera por ${freshOrder.repartidor_id}. Cancelando envío secundario.`);
+                return;
+              }
+
+              // CRÍTICO: Verificar si el pedido sigue activo en búsqueda de repartidor
+              if (freshOrder.estado !== 'Buscando Repartidor' && freshOrder.estado !== 'Pendiente') {
+                console.log(`[Broadcast-Delayed] El pedido cambió a estado no activo de búsqueda (${freshOrder.estado}) durante la espera. Cancelando envío secundario.`);
+                return;
+              }
+
+              console.log(`[Broadcast-Delayed] El pedido sigue libre. Enviando al resto de los ${otherDrivers.length} repartidores.`);
+              await sendToOneSignal(otherDrivers);
+            } catch (err) {
+              console.error("[Broadcast-Delayed] Error en tarea diferida:", err);
+            }
+          };
+
+          // Registrar en el runtime de Deno para mantener la ejecución viva
+          // @ts-ignore global EdgeRuntime
+          if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+            // @ts-ignore
+            EdgeRuntime.waitUntil(delayedTask());
           } else {
-            console.log(`[Broadcast] El pedido sigue libre. Enviando al resto de los ${otherDrivers.length} repartidores.`);
-            await sendToOneSignal(otherDrivers);
+            // Fallback para entornos locales de prueba
+            delayedTask().catch(console.error);
           }
         }
       } else {
@@ -151,7 +185,7 @@ Deno.serve(async (req) => {
         await sendToOneSignal(drivers);
       }
 
-      return new Response(JSON.stringify({ success: true, message: 'Broadcast processed successfully' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Broadcast initiated successfully' }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }

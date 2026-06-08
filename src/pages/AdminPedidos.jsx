@@ -159,7 +159,32 @@ const AdminPedidos = () => {
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.nombre_cliente}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{p.email_cliente}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span>{p.usuarios?.telefono || p.email_cliente || 'Sin contacto'}</span>
+                                            {p.usuarios?.telefono && (
+                                                <a 
+                                                    href={`https://wa.me/${p.usuarios.telefono.replace(/[^\d]/g, '')}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{ textDecoration: 'none' }}
+                                                >
+                                                    <span style={{ 
+                                                        display: 'inline-flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center',
+                                                        backgroundColor: '#25D366', 
+                                                        color: 'white', 
+                                                        borderRadius: '4px', 
+                                                        padding: '1px 5px', 
+                                                        fontSize: '0.65rem', 
+                                                        fontWeight: 'bold',
+                                                        cursor: 'pointer'
+                                                    }}>
+                                                        💬 WA
+                                                    </span>
+                                                </a>
+                                            )}
+                                        </div>
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 700 }}>${Number(p.total).toLocaleString('es-AR')}</div>
@@ -224,6 +249,32 @@ const AdminPedidos = () => {
                                     <section className="detail-section">
                                         <h4>👤 Cliente</h4>
                                         <p><strong>Nombre:</strong> {pedidoDetalle.nombre_cliente}</p>
+                                        <p style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '6px 0' }}>
+                                            <strong>Contacto:</strong> {pedidoDetalle.usuarios?.telefono || 'No disponible'}
+                                            {pedidoDetalle.usuarios?.telefono && (
+                                                <a 
+                                                    href={`https://wa.me/${pedidoDetalle.usuarios.telefono.replace(/[^\d]/g, '')}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{ textDecoration: 'none' }}
+                                                >
+                                                    <span style={{ 
+                                                        display: 'inline-flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center',
+                                                        backgroundColor: '#25D366', 
+                                                        color: 'white', 
+                                                        borderRadius: '4px', 
+                                                        padding: '1px 5px', 
+                                                        fontSize: '0.65rem', 
+                                                        fontWeight: 'bold',
+                                                        cursor: 'pointer'
+                                                    }}>
+                                                        💬 WA
+                                                    </span>
+                                                </a>
+                                            )}
+                                        </p>
                                         <p><strong>Email:</strong> {pedidoDetalle.email_cliente}</p>
                                         <p><strong>Dirección:</strong> {pedidoDetalle.direccion}</p>
                                         {pedidoDetalle.observaciones && (

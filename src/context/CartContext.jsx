@@ -7,7 +7,8 @@ const CartContext = createContext(null);
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [deliveryType, setDeliveryType] = useState('envio');
-  const [costoEnvio, setCostoEnvio] = useState(1800); 
+  const [costoEnvioDelivery, setCostoEnvioDelivery] = useState(1800); 
+  const [costoEnvioShops, setCostoEnvioShops] = useState(2000); 
   const [incentivoActivo, setIncentivoActivo] = useState(0);
 
   useEffect(() => {
@@ -19,14 +20,17 @@ export function CartProvider({ children }) {
           api.getSystemActivation()
         ]);
 
-        const base = Number(config?.valor_envio) || 1800;
+        const baseDelivery = Number(config?.valor_envio) || 1800;
+        const baseShops = Number(config?.valor_envio_shops) || 2000;
         const incentivo = Number(activation?.valor_incentivo) || 0;
 
-        setCostoEnvio(base + incentivo);
+        setCostoEnvioDelivery(baseDelivery + incentivo);
+        setCostoEnvioShops(baseShops);
         setIncentivoActivo(incentivo);
       } catch (err) {
         console.error('Error fetching dynamic shipping cost:', err);
-        setCostoEnvio(1800);
+        setCostoEnvioDelivery(1800);
+        setCostoEnvioShops(2000);
       }
     };
     
@@ -36,6 +40,9 @@ export function CartProvider({ children }) {
     const interval = setInterval(fetchCosto, 120000);
     return () => clearInterval(interval);
   }, []);
+
+  const isShops = window.location.pathname.startsWith('/shops');
+  const costoEnvio = isShops ? costoEnvioShops : costoEnvioDelivery;
 
   const addItem = useCallback((menu) => {
     setItems(prev => {

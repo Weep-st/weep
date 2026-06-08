@@ -595,7 +595,7 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 // ═══════════════════════════════════════════════════
 export async function getLocales() {
   let query = supabase.from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, ciudad')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, ciudad, tipo_servicio')
     .eq('admin_status', 'Aceptado');
 
   let { data, error } = await query;
@@ -604,7 +604,7 @@ export async function getLocales() {
   if (error && error.message && error.message.includes('ciudad')) {
     console.warn("⚠️ La columna 'ciudad' no existe en 'locales'. Reintentando sin esa columna.");
     const fallbackQuery = supabase.from('locales')
-      .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios')
+      .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, tipo_servicio')
       .eq('admin_status', 'Aceptado');
     const res = await fallbackQuery;
     data = res.data;
@@ -629,7 +629,8 @@ export async function getLocales() {
     admin_status: l.admin_status,
     slug: l.slug,
     config_horarios: l.config_horarios || {},
-    ciudad: l.ciudad || 'Santo Tomé'
+    ciudad: l.ciudad || 'Santo Tomé',
+    tipo_servicio: l.tipo_servicio || 'delivery'
   }));
 
   return enrichLocalesWithMinPrices(baseLocales, 'id');
@@ -673,7 +674,7 @@ async function enrichLocalesWithMinPrices(locales, idKey = 'id') {
 export async function getLocalBySlug(slug) {
   const { data, error } = await supabase
     .from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, tipo_servicio')
     .eq('slug', slug)
     .maybeSingle();
   
@@ -696,7 +697,8 @@ export async function getLocalBySlug(slug) {
     rubros: data.rubros || [],
     admin_status: data.admin_status,
     slug: data.slug,
-    config_horarios: data.config_horarios || {}
+    config_horarios: data.config_horarios || {},
+    tipo_servicio: data.tipo_servicio || 'delivery'
   };
 }
 
@@ -706,7 +708,7 @@ export async function getLocalBySlug(slug) {
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, plan_id, rubros, config_horarios)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, plan_id, rubros, config_horarios, tipo_servicio)')
     .eq('disponibilidad', true)
     .order('nombre');
   return (data || []).map(i => ({
@@ -729,7 +731,8 @@ export async function getMenuCompleto() {
     horario_cierre2: i.locales?.horario_cierre2,
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura,
-    config_horarios: i.locales?.config_horarios || {}
+    config_horarios: i.locales?.config_horarios || {},
+    local_tipo_servicio: i.locales?.tipo_servicio || 'delivery'
   }));
 }
 
@@ -785,14 +788,15 @@ export async function getPromos(extraCategories = [], extraLocalIds = []) {
     unidades_por_venta: i.unidades_por_venta,
     local_rubro: i.locales?.rubro || '',
     local_rubros: i.locales?.rubros || [],
-    local_plan_id: i.locales?.plan_id
+    local_plan_id: i.locales?.plan_id,
+    local_tipo_servicio: i.locales?.tipo_servicio || 'delivery'
   }));
 }
 
 export async function getMenuByCategoria(categoria) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, config_horarios)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, config_horarios, tipo_servicio)')
     .eq('categoria', categoria)
     .eq('disponibilidad', true)
     .order('nombre');
@@ -814,14 +818,15 @@ export async function getMenuByCategoria(categoria) {
     horario_cierre2: i.locales?.horario_cierre2,
     modo_automatico: i.locales?.modo_automatico,
     dias_apertura: i.locales?.dias_apertura,
-    config_horarios: i.locales?.config_horarios || {}
+    config_horarios: i.locales?.config_horarios || {},
+    local_tipo_servicio: i.locales?.tipo_servicio || 'delivery'
   }));
 }
 
 export async function getMenuByLocalId(localId) {
   const { data } = await supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros, config_horarios)')
+    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros, config_horarios, tipo_servicio)')
     .eq('local_id', localId)
     .order('nombre');
   return (data || []).map(i => ({
@@ -837,6 +842,7 @@ export async function getMenuByLocalId(localId) {
     local_categoria_descuento: i.locales?.categoria_descuento || '',
     local_rubro: i.locales?.rubro || '',
     local_rubros: i.locales?.rubros || [],
+    local_tipo_servicio: i.locales?.tipo_servicio || 'delivery',
     stock_actual: i.stock_actual,
     maneja_stock: i.maneja_stock,
     stock_base_id: i.stock_base_id,
@@ -1275,6 +1281,122 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
           .from('mundial_usuario_stats')
           .update(updates)
           .eq('usuario_id', userId);
+          
+        // 4. Evaluar misiones activas basadas en pedidos
+        try {
+          const { data: allMissions } = await supabase
+            .from('mundial_misiones')
+            .select('*')
+            .in('tipo', ['pedido', 'pedido_producto', 'pedido_categoria', 'pedido_rubro']);
+            
+          const activeMissionsFiltered = (allMissions || []).filter(m => {
+            if (m.activo_desde || m.activo_hasta) {
+              const desde = m.activo_desde ? new Date(m.activo_desde) : null;
+              const hasta = m.activo_hasta ? new Date(m.activo_hasta) : null;
+              return (!desde || now >= desde) && (!hasta || now <= hasta);
+            }
+            return m.fecha === todayStr;
+          });
+          
+          if (activeMissionsFiltered.length > 0) {
+            const { data: completedByUser } = await supabase
+              .from('mundial_misiones_usuarios')
+              .select('mision_id')
+              .eq('usuario_id', userId);
+              
+            const completedMisionIds = new Set((completedByUser || []).map(c => c.mision_id));
+            const pendingMissions = activeMissionsFiltered.filter(m => !completedMisionIds.has(m.id));
+            
+            if (pendingMissions.length > 0) {
+              const [menuItemsRes, localRes] = await Promise.all([
+                itemIds.length > 0 ? supabase.from('menu').select('id, categoria, local_id').in('id', itemIds) : Promise.resolve({ data: [] }),
+                localId ? supabase.from('locales').select('id, rubro, rubros').eq('id', localId).maybeSingle() : Promise.resolve({ data: null })
+              ]);
+              
+              const menuItemsCategories = new Set((menuItemsRes?.data || []).map(i => i.categoria?.trim().toLowerCase()).filter(Boolean));
+              const localRubro = localRes?.data?.rubro?.trim().toLowerCase() || '';
+              const localRubrosList = (localRes?.data?.rubros || []).map(r => r.trim().toLowerCase());
+              
+              for (const m of pendingMissions) {
+                let qualifies = false;
+                
+                if (m.tipo === 'pedido') {
+                  qualifies = true;
+                } else if (m.tipo === 'pedido_producto' && m.target_producto_id) {
+                  qualifies = itemIds.includes(m.target_producto_id);
+                } else if (m.tipo === 'pedido_categoria' && m.target_categoria) {
+                  const targetCat = m.target_categoria.trim().toLowerCase();
+                  qualifies = menuItemsCategories.has(targetCat);
+                } else if (m.tipo === 'pedido_rubro' && m.target_rubro) {
+                  const targetRub = m.target_rubro.trim().toLowerCase();
+                  qualifies = (localRubro === targetRub) || localRubrosList.includes(targetRub);
+                }
+                
+                if (qualifies) {
+                  await supabase
+                    .from('mundial_misiones_usuarios')
+                    .insert({ usuario_id: userId, mision_id: m.id, verificado: true });
+                    
+                  const rewardPoints = m.puntos_premio || 0;
+                  const rewardSobres = m.sobres_premio || 0;
+                  
+                  const { data: currentStats } = await supabase
+                    .from('mundial_usuario_stats')
+                    .select('puntos_totales, sobres_disponibles')
+                    .eq('usuario_id', userId)
+                    .maybeSingle();
+                    
+                  const finalPts = ((currentStats ? currentStats.puntos_totales : 0) || 0) + rewardPoints;
+                  const finalSbs = ((currentStats ? currentStats.sobres_disponibles : 0) || 0) + rewardSobres;
+                  
+                  await supabase
+                    .from('mundial_usuario_stats')
+                    .upsert({
+                      usuario_id: userId,
+                      puntos_totales: finalPts,
+                      sobres_disponibles: finalSbs
+                    });
+                    
+                  if (m.figurita_premio_nro) {
+                    const { data: figData } = await supabase
+                      .from('mundial_figuritas')
+                      .select('id')
+                      .eq('numero', m.figurita_premio_nro)
+                      .maybeSingle();
+                      
+                    if (figData) {
+                      const { data: figUser } = await supabase
+                        .from('mundial_usuario_figuritas')
+                        .select('cantidad')
+                        .eq('usuario_id', userId)
+                        .eq('figurita_id', figData.id)
+                        .maybeSingle();
+                        
+                      if (figUser) {
+                        await supabase
+                          .from('mundial_usuario_figuritas')
+                          .update({ cantidad: (figUser.cantidad || 0) + 1 })
+                          .eq('usuario_id', userId)
+                          .eq('figurita_id', figData.id);
+                      } else {
+                        await supabase
+                          .from('mundial_usuario_figuritas')
+                          .insert({
+                            usuario_id: userId,
+                            figurita_id: figData.id,
+                            cantidad: 1,
+                            pegada: false
+                          });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (mErr) {
+          console.error("Error evaluating order missions in crearPedido:", mErr);
+        }
       }
     } catch (ptsErr) {
       console.error("Error otorgando puntos mundialistas por pedido:", ptsErr);
@@ -1916,7 +2038,8 @@ export async function getLocalesByRubro(rubro) {
     plan_id: l.plan_id,
     rubro: l.rubro,
     rubros: l.rubros || [],
-    config_horarios: l.config_horarios || {}
+    config_horarios: l.config_horarios || {},
+    tipo_servicio: l.tipo_servicio || 'delivery'
   }));
 
   return enrichLocalesWithMinPrices(baseLocales, 'local_id');
@@ -1972,7 +2095,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, password, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura')
+    .select('id, nombre, email, password, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, tipo_servicio')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -2095,7 +2218,7 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
 // ═══════════════════════════════════════════════════
 export async function adminGetPedidosGeneral() {
   const { data, error } = await supabase.from('pedidos_general')
-    .select('*, repartidores:repartidor_id(nombre, telefono)')
+    .select('*, repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
     .order('created_at', { ascending: false })
     .limit(20);
   if (error) throw new Error(error.message);
@@ -2105,7 +2228,7 @@ export async function adminGetPedidosGeneral() {
 export async function adminGetPedidoDetalle(pedidoId) {
   const { data: pedido, error: errPedido } = await supabase
     .from('pedidos_general')
-    .select('*, repartidores:repartidor_id(nombre, telefono)')
+    .select('*, repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
     .eq('id', pedidoId)
     .single();
   
@@ -3895,10 +4018,13 @@ export async function getConfiguracion() {
   
   if (error) {
     console.error('Error fetching configuration:', error);
-    return { valor_envio: 2000 }; // Default fallback
+    return { valor_envio: 2000, valor_envio_shops: 2000 }; // Default fallback
   }
   
-  return data || { valor_envio: 2000 };
+  return data ? {
+    ...data,
+    valor_envio_shops: data.valor_envio_shops !== undefined && data.valor_envio_shops !== null ? data.valor_envio_shops : 2000
+  } : { valor_envio: 2000, valor_envio_shops: 2000 };
 }
 
 export async function updateConfiguracion(updates) {
@@ -4790,38 +4916,51 @@ export async function saveMundialPronostico(userId, partidoId, golesA, golesB) {
 }
 
 export async function getMundialMisiones(userId) {
-  // Cargar misiones de hoy
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  
+  // Cargar todas las misiones y filtrar en memoria por rango horario/fecha activa
   const { data: misiones, error: errorMisiones } = await supabase
     .from('mundial_misiones')
-    .select('*')
-    .eq('fecha', todayStr);
+    .select('*');
   
   if (errorMisiones) {
     console.error("Error fetching misiones:", errorMisiones);
     return [];
   }
 
+  const activeMisiones = (misiones || []).filter(m => {
+    if (m.activo_desde || m.activo_hasta) {
+      const desde = m.activo_desde ? new Date(m.activo_desde) : null;
+      const hasta = m.activo_hasta ? new Date(m.activo_hasta) : null;
+      return (!desde || now >= desde) && (!hasta || now <= hasta);
+    }
+    return m.fecha === todayStr;
+  });
+
   if (!userId) {
-    return misiones?.map(m => ({ ...m, completada: false })) || [];
+    return activeMisiones.map(m => ({ ...m, completada: false, pendiente: false }));
   }
 
-  // Cargar misiones completadas por el usuario hoy
+  // Cargar misiones completadas por el usuario
   const { data: completadas, error: errorCompletadas } = await supabase
     .from('mundial_misiones_usuarios')
-    .select('mision_id')
+    .select('mision_id, verificado, comprobante_url')
     .eq('usuario_id', userId);
 
   if (errorCompletadas) {
     console.error("Error fetching completed misiones:", errorCompletadas);
-    return misiones?.map(m => ({ ...m, completada: false })) || [];
+    return activeMisiones.map(m => ({ ...m, completada: false, pendiente: false }));
   }
 
-  const completadasIds = new Set(completadas.map(c => c.mision_id));
+  const completadasIds = new Set(completadas.filter(c => c.verificado).map(c => c.mision_id));
+  const pendientesIds = new Set(completadas.filter(c => !c.verificado).map(c => c.mision_id));
 
-  return misiones.map(m => ({
+  return activeMisiones.map(m => ({
     ...m,
-    completada: completadasIds.has(m.id)
+    completada: completadasIds.has(m.id),
+    pendiente: pendientesIds.has(m.id),
+    comprobante_url: completadas.find(c => c.mision_id === m.id)?.comprobante_url || null
   }));
 }
 
@@ -4914,6 +5053,34 @@ export async function getMundialRanking() {
     puntos: d.puntos_totales || 0,
     racha: d.racha_actual || 0
   }));
+}
+
+export async function getMundialUserRank(userId) {
+  if (!userId) return null;
+  
+  const { data: userStats, error: statsErr } = await supabase
+    .from('mundial_usuario_stats')
+    .select('puntos_totales, racha_actual, usuarios(nombre, email)')
+    .eq('usuario_id', userId)
+    .maybeSingle();
+    
+  if (statsErr || !userStats) return null;
+  
+  const { count, error: countErr } = await supabase
+    .from('mundial_usuario_stats')
+    .select('usuario_id', { count: 'exact', head: true })
+    .gt('puntos_totales', userStats.puntos_totales || 0);
+    
+  if (countErr) return null;
+  
+  const rank = (count || 0) + 1;
+  return {
+    posicion: rank,
+    usuario_id: userId,
+    nombre: userStats.usuarios?.nombre || userStats.usuarios?.email?.split('@')[0] || 'Tú',
+    puntos: userStats.puntos_totales || 0,
+    racha: userStats.racha_actual || 0
+  };
 }
 
 export async function completarLoginMision(userId) {
@@ -5037,6 +5204,111 @@ export async function removeMundialCombo(menuId) {
     .from('mundial_combos_productos')
     .delete()
     .eq('menu_id', menuId);
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function submitMisionVerificacion(userId, misionId, comprobanteUrl) {
+  const { error } = await supabase
+    .from('mundial_misiones_usuarios')
+    .insert({
+      usuario_id: userId,
+      mision_id: misionId,
+      comprobante_url: comprobanteUrl,
+      verificado: false
+    });
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getPendingMisionVerifications() {
+  const { data, error } = await supabase
+    .from('mundial_misiones_usuarios')
+    .select('*, usuarios(nombre, email), mundial_misiones(titulo, puntos_premio, sobres_premio, figurita_premio_nro)')
+    .eq('verificado', false)
+    .order('completado_at', { ascending: true });
+  if (error) {
+    console.error("Error fetching pending verifications:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function verificarMisionUsuario(submissionId) {
+  const { data: sub, error: fetchErr } = await supabase
+    .from('mundial_misiones_usuarios')
+    .select('*, mundial_misiones(*)')
+    .eq('id', submissionId)
+    .single();
+    
+  if (fetchErr || !sub) throw new Error("No se encontró la entrega");
+  
+  const { error: updErr } = await supabase
+    .from('mundial_misiones_usuarios')
+    .update({ verificado: true })
+    .eq('id', submissionId);
+    
+  if (updErr) throw updErr;
+  
+  const { data: stats } = await supabase
+    .from('mundial_usuario_stats')
+    .select('puntos_totales, sobres_disponibles')
+    .eq('usuario_id', sub.usuario_id)
+    .maybeSingle();
+    
+  const newPoints = ((stats ? stats.puntos_totales : 0) || 0) + (sub.mundial_misiones?.puntos_premio || 0);
+  const newSobres = ((stats ? stats.sobres_disponibles : 0) || 0) + (sub.mundial_misiones?.sobres_premio || 0);
+  
+  await supabase
+    .from('mundial_usuario_stats')
+    .upsert({
+      usuario_id: sub.usuario_id,
+      puntos_totales: newPoints,
+      sobres_disponibles: newSobres
+    });
+    
+  if (sub.mundial_misiones?.figurita_premio_nro) {
+    const { data: figData } = await supabase
+      .from('mundial_figuritas')
+      .select('id')
+      .eq('numero', sub.mundial_misiones.figurita_premio_nro)
+      .maybeSingle();
+      
+    if (figData) {
+      const { data: figUser } = await supabase
+        .from('mundial_usuario_figuritas')
+        .select('cantidad')
+        .eq('usuario_id', sub.usuario_id)
+        .eq('figurita_id', figData.id)
+        .maybeSingle();
+        
+      if (figUser) {
+        await supabase
+          .from('mundial_usuario_figuritas')
+          .update({ cantidad: (figUser.cantidad || 0) + 1 })
+          .eq('usuario_id', sub.usuario_id)
+          .eq('figurita_id', figData.id);
+      } else {
+        await supabase
+          .from('mundial_usuario_figuritas')
+          .insert({
+            usuario_id: sub.usuario_id,
+            figurita_id: figData.id,
+            cantidad: 1,
+            pegada: false
+          });
+      }
+    }
+  }
+  
+  return { success: true };
+}
+
+export async function rechazarMisionUsuario(submissionId) {
+  const { error } = await supabase
+    .from('mundial_misiones_usuarios')
+    .delete()
+    .eq('id', submissionId);
   if (error) throw error;
   return { success: true };
 }

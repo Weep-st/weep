@@ -23,6 +23,7 @@ const Mundialista = () => {
     const [figuritas, setFiguritas] = useState([]);
     const [userFiguritas, setUserFiguritas] = useState([]);
     const [ranking, setRanking] = useState([]);
+    const [userRank, setUserRank] = useState(null);
 
     // Album Magazine State
     const [currentPage, setCurrentPage] = useState(0); // 0: Portada, 1: Especiales, 2-3: Argentina (facing), 4: Global, 5: Leyendas, 6: Contraportada
@@ -67,6 +68,7 @@ const Mundialista = () => {
 
     // Misión fotos
     const [previewUrls, setPreviewUrls] = useState({}); // { misionId: url }
+    const [selectedFiles, setSelectedFiles] = useState({}); // { misionId: File }
     const [uploadingMisionId, setUploadingMisionId] = useState(null);
     const [pendingVerifications, setPendingVerifications] = useState([]); // Array of misionIds
 
@@ -139,21 +141,42 @@ const Mundialista = () => {
         }
     };
 
-    const handleImageChange = (e, misionId) => {
+    const handleImageSelect = (e, misionId) => {
         const file = e.target.files[0];
         if (file) {
             const url = URL.createObjectURL(file);
             setPreviewUrls({ ...previewUrls, [misionId]: url });
+            setSelectedFiles({ ...selectedFiles, [misionId]: file });
         }
     };
 
-    const handleUploadPhoto = async (misionId) => {
+    const handleUploadVerification = async (misionId) => {
+        const file = selectedFiles[misionId];
+        if (!file) {
+            toast.error('Por favor, selecciona una foto primero.');
+            return;
+        }
+
         setUploadingMisionId(misionId);
-        setTimeout(() => {
+        try {
+            toast.loading('Subiendo imagen...', { id: 'upload-toast' });
+            const publicUrl = await api.uploadImage(file);
+            toast.dismiss('upload-toast');
+            
+            await api.submitMisionVerificacion(user.id, misionId, publicUrl);
+            
             setPendingVerifications([...pendingVerifications, misionId]);
+            toast.success('¡Foto cargada y enviada! Un administrador revisará la foto y te otorgará los puntos en breve.', { duration: 6000, icon: '📸' });
+            
+            const mis = await api.getMundialMisiones(user.id);
+            setMisiones(mis);
+        } catch (err) {
+            toast.dismiss('upload-toast');
+            console.error("Error al subir comprobante:", err);
+            toast.error(err.message || 'Error al subir la imagen. Por favor, intenta de nuevo.');
+        } finally {
             setUploadingMisionId(null);
-            toast.success('¡Foto cargada y enviada! Un administrador revisará la foto con tu camiseta y te otorgará los puntos en breve.', { duration: 6000, icon: '📸' });
-        }, 1800);
+        }
     };
 
     const startPenaltyGame = (mision) => {
@@ -409,7 +432,8 @@ const Mundialista = () => {
                 cal,
                 catalog,
                 { data: uFigs },
-                rk
+                rk,
+                urk
             ] = await Promise.all([
                 api.getMundialUsuarioStats(user.id),
                 api.getMundialConfig(),
@@ -419,7 +443,8 @@ const Mundialista = () => {
                 api.getMundialCalendario(user.id),
                 api.getMundialFiguritas(),
                 supabase.from('mundial_usuario_figuritas').select('*').eq('usuario_id', user.id),
-                api.getMundialRanking()
+                api.getMundialRanking(),
+                api.getMundialUserRank(user.id)
             ]);
 
             setStats(st);
@@ -443,6 +468,7 @@ const Mundialista = () => {
             setFiguritas(catalog);
             setUserFiguritas(uFigs || []);
             setRanking(rk);
+            setUserRank(urk);
 
             // Ejecutar el check-in diario de forma secuencial una vez que las estadísticas
             // han sido creadas e inicializadas con los sobres y puntos de bienvenida
@@ -1720,6 +1746,22 @@ const Mundialista = () => {
                                         </div>
                                     );
                                 })}
+                                {!ranking.some(r => r.usuario_id === user.id) && userRank && (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0', borderTop: '2px dashed rgba(255, 255, 255, 0.15)' }} />
+                                        <div className="ranking-row-item current-user-row" style={{ background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%)', border: '1px dashed #f59e0b', padding: '12px', borderRadius: '8px' }}>
+                                            <div className="pos-badge" style={{ color: '#fbbf24', fontWeight: 'bold' }}>
+                                                #{userRank.posicion}
+                                            </div>
+                                            <div className="user-name-cell" style={{ color: '#fef08a' }}>
+                                                {userRank.nombre} <span className="you-lbl" style={{ backgroundColor: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', marginLeft: '6px' }}>(Tú)</span>
+                                            </div>
+                                            <div className="user-points-cell" style={{ color: '#fbbf24', fontWeight: 'bold' }}>
+                                                {userRank.puntos} Pts
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                                 {ranking.length === 0 && (
                                     <p style={{ color: '#64748b', textAlign: 'center', padding: '30px' }}>Cargando tabla de posiciones...</p>
                                 )}

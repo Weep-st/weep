@@ -63,6 +63,10 @@ export default function RestaurantDashboard() {
   const [authLoading, setAuthLoading] = React.useState(false);
   const [localOpen, setLocalOpen] = React.useState(false);
   const [profileData, setProfileData] = React.useState(null);
+  const isInventory = React.useMemo(() => {
+    if (!profileData) return false;
+    return profileData.tipo_servicio === 'shops' || profileData.rubros?.some(r => r === 'Market' || r === 'Farmacia' || r === 'Hogar' || r === 'Tecnología' || r === 'Moda' || r === 'Regalería' || r === 'Deportes');
+  }, [profileData]);
   const [menuItems, setMenuItems] = React.useState([]);
   const [menuLoading, setMenuLoading] = React.useState(false);
   const [menuFilter, setMenuFilter] = React.useState('');
@@ -994,8 +998,7 @@ export default function RestaurantDashboard() {
       } else {
         await api.addMenuItem(data);
       }
-      const isInventoryRubro = profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia');
-      const itemTerm = isInventoryRubro ? 'Artículo' : 'Plato';
+      const itemTerm = isInventory ? 'Artículo' : 'Plato';
       toast.success(editItem ? `${itemTerm} actualizado` : `${itemTerm} agregado`);
       setEditItem(null);
       setIsBaseProductMode(false);
@@ -1006,10 +1009,10 @@ export default function RestaurantDashboard() {
   };
 
   const handleDeleteItem = async (id) => {
-    if (!confirm('¿Eliminar este plato permanentemente?')) return;
+    if (!confirm(`¿Eliminar este ${isInventory ? 'artículo' : 'plato'} permanentemente?`)) return;
     try {
       await api.deleteMenuItem(id);
-      toast.success('Plato eliminado');
+      toast.success(isInventory ? 'Artículo eliminado' : 'Plato eliminado');
       loadMenu();
     } catch { toast.error('Error al eliminar'); }
   };
@@ -1470,7 +1473,7 @@ export default function RestaurantDashboard() {
 
   const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
-  const processOrders = orders.filter(o => ['Pendiente', 'Confirmado', 'Aceptado', 'Listo'].includes(o.estadoActual));
+  const processOrders = orders.filter(o => ['Pendiente', 'Confirmado', 'Aceptado', 'Listo', 'Buscando Repartidor'].includes(o.estadoActual));
   // ─── Renderizado de Planes y Niveles ───
   const renderPlansView = () => {
     if (!planInfo) return <div className="loading-state"><div className="spinner" /> Cargando info de planes...</div>;
@@ -1586,7 +1589,7 @@ export default function RestaurantDashboard() {
 
   const finishedOrders = orders.filter(o => o.estadoActual === 'Entregado');
   
-  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado' || o.estadoActual === 'Buscando Repartidor').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const preparacionOrders = processOrders.filter(o => o.estadoActual === 'Aceptado');
   const listosOrders = processOrders.filter(o => o.estadoActual === 'Listo');
 
@@ -2331,7 +2334,8 @@ export default function RestaurantDashboard() {
             ) : finalOrders.map(o => (
               <OrderCard 
                 key={o.idPedidoLocal} 
-                order={o} 
+                order={o}
+                isShop={profileData?.tipo_servicio === 'shops'} 
                 onAction={async (order, action) => {
                   if (action === 'RechazarClick') {
                     setOrderToReject(order);
@@ -2383,7 +2387,7 @@ export default function RestaurantDashboard() {
                       {menuAddOpen && (
                         <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, top: '100%', display: 'block', zIndex: 100 }}>
                            <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMenuAddOpen(false); }}>
-                             {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
+                             {isInventory ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
                            </button>
 
                            {(profileData?.rubros?.includes('Heladería')) && (
@@ -2563,7 +2567,7 @@ export default function RestaurantDashboard() {
             {menuLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando menú...</div>
             ) : finalMenu.length === 0 ? (
-              <p className="rd-empty">No hay {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'artículos' : 'platos'}. ¡Agregá tu primer {profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'artículo' : 'plato'}!</p>
+              <p className="rd-empty">No hay {isInventory ? 'artículos' : 'platos'}. ¡Agregá tu primer {isInventory ? 'artículo' : 'plato'}!</p>
             ) : finalMenu.map(item => (
               <div key={item.id} className="rd-menu-item card">
                 {item.imagen_url ? <img src={item.imagen_url} alt={item.nombre} className="rd-menu-img" /> :
@@ -2681,7 +2685,7 @@ export default function RestaurantDashboard() {
           <section className="animate-fade-in">
             <div className="card card-body">
               <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>
-                {isBaseProductMode ? '🍞 Nuevo Producto Base' : (editItem ? (profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Editar Artículo' : 'Editar Plato') : (profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Nuevo Artículo' : 'Nuevo Plato'))}
+                {isBaseProductMode ? '🍞 Nuevo Producto Base' : (editItem ? (isInventory ? 'Editar Artículo' : 'Editar Plato') : (isInventory ? 'Nuevo Artículo' : 'Nuevo Plato'))}
               </h2>
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
@@ -2690,7 +2694,7 @@ export default function RestaurantDashboard() {
                       <input 
                         name="nombre" 
                         className="form-input" 
-                        placeholder={profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Nombre del artículo' : 'Nombre del plato'} 
+                        placeholder={isInventory ? 'Nombre del artículo' : 'Nombre del plato'} 
                         value={editItem ? undefined : itemName}
                         defaultValue={editItem ? editItem.nombre : undefined}
                         onChange={(e) => {
@@ -2728,7 +2732,12 @@ export default function RestaurantDashboard() {
                           { name: 'Panadería', cats: ['Pan', 'Facturas', 'Pastelería', 'Galletas', 'Salados', 'Desayuno/Merienda', 'Promos'] },
                           { name: 'Heladería', cats: ['Helados'] },
                           { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
-                          { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] }
+                          { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] },
+                          { name: 'Hogar', cats: ['Muebles', 'Decoración', 'Blanquería', 'Cocina', 'Bazar', 'Iluminación', 'Otros'] },
+                          { name: 'Tecnología', cats: ['Celulares', 'Computación', 'Audio y Video', 'Accesorios', 'Gaming', 'Smart Home', 'Otros'] },
+                          { name: 'Moda', cats: ['Ropa de Hombre', 'Ropa de Mujer', 'Ropa Infantil', 'Calzado', 'Accesorios', 'Marroquinería', 'Otros'] },
+                          { name: 'Regalería', cats: ['Juguetes', 'Peluches', 'Librería', 'Artesanías', 'Gifts', 'Otros'] },
+                          { name: 'Deportes', cats: ['Indumentaria Deportiva', 'Calzado Deportivo', 'Accesorios', 'Equipamiento', 'Suplementos', 'Otros'] }
                         ];
 
                         const activeConfigs = rubros.length > 0 
@@ -2960,7 +2969,7 @@ export default function RestaurantDashboard() {
                 <div className="rd-form-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); setIsBaseProductMode(false); }}>Cancelar</button>
                   <button type="submit" className="btn btn-success" disabled={itemLoading}>
-                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (profileData?.rubros?.some(r => r === 'Market' || r === 'Farmacia') ? 'Guardar Artículo' : 'Guardar Plato'))}
+                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (isInventory ? 'Guardar Artículo' : 'Guardar Plato'))}
                   </button>
                 </div>
               </form>
@@ -3476,7 +3485,7 @@ export default function RestaurantDashboard() {
                       Seleccioná el rubro de tu local para adaptar las opciones del panel.
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-                      {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => {
+                      {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => {
                         const isSelected = profileData?.rubros?.includes(r);
                         return (
                           <label key={r} style={{ 
@@ -4137,7 +4146,7 @@ export default function RestaurantDashboard() {
 }
 
 /* ─── Order Card Component ─── */
-function OrderCard({ order: o, onAction, finished }) {
+function OrderCard({ order: o, onAction, finished, isShop }) {
   const [loading, setLoading] = React.useState('');
   const handleAction = async (action) => {
     setLoading(action);
@@ -4194,51 +4203,108 @@ function OrderCard({ order: o, onAction, finished }) {
         </div>
         {!finished && (
           <div className="rd-order-actions">
-            {['Pendiente', 'Confirmado'].includes(o.estadoActual) ? (
+            {isShop ? (
               <>
-                <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
-                  {loading === 'Aceptado' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
-                    </span>
-                  ) : '✓ Aceptar'}
-                </button>
-                <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
-                  {loading === 'Rechazado' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
-                    </span>
-                  ) : '✕ Rechazar'}
-                </button>
+                {/* Si es Para Retirar, mostramos "Entregar al Cliente" */}
+                {String(o.tipoEntrega).toLowerCase().includes('ret') || o.tipoEntrega === 'Para Retirar' ? (
+                  <button 
+                    className="btn btn-success btn-sm" 
+                    disabled={loading} 
+                    onClick={() => handleAction('Entregado')}
+                  >
+                    {loading === 'Entregado' ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                      </span>
+                    ) : '✓ Entregar al Cliente (Completar)'}
+                  </button>
+                ) : (
+                  /* Si es Con Envío, mostramos "Solicitar Repartidor Wepi" si no hay asignado */
+                  <>
+                    {(!o.repartidorNombre || o.estadoActual === 'Confirmado' || o.estadoActual === 'Pendiente') ? (
+                      <button 
+                        className="btn btn-primary btn-sm" 
+                        disabled={loading} 
+                        onClick={async () => {
+                          setLoading('SolicitarRepartidor');
+                          try {
+                            await onAction(o, 'Buscando Repartidor');
+                            await api.broadcastOrderToDrivers(o.idPedido, o.totalLocal, o.localId || o.local_id, o.precioEnvio);
+                            toast.success('¡Se ha solicitado un repartidor de Wepi! 🛵');
+                          } catch (err) {
+                            toast.error('Error al solicitar repartidor');
+                          }
+                          setLoading('');
+                        }}
+                      >
+                        {loading === 'SolicitarRepartidor' ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Solicitando...
+                          </span>
+                        ) : '🛵 Solicitar Repartidor Wepi'}
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--blue-600)', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                        🛵 Envío en curso con Repartidor
+                      </span>
+                    )}
+                  </>
+                )}
+                {['Pendiente', 'Confirmado', 'Buscando Repartidor'].includes(o.estadoActual) && !o.repartidorNombre && (
+                  <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
+                    ✕ Rechazar
+                  </button>
+                )}
               </>
-            ) : ['Aceptado', 'Listo'].includes(o.estadoActual) ? (
+            ) : (
               <>
-                <button 
-                  className={`btn btn-sm ${o.estadoActual === 'Listo' ? '' : 'btn-success'}`} 
-                  style={o.estadoActual === 'Listo' ? { background: 'var(--gray-300)', color: 'var(--gray-500)', cursor: 'not-allowed' } : {}}
-                  disabled={loading || o.estadoActual === 'Listo'} 
-                  onClick={() => handleAction('Listo')}
-                >
-                  {loading === 'Listo' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
-                    </span>
-                  ) : '✓ Listo'}
-                </button>
-                <button 
-                  className="btn btn-sm" 
-                  style={o.estadoActual !== 'Listo' ? { background: 'var(--gray-300)', color: 'var(--gray-500)', cursor: 'not-allowed' } : { background: 'var(--blue-500)', color: '#fff' }} 
-                  disabled={loading || o.estadoActual !== 'Listo'} 
-                  onClick={() => handleAction('Entregado')}
-                >
-                  {loading === 'Entregado' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
-                    </span>
-                  ) : '📦 Entregado'}
-                </button>
+                {['Pendiente', 'Confirmado'].includes(o.estadoActual) ? (
+                  <>
+                    <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
+                      {loading === 'Aceptado' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                        </span>
+                      ) : '✓ Aceptar'}
+                    </button>
+                    <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
+                      {loading === 'Rechazado' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                        </span>
+                      ) : '✕ Rechazar'}
+                    </button>
+                  </>
+                ) : ['Aceptado', 'Listo'].includes(o.estadoActual) ? (
+                  <>
+                    <button 
+                      className={`btn btn-sm ${o.estadoActual === 'Listo' ? '' : 'btn-success'}`} 
+                      style={o.estadoActual === 'Listo' ? { background: 'var(--gray-300)', color: 'var(--gray-500)', cursor: 'not-allowed' } : {}}
+                      disabled={loading || o.estadoActual === 'Listo'} 
+                      onClick={() => handleAction('Listo')}
+                    >
+                      {loading === 'Listo' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                        </span>
+                      ) : '✓ Listo'}
+                    </button>
+                    <button 
+                      className="btn btn-sm" 
+                      style={o.estadoActual !== 'Listo' ? { background: 'var(--gray-300)', color: 'var(--gray-500)', cursor: 'not-allowed' } : { background: 'var(--blue-500)', color: '#fff' }} 
+                      disabled={loading || o.estadoActual !== 'Listo'} 
+                      onClick={() => handleAction('Entregado')}
+                    >
+                      {loading === 'Entregado' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
+                        </span>
+                      ) : '📦 Entregado'}
+                    </button>
+                  </>
+                ) : null}
               </>
-            ) : null}
+            )}
           </div>
         )}
       </div>
