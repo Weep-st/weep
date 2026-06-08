@@ -190,7 +190,8 @@ const AdminLocales = () => {
                 horario_apertura2: fd.get('horario_apertura2'),
                 horario_cierre2: fd.get('horario_cierre2'),
                 modo_automatico: fd.get('modo_automatico') === 'true',
-                foto_url: fotoUrl
+                foto_url: fotoUrl,
+                tipo_servicio: fd.get('tipo_servicio')
             };
             
             if (!updates.password) delete updates.password; // Double check
@@ -294,6 +295,7 @@ const AdminLocales = () => {
                                 <th>Disponibilidad</th>
                                 <th>Estado Admin</th>
                                 <th>Slug / URL</th>
+                                <th>Tipo de Servicio</th>
                                 <th>Plan Actual</th>
                                 <th>Comisión (%)</th>
                                 <th style={{ textAlign: 'right' }}>Deuda Efectivo</th>
@@ -396,6 +398,11 @@ const AdminLocales = () => {
                                                     🔗
                                                 </button>
                                             </div>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${local.tipo_servicio === 'shops' ? 'badge-info' : 'badge-gray'}`} style={{ color: local.tipo_servicio === 'shops' ? '#0284c7' : '#64748b', background: local.tipo_servicio === 'shops' ? '#e0f2fe' : '#f1f5f9', border: '1px solid currentColor', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                {local.tipo_servicio === 'shops' ? '🛍️ Shops' : '🛵 Delivery'}
+                                            </span>
                                         </td>
                                         <td>
                                             <select 
@@ -732,7 +739,7 @@ const AdminLocales = () => {
                                     borderRadius: '8px',
                                     border: '1px solid #e2e8f0'
                                 }}>
-                                    {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia'].map(r => (
+                                    {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => (
                                         <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
                                             <input 
                                                 type="checkbox" 
@@ -779,6 +786,14 @@ const AdminLocales = () => {
                                 <select name="modo_automatico" defaultValue={editingLocal.modo_automatico ? 'true' : 'false'}>
                                     <option value="true">Automático (Según Horario)</option>
                                     <option value="false">Manual (Controlado por Admin/Local)</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Tipo de Servicio / Rama</label>
+                                <select name="tipo_servicio" defaultValue={editingLocal.tipo_servicio || 'delivery'}>
+                                    <option value="delivery">🛵 Delivery (Gastronomía, Farmacias, etc. - Envío Inmediato)</option>
+                                    <option value="shops">🛍️ Shops (Tiendas, Juguetes, Moda - Entrega Diferida/Coordinada)</option>
                                 </select>
                             </div>
 

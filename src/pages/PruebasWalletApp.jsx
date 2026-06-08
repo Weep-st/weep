@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useJsApiLoader } from '@react-google-maps/api';
@@ -15,7 +15,9 @@ import './PruebasWalletApp.css';
 
 export default function PruebasWalletApp() {
   const { slug } = useParams();
-  console.log("🚀 PruebasWalletApp: Initialization started");
+  const location = useLocation();
+  const isShopsMode = location.pathname.startsWith('/shops');
+  console.log("🚀 PruebasWalletApp: Initialization started, isShopsMode:", isShopsMode);
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
@@ -107,14 +109,20 @@ export default function PruebasWalletApp() {
   const [walletDetailsOpen, setWalletDetailsOpen] = React.useState(false);
 
   // Home Optimization States
-  const [homeLayout, setHomeLayout] = React.useState({
+  const [homeLayout, setHomeLayout] = React.useState(() => ({
     dynamicTitle: '',
     dynamicLocales: [],
     promosOfDay: [],
     mostOrdered: [],
     newLocales: [],
     allLocales: [],
-    categories: [
+    categories: isShopsMode ? [
+      { label: 'Hogar', type: 'Hogar', img: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' }
+    ] : [
       { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
       { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
       { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
@@ -127,7 +135,7 @@ export default function PruebasWalletApp() {
     featuredProLocales: [],
     recommendedPlusLocales: [],
     newFreemiumLocales: []
-  });
+  }));
 
   // Wallet States
   const [walletBalance, setWalletBalance] = React.useState(null);
@@ -210,6 +218,14 @@ export default function PruebasWalletApp() {
   const [estimatedTime, setEstimatedTime] = React.useState(null);
 
   const getTimeBasedTitle = React.useCallback(() => {
+    if (isShopsMode) {
+      return { 
+          title: "Vidriera Digital — Tiendas Locales", 
+          banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
+          rubros: ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'],
+          marketCats: []
+      };
+    }
     const hour = new Date().getHours();
     
     // 00 a 06 hs (antojo nocturno)
@@ -262,7 +278,7 @@ export default function PruebasWalletApp() {
         rubros: ['Restaurante'],
         marketCats: []
     };
-  }, []);
+  }, [isShopsMode]);
 
   const getBoostedLocales = React.useCallback((locs) => {
     const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
@@ -470,8 +486,9 @@ export default function PruebasWalletApp() {
     const discountedP = Math.max(0, grossP - (promoResults.discountTotal || 0));
     const discountedE = promoResults.freeShipping ? 0 : Math.max(0, E - (promoResults.shippingDiscount || 0));
 
-    const net_commission = discountedP * localCommission;
-    const net_local = discountedP - net_commission;
+    // Si es Shops, no se cobra comisión por venta de productos, solo el valor de envío queda para la plataforma
+    const net_commission = isShopsMode ? 0 : (discountedP * localCommission);
+    const net_local = isShopsMode ? discountedP : (discountedP - net_commission);
     const total_net = discountedP + discountedE;
     
     const cuponPromo = promoResults.appliedPromos.find(p => p.tipo === 'cupon');
@@ -480,7 +497,7 @@ export default function PruebasWalletApp() {
     
     let result;
     if (method === 'transferencia') {
-      const marketplace_fee = discountedE + net_commission;
+      const marketplace_fee = isShopsMode ? discountedE : (discountedE + net_commission);
       result = {
         total: Math.round(total_net),
         product_total: P,
@@ -491,7 +508,7 @@ export default function PruebasWalletApp() {
         mp_fee: 0,
         merchant_payout: Math.round(total_net - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(discountedE + net_commission),
+        platform_net: Math.round(marketplace_fee),
         appliedPromos: promoResults.appliedPromos,
         appliedCuponId,
         descuentoCupon
@@ -508,7 +525,7 @@ export default function PruebasWalletApp() {
         mp_fee: 0,
         merchant_payout: Math.round(net_local),
         platform_gross: 0,
-        platform_net: Math.round(net_commission + discountedE),
+        platform_net: isShopsMode ? Math.round(discountedE) : Math.round(net_commission + discountedE),
         appliedPromos: promoResults.appliedPromos,
         appliedCuponId,
         descuentoCupon
@@ -663,9 +680,12 @@ export default function PruebasWalletApp() {
         ]);
         setAllPromotions(allPrms || []);
 
-        // Filtrar locales por la ciudad activa
+        // Filtrar locales por la ciudad activa y por tipo de servicio (Shops o Delivery)
         const currentCity = activeCity || 'Santo Tomé';
-        const locs = (locsRaw || []).filter(l => (l.ciudad || 'Santo Tomé') === currentCity);
+        const locs = (locsRaw || []).filter(l => 
+          (l.ciudad || 'Santo Tomé') === currentCity && 
+          (isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio))
+        );
         setLocals(locs || []);
         
         // Mapear configs de wallet por local_id para uso rápido
@@ -821,6 +841,19 @@ export default function PruebasWalletApp() {
             dynamicTitle: timeInfo.title,
             dynamicBanner: timeInfo.banner,
             dynamicRubros: timeInfo.rubros,
+            categories: isShopsMode ? [
+              { label: 'Hogar', type: 'Hogar', img: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&auto=format&fit=crop&q=80' },
+              { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
+              { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
+              { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
+              { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' }
+            ] : [
+              { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
+              { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
+              { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+              { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
+              { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' }
+            ],
             allLocales: boosted,
             dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
             promosOfDay: formatCarouselItems(rawPromos).slice(0, 40),
@@ -858,7 +891,7 @@ export default function PruebasWalletApp() {
       setOrderCount(null);
       setWalletBalance(0);
     }
-  }, [user, sessionId, getBoostedLocales, getTimeBasedTitle, activeCity]);
+  }, [user, sessionId, getBoostedLocales, getTimeBasedTitle, activeCity, isShopsMode]);
   React.useEffect(() => {
     const localId = selectedLocal?.id || (cart.items.length > 0 ? cart.items[0].local_id : null);
     
@@ -1227,8 +1260,9 @@ export default function PruebasWalletApp() {
         disponible_desde: l.disponible_desde,
         config_horarios: l.config_horarios || {},
         rubro: l.rubro,
-        plan_id: l.plan_id
-      })).sort((a, b) => {
+        plan_id: l.plan_id,
+        tipo_servicio: l.tipo_servicio || 'delivery'
+      })).filter(l => isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio)).sort((a, b) => {
         const openA = isLocalOpen(a) ? 1 : 0;
         const openB = isLocalOpen(b) ? 1 : 0;
         
@@ -1727,8 +1761,8 @@ export default function PruebasWalletApp() {
       // 3. Handle Flow
       const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
       
-      // Unificamos el estado inicial: si es envío, buscamos repartidor broadcast
-      const initialState = (cart.deliveryType === 'envio') ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Confirmado' : 'Pendiente de Pago');
+      // Unificamos el estado inicial: si es envío y no es Shops, buscamos repartidor broadcast
+      const initialState = (cart.deliveryType === 'envio' && !isShopsMode) ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Confirmado' : 'Pendiente de Pago');
 
       const orderDataForCreation = {
         userId: user.id,
@@ -1773,7 +1807,7 @@ export default function PruebasWalletApp() {
 
          localStorage.setItem('pendingOrderDataPruebas', JSON.stringify(pendingOrderInfo));
 
-         if (cart.deliveryType === 'envio') {
+         if (cart.deliveryType === 'envio' && !isShopsMode) {
             setPendingOrderId(pregeneratedId);
             setSearchingDriver(true);
             setSearchSeconds(0);
@@ -1785,7 +1819,7 @@ export default function PruebasWalletApp() {
             await api.broadcastOrderToDrivers(pregeneratedId, exactTotal, cart.items[0]?.local_id, shipping).catch(console.error);
             return;
          } else {
-            // RETIRO + EFECTIVO
+            // RETIRO O ENVIO DE SHOPS + EFECTIVO
             if (mp === 'efectivo') {
               toast.success(`¡Pedido #${pregeneratedId} registrado exitosamente!`);
               // Refrescar balance y estado tras pedido exitoso
@@ -1797,11 +1831,13 @@ export default function PruebasWalletApp() {
                 }
               }).catch(() => {});
               
-              api.notifyLocalsAboutNewOrder(pregeneratedId, cart.items, 'Retiro en local', 'Para Retirar', orderDataForCreation.observaciones, mp).catch(e => console.error(e));
+              const deliveryTypeLabel = cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar';
+              const addressLabel = cart.deliveryType === 'envio' ? dir : 'Retiro en local';
+              api.notifyLocalsAboutNewOrder(pregeneratedId, cart.items, addressLabel, deliveryTypeLabel, orderDataForCreation.observaciones, mp).catch(e => console.error(e));
               cart.clearCart();
               setCartOpen(false);
             } else {
-              // RETIRO + TRANSFERENCIA: Redirigir a MP
+              // RETIRO O ENVIO DE SHOPS + TRANSFERENCIA: Redirigir a MP
               triggerMPCheckout(pendingOrderInfo);
             }
             return;

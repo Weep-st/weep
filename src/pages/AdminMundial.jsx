@@ -36,8 +36,13 @@ const AdminMundial = () => {
     const [adminMisiones, setAdminMisiones] = useState([]);
     const [editingMision, setEditingMision] = useState(null);
     const [misionForm, setMisionForm] = useState({
-        titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
+        titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: '',
+        target_producto_id: '', target_categoria: '', target_rubro: '', activo_desde: '', activo_hasta: '', figurita_premio_nro: ''
     });
+    const [selectedLocalForMision, setSelectedLocalForMision] = useState('');
+    const [localMenuItemsForMision, setLocalMenuItemsForMision] = useState([]);
+    const [loadingMisionItems, setLoadingMisionItems] = useState(false);
+    const [pendingVerifications, setPendingVerifications] = useState([]);
 
     // Cupones States
     const [cupones, setCupones] = useState([]);
@@ -137,6 +142,27 @@ const AdminMundial = () => {
         fetchMenuItems();
     }, [selectedLocalForCombo]);
 
+    // Effect to load products of selected store for mission target_producto_id
+    useEffect(() => {
+        if (!selectedLocalForMision) {
+            setLocalMenuItemsForMision([]);
+            return;
+        }
+        
+        async function fetchMisionItems() {
+            setLoadingMisionItems(true);
+            try {
+                const items = await api.getMenuByLocalId(selectedLocalForMision);
+                setLocalMenuItemsForMision(items || []);
+            } catch (err) {
+                console.error("Error loading menu items for mission:", err);
+            } finally {
+                setLoadingMisionItems(false);
+            }
+        }
+        fetchMisionItems();
+    }, [selectedLocalForMision]);
+
     const loadAllData = async () => {
         setLoading(true);
         try {
@@ -199,6 +225,14 @@ const AdminMundial = () => {
             // Load Combos
             const cbs = await api.getMundialCombos();
             setCombosList(cbs || []);
+
+            // Load Pending Verifications
+            try {
+                const verifs = await api.getPendingMisionVerifications();
+                setPendingVerifications(verifs || []);
+            } catch (errVerifs) {
+                console.error("Error loading pending verifications:", errVerifs);
+            }
 
         } catch (err) {
             toast.error('Error al cargar datos del Mundial');
@@ -377,7 +411,13 @@ const AdminMundial = () => {
                 sobres_premio: Number(misionForm.sobres_premio || 0),
                 tipo: misionForm.tipo,
                 fecha: misionForm.fecha,
-                enlace_url: misionForm.tipo === 'link_verificacion' ? misionForm.enlace_url : null
+                enlace_url: misionForm.tipo === 'link_verificacion' ? misionForm.enlace_url : null,
+                target_producto_id: misionForm.tipo === 'pedido_producto' ? misionForm.target_producto_id || null : null,
+                target_categoria: misionForm.tipo === 'pedido_categoria' ? misionForm.target_categoria || null : null,
+                target_rubro: misionForm.tipo === 'pedido_rubro' ? misionForm.target_rubro || null : null,
+                activo_desde: misionForm.activo_desde ? new Date(misionForm.activo_desde).toISOString() : null,
+                activo_hasta: misionForm.activo_hasta ? new Date(misionForm.activo_hasta).toISOString() : null,
+                figurita_premio_nro: misionForm.figurita_premio_nro ? Number(misionForm.figurita_premio_nro) : null
             };
             if (editingMision) {
                 const { error } = await supabase
@@ -395,8 +435,11 @@ const AdminMundial = () => {
             }
             setEditingMision(null);
             setMisionForm({
-                titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
+                titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: '',
+                target_producto_id: '', target_categoria: '', target_rubro: '', activo_desde: '', activo_hasta: '', figurita_premio_nro: ''
             });
+            setSelectedLocalForMision('');
+            setLocalMenuItemsForMision([]);
             loadAllData();
         } catch (err) {
             toast.error('Error al guardar misión');
@@ -404,8 +447,26 @@ const AdminMundial = () => {
         }
     };
 
-    const handleEditMision = (m) => {
+    const handleEditMision = async (m) => {
         setEditingMision(m);
+        let localId = '';
+        if (m.target_producto_id) {
+            try {
+                const res = await api.getMenuItemById(m.target_producto_id);
+                if (res && res.success) {
+                    localId = res.local_id;
+                    setSelectedLocalForMision(localId);
+                    const items = await api.getMenuByLocalId(localId);
+                    setLocalMenuItemsForMision(items || []);
+                }
+            } catch (err) {
+                console.error("Error fetching menu item for edit:", err);
+            }
+        } else {
+            setSelectedLocalForMision('');
+            setLocalMenuItemsForMision([]);
+        }
+
         setMisionForm({
             titulo: m.titulo,
             descripcion: m.descripcion,
@@ -413,8 +474,37 @@ const AdminMundial = () => {
             sobres_premio: m.sobres_premio || 0,
             tipo: m.tipo,
             fecha: m.fecha,
-            enlace_url: m.enlace_url || ''
+            enlace_url: m.enlace_url || '',
+            target_producto_id: m.target_producto_id || '',
+            target_categoria: m.target_categoria || '',
+            target_rubro: m.target_rubro || '',
+            activo_desde: m.activo_desde ? new Date(m.activo_desde).toISOString().substring(0, 16) : '',
+            activo_hasta: m.activo_hasta ? new Date(m.activo_hasta).toISOString().substring(0, 16) : '',
+            figurita_premio_nro: m.figurita_premio_nro || ''
         });
+    };
+
+    const handleVerifySubmission = async (id) => {
+        try {
+            await api.verificarMisionUsuario(id);
+            toast.success("Entrega verificada y aprobada correctamente.");
+            loadAllData();
+        } catch (err) {
+            console.error("Error al verificar misión:", err);
+            toast.error("Error al verificar misión");
+        }
+    };
+
+    const handleRejectSubmission = async (id) => {
+        if (!window.confirm("¿Seguro que deseas rechazar esta entrega? La foto se borrará.")) return;
+        try {
+            await api.rechazarMisionUsuario(id);
+            toast.success("Entrega rechazada y eliminada.");
+            loadAllData();
+        } catch (err) {
+            console.error("Error al rechazar misión:", err);
+            toast.error("Error al rechazar misión");
+        }
     };
 
     const handleDeleteMision = async (id) => {
@@ -1268,7 +1358,111 @@ const AdminMundial = () => {
                                         <option value="minijuego_penales">⚽ Minijuego: Penales mundialistas</option>
                                         <option value="minijuego_trivia">🧠 Minijuego: Preguntero / Trivia</option>
                                         <option value="pedido">🍔 Realizar un pedido en delivery</option>
+                                        <option value="pedido_producto">🍔 Pedido: Producto específico</option>
+                                        <option value="pedido_categoria">🍕 Pedido: Categoría específica</option>
+                                        <option value="pedido_rubro">🍦 Pedido: Rubro específico</option>
                                         <option value="pronostico">🔮 Registrar un pronóstico</option>
+                                    </select>
+                                </div>
+
+                                {misionForm.tipo === 'pedido_producto' && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        <div>
+                                            <label>Seleccionar Local</label>
+                                            <select
+                                                className="filter-input-dark"
+                                                value={selectedLocalForMision}
+                                                onChange={e => setSelectedLocalForMision(e.target.value)}
+                                            >
+                                                <option value="">Selecciona un local...</option>
+                                                {localesList.map(l => (
+                                                    <option key={l.id} value={l.id}>{l.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label>Producto Objetivo</label>
+                                            <select
+                                                className="filter-input-dark"
+                                                required
+                                                value={misionForm.target_producto_id}
+                                                onChange={e => setMisionForm({...misionForm, target_producto_id: e.target.value})}
+                                                disabled={loadingMisionItems || !selectedLocalForMision}
+                                            >
+                                                <option value="">{loadingMisionItems ? 'Cargando...' : 'Selecciona un producto...'}</option>
+                                                {localMenuItemsForMision.map(item => (
+                                                    <option key={item.id} value={item.id}>{item.nombre} (${item.precio})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {misionForm.tipo === 'pedido_categoria' && (
+                                    <div>
+                                        <label>Categoría Objetivo</label>
+                                        <input
+                                            type="text"
+                                            className="filter-input-dark"
+                                            required
+                                            placeholder="Ej: Pizzas, Hamburguesas, Empanadas"
+                                            value={misionForm.target_categoria}
+                                            onChange={e => setMisionForm({...misionForm, target_categoria: e.target.value})}
+                                        />
+                                    </div>
+                                )}
+
+                                {misionForm.tipo === 'pedido_rubro' && (
+                                    <div>
+                                        <label>Rubro Objetivo</label>
+                                        <select
+                                            className="filter-input-dark"
+                                            required
+                                            value={misionForm.target_rubro}
+                                            onChange={e => setMisionForm({...misionForm, target_rubro: e.target.value})}
+                                        >
+                                            <option value="">Selecciona un rubro...</option>
+                                            {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => (
+                                                <option key={r} value={r}>{r}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <div>
+                                        <label>Activo Desde (Opcional)</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="filter-input-dark"
+                                            value={misionForm.activo_desde}
+                                            onChange={e => setMisionForm({...misionForm, activo_desde: e.target.value})}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label>Activo Hasta (Opcional)</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="filter-input-dark"
+                                            value={misionForm.activo_hasta}
+                                            onChange={e => setMisionForm({...misionForm, activo_hasta: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label>Premio Figurita Específica (Opcional)</label>
+                                    <select
+                                        className="filter-input-dark"
+                                        value={misionForm.figurita_premio_nro || ''}
+                                        onChange={e => setMisionForm({...misionForm, figurita_premio_nro: e.target.value})}
+                                    >
+                                        <option value="">Ninguno (solo puntos y sobres)</option>
+                                        {figuritas.map(f => (
+                                            <option key={f.id} value={f.numero}>
+                                                #{f.numero} - {f.nombre}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -1287,12 +1481,17 @@ const AdminMundial = () => {
  
                                  {misionForm.tipo === 'imagen_verificacion' && (
                                      <p style={{ fontSize: '0.75rem', color: '#60a5fa', margin: '4px 0 0', lineHeight: '1.4' }}>
-                                         💡 <strong>Recepción de fotos:</strong> Esta misión habilitará un selector de archivos en la app para que el cliente adjunte y envíe su foto. Podrás otorgar los puntos manualmente desde el Inyector.
+                                         💡 <strong>Recepción de fotos:</strong> Esta misión habilitará un selector de archivos en la app para que el cliente adjunte y envíe su foto. Podrás aprobar o rechazar las fotos desde la cola de verificación abajo.
                                      </p>
                                  )}
                                  {misionForm.tipo === 'link_verificacion' && (
                                      <p style={{ fontSize: '0.75rem', color: '#10b981', margin: '4px 0 0', lineHeight: '1.4' }}>
-                                         💡 <strong>Acción con Enlace:</strong> Mostrará un botón llamativo para que el usuario visite el enlace (ej: seguirnos en Instagram o compartir post) y suba la captura. Las validaciones se aprueban manualmente desde el Inyector.
+                                         💡 <strong>Acción con Enlace:</strong> Mostrará un botón llamativo para que el usuario visite el enlace y suba la captura. Las entregas se aprueban desde la cola de verificación abajo.
+                                     </p>
+                                 )}
+                                 {misionForm.tipo.startsWith('pedido') && (
+                                     <p style={{ fontSize: '0.75rem', color: '#10b981', margin: '4px 0 0', lineHeight: '1.4' }}>
+                                         💡 <strong>Misión de Pedido:</strong> Se completará automáticamente cuando el usuario realice un pedido que califique con las condiciones de producto, categoría o rubro especificadas.
                                      </p>
                                  )}
                                  {misionForm.tipo.startsWith('minijuego_') && (
@@ -1307,12 +1506,107 @@ const AdminMundial = () => {
                                         <button type="button" className="btn btn-secondary" onClick={() => {
                                             setEditingMision(null);
                                             setMisionForm({
-                                                titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: ''
+                                                titulo: '', descripcion: '', puntos_premio: 50, sobres_premio: 0, tipo: 'imagen_verificacion', fecha: new Date().toISOString().substring(0, 10), enlace_url: '',
+                                                target_producto_id: '', target_categoria: '', target_rubro: '', activo_desde: '', activo_hasta: '', figurita_premio_nro: ''
                                             });
+                                            setSelectedLocalForMision('');
+                                            setLocalMenuItemsForMision([]);
                                         }}>Cancelar</button>
                                     )}
                                 </div>
                             </form>
+                        </div>
+
+                        {/* Cola de Verificación de Misiones */}
+                        <div style={{ gridColumn: 'span 2', marginTop: '30px', background: '#0f172a', padding: '20px', borderRadius: '8px', border: '1px solid #334155' }}>
+                            <h3 style={{ color: '#fbbf24', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                📸 Cola de Verificación de Comprobantes ({pendingVerifications.length})
+                            </h3>
+                            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '20px' }}>
+                                Aprobá o rechazá las entregas de misiones con comprobante (foto o captura de pantalla). Los puntos, sobres y figuritas se acreditarán solo cuando la entrega sea aprobada.
+                            </p>
+                            
+                            <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                <table className="admin-table-dark">
+                                    <thead>
+                                        <tr>
+                                            <th>Usuario</th>
+                                            <th>Misión</th>
+                                            <th>Comprobante</th>
+                                            <th>Premios a Entregar</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pendingVerifications.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                                                    No hay entregas pendientes de verificación.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            pendingVerifications.map(sub => (
+                                                <tr key={sub.id} style={{ borderBottom: '1px solid #334155' }}>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <strong>{sub.usuarios?.nombre || 'Desconocido'}</strong>
+                                                        <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>{sub.usuarios?.email}</p>
+                                                        <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: '#64748b' }}>
+                                                            Enviado: {sub.completado_at ? new Date(sub.completado_at).toLocaleString('es-AR') : '—'}
+                                                        </p>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <strong>{sub.mundial_misiones?.titulo || 'Misión Eliminada'}</strong>
+                                                        <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>ID Misión: {sub.mision_id}</p>
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        {sub.comprobante_url ? (
+                                                            <a 
+                                                                href={sub.comprobante_url} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#3b82f6', textDecoration: 'underline' }}
+                                                            >
+                                                                Ver Imagen ↗
+                                                            </a>
+                                                        ) : (
+                                                            <span style={{ color: '#ef4444' }}>Sin imagen</span>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <div style={{ fontWeight: 'bold', color: '#10b981' }}>⭐ +{sub.mundial_misiones?.puntos_premio || 0} pts</div>
+                                                        {sub.mundial_misiones?.sobres_premio > 0 && (
+                                                            <div style={{ fontWeight: 'bold', color: '#fbbf24', fontSize: '0.75rem', marginTop: '2px' }}>
+                                                                ✉️ +{sub.mundial_misiones.sobres_premio} sobres
+                                                            </div>
+                                                        )}
+                                                        {sub.mundial_misiones?.figurita_premio_nro && (
+                                                            <div style={{ fontWeight: 'bold', color: '#a855f7', fontSize: '0.75rem', marginTop: '2px' }}>
+                                                                🏷️ Figurita #{sub.mundial_misiones.figurita_premio_nro}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button 
+                                                                className="btn btn-sm btn-success" 
+                                                                onClick={() => handleVerifySubmission(sub.id)}
+                                                            >
+                                                                Aprobar
+                                                            </button>
+                                                            <button 
+                                                                className="btn btn-sm btn-danger" 
+                                                                onClick={() => handleRejectSubmission(sub.id)}
+                                                            >
+                                                                Rechazar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )}

@@ -7,6 +7,7 @@ const AdminConfig = () => {
     const [saving, setSaving] = useState(false);
     const [config, setConfig] = useState({
         valor_envio: 2000,
+        valor_envio_shops: 2000,
         codigo_acceso: ''
     });
 
@@ -31,6 +32,7 @@ const AdminConfig = () => {
         try {
             await api.updateConfiguracion({ 
                 valor_envio: Number(config.valor_envio),
+                valor_envio_shops: Number(config.valor_envio_shops),
                 mantenimiento_pedir: config.mantenimiento_pedir,
                 mantenimiento_locales: config.mantenimiento_locales,
                 mantenimiento_repartidores: config.mantenimiento_repartidores,
@@ -56,29 +58,56 @@ const AdminConfig = () => {
             </div>
 
             <form onSubmit={handleSave} className="admin-form">
-                <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                        Valor de Envío ($)
-                    </label>
-                    <input
-                        type="number"
-                        value={config.valor_envio}
-                        onChange={(e) => setConfig({ ...config, valor_envio: e.target.value })}
-                        className="admin-input"
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            background: 'rgba(0,0,0,0.2)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '0.5rem',
-                            color: 'white',
-                            fontSize: '1rem'
-                        }}
-                        required
-                    />
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                        Este valor se aplicará a todos los pedidos con envío en la plataforma.
-                    </p>
+                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+                    <div className="form-group" style={{ flex: '1', minWidth: '280px', maxWidth: '400px', marginBottom: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                            Valor de Envío para Delivery (/pedir) ($)
+                        </label>
+                        <input
+                            type="number"
+                            value={config.valor_envio}
+                            onChange={(e) => setConfig({ ...config, valor_envio: e.target.value })}
+                            className="admin-input"
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'rgba(0,0,0,0.2)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '0.5rem',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                            required
+                        />
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+                            Este valor se aplicará a todos los pedidos con envío en la plataforma de Delivery.
+                        </p>
+                    </div>
+
+                    <div className="form-group" style={{ flex: '1', minWidth: '280px', maxWidth: '400px', marginBottom: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                            Valor de Envío para Shops (/shops) ($)
+                        </label>
+                        <input
+                            type="number"
+                            value={config.valor_envio_shops !== undefined ? config.valor_envio_shops : 2000}
+                            onChange={(e) => setConfig({ ...config, valor_envio_shops: e.target.value })}
+                            className="admin-input"
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'rgba(0,0,0,0.2)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '0.5rem',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                            required
+                        />
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+                            Este valor se aplicará a todos los pedidos con envío en la plataforma de Shops.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
