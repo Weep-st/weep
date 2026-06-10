@@ -176,7 +176,7 @@ export async function loginLocal(email, password) {
   return { success: false };
 }
 
-export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null, ciudad = 'Santo Tomé') {
+export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null, ciudad = 'Santo Tomé', tipo_servicio = 'delivery', rubros = []) {
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
@@ -191,7 +191,10 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
     lat,
     lng,
     contacto,
-    ciudad
+    ciudad,
+    tipo_servicio,
+    rubro: rubros.length > 0 ? rubros[0] : null,
+    rubros: rubros
   });
   if (error) throw new Error(error.message);
   
@@ -230,6 +233,18 @@ export async function updatePerfilLocal(params) {
   const { error } = await supabase.from('locales').update(updates).eq('id', localId);
   if (error) throw new Error(error.message);
   return { success: true };
+}
+
+export async function isSlugAvailable(slug, localId) {
+  const { data, error } = await supabase
+    .from('locales')
+    .select('id')
+    .eq('slug', slug.trim().toLowerCase())
+    .neq('id', localId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return !data;
 }
 
 export async function verifyLocalPassword(localId, password) {
@@ -1594,15 +1609,36 @@ export async function getMisPedidos(userId) {
     const pedidoIds = pedidos.map(p => p.id);
     const { data: localesRelation, error: localesError } = await supabase
       .from('pedidos_locales')
-      .select(`
-        *,
-        locales(nombre)
-      `)
+      .select('*')
       .in('pedido_id', pedidoIds);
 
     if (localesError) {
       console.error("Error fetching corresponding pedidos_locales:", localesError);
     } else if (localesRelation) {
+      // Fetch corresponding locales manually
+      const localIds = [...new Set(localesRelation.map(lr => lr.local_id))].filter(Boolean);
+      
+      const { data: localesData, error: localesTableError } = await supabase
+        .from('locales')
+        .select('id, nombre')
+        .in('id', localIds);
+
+      if (localesTableError) {
+        console.error("Error fetching locales table:", localesTableError);
+      } else {
+        const localesNameMap = {};
+        if (localesData) {
+          for (const loc of localesData) {
+            localesNameMap[loc.id] = loc.nombre;
+          }
+        }
+        
+        // Merge the name into localesRelation
+        for (const pl of localesRelation) {
+          pl.locales = { nombre: localesNameMap[pl.local_id] || 'Local' };
+        }
+      }
+
       // Group pedidos_locales by pedido_id
       const localesMap = {};
       for (const pl of localesRelation) {
@@ -1677,7 +1713,7 @@ export async function getPedidosLocalesCompletosByLocal(localId) {
   // 2. Fetch all matching general orders in ONE query
   const { data: generalOrders, error: generalErr } = await supabase
     .from('pedidos_general')
-    .select('*, repartidores:repartidor_id(nombre, telefono)')
+    .select('*, repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
     .in('id', uniquePedidoIds);
 
   if (generalErr) {
@@ -1734,6 +1770,7 @@ export async function getPedidosLocalesCompletosByLocal(localId) {
       tipoEntrega: gen.tipo_entrega || 'Para Retirar',
       emailCliente: gen.email_cliente || '',
       nombreCliente: gen.nombre_cliente || 'Cliente',
+      clienteTelefono: gen.usuarios?.telefono || null,
       fecha: gen.fecha,
       numConfirmacion: gen.num_confirmacion,
       repartidorId: gen.repartidor_id,
@@ -1754,10 +1791,36 @@ export async function getOrderDetail(userId, pedidoId) {
     .single();
   if (!pedido) return { success: false };
 
-  const { data: locales } = await supabase
+  const { data: localesRelation, error: localesError } = await supabase
     .from('pedidos_locales')
-    .select('*, locales(nombre)')
+    .select('*')
     .eq('pedido_id', pedidoId);
+
+  let locales = [];
+  if (localesError) {
+    console.error("Error fetching corresponding pedidos_locales in getOrderDetail:", localesError);
+  } else if (localesRelation) {
+    const localIds = [...new Set(localesRelation.map(lr => lr.local_id))].filter(Boolean);
+    const { data: localesData, error: localesTableError } = await supabase
+      .from('locales')
+      .select('id, nombre')
+      .in('id', localIds);
+
+    if (localesTableError) {
+      console.error("Error fetching locales table in getOrderDetail:", localesTableError);
+    } else {
+      const localesNameMap = {};
+      if (localesData) {
+        for (const loc of localesData) {
+          localesNameMap[loc.id] = loc.nombre;
+        }
+      }
+      for (const pl of localesRelation) {
+        pl.locales = { nombre: localesNameMap[pl.local_id] || 'Local' };
+      }
+    }
+    locales = localesRelation;
+  }
 
   let repartidor = null;
   if (pedido.repartidor_id) {
@@ -2218,7 +2281,7 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
 // ═══════════════════════════════════════════════════
 export async function adminGetPedidosGeneral() {
   const { data, error } = await supabase.from('pedidos_general')
-    .select('*, repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
+    .select('*, locales(nombre, tipo_servicio), repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
     .order('created_at', { ascending: false })
     .limit(20);
   if (error) throw new Error(error.message);
@@ -2248,7 +2311,7 @@ export async function adminGetPedidoDetalle(pedidoId) {
   let locales_names = [];
   if (locales_info && locales_info.length > 0) {
     const localIds = [...new Set(locales_info.map(l => l.local_id))];
-    const { data: lData } = await supabase.from('locales').select('id, nombre').in('id', localIds);
+    const { data: lData } = await supabase.from('locales').select('id, nombre, tipo_servicio').in('id', localIds);
     locales_names = lData || [];
   }
 

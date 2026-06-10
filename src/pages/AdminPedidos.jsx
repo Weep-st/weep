@@ -156,6 +156,22 @@ const AdminPedidos = () => {
                                     <td>
                                         <div style={{ fontWeight: 700, color: 'var(--red-600)' }}>#{p.num_confirmacion || p.id.substring(0, 6)}</div>
                                         <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{p.id.substring(0, 13)}...</div>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginTop: '2px' }}>
+                                            🏢 {p.locales?.nombre || 'Local'}
+                                        </div>
+                                        <span style={{ 
+                                            display: 'inline-block',
+                                            fontSize: '0.65rem', 
+                                            padding: '2px 6px', 
+                                            borderRadius: '4px', 
+                                            marginTop: '4px', 
+                                            fontWeight: 'bold',
+                                            color: p.locales?.tipo_servicio === 'shops' ? '#1d4ed8' : '#15803d',
+                                            backgroundColor: p.locales?.tipo_servicio === 'shops' ? '#dbeafe' : '#dcfce7',
+                                            border: `1px solid ${p.locales?.tipo_servicio === 'shops' ? '#bfdbfe' : '#bbf7d0'}`
+                                        }}>
+                                            {p.locales?.tipo_servicio === 'shops' ? '🛍️ Shops' : '🛵 Delivery'}
+                                        </span>
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.nombre_cliente}</div>
@@ -314,7 +330,21 @@ const AdminPedidos = () => {
                                         return (
                                             <div key={li.id} style={{ marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                                                    <h5 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>🏢 {li.locales?.nombre}</h5>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <h5 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>🏢 {li.locales?.nombre}</h5>
+                                                        <span style={{ 
+                                                            display: 'inline-block',
+                                                            fontSize: '0.65rem', 
+                                                            padding: '2px 6px', 
+                                                            borderRadius: '4px', 
+                                                            fontWeight: 'bold',
+                                                            color: li.locales?.tipo_servicio === 'shops' ? '#1d4ed8' : '#15803d',
+                                                            backgroundColor: li.locales?.tipo_servicio === 'shops' ? '#dbeafe' : '#dcfce7',
+                                                            border: `1px solid ${li.locales?.tipo_servicio === 'shops' ? '#bfdbfe' : '#bbf7d0'}`
+                                                        }}>
+                                                            {li.locales?.tipo_servicio === 'shops' ? '🛍️ Shops' : '🛵 Delivery'}
+                                                        </span>
+                                                    </div>
                                                     <span className={`badge ${li.estado?.toLowerCase().replace(' ', '-')}`}>{li.estado}</span>
                                                 </div>
                                                 <table className="items-table" style={{ background: 'transparent', boxShadow: 'none', margin: 0 }}>

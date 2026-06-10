@@ -61,6 +61,9 @@ export default function RestaurantDashboard() {
   const [authEmail, setAuthEmail] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [authLoading, setAuthLoading] = React.useState(false);
+  const [regTipoServicio, setRegTipoServicio] = React.useState('delivery');
+  const [customSlug, setCustomSlug] = React.useState('');
+  const [slugSaving, setSlugSaving] = React.useState(false);
   const [localOpen, setLocalOpen] = React.useState(false);
   const [profileData, setProfileData] = React.useState(null);
   const isInventory = React.useMemo(() => {
@@ -324,6 +327,12 @@ export default function RestaurantDashboard() {
       }
     } catch {}
   }, [restaurant]);
+
+  React.useEffect(() => {
+    if (profileData?.slug) {
+      setCustomSlug(profileData.slug);
+    }
+  }, [profileData?.slug]);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -850,6 +859,13 @@ export default function RestaurantDashboard() {
     const fd = new FormData(e.target);
     const email = fd.get('email');
     if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    
+    const selectedRubros = fd.getAll('reg_rubros');
+    if (selectedRubros.length === 0) {
+      toast.error('Selecciona al menos un rubro para tu local');
+      return;
+    }
+
     setAuthLoading(true);
     try {
       const config = await api.getConfiguracion();
@@ -874,7 +890,9 @@ export default function RestaurantDashboard() {
         null,
         null,
         contactoFull,
-        fd.get('ciudad') || 'Santo Tomé'
+        fd.get('ciudad') || 'Santo Tomé',
+        fd.get('tipo_servicio') || 'delivery',
+        selectedRubros
       );
       toast.success('¡Local registrado! Iniciá sesión.');
       setAuthEmail(email);
@@ -896,6 +914,38 @@ export default function RestaurantDashboard() {
       if (res.success) toast.success('¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
       else toast.error(res.error || 'Error al reenviar', { id: loading });
     } catch { toast.error('Error de conexión', { id: loading }); }
+  };
+
+  const handleSaveSlug = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanSlug = customSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (!cleanSlug) {
+      toast.error('El enlace personalizado no puede estar vacío');
+      return;
+    }
+    
+    setSlugSaving(true);
+    const loading = toast.loading('Guardando enlace personalizado...');
+    try {
+      const isAvailable = await api.isSlugAvailable(cleanSlug, restaurant.id);
+      if (!isAvailable) {
+        toast.error('Este enlace personalizado ya está en uso por otro local. Elige uno diferente.', { id: loading });
+        setSlugSaving(false);
+        return;
+      }
+      
+      const success = await api.updatePerfilLocal({ localId: restaurant.id, slug: cleanSlug });
+      if (success) {
+        setProfileData(prev => ({ ...prev, slug: cleanSlug }));
+        setCustomSlug(cleanSlug);
+        toast.success('¡Enlace personalizado actualizado con éxito!', { id: loading, icon: '🔗' });
+      } else {
+        toast.error('Error al guardar el enlace', { id: loading });
+      }
+    } catch (err) {
+      toast.error('Error al verificar o guardar el enlace: ' + (err.message || err), { id: loading });
+    }
+    setSlugSaving(false);
   };
 
   const handleSaveItem = async (e) => {
@@ -1589,13 +1639,15 @@ export default function RestaurantDashboard() {
 
   const finishedOrders = orders.filter(o => o.estadoActual === 'Entregado');
   
-  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado' || o.estadoActual === 'Buscando Repartidor').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const isShop = profileData?.tipo_servicio === 'shops';
+  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const preparacionOrders = processOrders.filter(o => o.estadoActual === 'Aceptado');
-  const listosOrders = processOrders.filter(o => o.estadoActual === 'Listo');
+  const listosOrders = processOrders.filter(o => o.estadoActual === 'Listo' || (isShop && o.estadoActual === 'Buscando Repartidor'));
 
-  const currentTabOrders = (currentTab === 'pendientes' ? pendientesOrders :
-                            currentTab === 'preparacion' ? preparacionOrders :
-                            listosOrders).filter(o => 
+  const currentTabOrders = (isShop ? [...processOrders].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)) : 
+                            (currentTab === 'pendientes' ? pendientesOrders :
+                             currentTab === 'preparacion' ? preparacionOrders :
+                             listosOrders)).filter(o => 
                               !orderSearch || o.idPedido.toLowerCase().includes(orderSearch.toLowerCase())
                             );
 
@@ -1706,6 +1758,47 @@ export default function RestaurantDashboard() {
                     <option value="Santo Tomé">Santo Tomé</option>
                     <option value="Oberá">Oberá</option>
                   </select>
+                </div>
+
+                <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--gray-700)' }}>Rama de Servicio</label>
+                  <select 
+                    name="tipo_servicio" 
+                    className="form-input" 
+                    value={regTipoServicio} 
+                    onChange={(e) => setRegTipoServicio(e.target.value)} 
+                    style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
+                  >
+                    <option value="delivery">🛵 Wepi Delivery (Gastronomía, Heladería, Farmacia...)</option>
+                    <option value="shops">🛍️ Wepi Shops (Hogar, Tecnología, Moda, Regalería, Deportes...)</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--gray-700)' }}>Rubros del Negocio</label>
+                  <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', 
+                      gap: '8px', 
+                      background: '#f8fafc', 
+                      padding: '12px', 
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                  }}>
+                      {(regTipoServicio === 'shops' 
+                          ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'] 
+                          : ['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia']
+                      ).map(r => (
+                          <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0, color: 'var(--gray-700)' }}>
+                              <input 
+                                  type="checkbox" 
+                                  name="reg_rubros" 
+                                  value={r} 
+                              />
+                              {r}
+                          </label>
+                      ))}
+                  </div>
                 </div>
 
                 <div className="access-code-container" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -2316,17 +2409,23 @@ export default function RestaurantDashboard() {
               </button>
             </div>
 
-            <div className="rd-tabs" style={{ gap: 8 }}>
-              <button className={currentTab === 'pendientes' ? 'active' : ''} onClick={() => setCurrentTab('pendientes')} style={{ position: 'relative' }}>
-                Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}</span>
-              </button>
-              <button className={currentTab === 'preparacion' ? 'active' : ''} onClick={() => setCurrentTab('preparacion')} style={{ position: 'relative' }}>
-                En Preparación <span className="badge badge-info" style={{ marginLeft: 6 }}>{preparacionOrders.length + (showTutorial && tutorialSampleOrderState === 'Aceptado' ? 1 : 0)}</span>
-              </button>
-              <button className={currentTab === 'listos' ? 'active' : ''} onClick={() => setCurrentTab('listos')} style={{ position: 'relative' }}>
-                Listos <span className="badge badge-blue" style={{ marginLeft: 6 }}>{listosOrders.length + (showTutorial && tutorialSampleOrderState === 'Listo' ? 1 : 0)}</span>
-              </button>
-            </div>
+            {!isShop ? (
+              <div className="rd-tabs" style={{ gap: 8 }}>
+                <button className={currentTab === 'pendientes' ? 'active' : ''} onClick={() => setCurrentTab('pendientes')} style={{ position: 'relative' }}>
+                  Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}</span>
+                </button>
+                <button className={currentTab === 'preparacion' ? 'active' : ''} onClick={() => setCurrentTab('preparacion')} style={{ position: 'relative' }}>
+                  En Preparación <span className="badge badge-info" style={{ marginLeft: 6 }}>{preparacionOrders.length + (showTutorial && tutorialSampleOrderState === 'Aceptado' ? 1 : 0)}</span>
+                </button>
+                <button className={currentTab === 'listos' ? 'active' : ''} onClick={() => setCurrentTab('listos')} style={{ position: 'relative' }}>
+                  Listos <span className="badge badge-blue" style={{ marginLeft: 6 }}>{listosOrders.length + (showTutorial && tutorialSampleOrderState === 'Listo' ? 1 : 0)}</span>
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--gray-700)', padding: '8px 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📋 Pedidos Activos <span className="badge badge-amber" style={{ fontSize: '0.85rem' }}>{finalOrders.length}</span>
+              </div>
+            )}
             {ordersLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando...</div>
             ) : finalOrders.length === 0 ? (
@@ -2336,6 +2435,7 @@ export default function RestaurantDashboard() {
                 key={o.idPedidoLocal} 
                 order={o}
                 isShop={profileData?.tipo_servicio === 'shops'} 
+                localNombre={profileData?.nombre} 
                 onAction={async (order, action) => {
                   if (action === 'RechazarClick') {
                     setOrderToReject(order);
@@ -3480,12 +3580,75 @@ export default function RestaurantDashboard() {
                 <form onSubmit={handleSaveSettings}>
                   {/* Rubro Selection (Keep instant update logic but inside form UI) */}
                   <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: 'var(--gray-700)' }}>Rubro del Negocio</h3>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: 'var(--gray-700)' }}>Rama de Servicio</h3>
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+                      <label style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 8, 
+                        padding: '10px 16px', 
+                        background: (profileData?.tipo_servicio !== 'shops') ? 'var(--red-50)' : 'white',
+                        border: `1px solid ${(profileData?.tipo_servicio !== 'shops') ? 'var(--red-200)' : 'var(--gray-200)'}`,
+                        borderRadius: 8, 
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.9rem'
+                      }}>
+                        <input 
+                          type="radio" 
+                          name="tipo_servicio_selector" 
+                          checked={profileData?.tipo_servicio !== 'shops'} 
+                          onChange={async () => {
+                            try {
+                              const success = await api.updatePerfilLocal({ localId: restaurant.id, tipo_servicio: 'delivery', rubros: [] });
+                              if (success) {
+                                setProfileData({ ...profileData, tipo_servicio: 'delivery', rubros: [] });
+                                toast.success('Cambiado a Wepi Delivery. Seleccioná tus nuevos rubros.');
+                              }
+                            } catch { toast.error('Error al cambiar de rama'); }
+                          }}
+                        />
+                        🛵 Wepi Delivery
+                      </label>
+                      <label style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 8, 
+                        padding: '10px 16px', 
+                        background: (profileData?.tipo_servicio === 'shops') ? 'var(--red-50)' : 'white',
+                        border: `1px solid ${(profileData?.tipo_servicio === 'shops') ? 'var(--red-200)' : 'var(--gray-200)'}`,
+                        borderRadius: 8, 
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.9rem'
+                      }}>
+                        <input 
+                          type="radio" 
+                          name="tipo_servicio_selector" 
+                          checked={profileData?.tipo_servicio === 'shops'} 
+                          onChange={async () => {
+                            try {
+                              const success = await api.updatePerfilLocal({ localId: restaurant.id, tipo_servicio: 'shops', rubros: [] });
+                              if (success) {
+                                setProfileData({ ...profileData, tipo_servicio: 'shops', rubros: [] });
+                                toast.success('Cambiado a Wepi Shops. Seleccioná tus nuevos rubros.');
+                              }
+                            } catch { toast.error('Error al cambiar de rama'); }
+                          }}
+                        />
+                        🛍️ Wepi Shops
+                      </label>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: 'var(--gray-700)' }}>Rubros del Negocio</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
                       Seleccioná el rubro de tu local para adaptar las opciones del panel.
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-                      {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => {
+                      {(profileData?.tipo_servicio === 'shops'
+                        ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes']
+                        : ['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia']
+                      ).map(r => {
                         const isSelected = profileData?.rubros?.includes(r);
                         return (
                           <label key={r} style={{ 
@@ -3513,9 +3676,13 @@ export default function RestaurantDashboard() {
                                 }
                                 
                                 try {
-                                  const success = await api.updatePerfilLocal({ localId: restaurant.id, rubros: newRubros });
+                                  const success = await api.updatePerfilLocal({ 
+                                    localId: restaurant.id, 
+                                    rubros: newRubros,
+                                    rubro: newRubros.length > 0 ? newRubros[0] : null
+                                  });
                                   if (success) {
-                                    setProfileData({ ...profileData, rubros: newRubros });
+                                    setProfileData({ ...profileData, rubros: newRubros, rubro: newRubros.length > 0 ? newRubros[0] : null });
                                     toast.success(checked ? `Rubro ${r} añadido` : `Rubro ${r} removido`);
                                   }
                                 } catch (e) { toast.error('Error al cambiar rubros'); }
@@ -3533,31 +3700,76 @@ export default function RestaurantDashboard() {
                   <div style={{ marginBottom: 24, padding: 16, background: '#f0f9ff', borderRadius: 12, border: '1px solid #bae6fd' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: 12, color: '#0369a1' }}>🔗 Enlace Compartible</h3>
                     <p style={{ fontSize: '0.85rem', color: '#0c4a6e', marginBottom: 16 }}>
-                      Compartí este enlace con tus clientes para que accedan directamente a tu menú en Wepi.
+                      Personalizá y compartí este enlace con tus clientes para que accedan directamente a tu local en Wepi.
                     </p>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input 
-                        className="form-input" 
-                        readOnly 
-                        value={`https://wepi.com.ar/pedir/${profileData?.slug || 'identificador-pendiente'}`} 
-                        style={{ flex: 1, marginBottom: 0, background: '#fff', fontSize: '0.85rem' }}
-                      />
-                      <button 
-                        type="button" 
-                        className="btn btn-primary"
-                        style={{ background: '#0284c7' }}
-                        onClick={() => {
-                          const link = `https://wepi.com.ar/pedir/${profileData?.slug || 'identificador-pendiente'}`;
-                          navigator.clipboard.writeText(link);
-                          toast.success('¡Enlace copiado!', { icon: '📋' });
-                        }}
-                      >
-                        Copiar
-                      </button>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '4px', 
+                          background: '#fff', 
+                          border: '1px solid #bae6fd', 
+                          borderRadius: '8px', 
+                          padding: '0 12px', 
+                          flex: 1,
+                          minWidth: '200px'
+                        }}>
+                          <span style={{ color: '#64748b', fontSize: '0.85rem', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                            {profileData?.tipo_servicio === 'shops' ? 'https://wepi.com.ar/shops/' : 'https://wepi.com.ar/pedir/'}
+                          </span>
+                          <input 
+                            type="text"
+                            value={customSlug}
+                            onChange={(e) => setCustomSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (!slugSaving && customSlug.trim() !== '' && customSlug !== profileData?.slug) {
+                                  handleSaveSlug(e);
+                                }
+                              }
+                            }}
+                            placeholder="mi-local"
+                            className="form-input"
+                            style={{ border: 'none', padding: '10px 0', margin: 0, fontSize: '0.85rem', boxShadow: 'none', flex: 1, minWidth: '80px', background: 'transparent' }}
+                            required
+                          />
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button 
+                            type="button" 
+                            className="btn btn-success" 
+                            disabled={slugSaving || customSlug.trim() === '' || customSlug === profileData?.slug}
+                            onClick={handleSaveSlug}
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            {slugSaving ? 'Guardando...' : 'Guardar'}
+                          </button>
+                          
+                          <button 
+                            type="button" 
+                            className="btn btn-primary"
+                            style={{ background: '#0284c7', whiteSpace: 'nowrap' }}
+                            disabled={!profileData?.slug}
+                            onClick={() => {
+                              const prefix = profileData?.tipo_servicio === 'shops' ? 'https://wepi.com.ar/shops/' : 'https://wepi.com.ar/pedir/';
+                              const link = `${prefix}${profileData?.slug || ''}`;
+                              navigator.clipboard.writeText(link);
+                              toast.success('¡Enlace copiado!', { icon: '📋' });
+                            }}
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                    
                     {!profileData?.slug && (
                       <p style={{ fontSize: '0.75rem', color: 'var(--red-600)', marginTop: 8, fontWeight: 600 }}>
-                        ⚠️ Tu local aún no tiene un identificador único asignado.
+                        ⚠️ Tu local aún no tiene un identificador único asignado. Asignale uno para poder compartir tu local.
                       </p>
                     )}
                   </div>
@@ -4146,8 +4358,47 @@ export default function RestaurantDashboard() {
 }
 
 /* ─── Order Card Component ─── */
-function OrderCard({ order: o, onAction, finished, isShop }) {
+function OrderCard({ order: o, onAction, finished, isShop, localNombre }) {
   const [loading, setLoading] = React.useState('');
+  const [showScheduler, setShowScheduler] = React.useState(false);
+  const [scheduleDate, setScheduleDate] = React.useState('');
+  const [scheduleTime, setScheduleTime] = React.useState('');
+
+  const isOnlinePayment = String(o.metodoPago).toLowerCase().includes('transfer') || 
+                          String(o.metodoPago).toLowerCase().includes('mercado') || 
+                          String(o.metodoPago).toLowerCase().includes('online') || 
+                          String(o.metodoPago).toLowerCase().includes('tarjeta') || 
+                          String(o.metodoPago).toLowerCase() === 'mp';
+
+  const handleConfirmRequestDriver = () => {
+    if (!scheduleDate || !scheduleTime) {
+      toast.error('Por favor, selecciona fecha y hora para el envío');
+      return;
+    }
+    
+    // Format items
+    const itemsText = o.items.map(item => `• ${item[4]} x${item[6]}`).join('\n');
+    
+    // Maps link
+    const mapsLink = o.lat && o.lng ? `https://www.google.com/maps?q=${o.lat},${o.lng}` : '';
+    
+    const msg = `🛵 *SOLICITUD DE REPARTIDOR WEPI (SHOPS)* 🛵\n\n` +
+      `*Local:* ${localNombre || 'Tienda Shops'}\n` +
+      `*Pedido:* #${o.idPedido}\n` +
+      `*Cliente:* ${o.nombreCliente}\n` +
+      `*Teléfono Cliente:* ${o.clienteTelefono || 'No especificado'}\n` +
+      `*Dirección de Entrega:* ${o.direccion}\n` +
+      (mapsLink ? `*Ubicación GPS:* ${mapsLink}\n` : '') +
+      `*Fecha Programada:* ${scheduleDate}\n` +
+      `*Horario Programado:* ${scheduleTime}\n\n` +
+      `*Productos:*\n${itemsText}\n\n` +
+      `*Total a Cobrar/Entregar:* $${o.totalLocal.toFixed(2)} (${o.metodoPago})\n\n` +
+      `Por favor, confirmar disponibilidad para realizar esta entrega. ¡Gracias!`;
+      
+    window.open(`https://wa.me/3756543610?text=${encodeURIComponent(msg)}`, '_blank');
+    setShowScheduler(false);
+  };
+
   const handleAction = async (action) => {
     setLoading(action);
     await onAction(o, action);
@@ -4204,9 +4455,24 @@ function OrderCard({ order: o, onAction, finished, isShop }) {
         {!finished && (
           <div className="rd-order-actions">
             {isShop ? (
-              <>
-                {/* Si es Para Retirar, mostramos "Entregar al Cliente" */}
-                {String(o.tipoEntrega).toLowerCase().includes('ret') || o.tipoEntrega === 'Para Retirar' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    style={{ background: '#25D366', borderColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => {
+                      if (o.clienteTelefono) {
+                        const cleanedPhone = o.clienteTelefono.replace(/\D/g, '');
+                        const text = encodeURIComponent(`Hola ${o.nombreCliente}, nos comunicamos por tu pedido #${o.idPedido}.`);
+                        window.open(`https://wa.me/${cleanedPhone}?text=${text}`, '_blank');
+                      } else {
+                        toast.error('El usuario no tiene un teléfono de contacto registrado');
+                      }
+                    }}
+                  >
+                    💬 Coordinar Entrega
+                  </button>
+
                   <button 
                     className="btn btn-success btn-sm" 
                     disabled={loading} 
@@ -4216,46 +4482,91 @@ function OrderCard({ order: o, onAction, finished, isShop }) {
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
                       </span>
-                    ) : '✓ Entregar al Cliente (Completar)'}
+                  ) : '✓ Entregado'}
                   </button>
-                ) : (
-                  /* Si es Con Envío, mostramos "Solicitar Repartidor Wepi" si no hay asignado */
-                  <>
-                    {(!o.repartidorNombre || o.estadoActual === 'Confirmado' || o.estadoActual === 'Pendiente') ? (
+
+                  <button 
+                    className="btn btn-sm" 
+                    style={{ background: 'var(--red-500)', color: '#fff' }} 
+                    disabled={loading} 
+                    onClick={() => onAction(o, 'RechazarClick')}
+                  >
+                    {isOnlinePayment ? '💸 Gestionar Devolución' : '✕ Rechazar Pedido'}
+                  </button>
+                </div>
+
+                {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío') && (
+                  <div style={{ display: 'flex', width: '100%' }}>
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      style={{ background: '#0284c7', borderColor: '#0284c7', color: 'white', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                      onClick={() => setShowScheduler(!showScheduler)}
+                    >
+                      🛵 Solicitar Repartidor Wepi
+                    </button>
+                  </div>
+                )}
+
+                {showScheduler && (
+                  <div style={{ 
+                    marginTop: 4, 
+                    padding: 12, 
+                    background: '#f8fafc', 
+                    borderRadius: 8, 
+                    border: '1px solid #cbd5e1',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    width: '100%'
+                  }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>
+                      📅 Programar Entrega (repartidor Wepi)
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Fecha</label>
+                        <input 
+                          type="date" 
+                          className="form-input" 
+                          style={{ padding: '6px 10px', fontSize: '0.85rem', width: '100%', margin: 0 }}
+                          value={scheduleDate}
+                          onChange={(e) => setScheduleDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Horario / Rango</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ej: 14:00 o 18:00 a 20:00" 
+                          className="form-input" 
+                          style={{ padding: '6px 10px', fontSize: '0.85rem', width: '100%', margin: 0 }}
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
                       <button 
-                        className="btn btn-primary btn-sm" 
-                        disabled={loading} 
-                        onClick={async () => {
-                          setLoading('SolicitarRepartidor');
-                          try {
-                            await onAction(o, 'Buscando Repartidor');
-                            await api.broadcastOrderToDrivers(o.idPedido, o.totalLocal, o.localId || o.local_id, o.precioEnvio);
-                            toast.success('¡Se ha solicitado un repartidor de Wepi! 🛵');
-                          } catch (err) {
-                            toast.error('Error al solicitar repartidor');
-                          }
-                          setLoading('');
-                        }}
+                        type="button"
+                        className="btn btn-sm btn-secondary" 
+                        style={{ padding: '4px 12px', fontSize: '0.8rem' }}
+                        onClick={() => setShowScheduler(false)}
                       >
-                        {loading === 'SolicitarRepartidor' ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Solicitando...
-                          </span>
-                        ) : '🛵 Solicitar Repartidor Wepi'}
+                        Cancelar
                       </button>
-                    ) : (
-                      <span style={{ color: 'var(--blue-600)', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                        🛵 Envío en curso con Repartidor
-                      </span>
-                    )}
-                  </>
+                      <button 
+                        type="button"
+                        className="btn btn-sm btn-success" 
+                        style={{ padding: '4px 12px', fontSize: '0.8rem', background: '#0284c7', borderColor: '#0284c7' }}
+                        onClick={handleConfirmRequestDriver}
+                      >
+                        Confirmar y Solicitar
+                      </button>
+                    </div>
+                  </div>
                 )}
-                {['Pendiente', 'Confirmado', 'Buscando Repartidor'].includes(o.estadoActual) && !o.repartidorNombre && (
-                  <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
-                    ✕ Rechazar
-                  </button>
-                )}
-              </>
+              </div>
             ) : (
               <>
                 {['Pendiente', 'Confirmado'].includes(o.estadoActual) ? (

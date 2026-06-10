@@ -60,8 +60,9 @@ const Mundialista = () => {
     // Accordion/Collapse states for Premios tab sections
     const [collapsedMisiones, setCollapsedMisiones] = useState(false);
     const [collapsedPronosticos, setCollapsedPronosticos] = useState(true);
-    const [collapsedCalendario, setCollapsedCalendario] = useState(true);
+    const [collapsedCalendario, setCollapsedCalendario] = useState(false);
     const [collapsedCupon, setCollapsedCupon] = useState(true);
+    const [collapsedPointsInfo, setCollapsedPointsInfo] = useState(true);
     // Cupones
     const [couponCode, setCouponCode] = useState('');
     const [redeemingCoupon, setRedeemingCoupon] = useState(false);
@@ -1343,6 +1344,74 @@ const Mundialista = () => {
                 {activeTab === 'premios' && (
                     <div className="premios-module-wrapper animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         
+                        {/* ACCORDION 3: CALENDARIO DE PREMIOS */}
+                        <div className="accordion-section">
+                            <div 
+                                className="accordion-header"
+                                onClick={() => setCollapsedCalendario(!collapsedCalendario)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <h3 className="accordion-title">
+                                    📅 Calendario de Premios Diario (11/06 al 19/07)
+                                </h3>
+                                <div className={`accordion-toggle-btn ${collapsedCalendario ? 'collapsed' : 'expanded'}`}>
+                                    <span>{collapsedCalendario ? 'Desplegar' : 'Contraer'}</span>
+                                    <span className="arrow-icon">▼</span>
+                                </div>
+                            </div>
+                            
+                            {!collapsedCalendario && (
+                                <div className="accordion-content">
+                                    <div className="calendar-header-desc">
+                                        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 0, lineHeight: '1.4' }}>Reclamá un premio diario durante la Copa del Mundo. ¡Ingresá cada día para reclamar nuevas recompensas en tu Wallet, paquetes de figuritas y puntos de campaña! 📅</p>
+                                        <button 
+                                            className="btn btn-secondary recordatorios-btn"
+                                            onClick={() => setShowReminderModal(true)}
+                                            style={{ marginTop: '8px', marginBottom: '20px', padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold' }}
+                                        >
+                                            🔔 Recibir Recordatorios Diarios
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="calendar-grid-tiles">
+                                        {calendario.map(c => {
+                                            const activeDay = getActiveCampaignDay();
+                                            const isClaimed = c.reclamado;
+                                            const isExpired = c.dia < activeDay && !isClaimed;
+                                            const isLocked = c.dia > activeDay && !isClaimed;
+                                            const isCurrent = c.dia === activeDay && !isClaimed;
+                                            
+                                            return (
+                                                <div 
+                                                    key={c.dia} 
+                                                    className={`calendar-tile ${isClaimed ? 'claimed' : ''} ${isExpired ? 'expired' : ''} ${isLocked ? 'locked' : ''} ${isCurrent ? 'claimable current' : ''}`}
+                                                    onClick={() => isCurrent && handleClaimReward(c)}
+                                                >
+                                                    <span className="tile-day-lbl">Día {c.dia}</span>
+                                                    <div className="tile-prize-indicator">
+                                                        {c.premio_tipo === 'credito_wallet' ? (
+                                                            <span className="wallet-reward-text">${c.premio_cantidad} Wallet</span>
+                                                        ) : (
+                                                            <span>{c.premio_tipo === 'sobre_figuritas' ? `✉️ x${c.premio_cantidad}` : `⭐ +${c.premio_cantidad}`}</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="tile-desc">{c.descripcion}</p>
+                                                    
+                                                    <span className={`tile-status-tag ${isClaimed ? 'claimed' : ''} ${isExpired ? 'expired' : ''} ${isLocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`}>
+                                                        {isClaimed ? 'Reclamado ✓' : (isExpired ? 'Vencido' : (isLocked ? 'Bloqueado' : '¡Reclamar! ✨'))}
+                                                    </span>
+
+                                                    <div className="tile-status-overlay">
+                                                        {isClaimed ? 'RECLAMADO ✓' : (isExpired ? '⏳ VENCIDO' : (isLocked ? '🔒 BLOQUEADO' : '¡RECLAMAR! ✨'))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* SECCION 1: MISIONES DIARIAS (Estática) */}
                         <div className="accordion-section">
                             <div className="accordion-header" style={{ cursor: 'default' }}>
@@ -1435,7 +1504,7 @@ const Mundialista = () => {
                                                     {m.tipo === 'minijuego_penales' && (
                                                         <button 
                                                             className="btn btn-primary btn-sm" 
-                                                            onClick={() => startPenalesGame(m)}
+                                                            onClick={() => startPenaltyGame(m)}
                                                             style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                                                         >
                                                             ⚽ Jugar Penales Wepi
@@ -1481,6 +1550,7 @@ const Mundialista = () => {
                             <div 
                                 className="accordion-header"
                                 onClick={() => setCollapsedPronosticos(!collapsedPronosticos)}
+                                style={{ cursor: 'pointer' }}
                             >
                                 <h3 className="accordion-title">
                                     🔮 Predicciones de Argentina
@@ -1588,76 +1658,6 @@ const Mundialista = () => {
                                 </div>
                             )}
                         </div>
-
-                        {/* ACCORDION 3: CALENDARIO DE PREMIOS */}
-                        <div className="accordion-section">
-                            <div 
-                                className="accordion-header"
-                                onClick={() => setCollapsedCalendario(!collapsedCalendario)}
-                            >
-                                <h3 className="accordion-title">
-                                    📅 Calendario de Premios Diario (11/06 al 19/07)
-                                </h3>
-                                <div className={`accordion-toggle-btn ${collapsedCalendario ? 'collapsed' : 'expanded'}`}>
-                                    <span>{collapsedCalendario ? 'Desplegar' : 'Contraer'}</span>
-                                    <span className="arrow-icon">▼</span>
-                                </div>
-                            </div>
-                            
-                            {!collapsedCalendario && (
-                                <div className="accordion-content">
-                                    <div className="calendar-header-desc">
-                                        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 0, lineHeight: '1.4' }}>Reclamá un premio diario durante la Copa del Mundo. ¡Ingresá cada día para reclamar nuevas recompensas en tu Wallet, paquetes de figuritas y puntos de campaña! 📅</p>
-                                        <button 
-                                            className="btn btn-secondary recordatorios-btn"
-                                            onClick={() => setShowReminderModal(true)}
-                                            style={{ marginTop: '8px', marginBottom: '20px', padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold' }}
-                                        >
-                                            🔔 Recibir Recordatorios Diarios
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="calendar-grid-tiles">
-                                        {calendario.map(c => {
-                                            const activeDay = getActiveCampaignDay();
-                                            const isClaimed = c.reclamado;
-                                            const isExpired = c.dia < activeDay && !isClaimed;
-                                            const isLocked = c.dia > activeDay && !isClaimed;
-                                            const isCurrent = c.dia === activeDay && !isClaimed;
-                                            
-                                            return (
-                                                <div 
-                                                    key={c.dia} 
-                                                    className={`calendar-tile ${isClaimed ? 'claimed' : ''} ${isExpired ? 'expired' : ''} ${isLocked ? 'locked' : ''} ${isCurrent ? 'claimable current' : ''}`}
-                                                    onClick={() => isCurrent && handleClaimReward(c)}
-                                                >
-                                                    <span className="tile-day-lbl">Día {c.dia}</span>
-                                                    <div className="tile-prize-indicator">
-                                                        {c.premio_tipo === 'credito_wallet' ? (
-                                                            <span className="wallet-reward-text">${c.premio_cantidad} Wallet</span>
-                                                        ) : (
-                                                            <span>{c.premio_tipo === 'sobre_figuritas' ? `✉️ x${c.premio_cantidad}` : `⭐ +${c.premio_cantidad}`}</span>
-                                                        )}
-                                                    </div>
-                                                    <p className="tile-desc">{c.descripcion}</p>
-                                                    
-                                                    <span className={`tile-status-tag ${isClaimed ? 'claimed' : ''} ${isExpired ? 'expired' : ''} ${isLocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`}>
-                                                        {isClaimed ? 'Reclamado ✓' : (isExpired ? 'Vencido' : (isLocked ? 'Bloqueado' : '¡Reclamar! ✨'))}
-                                                    </span>
-
-                                                    <div className="tile-status-overlay">
-                                                        {isClaimed ? 'RECLAMADO ✓' : (isExpired ? '⏳ VENCIDO' : (isLocked ? '🔒 BLOQUEADO' : '¡RECLAMAR! ✨'))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-
-
                     </div>
                 )}
 
@@ -1679,12 +1679,15 @@ const Mundialista = () => {
                             color: '#f8fafc'
                         }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                <div style={{ display: 'flex', flexDirection: isMobileView ? 'column' : 'row', alignItems: isMobileView ? 'flex-start' : 'center', justifyContent: 'space-between', gap: '16px' }}>
+                                <div 
+                                    onClick={() => setCollapsedPointsInfo(!collapsedPointsInfo)}
+                                    style={{ display: 'flex', flexDirection: isMobileView ? 'column' : 'row', alignItems: isMobileView ? 'flex-start' : 'center', justifyContent: 'space-between', gap: '16px', cursor: 'pointer' }}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left' }}>
                                         <div style={{ fontSize: '2.5rem', flexShrink: 0 }}>🏆</div>
                                         <div>
-                                            <h4 style={{ margin: 0, color: '#fbbf24', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                                ¡Sumá puntos con cada pedido y liderá el ranking!
+                                            <h4 style={{ margin: 0, color: '#fbbf24', fontWeight: 'bold', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                ¡Sumá puntos con cada pedido y liderá el ranking! <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>{collapsedPointsInfo ? '▼ (ver detalles)' : '▲ (ocultar)'}</span>
                                             </h4>
                                             <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.4' }}>
                                                 Realizando tus pedidos en Wepi acumulás puntos y sobres para el álbum de forma automática.
@@ -1693,6 +1696,7 @@ const Mundialista = () => {
                                     </div>
                                     <Link 
                                         to="/pedir" 
+                                        onClick={(e) => e.stopPropagation()}
                                         style={{
                                             background: 'linear-gradient(135deg, #e63946 0%, #dc2626 100%)',
                                             color: '#ffffff',
@@ -1721,74 +1725,78 @@ const Mundialista = () => {
                                     </Link>
                                 </div>
 
-                                <div style={{ 
-                                    display: 'grid', 
-                                    gridTemplateColumns: isMobileView ? '1fr' : 'repeat(3, 1fr)', 
-                                    gap: '12px',
-                                    marginTop: '8px'
-                                }}>
-                                    {/* 1. Pedido Normal */}
-                                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍔</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '500' }}>1. Pedido Normal</div>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#38bdf8', marginTop: '4px' }}>+{config?.pts_pedido_normal ?? 250} Pts</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{(config?.sobres_pedido_normal ?? 0) > 0 ? `✉️ +${config.sobres_pedido_normal} sobres` : 'Sin sobres'}</div>
-                                    </div>
+                                {!collapsedPointsInfo && (
+                                    <>
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: isMobileView ? '1fr' : 'repeat(3, 1fr)', 
+                                            gap: '12px',
+                                            marginTop: '8px'
+                                        }}>
+                                            {/* 1. Pedido Normal */}
+                                            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍔</div>
+                                                <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '500' }}>1. Pedido Normal</div>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#38bdf8', marginTop: '4px' }}>+{config?.pts_pedido_normal ?? 250} Pts</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{(config?.sobres_pedido_normal ?? 0) > 0 ? `✉️ +${config.sobres_pedido_normal} sobres` : 'Sin sobres'}</div>
+                                            </div>
 
-                                    {/* 2. Pedido en Sponsor */}
-                                    <div style={{ background: 'rgba(251, 191, 36, 0.05)', border: '1px solid rgba(251, 191, 36, 0.15)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>⭐</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: '600' }}>2. Sponsor Oficial</div>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#fbbf24', marginTop: '4px' }}>+{config?.pts_pedido_sponsor ?? 900} Pts</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#fbbf24', marginTop: '2px' }}>✉️ +{config?.sobres_pedido_sponsor ?? 1} { (config?.sobres_pedido_sponsor ?? 1) === 1 ? 'sobre' : 'sobres' }</div>
-                                    </div>
+                                            {/* 2. Pedido en Sponsor */}
+                                            <div style={{ background: 'rgba(251, 191, 36, 0.05)', border: '1px solid rgba(251, 191, 36, 0.15)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>⭐</div>
+                                                <div style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: '600' }}>2. Sponsor Oficial</div>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#fbbf24', marginTop: '4px' }}>+{config?.pts_pedido_sponsor ?? 900} Pts</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#fbbf24', marginTop: '2px' }}>✉️ +{config?.sobres_pedido_sponsor ?? 1} { (config?.sobres_pedido_sponsor ?? 1) === 1 ? 'sobre' : 'sobres' }</div>
+                                            </div>
 
-                                    {/* 3. Combo Mundialista */}
-                                    <div style={{ background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.15)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🏆</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#c084fc', fontWeight: '600' }}>3. Combo Mundialista</div>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#c084fc', marginTop: '4px' }}>+{config?.pts_combo_mundialista ?? 500} Pts</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#c084fc', marginTop: '2px' }}>✉️ +{config?.sobres_combo_mundialista ?? 1} { (config?.sobres_combo_mundialista ?? 1) === 1 ? 'sobre' : 'sobres' }</div>
-                                    </div>
+                                            {/* 3. Combo Mundialista */}
+                                            <div style={{ background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.15)', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🏆</div>
+                                                <div style={{ fontSize: '0.85rem', color: '#c084fc', fontWeight: '600' }}>3. Combo Mundialista</div>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#c084fc', marginTop: '4px' }}>+{config?.pts_combo_mundialista ?? 500} Pts</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#c084fc', marginTop: '2px' }}>✉️ +{config?.sobres_combo_mundialista ?? 1} { (config?.sobres_combo_mundialista ?? 1) === 1 ? 'sobre' : 'sobres' }</div>
+                                            </div>
 
-                                    {/* 4. Sponsor + Combo */}
-                                    <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)', padding: '16px', borderRadius: '12px', textAlign: 'center', gridColumn: isMobileView ? 'span 1' : 'span 3' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
-                                            <span style={{ fontSize: '1.3rem' }}>🔥</span>
-                                            <span style={{ fontSize: '0.9rem', color: '#4ade80', fontWeight: 'bold' }}>4. Sponsor + Combo Mundialista (Máximo Puntos y Sobres)</span>
+                                            {/* 4. Sponsor + Combo */}
+                                            <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)', padding: '16px', borderRadius: '12px', textAlign: 'center', gridColumn: isMobileView ? 'span 1' : 'span 3' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                    <span style={{ fontSize: '1.3rem' }}>🔥</span>
+                                                    <span style={{ fontSize: '0.9rem', color: '#4ade80', fontWeight: 'bold' }}>4. Sponsor + Combo Mundialista (Máximo Puntos y Sobres)</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: '12px', marginTop: '4px' }}>
+                                                    <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#4ade80' }}>+{config?.pts_sponsor_combo_mundialista ?? 700} Pts</span>
+                                                    <span style={{ fontSize: '1rem', color: '#4ade80' }}>✉️ +{config?.sobres_sponsor_combo_mundialista ?? 2} sobres</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: '12px', marginTop: '4px' }}>
-                                            <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#4ade80' }}>+{config?.pts_sponsor_combo_mundialista ?? 700} Pts</span>
-                                            <span style={{ fontSize: '1rem', color: '#4ade80' }}>✉️ +{config?.sobres_sponsor_combo_mundialista ?? 2} sobres</span>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div style={{ 
-                                    display: 'grid', 
-                                    gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr', 
-                                    gap: '12px',
-                                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                                    paddingTop: '16px'
-                                }}>
-                                    {/* 5. Bono Doblete */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px' }}>
-                                        <div style={{ fontSize: '1.5rem' }}>✌️</div>
-                                        <div style={{ textAlign: 'left' }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#f8fafc' }}>5. Bono Doblete (2 pedidos/sem)</div>
-                                            <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Sumás <strong style={{ color: '#38bdf8' }}>+{config?.pts_doblete_semanal ?? 300} puntos extra</strong> a tu acumulado semanal.</div>
-                                        </div>
-                                    </div>
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr', 
+                                            gap: '12px',
+                                            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                                            paddingTop: '16px'
+                                        }}>
+                                            {/* 5. Bono Doblete */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px' }}>
+                                                <div style={{ fontSize: '1.5rem' }}>✌️</div>
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#f8fafc' }}>5. Bono Doblete (2 pedidos/sem)</div>
+                                                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Sumás <strong style={{ color: '#38bdf8' }}>+{config?.pts_doblete_semanal ?? 300} puntos extra</strong> a tu acumulado semanal.</div>
+                                                </div>
+                                            </div>
 
-                                    {/* 6. Bono Triplete */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px' }}>
-                                        <div style={{ fontSize: '1.5rem' }}>🤟</div>
-                                        <div style={{ textAlign: 'left' }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#f8fafc' }}>6. Bono Triplete (3 pedidos/sem)</div>
-                                            <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Sumás <strong style={{ color: '#4ade80' }}>+{config?.pts_triplete_semanal ?? 600} puntos extra</strong> a tu acumulado semanal.</div>
+                                            {/* 6. Bono Triplete */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '8px' }}>
+                                                <div style={{ fontSize: '1.5rem' }}>🤟</div>
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#f8fafc' }}>6. Bono Triplete (3 pedidos/sem)</div>
+                                                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Sumás <strong style={{ color: '#4ade80' }}>+{config?.pts_triplete_semanal ?? 600} puntos extra</strong> a tu acumulado semanal.</div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 

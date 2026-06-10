@@ -217,6 +217,57 @@ export default function PruebasWalletApp() {
   const [pendingOrderId, setPendingOrderId] = React.useState(null);
   const [estimatedTime, setEstimatedTime] = React.useState(null);
 
+  // Mundial 2026: States and checking logic for points earned
+  const [oldMundialPoints, setOldMundialPoints] = React.useState(0);
+  const [oldMundialSobres, setOldMundialSobres] = React.useState(0);
+  const [isNewMundialUser, setIsNewMundialUser] = React.useState(false);
+  const [mundialAward, setMundialAward] = React.useState(null);
+  const [showMundialPopup, setShowMundialPopup] = React.useState(false);
+
+  const checkMundialPointsEarned = async (customOldPts = null, customOldSobres = null, customIsNew = null) => {
+    if (!user?.id) return;
+    
+    // Wait for Supabase backend to finish registering/processing stats
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    try {
+      const statsAfter = await api.getMundialUsuarioStats(user.id);
+      if (statsAfter) {
+        const checkIsNew = customIsNew !== null ? customIsNew : isNewMundialUser;
+        const basePts = checkIsNew ? 100 : (customOldPts !== null ? customOldPts : oldMundialPoints);
+        const baseSobres = checkIsNew ? 2 : (customOldSobres !== null ? customOldSobres : oldMundialSobres);
+        
+        const diffPts = (statsAfter.puntos_totales || 0) - basePts;
+        const diffSobres = (statsAfter.sobres_disponibles || 0) - baseSobres;
+        
+        if (diffPts > 0) {
+          setMundialAward({
+            puntos: diffPts,
+            sobres: diffSobres > 0 ? diffSobres : 0
+          });
+          setShowMundialPopup(true);
+        }
+      }
+    } catch (e) {
+      console.error("Error checking mundial points after order:", e);
+    }
+  };
+
+  React.useEffect(() => {
+    if (user?.id && localStorage.getItem('checkMundialPointsAfterMP') === 'true') {
+      const storedOldPts = Number(localStorage.getItem('oldMundialPointsMP') || '0');
+      const storedOldSobres = Number(localStorage.getItem('oldMundialSobresMP') || '0');
+      const storedIsNew = localStorage.getItem('isNewMundialUserMP') === 'true';
+      
+      localStorage.removeItem('checkMundialPointsAfterMP');
+      localStorage.removeItem('oldMundialPointsMP');
+      localStorage.removeItem('oldMundialSobresMP');
+      localStorage.removeItem('isNewMundialUserMP');
+      
+      checkMundialPointsEarned(storedOldPts, storedOldSobres, storedIsNew);
+    }
+  }, [user]);
+
   const getTimeBasedTitle = React.useCallback(() => {
     if (isShopsMode) {
       return { 
@@ -1691,6 +1742,40 @@ export default function PruebasWalletApp() {
 
     setCheckoutLoading(true);
     try {
+      // Capture pre-checkout stats for Mundial 2026 points check
+      let prePts = 0;
+      let preSobres = 0;
+      let isNew = false;
+      try {
+        const { data: statsBefore } = await api.supabase
+          .from('mundial_usuario_stats')
+          .select('*')
+          .eq('usuario_id', user.id)
+          .maybeSingle();
+          
+        if (!statsBefore) {
+          isNew = true;
+          prePts = 100;
+          preSobres = 2;
+        } else {
+          isNew = false;
+          prePts = statsBefore.puntos_totales || 0;
+          preSobres = statsBefore.sobres_disponibles || 0;
+        }
+        
+        setOldMundialPoints(prePts);
+        setOldMundialSobres(preSobres);
+        setIsNewMundialUser(isNew);
+        
+        // Save to localStorage immediately as helper for MP or refresh
+        localStorage.setItem('checkMundialPointsAfterMP', 'true');
+        localStorage.setItem('oldMundialPointsMP', String(prePts));
+        localStorage.setItem('oldMundialSobresMP', String(preSobres));
+        localStorage.setItem('isNewMundialUserMP', String(isNew));
+      } catch (err) {
+        console.error("Error capturing pre-checkout stats:", err);
+      }
+
       // --- NUEVA VALIDACIÃ“N DE DISPONIBILIDAD EN TIEMPO REAL ---
       const uniqueLocalIds = [...new Set(cart.items.map(i => i.local_id).filter(Boolean))];
       const uniqueItemIds = [...new Set(cart.items.map(i => i.menuId || i.id))];
@@ -1836,6 +1921,9 @@ export default function PruebasWalletApp() {
               api.notifyLocalsAboutNewOrder(pregeneratedId, cart.items, addressLabel, deliveryTypeLabel, orderDataForCreation.observaciones, mp).catch(e => console.error(e));
               cart.clearCart();
               setCartOpen(false);
+
+              // Verify points earned
+              checkMundialPointsEarned(prePts, preSobres, isNew);
             } else {
               // RETIRO O ENVIO DE SHOPS + TRANSFERENCIA: Redirigir a MP
               triggerMPCheckout(pendingOrderInfo);
@@ -2008,6 +2096,7 @@ export default function PruebasWalletApp() {
               setFoundDriver(null);
               setPendingOrderId(null);
               localStorage.removeItem('pendingOrderDataPruebas');
+              checkMundialPointsEarned(oldMundialPoints, oldMundialSobres, isNewMundialUser);
             } catch (err) {
               console.error("Error confirming cash order UI:", err);
             }
@@ -4296,6 +4385,155 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
           <span className="trophy-emoji">🏆</span>
           <span className="trophy-text">Mundial Wepi</span>
         </Link>
+
+        {showMundialPopup && mundialAward && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 11000,
+            padding: '16px'
+          }} onClick={() => setShowMundialPopup(false)}>
+            <div 
+              style={{
+                width: '100%',
+                maxWidth: '380px',
+                backgroundColor: '#0f172a',
+                borderRadius: '24px',
+                border: '2px solid #fbbf24',
+                boxShadow: '0 0 30px rgba(251, 191, 36, 0.3)',
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }} 
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setShowMundialPopup(false)}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  zIndex: 2
+                }}
+              >
+                ✕
+              </button>
+
+              {/* Vertical Image */}
+              <div style={{ position: 'relative', width: '100%', height: '320px', overflow: 'hidden' }}>
+                <img 
+                  src="https://i.postimg.cc/zDg4r1YD/Chat-GPT-Image-Jun-4-2026-08-00-24-PM.png" 
+                  alt="Mundial Wepi" 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
+                  }} 
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '80px',
+                  background: 'linear-gradient(to top, #0f172a, transparent)'
+                }} />
+              </div>
+
+              {/* Content */}
+              <div style={{ padding: '24px', textAlign: 'center', color: '#ffffff' }}>
+                <span style={{
+                  background: 'rgba(251, 191, 36, 0.1)',
+                  border: '1px solid #fbbf24',
+                  color: '#fbbf24',
+                  padding: '6px 16px',
+                  borderRadius: '50px',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  display: 'inline-block',
+                  marginBottom: '16px'
+                }}>
+                  ¡Campaña Mundialista! 🏆
+                </span>
+
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '1.5rem', fontWeight: '800', color: '#ffffff' }}>
+                  ¡Sumaste puntos para el ranking! ⚽
+                </h3>
+
+                <p style={{ margin: '0 0 20px 0', color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                  Ganaste <strong style={{ color: '#fbbf24', fontSize: '1.1rem' }}>{mundialAward.puntos} puntos</strong> para el ranking. 
+                  {mundialAward.sobres > 0 && (
+                    <>
+                      {' '}y <strong style={{ color: '#38bdf8', fontSize: '1.1rem' }}>{mundialAward.sobres} {mundialAward.sobres === 1 ? 'sobre' : 'sobres'}</strong> de figuritas.
+                    </>
+                  )}
+                  {' '}Participá por premios exclusivos y liderá la tabla local de Wepi.
+                </p>
+
+                {/* CTA Button */}
+                <Link 
+                  to="/mundialista" 
+                  onClick={() => setShowMundialPopup(false)}
+                  style={{
+                    display: 'block',
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                    color: '#000000',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 15px rgba(251, 191, 36, 0.3)',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '12px'
+                  }}
+                >
+                  Ir al Ranking 🥇
+                </Link>
+
+                <button 
+                  onClick={() => setShowMundialPopup(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Seguir Comprando
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
