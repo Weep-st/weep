@@ -434,11 +434,12 @@ export default function RestaurantDashboard() {
     try {
       const processed = await api.getPedidosLocalesCompletosByLocal(restaurant.id);
 
+      const isShopLocal = profileData?.tipo_servicio === 'shops';
       // Check new pending/confirmed orders for alerts
       if (silent && previousOrdersRef.current.length > 0) {
         const previousIds = previousOrdersRef.current.map(o => o.idPedidoLocal);
         const newAlerts = processed.filter(o => 
-          (o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado') && 
+          (isShopLocal ? ['Pendiente', 'Confirmado'] : ['Confirmado']).includes(o.estadoActual) && 
           !previousIds.includes(o.idPedidoLocal)
         );
         if (newAlerts.length > 0) {
@@ -449,13 +450,13 @@ export default function RestaurantDashboard() {
       previousOrdersRef.current = processed;
 
       setOrders(processed);
-      setPendingCount(processed.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').length);
+      setPendingCount(processed.filter(o => (isShopLocal ? ['Pendiente', 'Confirmado'] : ['Confirmado']).includes(o.estadoActual)).length);
     } catch (err) { 
       console.error("Error in loadOrders:", err);
       if (!silent) toast.error('Error al cargar pedidos'); 
     }
     if (!silent) setOrdersLoading(false);
-  }, [restaurant]);
+  }, [restaurant, profileData]);
 
   // Load data on login and window focus
   React.useEffect(() => {
@@ -1523,7 +1524,7 @@ export default function RestaurantDashboard() {
 
   const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
-  const processOrders = orders.filter(o => ['Pendiente', 'Confirmado', 'Aceptado', 'Listo', 'Buscando Repartidor'].includes(o.estadoActual));
+  // processOrders moved below isShop definition for correct scope
   // ─── Renderizado de Planes y Niveles ───
   const renderPlansView = () => {
     if (!planInfo) return <div className="loading-state"><div className="spinner" /> Cargando info de planes...</div>;
@@ -1640,7 +1641,15 @@ export default function RestaurantDashboard() {
   const finishedOrders = orders.filter(o => o.estadoActual === 'Entregado');
   
   const isShop = profileData?.tipo_servicio === 'shops';
-  const pendientesOrders = processOrders.filter(o => o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const processOrders = orders.filter(o => {
+    if (isShop) {
+      return ['Pendiente', 'Confirmado', 'Aceptado', 'Listo', 'Buscando Repartidor'].includes(o.estadoActual);
+    } else {
+      return ['Confirmado', 'Aceptado', 'Listo'].includes(o.estadoActual);
+    }
+  });
+
+  const pendientesOrders = processOrders.filter(o => isShop ? (o.estadoActual === 'Pendiente' || o.estadoActual === 'Confirmado') : o.estadoActual === 'Confirmado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const preparacionOrders = processOrders.filter(o => o.estadoActual === 'Aceptado');
   const listosOrders = processOrders.filter(o => o.estadoActual === 'Listo' || (isShop && o.estadoActual === 'Buscando Repartidor'));
 
@@ -4569,7 +4578,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre }) {
               </div>
             ) : (
               <>
-                {['Pendiente', 'Confirmado'].includes(o.estadoActual) ? (
+                {(isShop ? ['Pendiente', 'Confirmado'] : ['Confirmado']).includes(o.estadoActual) ? (
                   <>
                     <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
                       {loading === 'Aceptado' ? (
