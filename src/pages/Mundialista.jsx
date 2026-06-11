@@ -898,10 +898,9 @@ const Mundialista = () => {
         }
 
         if (currentPage === 4) {
-            // Página 4 (Pág 5 del álbum físico): Sponsor Oficial (slots 39 a 42)
-            // Bloqueado por el momento (próximamente) igual que el Salón de la Fama de Messi
-            const sponsorSlots = [39, 40, 41, 42];
-            const isSponsorUnlocked = false; // Bloqueado por el momento
+            // Página 4 (Pág 5 del álbum físico): Sponsor Oficial (slots 19 a 43)
+            const sponsorSlots = [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43];
+            const isSponsorUnlocked = true; // Desbloqueado para mostrar sponsors y productos
 
             return (
                 <div 
@@ -921,16 +920,16 @@ const Mundialista = () => {
                     </div>
 
                     <p style={{ color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center', marginTop: '-5px', marginBottom: '15px' }}>
-                        Coleccioná las figuritas exclusivas del sponsor del torneo (figuritas 39 a 42).
+                        Coleccioná las figuritas exclusivas del sponsor del torneo (figuritas 19 a 43).
                     </p>
 
                     {isSponsorUnlocked ? (
-                        <div className="argentina-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', padding: '0 40px' }}>
+                        <div className="argentina-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', padding: '0 10px' }}>
                             {sponsorSlots.map(num => renderStickerSlot(num))}
                         </div>
                     ) : (
                         <>
-                            <div className="argentina-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', padding: '0 40px', opacity: 0.3, pointerEvents: 'none' }}>
+                            <div className="argentina-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', padding: '0 10px', opacity: 0.3, pointerEvents: 'none' }}>
                                 {sponsorSlots.map(num => (
                                     <div key={num} className="album-sticker-slot vacia" style={{ borderColor: '#ec4899' }}>
                                         <div className="sticker-silhouette">
@@ -969,7 +968,7 @@ const Mundialista = () => {
                                     Sección Bloqueada
                                 </h4>
                                 <p style={{ color: '#cbd5e1', fontSize: '0.82rem', maxWidth: '320px', margin: 0, lineHeight: '1.4' }}>
-                                    ¡Disponible próximamente! Esta sección albergará los cromos exclusivos del sponsor oficial del álbum (figuritas 39 a 42).
+                                    ¡Disponible próximamente! Esta sección albergará los cromos exclusivos del sponsor oficial del álbum (figuritas 19 a 43).
                                 </p>
                             </div>
                         </>
