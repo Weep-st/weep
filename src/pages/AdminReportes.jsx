@@ -351,75 +351,96 @@ const AdminReportes = () => {
                         </div>
 
                         <div className="table-responsive">
-                             <table className="admin-table" style={{ fontSize: '0.85rem' }}>
+                            <table className="admin-table">
                                 <thead>
-                                    <tr>
-                                        <th>Pedido</th>
-                                        <th>Fecha/Hora</th>
-                                        <th>Método</th>
-                                        <th style={{ textAlign: 'right' }}>Total</th>
-                                        <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Com. (%)</th>
-                                        <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
-                                        <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {reportData.pedidos.map(p => (
-                                        <tr key={p.id}>
-                                            <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
-                                            <td style={{ fontSize: '0.75rem' }}>
-                                                {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
-                                            </td>
-                                            <td>
-                                                <div>{p.metodo}</div>
-                                                {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
-                                                    <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
-                                                        Op: {p.nro_operacion}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>${p.total}</td>
-                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
-                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.comision_monto)).toFixed(2)}</td>
-                                        </tr>
-                                    ))}
-                                    {reportData.pedidos.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>Sin pedidos para este periodo.</td>
-                                        </tr>
-                                    ) : (
-                                        <>
-                                            <tr style={{ borderTop: '2px solid var(--gray-200)', background: 'var(--gray-50)' }}>
-                                                <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right' }}>TOTAL VENTA (BRUTO)</td>
-                                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${reportData.subtotal}</td>
-                                                <td colSpan="3"></td>
-                                            </tr>
-                                            <tr style={{ background: 'var(--gray-50)' }}>
-                                                <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
-                                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${reportData.comisiones}</td>
-                                                <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', verticalAlign: 'middle', paddingLeft: '15px' }}>
-                                                    <div style={{ display: 'flex', gap: '15px' }}>
-                                                        <span>Saldada (Transf.): -${(Number(reportData.comisiones) - Number(reportData.comisionEfectivo)).toFixed(2)}</span>
-                                                        <span style={{ color: 'var(--red-600)', fontWeight: 600 }}>Pendiente (Efectivo): -${reportData.comisionEfectivo}</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
-                                                <td colSpan="3" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
-                                                <td colSpan="2"></td>
-                                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${reportData.neto}</td>
-                                                <td></td>
-                                            </tr>
-                                            <tr style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
-                                                <td colSpan="7" style={{ padding: '16px 8px', textAlign: 'right' }}>
-                                                    <div style={{ marginBottom: 4 }}>
-                                                        <span style={{ marginRight: 20 }}>💳 Transferencia: ${reportData.transferencia}</span>
-                                                        <span>💵 Efectivo: ${reportData.efectivo}</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </>
+                                     <tr>
+                                         <th>Pedido</th>
+                                         <th>Fecha/Hora</th>
+                                         <th>Método</th>
+                                         <th style={{ textAlign: 'right' }}>Total</th>
+                                         <th style={{ textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>
+                                         <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Com. (%)</th>
+                                         <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
+                                         <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                     {reportData.pedidos.map(p => (
+                                         <tr key={p.id}>
+                                             <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                                             <td style={{ fontSize: '0.75rem' }}>
+                                                 {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                                             </td>
+                                             <td>
+                                                 <div>{p.metodo}</div>
+                                                 {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
+                                                     <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
+                                                         Op: {p.nro_operacion}
+                                                     </div>
+                                                 )}
+                                             </td>
+                                             <td style={{ textAlign: 'right' }}>${p.total}</td>
+                                             <td style={{ textAlign: 'right', color: 'var(--blue-600)', fontSize: '0.75rem', lineHeight: '1.2' }}>
+                                                 {Number(p.credito_wallet) > 0 && <div style={{ fontWeight: 600 }}>Wallet: -${p.credito_wallet}</div>}
+                                                 {Number(p.descuento_wepi) > 0 && <div style={{ fontWeight: 600, color: 'var(--purple-600)' }}>Promo Wepi: -${p.descuento_wepi}</div>}
+                                                 {Number(p.credito_usado) === 0 && '-'}
+                                             </td>
+                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
+                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
+                                             <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                                                 ${(p.metodo?.toLowerCase().includes('transferencia')
+                                                     ? (Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto))
+                                                     : (Number(p.total) - Number(p.credito_usado || 0))
+                                                 ).toFixed(2)}
+                                             </td>
+                                         </tr>
+                                     ))}
+                                     {reportData.pedidos.length === 0 ? (
+                                         <tr>
+                                             <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>Sin pedidos para este periodo.</td>
+                                         </tr>
+                                     ) : (
+                                         <>
+                                             <tr style={{ borderTop: '2px solid var(--gray-200)', background: 'var(--gray-50)' }}>
+                                                 <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right' }}>TOTAL VENTA (BRUTO)</td>
+                                                 <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700 }}>${reportData.subtotal}</td>
+                                                 <td colSpan="4"></td>
+                                             </tr>
+                                             <tr style={{ background: '#f0f9ff' }}>
+                                                 <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>FINANCIACIÓN WEPI A LIQUIDAR</td>
+                                                 <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--blue-600)' }}>${reportData.totalCreditoWepi}</td>
+                                                 <td colSpan="4" style={{ fontSize: '0.75rem', color: 'var(--gray-600)', paddingLeft: '15px', verticalAlign: 'middle', textAlign: 'left' }}>
+                                                     <div style={{ fontWeight: 700 }}>Detalle de liquidación (dinero adeudado por Wepi al local):</div>
+                                                     {Number(reportData.totalCreditoWallet) > 0 && <div>• Crédito Wallet: ${reportData.totalCreditoWallet}</div>}
+                                                     {Number(reportData.totalDescuentoWepi) > 0 && <div>• Descuento Promos Wepi: ${reportData.totalDescuentoWepi}</div>}
+                                                     <div style={{ color: 'var(--gray-500)', fontWeight: 600, marginTop: 4 }}>Total adeudado por Wepi del cierre: ${reportData.totalCreditoWepi}</div>
+                                                 </td>
+                                             </tr>
+                                             <tr style={{ background: 'var(--gray-50)' }}>
+                                                 <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
+                                                 <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${reportData.comisiones}</td>
+                                                 <td colSpan="4" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', verticalAlign: 'middle', paddingLeft: '15px' }}>
+                                                     <div style={{ display: 'flex', gap: '15px' }}>
+                                                         <span>Saldada (Transf.): -${(Number(reportData.comisiones) - Number(reportData.comisionEfectivo)).toFixed(2)}</span>
+                                                         <span style={{ color: 'var(--red-600)', fontWeight: 600 }}>Pendiente (Efectivo): -${reportData.comisionEfectivo}</span>
+                                                     </div>
+                                                 </td>
+                                             </tr>
+                                             <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
+                                                 <td colSpan="3" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
+                                                 <td colSpan="3"></td>
+                                                 <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${reportData.neto}</td>
+                                                 <td></td>
+                                             </tr>
+                                             <tr style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                                                 <td colSpan="8" style={{ padding: '16px 8px', textAlign: 'right' }}>
+                                                     <div style={{ marginBottom: 4 }}>
+                                                         <span style={{ marginRight: 20 }}>💳 Transferencia: ${reportData.transferencia}</span>
+                                                         <span>💵 Efectivo: ${reportData.efectivo}</span>
+                                                     </div>
+                                                 </td>
+                                             </tr>
+                                         </>
                                     )}
                                 </tbody>
                              </table>
@@ -776,62 +797,113 @@ const AdminReportes = () => {
                 </div>
             )}
 
-            {selectedCierre && (
-                <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }} onClick={() => setSelectedCierre(null)}>
-                    <div className="modal-content animate-slide-up" style={{ background: 'white', padding: '25px', borderRadius: '12px', maxWidth: '900px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
-                            <div>
-                                <h3 style={{ margin: 0, color: 'var(--gray-800)' }}>📄 Detalle de Cierre: {selectedCierre.locales?.nombre}</h3>
-                                <p style={{ margin: '5px 0 0', fontSize: '0.8rem', color: '#64748b' }}>ID: {selectedCierre.id} | Fecha: {new Date(selectedCierre.fecha).toLocaleDateString('es-AR')}</p>
-                            </div>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setSelectedCierre(null)} style={{ fontSize: '1.2rem' }}>✕</button>
-                        </div>
-                        
-                        <div className="table-responsive">
-                            <table className="admin-table" style={{ fontSize: '0.8rem' }}>
-                                <thead>
-                                    <tr style={{ background: '#f8fafc' }}>
-                                        <th>Pedido</th>
-                                        <th>Cliente</th>
-                                        <th>Fecha Pedido</th>
-                                        <th>Método</th>
-                                        <th style={{ textAlign: 'right' }}>Total</th>
-                                        <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Comisión</th>
-                                        <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(selectedCierre.datos_detallados || []).map(p => (
-                                        <tr key={p.id}>
-                                            <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
-                                            <td>{p.cliente}</td>
-                                            <td style={{ fontSize: '0.7rem' }}>{new Date(p.hora).toLocaleString('es-AR')}</td>
-                                            <td>{p.metodo}</td>
-                                            <td style={{ textAlign: 'right' }}>${p.total}</td>
-                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700 }}>${(Number(p.total) - Number(p.comision_monto)).toFixed(2)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
-                                        <td colSpan="4" style={{ textAlign: 'right', padding: '15px' }}>TOTALES DEL CIERRE:</td>
-                                        <td style={{ textAlign: 'right' }}>${selectedCierre.total_subtotal}</td>
-                                        <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${selectedCierre.total_comisiones}</td>
-                                        <td style={{ textAlign: 'right', color: '#166534', fontSize: '1rem' }}>${selectedCierre.total_neto_local}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
+            {selectedCierre && (() => {
+                const orders = selectedCierre.datos_detallados || [];
+                const totalCreditoWallet = orders.reduce((acc, p) => acc + (Number(p.credito_wallet) || 0), 0);
+                const totalDescuentoWepi = orders.reduce((acc, p) => acc + (Number(p.descuento_wepi) || 0), 0);
+                const totalCreditoWepi = orders.reduce((acc, p) => acc + (Number(p.credito_usado) || (Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0)), 0);
 
-                        <div style={{ marginTop: '20px', padding: '15px', background: '#f1f5f9', borderRadius: '8px', display: 'flex', gap: '20px', fontSize: '0.85rem' }}>
-                            <div><strong>💳 Transferencia:</strong> ${selectedCierre.total_transferencia}</div>
-                            <div><strong>💵 Efectivo:</strong> ${selectedCierre.total_efectivo}</div>
-                            <div style={{ color: 'var(--red-600)' }}><strong>⚠️ Comisión Pendiente (Efectivo):</strong> ${selectedCierre.comision_efectivo || '0.00'}</div>
+                return (
+                    <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }} onClick={() => setSelectedCierre(null)}>
+                        <div className="modal-content animate-slide-up" style={{ background: 'white', padding: '25px', borderRadius: '12px', maxWidth: '950px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: 'var(--gray-800)' }}>📄 Detalle de Cierre: {selectedCierre.locales?.nombre}</h3>
+                                    <p style={{ margin: '5px 0 0', fontSize: '0.8rem', color: '#64748b' }}>ID: {selectedCierre.id} | Fecha: {new Date(selectedCierre.fecha).toLocaleDateString('es-AR')}</p>
+                                </div>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setSelectedCierre(null)} style={{ fontSize: '1.2rem' }}>✕</button>
+                            </div>
+                            
+                            <div className="table-responsive">
+                                <table className="admin-table" style={{ fontSize: '0.8rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc' }}>
+                                            <th>Pedido</th>
+                                            <th>Cliente</th>
+                                            <th>Fecha Pedido</th>
+                                            <th>Método</th>
+                                            <th style={{ textAlign: 'right' }}>Total</th>
+                                            <th style={{ textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>
+                                            <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Comisión</th>
+                                            <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {orders.map(p => {
+                                            const cu = Number(p.credito_usado) || ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0));
+                                            const rowNeto = p.metodo?.toLowerCase().includes('transferencia')
+                                                ? (Number(p.total) - cu - Number(p.comision_monto))
+                                                : (Number(p.total) - cu);
+                                            return (
+                                                <tr key={p.id}>
+                                                    <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                                                    <td>{p.cliente}</td>
+                                                    <td style={{ fontSize: '0.7rem' }}>{new Date(p.hora).toLocaleString('es-AR')}</td>
+                                                    <td>
+                                                        <div>{p.metodo}</div>
+                                                        {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
+                                                            <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
+                                                                Op: {p.nro_operacion}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ textAlign: 'right' }}>${p.total}</td>
+                                                    <td style={{ textAlign: 'right', color: 'var(--blue-600)', fontSize: '0.75rem', lineHeight: '1.2' }}>
+                                                        {Number(p.credito_wallet) > 0 && <div style={{ fontWeight: 600 }}>Wallet: -${p.credito_wallet}</div>}
+                                                        {Number(p.descuento_wepi) > 0 && <div style={{ fontWeight: 600, color: 'var(--purple-600)' }}>Promo Wepi: -${p.descuento_wepi}</div>}
+                                                        {cu === 0 && '-'}
+                                                    </td>
+                                                    <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
+                                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>${rowNeto.toFixed(2)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
+                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px' }}>TOTAL VENTA (BRUTO):</td>
+                                            <td style={{ textAlign: 'right' }}>${selectedCierre.total_subtotal}</td>
+                                            <td colSpan="3"></td>
+                                        </tr>
+                                        <tr style={{ background: '#f0f9ff', fontWeight: 700 }}>
+                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px', color: 'var(--blue-600)' }}>FINANCIACIÓN WEPI A LIQUIDAR:</td>
+                                            <td style={{ textAlign: 'right', color: 'var(--blue-600)' }}>${totalCreditoWepi.toFixed(2)}</td>
+                                            <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-600)', paddingLeft: '15px', fontWeight: 'normal', textAlign: 'left' }}>
+                                                <div style={{ fontWeight: 700 }}>Detalle de liquidación (dinero adeudado por Wepi al local):</div>
+                                                {totalCreditoWallet > 0 && <div>• Crédito Wallet: ${totalCreditoWallet.toFixed(2)}</div>}
+                                                {totalDescuentoWepi > 0 && <div>• Descuento Promos Wepi: ${totalDescuentoWepi.toFixed(2)}</div>}
+                                                <div style={{ color: 'var(--gray-500)', fontWeight: 600, marginTop: 4 }}>Total adeudado por Wepi del cierre: ${totalCreditoWepi.toFixed(2)}</div>
+                                            </td>
+                                        </tr>
+                                        <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
+                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px', color: 'var(--red-600)' }}>COMISIÓN WEPI:</td>
+                                            <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${selectedCierre.total_comisiones}</td>
+                                            <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 'normal', paddingLeft: '15px', textAlign: 'left' }}>
+                                                <div style={{ display: 'flex', gap: '15px' }}>
+                                                    <span>Saldada (Transf.): -${(Number(selectedCierre.total_comisiones) - Number(selectedCierre.comision_efectivo || 0)).toFixed(2)}</span>
+                                                    <span style={{ color: 'var(--red-600)', fontWeight: 600 }}>Pendiente (Efectivo): -${selectedCierre.comision_efectivo || '0.00'}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0', fontWeight: 800 }}>
+                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 16px', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi):</td>
+                                            <td style={{ textAlign: 'right', color: '#166534', fontSize: '1rem' }}>${selectedCierre.total_neto_local}</td>
+                                            <td colSpan="3"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <div style={{ marginTop: '20px', padding: '15px', background: '#f1f5f9', borderRadius: '8px', display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '0.85rem' }}>
+                                <div><strong>💳 Transferencia:</strong> ${selectedCierre.total_transferencia}</div>
+                                <div><strong>💵 Efectivo:</strong> ${selectedCierre.total_efectivo}</div>
+                                <div style={{ color: 'var(--red-600)' }}><strong>⚠️ Comisión Pendiente (Efectivo):</strong> ${selectedCierre.comision_efectivo || '0.00'}</div>
+                                <div style={{ color: 'var(--blue-700)', fontWeight: 'bold' }}><strong>ℹ️ Dinero Adeudado por Wepi:</strong> ${totalCreditoWepi.toFixed(2)}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };

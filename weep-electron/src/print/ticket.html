@@ -96,7 +96,7 @@
     <script>
         const { ipcRenderer } = require('electron');
 
-        ipcRenderer.on('render-ticket', (event, order) => {
+        ipcRenderer.on('render-ticket', (event, order, copyType) => {
             const container = document.getElementById('ticket-content');
             const config = order.config || {
                 paper_width: "80mm",
@@ -141,6 +141,41 @@
                 ${item.observaciones ? `<div class="item-obs">- ${item.observaciones}</div>` : ''}
             `).join('');
 
+            const isControl = copyType === 'control';
+            const labelCopy = isControl ? 'DUPLICADO - CONTROL LOCAL' : 'ORIGINAL - CLIENTE';
+            const subtotal = Number(order.total) || 0;
+            const envio = Number(order.precio_envio) || 0;
+            const grandTotal = subtotal + envio;
+
+            let totalSectionHtml = '';
+            if (isControl) {
+                totalSectionHtml = `
+                    <div class="total-section">
+                        TOTAL: $${subtotal.toFixed(2)}
+                    </div>
+                `;
+            } else {
+                if (envio > 0) {
+                    totalSectionHtml = `
+                        <div style="text-align: right; font-size: 11px; margin-top: 4mm; border-top: 1px solid #000; padding-top: 1mm;">
+                            Subtotal: $${subtotal.toFixed(2)}
+                        </div>
+                        <div style="text-align: right; font-size: 11px;">
+                            Envío: $${envio.toFixed(2)}
+                        </div>
+                        <div class="total-section" style="border-top: none; margin-top: 1mm; padding-top: 0;">
+                            TOTAL: $${grandTotal.toFixed(2)}
+                        </div>
+                    `;
+                } else {
+                    totalSectionHtml = `
+                        <div class="total-section">
+                            TOTAL: $${subtotal.toFixed(2)}
+                        </div>
+                    `;
+                }
+            }
+
             container.innerHTML = `
                 <div class="central-header" style="display: flex; justify-content: center; align-items: center; gap: 8px;">
                     <img src="${order.local_logo}" onerror="this.style.display='none'" style="max-width: ${config.header_image_max_width}; max-height: 20mm; object-fit: contain;">
@@ -150,7 +185,7 @@
 
                 <div class="separator"></div>
                 
-                <div style="text-align: center; font-size: 10px; font-weight: bold;">RECIBO DE PEDIDO</div>
+                <div style="text-align: center; font-size: 10px; font-weight: bold; letter-spacing: 0.5px;">*** ${labelCopy} ***</div>
 
                 <div class="order-info">#${order.id}</div>
                 <div class="date-info">${formattedDate}</div>
@@ -173,9 +208,7 @@
                     ${order.observaciones ? `<strong>OBS Gral:</strong> ${order.observaciones}` : ''}
                 </div>
 
-                <div class="total-section">
-                    TOTAL: $${order.total.toFixed(2)}
-                </div>
+                ${totalSectionHtml}
 
                 <div class="footer">
                     ¡Gracias por su compra!<br>

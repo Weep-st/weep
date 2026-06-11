@@ -91,6 +91,30 @@ export const evaluatePromotions = (context) => {
             if (triggers.fecha_especifica !== todayStr) return false;
         }
 
+        // Trigger: Horario específico (Ej: Desayuno 08:00 a 12:00) en Hora de Argentina
+        if (triggers.hora_desde && triggers.hora_desde.trim() !== "") {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const parts = formatter.formatToParts(new Date());
+            const hour = parts.find(p => p.type === 'hour').value;
+            const minute = parts.find(p => p.type === 'minute').value;
+            const currentTimeStr = `${hour}:${minute}`;
+
+            const start = triggers.hora_desde;
+            const end = triggers.hora_hasta || "23:59";
+
+            if (start <= end) {
+                if (currentTimeStr < start || currentTimeStr > end) return false;
+            } else {
+                // Rango cruza la medianoche (ej: 22:00 a 02:00)
+                if (currentTimeStr < start && currentTimeStr > end) return false;
+            }
+        }
+
         // Trigger: Categorías (Mínimo un producto de la categoría)
         if (triggers.categorias && triggers.categorias.length > 0) {
             const hasItemsInCategories = cart.items?.some(item => 

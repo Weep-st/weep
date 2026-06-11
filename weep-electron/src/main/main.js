@@ -55,7 +55,7 @@ async function processQueue() {
     if (isPrinting || printQueue.length === 0) return;
 
     isPrinting = true;
-    const order = printQueue.shift();
+    const task = printQueue.shift();
     let timeoutId = null;
 
     const handleTicketReady = async () => {
@@ -82,7 +82,7 @@ async function processQueue() {
 
     // 2. Añadir un setTimeout de seguridad (4 segundos) para evitar el congelamiento de la cola
     timeoutId = setTimeout(() => {
-        console.warn('Timeout de seguridad alcanzado esperando "ticket-ready" para el pedido:', order.id);
+        console.warn('Timeout de seguridad alcanzado esperando "ticket-ready" para el pedido:', task.id);
         // Remover el listener registrado para evitar ejecuciones huérfanas
         ipcMain.off('ticket-ready', handleTicketReady);
         isPrinting = false;
@@ -90,8 +90,8 @@ async function processQueue() {
     }, 4000);
 
     try {
-        // 3. Enviar el pedido a la ventana
-        printerWindow.webContents.send('render-ticket', order);
+        // 3. Enviar el pedido y el tipo de copia a la ventana
+        printerWindow.webContents.send('render-ticket', task, task.copyType);
     } catch (err) {
         console.error('Error procesando cola:', err);
         if (timeoutId) {
@@ -137,7 +137,8 @@ ipcMain.on('new-order', (event, order) => {
 
     // Agregar a cola si la auto-impresión está activa
     if (store.get('autoPrint', true)) {
-        printQueue.push(order);
+        printQueue.push({ ...order, copyType: 'control' });
+        printQueue.push({ ...order, copyType: 'client' });
         processQueue();
     }
 });

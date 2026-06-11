@@ -155,6 +155,7 @@ async function fetchOrderDetails(pedidoLocal) {
             id: general.num_confirmacion || general.id.substring(0, 8),
             db_id: general.id,
             total: pedidoLocal.total,
+            precio_envio: Number(general.precio_envio) || 0,
             fecha: general.created_at,
             local_logo: localLogo,
             cliente: {
@@ -213,6 +214,27 @@ function renderTicketToElement(order, targetElement) {
         ${item.observaciones ? `<div style="font-size: 11px; font-style: italic; margin-left: 10px;">- ${item.observaciones}</div>` : ''}
     `).join('');
 
+    const subtotal = Number(order.total) || 0;
+    const envio = Number(order.precio_envio) || 0;
+    const grandTotal = subtotal + envio;
+
+    let totalSectionHtml = '';
+    if (envio > 0) {
+        totalSectionHtml = `
+            <div style="text-align: right; font-size: 13px; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;">
+                Subtotal: $${subtotal.toFixed(2)}
+            </div>
+            <div style="text-align: right; font-size: 13px;">
+                Envío: $${envio.toFixed(2)}
+            </div>
+            <div style="text-align: right; font-size: 22px; font-weight: bold;">TOTAL: $${grandTotal.toFixed(2)}</div>
+        `;
+    } else {
+        totalSectionHtml = `
+            <div style="text-align: right; font-size: 22px; font-weight: bold; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;">TOTAL: $${subtotal.toFixed(2)}</div>
+        `;
+    }
+
     targetElement.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 5px;">
             <img src="${order.local_logo}" style="max-width: 25mm; max-height: 20mm; object-fit: contain;">
@@ -238,7 +260,7 @@ function renderTicketToElement(order, targetElement) {
         <div><strong>PAGO:</strong> ${order.metodo_pago.toUpperCase()}</div>
         ${order.observaciones ? `<div><strong>OBS Gral:</strong> ${order.observaciones}</div>` : ''}
 
-        <div class="total-section" style="font-size: 22px;">TOTAL: $${order.total.toFixed(2)}</div>
+        ${totalSectionHtml}
         
         <div style="text-align: center; margin-top: 20px; font-size: 11px; line-height: 1.4;">
             ¡Gracias por su compra!<br>
@@ -340,7 +362,8 @@ closePreview.addEventListener('click', () => {
 function getMockOrder() {
     return {
         id: Math.floor(Math.random() * 10000).toString(),
-        total: 1540.50,
+        total: 1350.00,
+        precio_envio: 190.50,
         fecha: new Date().toISOString(),
         local_logo: 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png', // Fallback
         cliente: {

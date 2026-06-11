@@ -920,13 +920,14 @@ export async function getMostOrderedItems(limit = 12) {
     counts[i.item_id] = (counts[i.item_id] || 0) + 1;
   });
 
-  const sortedIds = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, limit);
+  const candidateIds = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 50);
 
   const { data: menuData } = await supabase
     .from('menu')
     .select('*, locales!inner(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros, admin_status, config_horarios)')
     .eq('locales.admin_status', 'Aceptado')
-    .in('id', sortedIds);
+    .eq('disponibilidad', true)
+    .in('id', candidateIds);
 
   return (menuData || []).map(i => ({
     id: i.id, nombre: i.nombre, categoria: i.categoria,
@@ -946,7 +947,7 @@ export async function getMostOrderedItems(limit = 12) {
     local_rubro: i.locales?.rubro || '',
     local_rubros: i.locales?.rubros || [],
     config_horarios: i.locales?.config_horarios || {}
-  })).sort((a, b) => sortedIds.indexOf(a.id) - sortedIds.indexOf(b.id));
+  })).sort((a, b) => candidateIds.indexOf(a.id) - candidateIds.indexOf(b.id)).slice(0, limit);
 }
 
 export async function getBaseProductsStock(localIds) {
@@ -1129,7 +1130,7 @@ export async function validateOrderAvailability(localIds, itemIds) {
   // Consulta locales y platos en paralelo
   const [localsRes, itemsRes] = await Promise.all([
     supabase.from('locales')
-      .select('id, nombre, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio')
+      .select('id, nombre, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, config_horarios')
       .in('id', localIds),
     supabase.from('menu')
       .select('id, nombre, disponibilidad')
@@ -2552,7 +2553,8 @@ export async function getLocalCierreReport(localId, options = {}) {
   const planInfo = await getPlanInfo(localId);
   const comisionPct = planInfo.success ? planInfo.comision_actual : 8;
 
-  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0, comisionEfectivo = 0, totalCreditoWepi = 0;
+  let subtotal = 0, totalComisiones = 0, transferencia = 0, efectivo = 0, comisionEfectivo = 0;
+  let totalCreditoWepi = 0, totalCreditoWallet = 0, totalDescuentoWepi = 0;
   const detalles = pedidosLocales.map(p => {
     const pg = pgMap.get(p.pedido_id) || {};
     let totalPedido = Number(p.total) || 0;
@@ -2593,6 +2595,8 @@ export async function getLocalCierreReport(localId, options = {}) {
 
     totalComisiones += montoComision;
     totalCreditoWepi += creditoTotalWepi;
+    totalCreditoWallet += creditoWalletBase;
+    totalDescuentoWepi += cuponCreditoWepi;
 
     const metodo = (p.metodo_pago || pg.metodo_pago || '').toLowerCase();
     if (metodo.includes('efectivo')) {
@@ -2608,6 +2612,8 @@ export async function getLocalCierreReport(localId, options = {}) {
       metodo: p.metodo_pago || pg.metodo_pago || 'Desconocido',
       total: totalPedido.toFixed(2),
       credito_usado: creditoTotalWepi.toFixed(2),
+      credito_wallet: creditoWalletBase.toFixed(2),
+      descuento_wepi: cuponCreditoWepi.toFixed(2),
       comision_pct: p.comision_pct || comisionPct,
       comision_monto: montoComision.toFixed(2),
       nro_operacion: pg.payment_id || 'N/A',
@@ -2626,6 +2632,8 @@ export async function getLocalCierreReport(localId, options = {}) {
     transferencia: transferencia.toFixed(2),
     efectivo: efectivo.toFixed(2),
     totalCreditoWepi: totalCreditoWepi.toFixed(2),
+    totalCreditoWallet: totalCreditoWallet.toFixed(2),
+    totalDescuentoWepi: totalDescuentoWepi.toFixed(2),
     comisionEfectivo: comisionEfectivo.toFixed(2),
     pedidos: detalles,
     comisiones: totalComisiones.toFixed(2),

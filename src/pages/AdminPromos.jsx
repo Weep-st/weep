@@ -38,7 +38,9 @@ const AdminPromos = () => {
                 global: true,
                 fecha_especifica: '',
                 categorias: [],
-                codigo_cupon: ''
+                codigo_cupon: '',
+                hora_desde: '',
+                hora_hasta: ''
             },
             requisitos: {
                 min_compra_uso: 0,
@@ -265,6 +267,24 @@ const AdminPromos = () => {
                                     onChange={e => updateNestedField('triggers', 'fecha_especifica', e.target.value)}
                                 />
                                 <small>Si se define, solo funcionará en esta fecha.</small>
+                            </div>
+                            <div className="form-group">
+                                <label>Hora Desde (Opcional)</label>
+                                <input 
+                                    type="time" className="promo-input" 
+                                    value={formData.triggers.hora_desde || ''} 
+                                    onChange={e => updateNestedField('triggers', 'hora_desde', e.target.value)}
+                                />
+                                <small>Ej: 08:00 (Vacío para todo el día)</small>
+                            </div>
+                            <div className="form-group">
+                                <label>Hora Hasta (Opcional)</label>
+                                <input 
+                                    type="time" className="promo-input" 
+                                    value={formData.triggers.hora_hasta || ''} 
+                                    onChange={e => updateNestedField('triggers', 'hora_hasta', e.target.value)}
+                                />
+                                <small>Ej: 12:00 (Vacío para todo el día)</small>
                             </div>
                             <div className="form-group">
                                 <label>Método de Pago requerido (Trigger)</label>

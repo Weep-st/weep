@@ -66,6 +66,10 @@ export default function RestaurantDashboard() {
   const [slugSaving, setSlugSaving] = React.useState(false);
   const [localOpen, setLocalOpen] = React.useState(false);
   const [profileData, setProfileData] = React.useState(null);
+  const profileDataRef = React.useRef(profileData);
+  React.useEffect(() => {
+    profileDataRef.current = profileData;
+  }, [profileData]);
   const isInventory = React.useMemo(() => {
     if (!profileData) return false;
     return profileData.tipo_servicio === 'shops' || profileData.rubros?.some(r => r === 'Market' || r === 'Farmacia' || r === 'Hogar' || r === 'Tecnología' || r === 'Moda' || r === 'Regalería' || r === 'Deportes');
@@ -434,7 +438,7 @@ export default function RestaurantDashboard() {
     try {
       const processed = await api.getPedidosLocalesCompletosByLocal(restaurant.id);
 
-      const isShopLocal = profileData?.tipo_servicio === 'shops';
+      const isShopLocal = profileDataRef.current?.tipo_servicio === 'shops';
       // Check new pending/confirmed orders for alerts
       if (silent && previousOrdersRef.current.length > 0) {
         const previousIds = previousOrdersRef.current.map(o => o.idPedidoLocal);
@@ -456,7 +460,7 @@ export default function RestaurantDashboard() {
       if (!silent) toast.error('Error al cargar pedidos'); 
     }
     if (!silent) setOrdersLoading(false);
-  }, [restaurant, profileData]);
+  }, [restaurant]);
 
   // Load data on login and window focus
   React.useEffect(() => {
@@ -3342,11 +3346,10 @@ export default function RestaurantDashboard() {
                           <th style={{ padding: '8px 4px' }}>Fecha/Hora</th>
                           <th style={{ padding: '8px 4px' }}>Método</th>
                           <th style={{ padding: '8px 4px', textAlign: 'right' }}>Total</th>
-                          <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)' }}>Crédito</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>
                           <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
                           <th style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>Neto</th>
                         </tr>
-
                       </thead>
                       <tbody>
                         {cierreReport.pedidos.map(p => (
@@ -3366,8 +3369,10 @@ export default function RestaurantDashboard() {
                               )}
                             </td>
                             <td style={{ padding: '8px 4px', textAlign: 'right' }}>${p.total}</td>
-                            <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)', fontWeight: p.credito_usado > 0 ? 600 : 400 }}>
-                              {p.credito_usado > 0 ? `-$${p.credito_usado}` : '-'}
+                            <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)', fontSize: '0.72rem', lineHeight: '1.2' }}>
+                              {Number(p.credito_wallet) > 0 && <div style={{ fontWeight: 600 }}>Wallet: -${p.credito_wallet}</div>}
+                              {Number(p.descuento_wepi) > 0 && <div style={{ fontWeight: 600, color: 'var(--purple-600)' }}>Promo Wepi: -${p.descuento_wepi}</div>}
+                              {Number(p.credito_usado) === 0 && '-'}
                             </td>
                             <td style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>
                               -${p.comision_monto}
@@ -3397,10 +3402,13 @@ export default function RestaurantDashboard() {
                             </tr>
                             
                              <tr style={{ background: '#f0f9ff' }}>
-                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>CRÉDITOS A SALDAR POR WEPI</td>
+                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>FINANCIACIÓN WEPI A LIQUIDAR</td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--blue-600)' }}>${cierreReport.totalCreditoWepi}</td>
-                               <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', paddingLeft: '15px', verticalAlign: 'middle' }}>
-                                 Este monto fue financiado y Wepi lo liquidará al local.
+                               <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-600)', paddingLeft: '15px', verticalAlign: 'middle', textAlign: 'left' }}>
+                                 <div style={{ fontWeight: 700, marginBottom: '2px' }}>Detalle de liquidación financiada por Wepi:</div>
+                                 {Number(cierreReport.totalCreditoWallet) > 0 && <div>• Crédito Wallet: ${cierreReport.totalCreditoWallet}</div>}
+                                 {Number(cierreReport.totalDescuentoWepi) > 0 && <div>• Descuento Promos Wepi: ${cierreReport.totalDescuentoWepi}</div>}
+                                 <div style={{ color: 'var(--gray-400)', marginTop: '4px', fontSize: '0.7rem' }}>Wepi liquidará este total al local.</div>
                                </td>
                              </tr>
                              <tr style={{ background: 'var(--gray-50)' }}>

@@ -414,7 +414,7 @@ export default function MisPedidos() {
                       </button>
                     )}
                   </div>
-                  {p.estado === 'Pendiente' ? (
+                  {p.estado === 'Pendiente' && (
                     <div style={{ textAlign: 'center', marginTop: '12px' }}>
                       <p style={{ color: '#e6a23c', fontSize: '0.9rem', marginBottom: '8px', fontWeight: 'bold' }}>
                         ⏳ El local debe aceptar tu pedido
@@ -427,18 +427,6 @@ export default function MisPedidos() {
                           ❌ Cancelar
                         </button>
                       </div>
-                    </div>
-                  ) : p.estado === 'Rechazado' ? (
-                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                      <p style={{ color: '#d32f2f', fontSize: '0.9rem', marginBottom: '0', fontWeight: 'bold' }}>
-                        ❌ El local rechazó tu pedido
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                      <p style={{ color: '#4caf50', fontSize: '0.9rem', marginBottom: '0', fontWeight: 'bold' }}>
-                        ✅ El local ya aceptó tu pedido
-                      </p>
                     </div>
                   )}
                 </div>
