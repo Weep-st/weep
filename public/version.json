@@ -1,0 +1,5 @@
+{
+  "version": "1.0.2",
+  "build": "2026-04-11_15:35",
+  "reason": "Backend delivery validation and cache breaking"
+}

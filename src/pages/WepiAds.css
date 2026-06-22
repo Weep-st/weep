@@ -1,0 +1,512 @@
+/* ═══════════════════════════════════════════════
+   WEPI ADS — Public Page Styling
+   ═══════════════════════════════════════════════ */
+
+.wepi-ads-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--hub-bg, #f8fafc);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(198, 40, 40, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(198, 40, 40, 0.02) 0px, transparent 50%);
+  padding-bottom: 80px;
+}
+
+/* ─── Header ─── */
+.ads-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: var(--shadow-sm);
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.ads-header-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.back-btn {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.back-btn:hover {
+  color: var(--red-600);
+  transform: translateX(-2px);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ads-brand-logo {
+  height: 38px;
+  object-fit: contain;
+}
+
+.ads-brand-badge {
+  background: var(--primary-gradient);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 6px rgba(198, 40, 40, 0.2);
+}
+
+/* ─── Hero Area ─── */
+.ads-hero {
+  padding: 110px 20px 40px;
+  text-align: center;
+}
+
+.hero-content h1 {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.hero-content p {
+  font-size: clamp(1rem, 2.5vw, 1.15rem);
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ─── Search Bar ─── */
+.ads-search-container {
+  max-width: 600px;
+  width: calc(100% - 40px);
+  margin: 0 auto 35px;
+}
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 2px 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.search-wrapper:focus-within {
+  border-color: var(--red-500);
+  box-shadow: 0 8px 25px rgba(198, 40, 40, 0.08);
+}
+
+.search-icon {
+  font-size: 1.15rem;
+  color: #94a3b8;
+  padding-left: 12px;
+}
+
+.ads-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  font-size: 1rem;
+  outline: none;
+  color: var(--gray-800);
+}
+
+.ads-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.clear-search-btn {
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-right: 4px;
+}
+
+.clear-search-btn:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+/* ─── Loading & Empty States ─── */
+.ads-loading-state,
+.ads-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px;
+  color: #64748b;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(198, 40, 40, 0.1);
+  border-left-color: var(--red-500);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.ads-empty-state h3 {
+  font-size: 1.3rem;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+/* ─── Grid & Cards ─── */
+.ads-main-content {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.ads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 30px;
+}
+
+.ad-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), 
+              box-shadow 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.ad-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+}
+
+/* Carrusel de Imágenes */
+.ad-carousel {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+  background-color: #f1f5f9;
+}
+
+.ad-carousel-inner {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ad-slide {
+  min-width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.ad-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ad-image-placeholder {
+  width: 100%;
+  height: 240px;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.placeholder-icon {
+  font-size: 2.2rem;
+}
+
+/* Controles del Carrusel */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #334155;
+  font-size: 1.5rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  opacity: 0; /* Oculto por defecto en desktop */
+}
+
+.ad-carousel:hover .carousel-btn {
+  opacity: 1; /* Aparece en hover */
+}
+
+.carousel-btn:hover {
+  background: white;
+  color: var(--red-600);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.carousel-btn.prev { left: 12px; }
+.carousel-btn.next { right: 12px; }
+
+/* Indicadores de Carrusel */
+.carousel-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 5px 10px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.carousel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.carousel-dot.active {
+  background: white;
+  transform: scale(1.2);
+}
+
+/* Cuerpo de la Tarjeta */
+.ad-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ad-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ad-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.price-tag {
+  background: #fef2f2;
+  color: var(--red-700);
+}
+
+.location-tag {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.ad-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.ad-card-description {
+  font-size: 0.92rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: var(--red-600);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.92rem;
+}
+
+.read-more-btn:hover {
+  text-decoration: underline;
+}
+
+/* Botón de Contacto */
+.ad-card-footer {
+  margin-top: auto;
+}
+
+.ad-contact-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--primary-gradient);
+  color: white !important;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 12px 20px;
+  border-radius: 12px;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.15);
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  text-decoration: none;
+  text-align: center;
+  border: none;
+}
+
+.ad-contact-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(198, 40, 40, 0.25);
+  background: linear-gradient(135deg, #128c7e 0%, #25d366 100%); /* Efecto hover verde WhatsApp */
+}
+
+.whatsapp-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ─── Responsive & Animations ─── */
+@media (max-width: 768px) {
+  .ads-hero {
+    padding-top: 90px;
+  }
+  .carousel-btn {
+    opacity: 1; /* Mostrar siempre en móvil para facilidad de uso táctil */
+  }
+  .ads-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* ─── Category Filter Horizontal Scroll ─── */
+.ads-categories-filter {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto 30px;
+  padding: 0 20px;
+}
+
+.categories-scroll-wrapper {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 5px 5px 12px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.categories-scroll-wrapper::-webkit-scrollbar {
+  display: none; /* Safari & Chrome */
+}
+
+.category-filter-btn {
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  cursor: pointer;
+}
+
+.category-filter-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.category-filter-btn.active {
+  background: var(--primary-gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.25);
+}
+
+/* ─── Category Tag ─── */
+.category-tag {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+

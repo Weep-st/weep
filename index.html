@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wepi | Pedidos y Delivery</title>
+    <meta name="description" content="La forma más fácil y rápida de pedir comida en Santo Tomé. Pedí, te lo llevamos." />
+    <meta name="theme-color" content="#c62828" />
+
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+    <script>
+      (function() {
+        var l = window.location;
+        var path = l.pathname;
+        var search = l.search;
+        
+        // Soporte para redirección SPA (GitHub Pages hack)
+        if (search && search.indexOf('p=/') !== -1) {
+          path = search.split('p=')[1].split('&')[0].replace(/~and~/g, '&');
+        }
+
+        var config = { name: "Wepi", start: "/", title: "Wepi" };
+        if (path.startsWith('/pedir') || path.startsWith('/mis-pedidos')) { config = { name: "Wepi - Pedidos", start: "/pedir", title: "Wepi - Pedidos" }; }
+        else if (path.startsWith('/pruebas')) { config = { name: "Wepi - Pruebas", start: "/pruebas", title: "Wepi - Pruebas" }; }
+        else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Wepi - Locales", start: "/locales", title: "Wepi - Locales" }; }
+        else if (path.startsWith('/admin')) { config = { name: "Wepi - Admin", start: "/admin", title: "Wepi - Admin" }; }
+        else if (path.startsWith('/repartidores')) { config = { name: "Wepi - Repartidores", start: "/repartidores", title: "Wepi - Repartidores" }; }
+        
+        // URL Robusta para start_url (usa el truco de ?p= para evitar recortes de Safari)
+        var pwaStartUrl = 'https://wepi.com.ar' + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
+
+        var manifest = {
+          "name": "Wepi | Pedidos y Delivery",
+          "short_name": "Wepi",
+          "description": "Plataforma de Pedidos y Delivery",
+          "start_url": pwaStartUrl,
+          "scope": "/",
+          "display": "standalone",
+          "background_color": "#ffffff",
+          "theme_color": "#c62828",
+          "icons": [
+            { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+            { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
+          ]
+        };
+
+        // Crear Manifest vía Blob
+        var blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        var manifestUrl = URL.createObjectURL(blob);
+        
+        var link = document.createElement('link');
+        link.id = 'manifest-link';
+        link.rel = 'manifest';
+        link.href = manifestUrl;
+        document.head.appendChild(link);
+
+        // Canonical dinámico
+        var absoluteStartUrl = l.origin + config.start;
+        var canonical = document.createElement('link');
+        canonical.id = 'canonical-link';
+        canonical.rel = 'canonical';
+        canonical.href = absoluteStartUrl;
+        document.head.appendChild(canonical);
+
+        // Apple Meta Tags Dinámicos
+        var updateApple = function() {
+          var metaTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+          if (!metaTitle) {
+            metaTitle = document.createElement('meta');
+            metaTitle.name = 'apple-mobile-web-app-title';
+            document.head.appendChild(metaTitle);
+          }
+          metaTitle.content = config.title;
+        };
+        
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', updateApple);
+        } else {
+          updateApple();
+        }
+      })();
+    </script>
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Cache Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <script>
+      // GA Consent Mode v2: Default State
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      
+      gtag('consent', 'default', {
+        'ad_storage': 'denied',
+        'analytics_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied'
+      });
+    </script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5QRZYRMZH2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-5QRZYRMZH2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script type="text/javascript">
+      // https://github.com/rafgraph/spa-github-pages
+      (function(l) {
+        if (l.search[1] === 'p') {
+          var p = l.search.slice(3).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&')
+          });
+          var q = p[1] ? '?' + p[1].slice(2) : '';
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + p[0] + q + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+    <!-- Facebook Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window,document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+     fbq('init', '1625250032028444'); 
+    fbq('track', 'PageView');
+    </script>
+    <!-- End Facebook Pixel Code -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        console.log("🔔 OneSignal: Initializing...");
+        
+        try {
+          await OneSignal.init({
+            appId: "a97550a5-7c54-4c92-a672-e5781f25d22c",
+            safari_web_id: "web.onesignal.auto.1cd53ad7-1124-4d48-8712-0a155e6245f9",
+            allowLocalhostAsSecureOrigin: true,
+            serviceWorkerParam: { scope: "/" },
+            serviceWorkerPath: "OneSignalSDKWorker.js",
+            notifyButton: {
+              enable: false, // Ocultamos el botón nativo para usar nuestro banner personalizado
+            }
+          });
+          console.log("🔔 OneSignal: Success!");
+        } catch (e) {
+          console.error("🔔 OneSignal Init Error:", e);
+          const errorStr = e.toString();
+          if (errorStr.includes("Can only be used on:")) {
+            console.warn("⚠️ Error de dominio detectado. Limpiando...");
+            if (window.indexedDB) {
+              const req = window.indexedDB.deleteDatabase("OneSignalSDK");
+              req.onsuccess = () => console.log("✅ Caché de OneSignal eliminada.");
+            }
+          }
+        }
+      });
+    </script>
+  </head>
+    <noscript>
+      <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1625250032028444&ev=PageView&noscript=1"/>
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weep - Plataforma de Pedidos y Delivery</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PWA - Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
+<link rel="icon" type="image/png" sizes="96x96" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
+<link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
+
+<!-- Apple / iOS -->
+<link rel="apple-touch-icon" sizes="180x180" href="https://i.postimg.cc/FKJD6LHQ/buscamos-repartidores-(10).png">
+<meta name="apple-mobile-web-app-title" content="Weep">
+
+<!-- Mejoras para móviles / iOS -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<!-- Color de la barra de estado en móviles -->
+<meta name="theme-color" content="#c62828">
+
+    <style>
+        * { 
+    box-sizing: border-box; 
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    min-height: 100vh;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ────────────────────────────────────────────── */
+/* Header - FIXED y con fondo sólido para evitar sobreposición */
+/* ────────────────────────────────────────────── */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;                    /* muy alto para que quede encima de todo */
+    background: #ffffff;              /* fondo sólido blanco → no se ve el gradiente debajo */
+    padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    justify-content: center;          /* centrado en mobile */
+    align-items: center;
+    backdrop-filter: blur(8px);       /* opcional: efecto vidrio esmerilado sutil */
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Espacio para que el contenido no quede tapado por el header fijo */
+body {
+    padding-top: 100px;               /* valor base - ajustado para mobile */
+}
+
+/* Ajustes progresivos según tamaño de pantalla */
+@media (max-width: 480px) {
+    body { 
+        padding-top: 90px;            /* más ajustado en celulares pequeños */
+    }
+    header {
+        padding: 10px 12px;
+        border-radius: 0;             /* sin bordes redondeados en móviles muy pequeños */
+    }
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+    body { padding-top: 105px; }
+}
+
+@media (min-width: 768px) {
+    body { padding-top: 120px; }      /* más espacio en tablets y desktop */
+    header {
+        padding: 12px 30px;
+        border-radius: 0 0 20px 20px;
+    }
+}
+
+/* Logo */
+.logo {
+    height: 70px;                     /* tamaño cómodo en mobile */
+}
+.logo img {
+    height: 100%;
+    object-fit: contain;
+}
+
+/* ────────────────────────────────────────────── */
+/* Resto del estilo (ya optimizado para mobile)   */
+/* ────────────────────────────────────────────── */
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px 16px 40px;
+    width: 100%;
+}
+
+.coming-soon-title {
+    color: #c62828;
+    font-size: clamp(2.4rem, 8.5vw, 4.2rem);   /* ← más chico en general */
+    font-weight: 700;
+    margin: 0 0 16px;
+    line-height: 1.05;
+    text-shadow: 0 2px 8px rgba(198,40,40,0.12);
+}
+
+.subtitle {
+    font-size: clamp(1.15rem, 4.5vw, 1.45rem);
+    color: #444;
+    margin: 0 0 32px;
+    max-width: 90%;
+    line-height: 1.4;
+}
+
+.email-form {
+    background: white;
+    padding: 32px 24px;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.13);
+    width: 100%;
+    max-width: 540px;
+    margin: 20px 0 48px;
+}
+
+.email-form h3 {
+    color: #c62828;
+    margin: 0 0 16px;
+    font-size: 1.45rem;
+}
+
+.email-form p {
+    margin: 0 0 24px;
+    color: #555;
+    font-size: 0.98rem;
+    line-height: 1.45;
+}
+
+.email-form input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.email-form input:focus {
+    border-color: #d32f2f;
+}
+
+.email-form button {
+    width: 100%;
+    padding: 15px;
+    background: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 52px; /* mejor para toque en móvil */
+}
+
+.email-form button:hover:not(:disabled) {
+    background: #b71c1c;
+    transform: translateY(-2px);
+}
+
+.email-form button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.message {
+    margin-top: 16px;
+    font-weight: 500;
+    min-height: 1.4em;
+    font-size: 0.98rem;
+}
+
+.success { color: #2e7d32; }
+.error   { color: #d32f2f; }
+
+.features {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin: 40px 0 60px;
+    width: 100%;
+    max-width: 480px;
+}
+
+.feature-card {
+    background: rgba(255,255,255,0.94);
+    border-radius: 16px;
+    padding: 24px 20px;
+    width: 100%;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+    transition: transform 0.22s;
+}
+
+.feature-card:hover {
+    transform: translateY(-6px);
+}
+
+.feature-card h4 {
+    color: #c62828;
+    margin: 0 0 10px;
+    font-size: 1.28rem;
+}
+
+.feature-card p {
+    margin: 0;
+    color: #555;
+    font-size: 0.96rem;
+    line-height: 1.45;
+}
+
+/* Contador - versión mobile-first + responsive */
+.countdown {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;                /* más chico en mobile */
+    margin: 28px 0 44px;
+}
+
+.countdown-item {
+    background: white;
+    border-radius: 12px;
+    padding: 12px 18px;       /* menos padding en mobile */
+    min-width: 80px;          /* tamaño mínimo razonable */
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: transform 0.18s ease;
+}
+
+.countdown-item .number {
+    font-size: clamp(1.9rem, 9vw, 2.4rem);   /* escala bien con el ancho */
+    font-weight: 700;
+    color: #d32f2f;
+    line-height: 1.05;
+    margin-bottom: 4px;
+}
+
+.countdown-item .label {
+    font-size: clamp(0.78rem, 3.5vw, 0.9rem);
+    color: #555;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* ── Mejoras para pantallas medianas y grandes ── */
+@media (min-width: 480px) {
+    .countdown {
+        gap: 16px;
+        margin: 32px 0 52px;
+    }
+    .countdown-item {
+        min-width: 95px;
+        padding: 14px 22px;
+        border-radius: 14px;
+    }
+    .countdown-item .number {
+        font-size: clamp(2.2rem, 6.5vw, 2.6rem);
+    }
+    .countdown-item .label {
+        font-size: 0.95rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .countdown {
+        gap: 24px;
+        margin: 48px 0 64px;
+    }
+    .countdown-item {
+        min-width: 120px;
+        padding: 18px 26px;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+    }
+    .countdown-item .number {
+        font-size: 2.8rem;
+    }
+    .countdown-item .label {
+        font-size: 1rem;
+    }
+}
+
+/* Opcional: efecto hover solo en dispositivos con mouse */
+@media (hover: hover) and (pointer: fine) {
+    .countdown-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+    }
+}
+
+footer {
+    background: #c62828;
+    color: white;
+    text-align: center;
+    padding: 28px 16px;
+    margin-top: auto;
+    font-size: 0.9rem;
+}
+
+footer p {
+    margin: 6px 0;
+}
+
+footer a {
+    color: white;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Mejoras para pantallas más grandes */
+@media (min-width: 481px) {
+    header { padding: 12px 20px; }
+    .logo { height: 80px; }
+    .email-form { padding: 36px 32px; }
+}
+
+@media (min-width: 768px) {
+    header {
+        padding: 12px 30px;
+        border-radius: 0 0 20px 20px;
+    }
+    .logo { height: 90px; }
+    body { padding-top: 130px; }
+
+    .coming-soon-title { font-size: clamp(4rem, 9vw, 5.5rem); }
+    .subtitle { font-size: 1.6rem; max-width: 720px; }
+    .email-form {
+        padding: 48px 40px;
+        max-width: 620px;
+    }
+
+    .features {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 28px;
+        max-width: 1100px;
+    }
+
+    .feature-card {
+        flex: 1;
+        min-width: 300px;
+        max-width: 360px;
+    }
+}
+
+@media (min-width: 1024px) {
+    main { padding: 40px 20px; }
+    .features { gap: 32px; }
+}
+
+        /* Estilos para el botón de Instagram */
+        .social-links {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .social-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 12px;
+            transition: all 0.25s ease;
+            text-decoration: none;
+        }
+        .social-btn:hover {
+            background: rgba(255,255,255,0.35);
+            transform: translateY(-3px) scale(1.08);
+        }
+        .social-btn svg {
+            width: 26px;
+            height: 26px;
+            fill: white;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <img src="https://i.postimg.cc/ncZsRB0r/Chat-GPT-Image-Feb-23-2026-12-10-45-PM-(1).png" alt="Weep Logo">
+        </div>
+    </header>
+
+    <main>
+        <h1 class="coming-soon-title">Falta poco...</h1>
+        <p class="subtitle">
+            La forma más fácil y rápida de pedir comida en Santo Tomé está llegando...
+        </p>
+
+        <!-- Contador agregado aquí -->
+        <div class="countdown" id="countdown">
+            <div class="countdown-item">
+                <div class="number" id="days">00</div>
+                <div class="label">Días</div>
+            </div>
+            <div class="countdown-item">
+                <div class="number" id="hours">00</div>
+                <div class="label">Horas</div>
+            </div>
+            <div class="countdown-item">
+                <div class="number" id="minutes">00</div>
+                <div class="label">Min</div>
+            </div>
+            <div class="countdown-item">
+                <div class="number" id="seconds">00</div>
+                <div class="label">Seg</div>
+            </div>
+        </div>
+
+        <div class="email-form">
+            <h3>Enterate primero cuando lancemos</h3>
+            <p>Dejá tu email y te avisamos el día de lanzamiento con promociones exclusivas.</p>
+            <form id="notify-form">
+                <input type="email" id="email" placeholder="tuemail@ejemplo.com" required autocomplete="email">
+                <button type="submit" id="submit-btn">Quiero ser notificado</button>
+            </form>
+            <div id="form-message" class="message"></div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h4>Entrega rapidísima</h4>
+                <p>Los mejores tiempos de entrega, con seguimiento en tiempo real.</p>
+            </div>
+            <div class="feature-card">
+                <h4>Más locales, más variedad</h4>
+                <p>Desde hamburgueserías hasta panaderías y empanadas caseras, todo en un solo lugar.</p>
+            </div>
+            <div class="feature-card">
+                <h4>Envío gratis con bebida</h4>
+                <p>Agregá una bebida y olvidate del costo de envío. Simple y sin letras chicas.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2026 <strong>Weep</strong> - Plataforma de Pedidos y Delivery</p>
+        <p><a href="mailto:bajoneando.st@gmail.com">Contacto</a> • <a href="#">Términos</a></p>
+        
+        <!-- Botón de Instagram agregado aquí -->
+        <div class="social-links">
+            <a href="https://www.instagram.com/weep.st" target="_blank" rel="noopener noreferrer" class="social-btn" title="Seguinos en Instagram">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.332.014 7.052.072 2.579.267.273 2.641.072 7.052.014 8.332 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.411 2.506 6.785 6.979 6.98C8.332 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.411-.2 6.785-2.506 6.98-6.979.058-1.28.072-1.689.072-4.948 0-3.259-.014-3.668-.072-4.948-.2-4.411-2.506-6.785-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        // El script sigue igual (funcionalidad de guardar email)
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxMjHVmcLEazSyDYA-xPnuuLzOcK6ejTojKLdLGuUzuRgSh2JYqOSUvryqd7fwwzjpG/exec';
+
+        document.getElementById("notify-form").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            const emailInput = document.getElementById("email");
+            const submitBtn = document.getElementById("submit-btn");
+            const messageDiv = document.getElementById("form-message");
+            
+            const email = emailInput.value.trim();
+            
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                messageDiv.textContent = "Por favor ingresá un email válido";
+                messageDiv.className = "message error";
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Enviando...";
+            messageDiv.textContent = "";
+
+            try {
+                const url = `${scriptUrl}?action=addLaunchEmail&email=${encodeURIComponent(email)}`;
+                
+                const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const result = await response.json();
+
+                if (result.success) {
+                    messageDiv.textContent = "¡Genial! Te avisaremos cuando lancemos 🚀";
+                    messageDiv.className = "message success";
+                    emailInput.value = "";
+                    emailInput.disabled = true;
+                    submitBtn.style.display = "none";
+                } else {
+                    messageDiv.textContent = result.message || "Hubo un problema al guardar tu email";
+                    messageDiv.className = "message error";
+                }
+            } catch (err) {
+                console.error(err);
+                messageDiv.textContent = "Error de conexión. Intentá de nuevo más tarde.";
+                messageDiv.className = "message error";
+            } finally {
+                submitBtn.disabled = false;
+                if (submitBtn.style.display !== "none") {
+                    submitBtn.textContent = "Quiero ser notificado";
+                }
+            }
+        });
+
+        // Contador - cuenta regresiva hasta el 1 de abril de 2026
+const launchDate = new Date("2026-04-02T00:00:00-03:00").getTime();
+
+function updateCountdown() {
+    const now = new Date().getTime();
+    const distance = launchDate - now;
+
+    if (distance < 0) {
+        document.getElementById("countdown").innerHTML = 
+            '<h2 style="color:#d32f2f; font-size: clamp(1.8rem, 6vw, 2.4rem); margin: 24px 0;">¡Lanzamiento disponible!</h2>';
+        return;
+    }
+
+    const days    = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours   = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+    document.getElementById("days").textContent    = String(days).padStart(2, '0');
+    document.getElementById("hours").textContent   = String(hours).padStart(2, '0');
+    document.getElementById("minutes").textContent = String(minutes).padStart(2, '0');
+    document.getElementById("seconds").textContent = String(seconds).padStart(2, '0');
+}
+
+setInterval(updateCountdown, 1000);
+updateCountdown();   // ejecución inmediata
+    </script>
+</body>
+</html>
