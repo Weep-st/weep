@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Landing.css';
 
@@ -10,6 +10,10 @@ const CheckIcon = () => (
 );
 
 export default function Landing() {
+  const [pedidos, setPedidos] = useState(0);
+  const [usuarios, setUsuarios] = useState(0);
+  const [animateProgress, setAnimateProgress] = useState(false);
+
   useEffect(() => {
     // 1. PWA Magic Redirect Fallback
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -23,6 +27,49 @@ export default function Landing() {
         window.location.replace(lastSection);
       }
     }
+
+    // 2. Animate numbers
+    let startPedidos = 0;
+    const endPedidos = 400;
+    const duration = 1500; // ms
+    const stepTime = 15;
+    const totalStepsPedidos = Math.floor(duration / stepTime);
+    const incrementPedidos = Math.ceil(endPedidos / totalStepsPedidos);
+
+    const timerPedidos = setInterval(() => {
+      startPedidos += incrementPedidos;
+      if (startPedidos >= endPedidos) {
+        setPedidos(endPedidos);
+        clearInterval(timerPedidos);
+      } else {
+        setPedidos(startPedidos);
+      }
+    }, stepTime);
+
+    let startUsuarios = 0;
+    const endUsuarios = 450;
+    const incrementUsuarios = Math.ceil(endUsuarios / totalStepsPedidos);
+
+    const timerUsuarios = setInterval(() => {
+      startUsuarios += incrementUsuarios;
+      if (startUsuarios >= endUsuarios) {
+        setUsuarios(endUsuarios);
+        clearInterval(timerUsuarios);
+      } else {
+        setUsuarios(startUsuarios);
+      }
+    }, stepTime);
+
+    // Trigger progress bar animation after a slight delay
+    const progressTimeout = setTimeout(() => {
+      setAnimateProgress(true);
+    }, 100);
+
+    return () => {
+      clearInterval(timerPedidos);
+      clearInterval(timerUsuarios);
+      clearTimeout(progressTimeout);
+    };
   }, []);
 
   return (
@@ -72,18 +119,22 @@ export default function Landing() {
                 Ser repartidor
               </Link>
             </div>
-            {/* Quick Metrics Underneath */}
+            {/* Quick Metrics Underneath with Dynamic Counters & Progress Bar */}
             <div className="hero-metrics-bar animate-fade-in animate-delay-2">
-              <div className="metric-item-small">
-                <strong>+400</strong> pedidos entregados
+              <div className="metric-item-dynamic">
+                <span className="metric-label">Pedidos entregados</span>
+                <span className="metric-number">+{pedidos}</span>
+                <div className="metric-progress-track">
+                  <div className="metric-progress-bar" style={{ width: animateProgress ? '80%' : '0%' }}></div>
+                </div>
               </div>
               <div className="metric-divider"></div>
-              <div className="metric-item-small">
-                <strong>+450</strong> usuarios registrados
-              </div>
-              <div className="metric-divider"></div>
-              <div className="metric-item-small">
-                <span>📍</span> Santo Tomé activo · Oberá próximamente
+              <div className="metric-item-dynamic">
+                <span className="metric-label">Usuarios registrados</span>
+                <span className="metric-number">+{usuarios}</span>
+                <div className="metric-progress-track">
+                  <div className="metric-progress-bar" style={{ width: animateProgress ? '90%' : '0%' }}></div>
+                </div>
               </div>
             </div>
           </div>
@@ -241,9 +292,21 @@ export default function Landing() {
                 <span className="status-dot yellow"></span>
                 <strong>Oberá</strong> (A partir de julio 2026)
               </div>
+              <div className="city-item future">
+                <span className="status-dot yellow"></span>
+                <strong>Virasoro</strong> (Próximamente)
+              </div>
+              <div className="city-item future">
+                <span className="status-dot yellow"></span>
+                <strong>Apóstoles</strong> (Próximamente)
+              </div>
+              <div className="city-item future">
+                <span className="status-dot yellow"></span>
+                <strong>Leandro N. Alem</strong> (Próximamente)
+              </div>
               <div className="city-item search">
                 <span className="status-dot pulse"></span>
-                <strong>Nuevas ciudades</strong> (En evaluación)
+                <strong>Nuevas ciudades</strong> (En planificación)
               </div>
             </div>
           </div>
