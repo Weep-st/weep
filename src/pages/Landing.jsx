@@ -56,7 +56,7 @@ export default function Landing() {
         <div className="hero-container-split">
           <div className="hero-content">
             <h1 className="hero-title animate-fade-in animate-delay-1">
-              La forma más fácil de pedir en <span>comercios regionales.</span>
+              La forma más fácil de pedir en <span>mercados regionales.</span>
             </h1>
             <p className="hero-subtitle animate-fade-in animate-delay-2">
               Conectamos clientes, comercios y logística local para que pedir, vender y entregar sea simple, rápido y desde un solo lugar.
