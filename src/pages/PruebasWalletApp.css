@@ -130,64 +130,103 @@
 
 @media (max-width: 768px) {
   .app-main { padding-top: 120px; }
-  .app-header { gap: 8px; justify-content: space-between; }
-  .search-wrapper { order: 3; width: 100%; flex-basis: 100%; }
+  .app-header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px 12px;
+    align-items: center;
+    padding: 8px 16px;
+  }
+  .app-logo-link {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+  }
+  .header-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+  .search-wrapper {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    width: 100%;
+    margin: 0;
+  }
 }
 
 @media (max-width: 480px) {
   .app-header {
-    padding: 8px 12px;
-    gap: 6px;
+    padding: 6px 8px;
+    gap: 6px 8px;
   }
   .app-logo {
-    height: 42px;
+    height: 34px;
   }
   .header-actions {
-    gap: 6px;
+    gap: 4px;
   }
   .wallet-header-badge {
-    height: 34px;
-    padding: 0 8px;
-    gap: 4px;
+    height: 30px;
+    padding: 0 6px;
+    gap: 3px;
     box-sizing: border-box;
   }
   .wallet-icon-img {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
   }
   .wallet-val {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
   }
   .wallet-refresh-btn {
-    margin-left: 4px;
-    font-size: 10px;
+    margin-left: 2px;
+    font-size: 9px;
+  }
+  .header-actions .city-header-badge {
+    padding: 4px 6px !important;
+    font-size: 0.72rem !important;
+    gap: 3px !important;
+    margin-right: 0 !important;
+    border-radius: 8px !important;
   }
   .profile-btn {
-    padding: 6px;
-    width: 34px;
-    height: 34px;
-    justify-content: center;
-    box-sizing: border-box;
+    padding: 0 !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    border-radius: 50% !important;
+    box-sizing: border-box !important;
   }
   .profile-avatar-img {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
   }
   .cart-btn {
-    width: 34px;
-    height: 34px;
-    box-sizing: border-box;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
   }
   .cart-icon-img {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
   }
   .cart-badge {
+    min-width: 12px;
+    height: 12px;
+    font-size: 0.55rem;
     top: -3px;
     right: -3px;
-    min-width: 16px;
-    height: 16px;
-    font-size: 0.65rem;
   }
 }
 
@@ -1250,6 +1289,7 @@
 
 .banners-carousel {
   display: flex;
+  flex-wrap: nowrap;
   transition: transform 0.5s ease-in-out;
   width: 100%;
 }
