@@ -9,6 +9,18 @@ import toast from 'react-hot-toast';
 import MapProbandoComponent from '../components/MapProbandoComponent';
 import './DriverDashboard.css';
 
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Radio de la Tierra en metros
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 export default function DriverDashboard() {
@@ -63,6 +75,8 @@ export default function DriverDashboard() {
   const [cobrosData, setCobrosData] = React.useState(null);
   const [cobrosLoading, setCobrosLoading] = React.useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = React.useState(false);
+  const [partnerPinInput, setPartnerPinInput] = React.useState('');
+  const [linking, setLinking] = React.useState(false);
 
   // Gamification state
   const [gamificationStats, setGamificationStats] = React.useState(null);
@@ -88,10 +102,15 @@ export default function DriverDashboard() {
   const [directions, setDirections] = React.useState(null);
   const [now, setNow] = React.useState(new Date());
 
+  const lastOriginRef = React.useRef(null);
+  const lastPointsSignatureRef = React.useRef("");
+
   React.useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+
 
   const toggleOrderExpand = (orderId) => {
     setExpandedOrders(prev => ({
@@ -120,14 +139,44 @@ export default function DriverDashboard() {
       }
     });
 
-
-
     const uniquePoints = Array.from(pointsMap.values());
 
     if (uniquePoints.length === 0) {
       if (directions) setDirections(null);
+      lastOriginRef.current = null;
+      lastPointsSignatureRef.current = "";
       return;
     }
+
+    // Comparar firma de puntos y distancia recorrida
+    const currentPointsSignature = JSON.stringify(uniquePoints);
+    const originLat = Number(driverLocation.lat);
+    const originLng = Number(driverLocation.lng);
+
+    let shouldRequest = false;
+
+    if (currentPointsSignature !== lastPointsSignatureRef.current) {
+      shouldRequest = true;
+    } else if (!lastOriginRef.current) {
+      shouldRequest = true;
+    } else {
+      const dist = getDistanceMeters(
+        originLat, originLng,
+        lastOriginRef.current.lat, lastOriginRef.current.lng
+      );
+      if (dist > 50) { // Umbral de 50 metros
+        shouldRequest = true;
+      }
+    }
+
+    if (!shouldRequest) {
+      console.log("ℹ️ Saltando llamada a Directions API (sin cambios significativos en ruta u origen)");
+      return;
+    }
+
+    // Actualizar referencias antes de la llamada para evitar solicitudes concurrentes
+    lastOriginRef.current = { lat: originLat, lng: originLng };
+    lastPointsSignatureRef.current = currentPointsSignature;
 
     // 2. Configurar la ruta con Waypoints
     // El último punto será el destino, los intermedios serán waypoints
@@ -142,7 +191,7 @@ export default function DriverDashboard() {
     
     directionsService.route(
       {
-        origin: { lat: Number(driverLocation.lat), lng: Number(driverLocation.lng) },
+        origin: { lat: originLat, lng: originLng },
         destination: destination,
         waypoints: waypoints,
         optimizeWaypoints: true, // Google optimiza el orden de las paradas
@@ -176,6 +225,9 @@ export default function DriverDashboard() {
           if (status === 'ZERO_RESULTS') {
             toast.error("No se encontró una ruta por calle.");
           }
+          // Resetear refs para reintentar en el próximo cambio
+          lastOriginRef.current = null;
+          lastPointsSignatureRef.current = "";
         }
       }
     );
@@ -574,11 +626,63 @@ export default function DriverDashboard() {
       Object.values(timeoutsRef.current).forEach(clearTimeout);
       timeoutsRef.current = {};
     };
-  }, [driver, fetchPedidos]);
+  }, [driver, fetchPedidos]);  const handleSolicitarVinculacion = async (e) => {
+    e.preventDefault();
+    if (!partnerPinInput.trim()) return;
+    setLinking(true);
+    try {
+      const res = await api.solicitarVinculacionPartner(driver.id, partnerPinInput);
+      if (res.success) {
+        toast.success(`Solicitud enviada a ${res.partnerNombre}`);
+        setPartnerPinInput('');
+        loadData();
+      } else {
+        toast.error(res.error || "Código PIN inválido o partner no encontrado");
+      }
+    } catch (err) {
+      toast.error("Error al solicitar vinculación: " + err.message);
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleCancelarSolicitud = async () => {
+    if (!window.confirm("¿Seguro que deseas cancelar tu solicitud de vinculación?")) return;
+    try {
+      const res = await api.cancelarSolicitudVinculacion(driver.id);
+      if (res.success) {
+        toast.success("Solicitud cancelada");
+        loadData();
+      } else {
+        toast.error("Error al cancelar solicitud");
+      }
+    } catch (err) {
+      toast.error("Error: " + err.message);
+    }
+  };
+
+  const handleDesvincularPropio = async () => {
+    if (!window.confirm("¿Seguro que deseas desvincularte de la empresa partner? Dejarás de recibir sus pedidos asignados.")) return;
+    try {
+      const res = await api.desvincularDriver(driver.id);
+      if (res.success) {
+        toast.success("Te has desvinculado con éxito");
+        loadData();
+      } else {
+        toast.error("Error al desvincularte");
+      }
+    } catch (err) {
+      toast.error("Error: " + err.message);
+    }
+  };
 
   // On Login/Load
   React.useEffect(() => {
     if (driver) {
+      if (driver.esPartner) {
+        window.location.replace('/partners');
+        return;
+      }
       loadData();
       
       // ─── Sync OneSignal ID ───
@@ -894,10 +998,6 @@ export default function DriverDashboard() {
     if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     
     const file = fd.get('foto');
-    const selectedDays = [];
-    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
-      if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
-    });
 
     const loading = toast.loading('Guardando perfil...');
     try {
@@ -913,9 +1013,6 @@ export default function DriverDashboard() {
         email: fd.get('email'),
         patente: fd.get('patente'),
         marca_modelo: fd.get('marca_modelo'),
-        horario_apertura: fd.get('horario_apertura'),
-        horario_cierre: fd.get('horario_cierre'),
-        dias_apertura: selectedDays,
         foto_url: fotoUrl
       };
       
@@ -1074,6 +1171,8 @@ export default function DriverDashboard() {
       await api.sendChatMessage(activeChatPedidoId, driver.id, msg);
     } catch { toast.error('Error al enviar mensaje'); }
   };
+
+
 
   // ─── RENDERS ───
   const renderAuth = () => (
@@ -1676,6 +1775,67 @@ export default function DriverDashboard() {
 
     return (
       <div className="dd-perfil-view animate-fade-in" style={{ paddingBottom: '40px' }}>
+        {/* Vincular Partner Section */}
+        <div className="dd-form-section" style={{ marginBottom: '32px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 12px 0', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px', fontSize: '0.95rem', fontWeight: 'bold' }}>Vinculación con Empresa Partner</h4>
+          
+          {driverData?.partner_id ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>
+                Vinculado a: <strong style={{ color: '#10b981' }}>🛵 {driverData?.partner_nombre || 'Partner Logístico'}</strong>
+              </span>
+              <button 
+                type="button" 
+                className="btn btn-outline btn-sm text-red" 
+                onClick={handleDesvincularPropio}
+                style={{ alignSelf: 'flex-start', marginTop: '4px' }}
+              >
+                Desvincularme
+              </button>
+            </div>
+          ) : driverData?.partner_vinculo_status === 'Pendiente' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '0.9rem', color: '#b45309', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7' }}>
+                ⏳ Solicitud enviada a: <strong>{driverData?.partner_solicitado_nombre || 'Partner'}</strong> (Esperando aprobación)
+              </span>
+              <button 
+                type="button" 
+                className="btn btn-outline btn-sm text-red" 
+                onClick={handleCancelarSolicitud}
+                style={{ alignSelf: 'flex-start', marginTop: '4px' }}
+              >
+                Cancelar Solicitud
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#64748b' }}>
+                Si trabajas para una empresa de logística, ingresa su PIN de vinculación para asociar tu cuenta:
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  placeholder="PIN de 6 dígitos" 
+                  className="form-input" 
+                  value={partnerPinInput}
+                  onChange={e => setPartnerPinInput(e.target.value)}
+                  style={{ margin: 0, padding: '8px 12px', fontSize: '0.9rem' }}
+                  maxLength={6}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={handleSolicitarVinculacion}
+                  disabled={linking || !partnerPinInput.trim()}
+                  style={{ padding: '8px 16px' }}
+                >
+                  {linking ? 'Vinculando...' : 'Vincular'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <form onSubmit={handleSaveProfile} className="dd-profile-form">
           <div className="dd-form-section" style={{ marginBottom: '32px' }}>
             <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Información Personal</h4>
@@ -1730,43 +1890,6 @@ export default function DriverDashboard() {
             <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Marca y Modelo</label>
               <input name="marca_modelo" className="form-input" defaultValue={driverData?.MarcaModelo} required />
-            </div>
-          </div>
-
-          <div className="dd-form-section" style={{ marginBottom: '32px' }}>
-            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Disponibilidad y Horarios</h4>
-            <div className="dd-time-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Desde</label>
-                <input name="horario_apertura" type="time" className="form-input" defaultValue={driverData?.HorarioApertura || '09:00'} />
-              </div>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Hasta</label>
-                <input name="horario_cierre" type="time" className="form-input" defaultValue={driverData?.HorarioCierre || '23:00'} />
-              </div>
-            </div>
-            
-            <div className="dd-days-selector">
-              <label style={{ display: 'block', marginBottom: 12, fontSize: '0.9rem', fontWeight: '500' }}>Días Activo</label>
-              <div className="dd-days-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {diasSemana.map(day => (
-                  <label key={day} className="dd-day-chip" style={{ 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    borderRadius: '20px',
-                    background: currentDays.includes(day) ? 'var(--red-500)' : '#f3f4f6',
-                    color: currentDays.includes(day) ? 'white' : 'var(--gray-600)',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s'
-                  }}>
-                    <input type="checkbox" name={`day_${day}`} defaultChecked={currentDays.includes(day)} style={{ display: 'none' }} />
-                    <span>{day.substring(0, 3)}</span>
-                  </label>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -1958,14 +2081,37 @@ export default function DriverDashboard() {
         {renderPWAInstructionsModal()}
         {!driver ? renderAuth() : (
           <div style={{ 
+            display: 'flex',
+            flexDirection: 'row',
             position: 'relative', 
             height: 'calc(100vh - 120px)', // Ocupar el resto de la pantalla con margen para el header
             width: '100%', 
             overflow: 'hidden',
             background: '#f8f9fa'
           }}>
+            {/* ─── PANEL LATERAL (Side Panel para Subvistas) ─── */}
+            {view !== 'main' && (
+              <div className="dd-side-panel animate-slide-right">
+                <div style={{ padding: '20px', borderBottom: '1px solid #edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: 'var(--gray-900)' }}>
+                    {view === 'historial' && '📜 Historial de Entregas'}
+                    {view === 'archivados' && '📁 Liquidaciones Archivadas'}
+                    {view === 'cobros' && '💰 Gestión Cobros'}
+                    {view === 'perfil' && '👤 Configuración'}
+                  </h3>
+                  <button className="btn btn-outline btn-sm" style={{ padding: '4px 8px', minWidth: 'auto', border: '1px solid #cbd5e1' }} onClick={() => setView('main')}>✕ Cerrar</button>
+                </div>
+                <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+                  {view === 'historial' && renderHistorial()}
+                  {view === 'archivados' && renderArchivados()}
+                  {view === 'cobros' && renderCobros()}
+                  {view === 'perfil' && renderPerfil()}
+                </div>
+              </div>
+            )}
+
             {/* ─── MAPA DE FONDO ─── */}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
+            <div style={{ position: 'relative', flex: 1, height: '100%', zIndex: 0 }}>
               <MapProbandoComponent 
                 localLat={localInfo.lat} 
                 localLng={localInfo.lng} 
@@ -2003,182 +2149,145 @@ export default function DriverDashboard() {
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* ─── CAPA SUPERIOR (Estadísticas y Locales) ─── */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, padding: '12px 16px', pointerEvents: 'none' }}>
-              <div className="dd-stats-box animate-slide-down" style={{ 
-                pointerEvents: 'auto', 
-                background: 'rgba(255,255,255,0.95)', 
-                backdropFilter: 'blur(10px)',
-                marginBottom: '10px',
-                padding: '12px 16px',
-                borderRadius: '16px',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                border: '1px solid rgba(0,0,0,0.05)'
-              }}>
-                <div className="dd-stats-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showStats ? 12 : 0 }}>
-                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
-                      Hola, <span>{driverData?.Nombre?.split(' ')[0] || '...'}</span>
-                      <span style={{ 
-                        fontSize: '0.65rem', 
-                        background: 'var(--red-100)', 
-                        color: 'var(--red-600)', 
-                        padding: '2px 8px', 
-                        borderRadius: '50px',
-                        fontWeight: '800',
-                        marginLeft: '4px'
-                      }}>
-                        {pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado)).length} pedidos pendientes
-                      </span>
-                    </h3>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button onClick={() => setShowStats(!showStats)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--red-600)', display: 'flex', alignItems: 'center' }}>
-                        {showStats ? '▴' : '▾'}
-                      </button>
-                   </div>
-                </div>
-
-                {showStats && (
-                  <div className="dd-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                    <div className="dd-stat-item" onClick={() => setShowRankingModal(true)} style={{ padding: '6px 4px', border: 'none', background: '#fff9f0' }}>
-                      <small style={{ fontSize: '0.55rem' }}>🏆 Rank</small>
-                      <strong style={{ fontSize: '0.9rem' }}>#{gamificationStats?.rank_posicion || '—'}</strong>
-                    </div>
-                    <div className="dd-stat-item" onClick={loadPointsHistory} style={{ padding: '6px 4px', border: 'none', background: '#f1f8ff' }}>
-                      <small style={{ fontSize: '0.55rem' }}>💎 Pts</small>
-                      <strong style={{ fontSize: '0.9rem' }}>{gamificationStats?.puntos_totales || 0}</strong>
-                    </div>
-                    <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none' }}>
-                      <small style={{ fontSize: '0.55rem' }}>📦 Env</small>
-                      <strong style={{ fontSize: '0.9rem' }}>{realStats.viajesTotales}</strong>
-                    </div>
-                    <div className="dd-stat-item" onClick={() => setView('cobros')} style={{ padding: '6px 4px', border: 'none' }}>
-                      <small style={{ fontSize: '0.55rem' }}>💰 Gan</small>
-                      <strong style={{ fontSize: '0.9rem' }}>${Math.round(realStats.gananciasGlobales / 1000)}k</strong>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Locales Activos + Botón Ubicación (GPS) */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                <div className="animate-fade-in" style={{ 
-                  pointerEvents: 'auto',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  overflowX: 'auto', 
-                  scrollbarWidth: 'none',
-                  background: 'rgba(255,255,255,0.9)',
-                  backdropFilter: 'blur(5px)',
-                  padding: '6px 14px',
-                  borderRadius: '50px',
-                  width: 'fit-content',
-                  maxWidth: '70%',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                  border: '1px solid rgba(255,255,255,0.3)'
-                }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Locales:</span>
-                  {activeLocales.map(local => (
-                    <div key={local.id} style={{ flex: '0 0 auto', position: 'relative' }}>
-                      <img 
-                        src={local.logo || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} 
-                        alt={local.nombre} 
-                        style={{ width: '26px', height: '26px', borderRadius: '50%', border: '1.5px solid #fff', objectFit: 'cover' }}
-                      />
-                      <span style={{ position: 'absolute', bottom: '0', right: '0', width: '8px', height: '8px', background: '#22c55e', border: '1.5px solid white', borderRadius: '50%' }}></span>
-                    </div>
-                  ))}
-                  {activeLocales.length === 0 && !loadingLocales && <small style={{ fontSize: '0.6rem', color: '#999' }}>Ninguno</small>}
-                </div>
-
-                <button 
-                  onClick={iniciarGPS} 
-                  style={{ 
-                    pointerEvents: 'auto',
+              {/* ─── CAPA SUPERIOR (Estadísticas y Locales) ─── */}
+              {view === 'main' && (
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, padding: '12px 16px', pointerEvents: 'none' }}>
+                  <div className="dd-stats-box animate-slide-down" style={{ 
+                    pointerEvents: 'auto', 
                     background: 'rgba(255,255,255,0.95)', 
                     backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(225,29,72,0.2)',
-                    borderRadius: '50px',
-                    padding: '10px 18px',
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    color: 'var(--red-600)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.2s'
-                  }}
-                  className="animate-pulse"
-                >
-                  <span style={{ fontSize: '1.1rem' }}>🎯</span> GPS
-                </button>
-              </div>
-            </div>
+                    marginBottom: '10px',
+                    padding: '12px 16px',
+                    borderRadius: '16px',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                    border: '1px solid rgba(0,0,0,0.05)'
+                  }}>
+                    <div className="dd-stats-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showStats ? 12 : 0 }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
+                          Hola, <span>{driverData?.Nombre?.split(' ')[0] || '...'}</span>
+                          <span style={{ 
+                            fontSize: '0.65rem', 
+                            background: 'var(--red-100)', 
+                            color: 'var(--red-600)', 
+                            padding: '2px 8px', 
+                            borderRadius: '50px',
+                            fontWeight: '800',
+                            marginLeft: '4px'
+                          }}>
+                            {pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado)).length} pedidos pendientes
+                          </span>
+                        </h3>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button onClick={() => setShowStats(!showStats)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--red-600)', display: 'flex', alignItems: 'center' }}>
+                            {showStats ? '▴' : '▾'}
+                          </button>
+                       </div>
+                    </div>
 
-            {/* ─── CAPA INFERIOR (Pedidos Flotantes) ─── */}
-            <div style={{ 
-              position: 'absolute', 
-              bottom: '20px', // Subido para evitar cortes en celulares
-              left: 0, 
-              right: 0, 
-              zIndex: 10, 
-              maxHeight: '48%', 
-              overflowY: 'auto', 
-              overflowX: 'hidden', 
-              padding: '10px 16px',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 100%)',
-              pointerEvents: 'none',
-              scrollbarWidth: 'none'
-            }}>
-              {view === 'main' && (
-                <div style={{ pointerEvents: 'auto' }}>
-                  <div className="dd-floating-orders-list">
-                    {renderDisponibles()}
+                    {showStats && (
+                      <div className="dd-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                        <div className="dd-stat-item" onClick={() => setShowRankingModal(true)} style={{ padding: '6px 4px', border: 'none', background: '#fff9f0' }}>
+                          <small style={{ fontSize: '0.55rem' }}>🏆 Rank</small>
+                          <strong style={{ fontSize: '0.9rem' }}>#{gamificationStats?.rank_posicion || '—'}</strong>
+                        </div>
+                        <div className="dd-stat-item" onClick={loadPointsHistory} style={{ padding: '6px 4px', border: 'none', background: '#f1f8ff' }}>
+                          <small style={{ fontSize: '0.55rem' }}>💎 Pts</small>
+                          <strong style={{ fontSize: '0.9rem' }}>{gamificationStats?.puntos_totales || 0}</strong>
+                        </div>
+                        <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none' }}>
+                          <small style={{ fontSize: '0.55rem' }}>📦 Env</small>
+                          <strong style={{ fontSize: '0.9rem' }}>{realStats.viajesTotales}</strong>
+                        </div>
+                        <div className="dd-stat-item" onClick={() => setView('cobros')} style={{ padding: '6px 4px', border: 'none' }}>
+                          <small style={{ fontSize: '0.55rem' }}>💰 Gan</small>
+                          <strong style={{ fontSize: '0.9rem' }}>${Math.round(realStats.gananciasGlobales / 1000)}k</strong>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Locales Activos + Botón Ubicación (GPS) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <div className="animate-fade-in" style={{ 
+                      pointerEvents: 'auto',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      overflowX: 'auto', 
+                      scrollbarWidth: 'none',
+                      background: 'rgba(255,255,255,0.9)',
+                      backdropFilter: 'blur(5px)',
+                      padding: '6px 14px',
+                      borderRadius: '50px',
+                      width: 'fit-content',
+                      maxWidth: '70%',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                      border: '1px solid rgba(255,255,255,0.3)'
+                    }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Locales:</span>
+                      {activeLocales.map(local => (
+                        <div key={local.id} style={{ flex: '0 0 auto', position: 'relative' }}>
+                          <img 
+                            src={local.logo || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} 
+                            alt={local.nombre} 
+                            style={{ width: '26px', height: '26px', borderRadius: '50%', border: '1.5px solid #fff', objectFit: 'cover' }}
+                          />
+                          <span style={{ position: 'absolute', bottom: '0', right: '0', width: '8px', height: '8px', background: '#22c55e', border: '1.5px solid white', borderRadius: '50%' }}></span>
+                        </div>
+                      ))}
+                      {activeLocales.length === 0 && !loadingLocales && <small style={{ fontSize: '0.6rem', color: '#999' }}>Ninguno</small>}
+                    </div>
+
+                    <button 
+                      onClick={iniciarGPS} 
+                      style={{ 
+                        pointerEvents: 'auto',
+                        background: 'rgba(255,255,255,0.95)', 
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(225,29,72,0.2)',
+                        borderRadius: '50px',
+                        padding: '10px 18px',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        color: 'var(--red-600)',
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                      }}
+                      className="animate-pulse"
+                    >
+                      <span style={{ fontSize: '1.1rem' }}>🎯</span> GPS
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* Vistas Full (Cobros, Perfil, Historial, Archivados) */}
-              <div style={{ pointerEvents: 'auto' }}>
-                {view === 'cobros' && (
-                  <div className="animate-slide-up" style={{ background: 'white', borderRadius: '24px 24px 0 0', padding: '24px', minHeight: '80vh', boxShadow: '0 -8px 30px rgba(0,0,0,0.15)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
-                       <button className="btn btn-outline btn-sm" onClick={() => setView('main')}>Cerrar ✕</button>
+              {/* ─── CAPA INFERIOR (Pedidos Flotantes) ─── */}
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '20px', 
+                left: 0, 
+                right: 0, 
+                zIndex: 10, 
+                maxHeight: '48%', 
+                overflowY: 'auto', 
+                overflowX: 'hidden', 
+                padding: '10px 16px',
+                background: 'linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 100%)',
+                pointerEvents: 'none',
+                scrollbarWidth: 'none'
+              }}>
+                {view === 'main' && (
+                  <div style={{ pointerEvents: 'auto' }}>
+                    <div className="dd-floating-orders-list">
+                      {renderDisponibles()}
                     </div>
-                    {renderCobros()}
-                  </div>
-                )}
-                {view === 'perfil' && (
-                  <div className="animate-slide-up" style={{ background: 'white', borderRadius: '24px 24px 0 0', padding: '24px', minHeight: '80vh', boxShadow: '0 -8px 30px rgba(0,0,0,0.15)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
-                       <button className="btn btn-outline btn-sm" onClick={() => setView('main')}>Cerrar ✕</button>
-                    </div>
-                    {renderPerfil()}
-                  </div>
-                )}
-                {view === 'historial' && (
-                  <div className="animate-slide-up" style={{ background: 'white', borderRadius: '24px 24px 0 0', padding: '24px', minHeight: '80vh', boxShadow: '0 -8px 30px rgba(0,0,0,0.15)' }}>
-                    <div className="dd-section-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Historial de Entregas</h2>
-                      <button className="btn btn-outline btn-sm" onClick={() => setView('main')}>Cerrar ✕</button>
-                    </div>
-                    {renderHistorial()}
-                  </div>
-                )}
-                {view === 'archivados' && (
-                  <div className="animate-slide-up" style={{ background: 'white', borderRadius: '24px 24px 0 0', padding: '24px', minHeight: '80vh', boxShadow: '0 -8px 30px rgba(0,0,0,0.15)' }}>
-                    <div className="dd-section-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Liquidaciones Archivadas</h2>
-                      <button className="btn btn-outline btn-sm" onClick={() => setView('main')}>Cerrar ✕</button>
-                    </div>
-                    {renderArchivados()}
                   </div>
                 )}
               </div>
-
             </div>
             {renderBroadcastOverlay()}
           </div>
@@ -2222,7 +2331,7 @@ export default function DriverDashboard() {
               <button className={`dd-nav-item ${view === 'perfil' ? 'active' : ''}`} style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'perfil' ? 'var(--red-50)' : 'transparent', color: view === 'perfil' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'perfil' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={() => { setView('perfil'); setProfileMenuOpen(false); }}>
-                👤 Editar Perfil
+                👤 Configuración
               </button>
 
               <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>

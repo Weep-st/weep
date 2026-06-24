@@ -67,9 +67,9 @@ export default function MisPedidos() {
     };
   }, [activeChatPedidoId]);
 
-  const loadPedidos = React.useCallback(async () => {
+  const loadPedidos = React.useCallback(async (silent = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const data = await api.getMisPedidos(user.id);
       setEnCurso(data.enCurso || []);
@@ -77,7 +77,7 @@ export default function MisPedidos() {
     } catch {
       toast.error('Error al cargar pedidos');
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [user]);
 
   React.useEffect(() => { loadPedidos(); }, [loadPedidos]);
@@ -85,7 +85,7 @@ export default function MisPedidos() {
   // Polling cada 30 segundos
   React.useEffect(() => {
     if (!user) return;
-    const interval = setInterval(loadPedidos, 30000);
+    const interval = setInterval(() => loadPedidos(true), 30000);
     return () => clearInterval(interval);
   }, [user, loadPedidos]);
 

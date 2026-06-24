@@ -1460,12 +1460,13 @@
   background: white;
   width: 100%;
   max-width: 440px;
+  max-height: 90vh;
   border-radius: 32px;
   padding: 40px 30px;
   text-align: center;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
   animation: slideInUpCard 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -3151,12 +3152,13 @@
   background: white;
   width: 100%;
   max-width: 440px;
+  max-height: 90vh;
   border-radius: 32px;
   padding: 40px 30px;
   text-align: center;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
   animation: slideInUpCard 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

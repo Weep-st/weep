@@ -17,21 +17,25 @@ const CountdownTimer = ({ startTime, limitMinutes = 8, onTimeout }) => {
       const limit = limitMinutes * 60 * 1000;
       const now = new Date().getTime();
       const difference = (start + limit) - now;
-
-      if (difference <= 0) {
-        if (onTimeout) onTimeout();
-        return 0;
-      }
-      return Math.floor(difference / 1000);
+      return Math.max(0, Math.floor(difference / 1000));
     };
 
     // Initial calculation
-    setTimeLeft(calculateTimeLeft());
+    const initialRemaining = calculateTimeLeft();
+    setTimeLeft(initialRemaining);
+
+    if (initialRemaining <= 0) {
+      // Si ya está expirado al montar, no disparamos onTimeout para evitar bucles
+      return;
+    }
 
     const interval = setInterval(() => {
       const remaining = calculateTimeLeft();
       setTimeLeft(remaining);
-      if (remaining === 0) clearInterval(interval);
+      if (remaining === 0) {
+        clearInterval(interval);
+        if (onTimeout) onTimeout();
+      }
     }, 1000);
 
     return () => clearInterval(interval);

@@ -40,6 +40,7 @@ const AdminReportes = () => {
         total: true,
         envio: true,
         financiacion: true,
+        totalBruto: true,
         comision: true,
         neto: true
     });
@@ -415,50 +416,54 @@ const AdminReportes = () => {
                         </div>
 
                         <div className="table-responsive">
-                            <table className="admin-table">
+                                 <table className="admin-table">
                                 <thead>
                                      <tr>
                                          <th>Pedido</th>
                                          <th>Fecha/Hora</th>
                                          <th>Método</th>
-                                         <th style={{ textAlign: 'right' }}>Total</th>
+                                         <th style={{ textAlign: 'right' }}>Total Real</th>
                                          <th style={{ textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>
-                                         <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Com. (%)</th>
-                                         <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
+                                         <th style={{ textAlign: 'right', color: 'var(--blue-700)' }}>Total Bruto</th>
+                                         <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Comisión</th>
                                          <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
                                      </tr>
                                  </thead>
                                  <tbody>
-                                     {reportData.pedidos.map(p => (
-                                         <tr key={p.id}>
-                                             <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
-                                             <td style={{ fontSize: '0.75rem' }}>
-                                                 {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
-                                             </td>
-                                             <td>
-                                                 <div>{p.metodo}</div>
-                                                 {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
-                                                     <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
-                                                         Op: {p.nro_operacion}
-                                                     </div>
-                                                 )}
-                                             </td>
-                                             <td style={{ textAlign: 'right' }}>${p.total}</td>
-                                             <td style={{ textAlign: 'right', color: 'var(--blue-600)', fontSize: '0.75rem', lineHeight: '1.2' }}>
-                                                 {Number(p.credito_wallet) > 0 && <div style={{ fontWeight: 600 }}>Wallet: -${p.credito_wallet}</div>}
-                                                 {Number(p.descuento_wepi) > 0 && <div style={{ fontWeight: 600, color: 'var(--purple-600)' }}>Promo Wepi: -${p.descuento_wepi}</div>}
-                                                 {Number(p.credito_usado) === 0 && '-'}
-                                             </td>
-                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>{p.comision_pct}%</td>
-                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto}</td>
-                                             <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                                                 ${(p.metodo?.toLowerCase().includes('transferencia')
-                                                     ? (Number(p.total) - Number(p.credito_usado || 0) - Number(p.comision_monto))
-                                                     : (Number(p.total) - Number(p.credito_usado || 0))
-                                                 ).toFixed(2)}
-                                             </td>
-                                         </tr>
-                                     ))}
+                                     {reportData.pedidos.map(p => {
+                                         const cu = (Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0);
+                                         const rowBruto = Number(p.total) - cu;
+                                         const rowNeto = rowBruto - Number(p.comision_monto);
+                                         return (
+                                             <tr key={p.id}>
+                                                 <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                                                 <td style={{ fontSize: '0.75rem' }}>
+                                                     {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                 </td>
+                                                 <td>
+                                                     <div>{p.metodo}</div>
+                                                     {p.metodo?.toLowerCase().includes('transferencia') && p.nro_operacion && p.nro_operacion !== 'N/A' && (
+                                                         <div style={{ fontSize: '0.65rem', color: 'var(--gray-800)', marginTop: '2px', fontWeight: 'bold' }}>
+                                                             Op: {p.nro_operacion}
+                                                         </div>
+                                                     )}
+                                                 </td>
+                                                 <td style={{ textAlign: 'right' }}>${p.total}</td>
+                                                 <td style={{ textAlign: 'right', color: 'var(--blue-600)', fontSize: '0.75rem', lineHeight: '1.2' }}>
+                                                     {Number(p.credito_wallet) > 0 && <div style={{ fontWeight: 600 }}>Wallet: -${p.credito_wallet}</div>}
+                                                     {Number(p.descuento_wepi) > 0 && <div style={{ fontWeight: 600, color: 'var(--purple-600)' }}>Promo Wepi: -${p.descuento_wepi}</div>}
+                                                     {cu === 0 && '-'}
+                                                 </td>
+                                                 <td style={{ textAlign: 'right', color: 'var(--blue-700)', fontWeight: 600 }}>
+                                                     ${rowBruto.toFixed(2)}
+                                                 </td>
+                                                 <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto} ({p.comision_pct}%)</td>
+                                                 <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                                                     ${rowNeto.toFixed(2)}
+                                                 </td>
+                                             </tr>
+                                         );
+                                     })}
                                      {reportData.pedidos.length === 0 ? (
                                          <tr>
                                              <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>Sin pedidos para este periodo.</td>
@@ -891,10 +896,16 @@ const AdminReportes = () => {
             )}
 
             {selectedCierre && (() => {
-                const orders = selectedCierre.datos_detallados || [];
+                const rawOrders = selectedCierre.datos_detallados || [];
+                const orders = [...rawOrders].sort((a, b) => new Date(a.hora || 0).getTime() - new Date(b.hora || 0).getTime());
                 const totalCreditoWallet = orders.reduce((acc, p) => acc + (Number(p.credito_wallet) || 0), 0);
                 const totalDescuentoWepi = orders.reduce((acc, p) => acc + (Number(p.descuento_wepi) || 0), 0);
-                const totalCreditoWepi = orders.reduce((acc, p) => acc + (Number(p.credito_usado) || (Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0)), 0);
+                const totalCreditoWepi = orders.reduce((acc, p) => {
+                    const cu = Number(p.credito_wallet)
+                        ? ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0))
+                        : ((Number(p.credito_usado) || 0) + (Number(p.descuento_wepi) || 0));
+                    return acc + cu;
+                }, 0);
 
                 return (
                     <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }} onClick={() => setSelectedCierre(null)}>
@@ -927,22 +938,24 @@ const AdminReportes = () => {
                                             <th>Cliente</th>
                                             <th>Fecha Pedido</th>
                                             <th>Método</th>
-                                            <th style={{ textAlign: 'right' }}>Total</th>
+                                            <th style={{ textAlign: 'right' }}>Total Real</th>
                                             <th style={{ textAlign: 'right', color: '#64748b' }}>Envío</th>
                                             <th style={{ textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>
+                                            <th style={{ textAlign: 'right', color: 'var(--blue-700)' }}>Total Bruto</th>
                                             <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Comisión</th>
                                             <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {orders.map(p => {
-                                            const cu = Number(p.credito_usado) || ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0));
-                                            const rowNeto = p.metodo?.toLowerCase().includes('transferencia')
-                                                ? (Number(p.total) - cu - Number(p.comision_monto))
-                                                : (Number(p.total) - cu);
+                                        {orders.map((p, idx) => {
+                                            const cu = Number(p.credito_wallet)
+                                                ? ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0))
+                                                : ((Number(p.credito_usado) || 0) + (Number(p.descuento_wepi) || 0));
+                                            const rowBruto = Number(p.total) - cu;
+                                            const rowNeto = rowBruto - Number(p.comision_monto);
                                             return (
                                                 <tr key={p.id}>
-                                                    <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>
+                                                    <td style={{ fontWeight: 600 }}>{idx + 1}. #{p.id.slice(0, 8)}</td>
                                                     <td>{p.cliente}</td>
                                                     <td style={{ fontSize: '0.7rem' }}>
                                                         {new Date(new Date(p.hora).getTime() + 3 * 60 * 60 * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
@@ -964,6 +977,9 @@ const AdminReportes = () => {
                                                         {Number(p.descuento_wepi) > 0 && <div style={{ fontWeight: 600, color: 'var(--purple-600)' }}>Promo Wepi: -${p.descuento_wepi}</div>}
                                                         {cu === 0 && '-'}
                                                     </td>
+                                                    <td style={{ textAlign: 'right', color: 'var(--blue-700)', fontWeight: 600 }}>
+                                                        ${rowBruto.toFixed(2)}
+                                                    </td>
                                                     <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto} ({p.comision_pct}%)</td>
                                                     <td style={{ textAlign: 'right', fontWeight: 700 }}>${rowNeto.toFixed(2)}</td>
                                                 </tr>
@@ -972,14 +988,14 @@ const AdminReportes = () => {
                                     </tbody>
                                     <tfoot>
                                         <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
-                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px' }}>TOTAL VENTA (BRUTO):</td>
+                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px' }}>TOTAL REAL:</td>
                                             <td style={{ textAlign: 'right' }}>${selectedCierre.total_subtotal}</td>
-                                            <td colSpan="4"></td>
+                                            <td colSpan="5"></td>
                                         </tr>
                                         <tr style={{ background: '#f0f9ff', fontWeight: 700 }}>
                                             <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px', color: 'var(--blue-600)' }}>FINANCIACIÓN WEPI A LIQUIDAR:</td>
                                             <td style={{ textAlign: 'right', color: 'var(--blue-600)' }}>${totalCreditoWepi.toFixed(2)}</td>
-                                            <td colSpan="4" style={{ fontSize: '0.75rem', color: 'var(--gray-600)', paddingLeft: '15px', fontWeight: 'normal', textAlign: 'left' }}>
+                                            <td colSpan="5" style={{ fontSize: '0.75rem', color: 'var(--gray-600)', paddingLeft: '15px', fontWeight: 'normal', textAlign: 'left' }}>
                                                 <div style={{ fontWeight: 700 }}>Detalle de liquidación (dinero adeudado por Wepi al local):</div>
                                                 {totalCreditoWallet > 0 && <div>• Crédito Wallet: ${totalCreditoWallet.toFixed(2)}</div>}
                                                 {totalDescuentoWepi > 0 && <div>• Descuento Promos Wepi: ${totalDescuentoWepi.toFixed(2)}</div>}
@@ -989,7 +1005,7 @@ const AdminReportes = () => {
                                         <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
                                             <td colSpan="4" style={{ textAlign: 'right', padding: '12px 8px', color: 'var(--red-600)' }}>COMISIÓN WEPI:</td>
                                             <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${selectedCierre.total_comisiones}</td>
-                                            <td colSpan="4" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 'normal', paddingLeft: '15px', textAlign: 'left' }}>
+                                            <td colSpan="5" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 'normal', paddingLeft: '15px', textAlign: 'left' }}>
                                                 <div style={{ display: 'flex', gap: '15px' }}>
                                                     <span>Saldada (Transf.): -${(Number(selectedCierre.total_comisiones) - Number(selectedCierre.comision_efectivo || 0)).toFixed(2)}</span>
                                                     <span style={{ color: 'var(--red-600)', fontWeight: 600 }}>Pendiente (Efectivo): -${selectedCierre.comision_efectivo || '0.00'}</span>
@@ -997,9 +1013,9 @@ const AdminReportes = () => {
                                             </td>
                                         </tr>
                                         <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0', fontWeight: 800 }}>
-                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 16px', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi):</td>
+                                            <td colSpan="4" style={{ textAlign: 'right', padding: '12px 16px', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (restando comisiones):</td>
                                             <td style={{ textAlign: 'right', color: '#166534', fontSize: '1rem' }}>${selectedCierre.total_neto_local}</td>
-                                            <td colSpan="4"></td>
+                                            <td colSpan="5"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -1143,7 +1159,7 @@ const AdminReportes = () => {
             })()}
 
             {selectedCierreGroup && (() => {
-                const orders = selectedCierreGroup.reduce((acc, c) => {
+                const rawOrders = selectedCierreGroup.reduce((acc, c) => {
                     const localName = c.locales?.nombre || 'Desconocido';
                     const closureFecha = new Date(c.fecha).toLocaleDateString('es-AR');
                     const ords = (c.datos_detallados || []).map(o => ({
@@ -1154,9 +1170,15 @@ const AdminReportes = () => {
                     return [...acc, ...ords];
                 }, []);
 
+                const orders = [...rawOrders].sort((a, b) => new Date(a.hora || 0).getTime() - new Date(b.hora || 0).getTime());
                 const totalCreditoWallet = orders.reduce((acc, p) => acc + (Number(p.credito_wallet) || 0), 0);
                 const totalDescuentoWepi = orders.reduce((acc, p) => acc + (Number(p.descuento_wepi) || 0), 0);
-                const totalCreditoWepi = orders.reduce((acc, p) => acc + (Number(p.credito_usado) || (Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0)), 0);
+                const totalCreditoWepi = orders.reduce((acc, p) => {
+                    const cu = Number(p.credito_wallet)
+                        ? ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0))
+                        : ((Number(p.credito_usado) || 0) + (Number(p.descuento_wepi) || 0));
+                    return acc + cu;
+                }, 0);
                 const totalSubtotal = selectedCierreGroup.reduce((acc, c) => acc + Number(c.total_subtotal || 0), 0);
                 const totalComisiones = selectedCierreGroup.reduce((acc, c) => acc + Number(c.total_comisiones || 0), 0);
                 const totalNetoLocal = selectedCierreGroup.reduce((acc, c) => acc + Number(c.total_neto_local || 0), 0);
@@ -1172,6 +1194,7 @@ const AdminReportes = () => {
 
                 const colsAfterTotalCount = (visibleCols.envio ? 1 : 0) + 
                                             (visibleCols.financiacion ? 1 : 0) + 
+                                            (visibleCols.totalBruto ? 1 : 0) + 
                                             (visibleCols.comision ? 1 : 0) + 
                                             (visibleCols.neto ? 1 : 0);
 
@@ -1209,7 +1232,7 @@ const AdminReportes = () => {
                                             checked={visibleCols[col]} 
                                             onChange={(e) => setVisibleCols(prev => ({ ...prev, [col]: e.target.checked }))} 
                                         />
-                                        {col === 'pedido' ? 'Pedido' : col === 'local' ? 'Local' : col === 'cliente' ? 'Cliente' : col === 'fecha' ? 'Fecha' : col === 'metodo' ? 'Método' : col === 'total' ? 'Total' : col === 'envio' ? 'Envío' : col === 'financiacion' ? 'Financiación' : col === 'comision' ? 'Comisión' : col === 'neto' ? 'Neto' : col}
+                                        {col === 'pedido' ? 'Pedido' : col === 'local' ? 'Local' : col === 'cliente' ? 'Cliente' : col === 'fecha' ? 'Fecha' : col === 'metodo' ? 'Método' : col === 'total' ? 'Total Real' : col === 'totalBruto' ? 'Total Bruto' : col === 'envio' ? 'Envío' : col === 'financiacion' ? 'Financiación' : col === 'comision' ? 'Comisión' : col === 'neto' ? 'Neto' : col}
                                     </label>
                                 ))}
                             </div>
@@ -1233,22 +1256,24 @@ const AdminReportes = () => {
                                             {visibleCols.cliente && <th>Cliente</th>}
                                             {visibleCols.fecha && <th>Fecha Pedido</th>}
                                             {visibleCols.metodo && <th>Método</th>}
-                                            {visibleCols.total && <th style={{ textAlign: 'right' }}>Total</th>}
+                                            {visibleCols.total && <th style={{ textAlign: 'right' }}>Total Real</th>}
                                             {visibleCols.envio && <th style={{ textAlign: 'right', color: '#64748b' }}>Envío</th>}
                                             {visibleCols.financiacion && <th style={{ textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>}
+                                            {visibleCols.totalBruto && <th style={{ textAlign: 'right', color: 'var(--blue-700)' }}>Total Bruto</th>}
                                             {visibleCols.comision && <th style={{ textAlign: 'right', color: 'var(--red-600)' }}>Comisión</th>}
                                             {visibleCols.neto && <th style={{ textAlign: 'right', fontWeight: 700 }}>Neto</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {orders.map((p, idx) => {
-                                            const cu = Number(p.credito_usado) || ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0));
-                                            const rowNeto = p.metodo?.toLowerCase().includes('transferencia')
-                                                ? (Number(p.total) - cu - Number(p.comision_monto))
-                                                : (Number(p.total) - cu);
+                                            const cu = Number(p.credito_wallet)
+                                                ? ((Number(p.credito_wallet) || 0) + (Number(p.descuento_wepi) || 0))
+                                                : ((Number(p.credito_usado) || 0) + (Number(p.descuento_wepi) || 0));
+                                            const rowBruto = Number(p.total) - cu;
+                                            const rowNeto = rowBruto - Number(p.comision_monto);
                                             return (
                                                 <tr key={`${p.id}-${idx}`}>
-                                                    {visibleCols.pedido && <td style={{ fontWeight: 600 }}>#{p.id.slice(0, 8)}</td>}
+                                                    {visibleCols.pedido && <td style={{ fontWeight: 600 }}>{idx + 1}. #{p.id.slice(0, 8)}</td>}
                                                     {visibleCols.local && <td style={{ fontWeight: 600 }}>{p.localName}</td>}
                                                     {visibleCols.cliente && <td>{p.cliente}</td>}
                                                     {visibleCols.fecha && (
@@ -1279,6 +1304,11 @@ const AdminReportes = () => {
                                                             {cu === 0 && '-'}
                                                         </td>
                                                     )}
+                                                    {visibleCols.totalBruto && (
+                                                        <td style={{ textAlign: 'right', color: 'var(--blue-700)', fontWeight: 600 }}>
+                                                            ${rowBruto.toFixed(2)}
+                                                        </td>
+                                                    )}
                                                     {visibleCols.comision && <td style={{ textAlign: 'right', color: 'var(--red-600)' }}>-${p.comision_monto} ({p.comision_pct}%)</td>}
                                                     {visibleCols.neto && <td style={{ textAlign: 'right', fontWeight: 700 }}>${rowNeto.toFixed(2)}</td>}
                                                 </tr>
@@ -1287,7 +1317,7 @@ const AdminReportes = () => {
                                     </tbody>
                                     <tfoot>
                                         <tr style={{ background: 'var(--gray-50)', fontWeight: 700 }}>
-                                            <td colSpan={colsBeforeTotalCount || 1} style={{ textAlign: 'right', padding: '12px 8px' }}>TOTAL BRUTO:</td>
+                                            <td colSpan={colsBeforeTotalCount || 1} style={{ textAlign: 'right', padding: '12px 8px' }}>TOTAL REAL:</td>
                                             {visibleCols.total && <td style={{ textAlign: 'right' }}>${totalSubtotal.toFixed(2)}</td>}
                                             <td colSpan={colsAfterTotalCount || 1}></td>
                                         </tr>

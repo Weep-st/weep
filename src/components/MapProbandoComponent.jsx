@@ -159,6 +159,7 @@ const MapProbandoComponent = ({
           directions={directions}
           options={{
             suppressMarkers: true,
+            preserveViewport: true,
             polylineOptions: {
               strokeColor: '#4285F4',
               strokeWeight: 6,

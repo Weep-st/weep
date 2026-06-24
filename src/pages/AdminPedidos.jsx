@@ -9,6 +9,7 @@ const AdminPedidos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('Todos');
     const [localFilter, setLocalFilter] = useState('Todos');
+    const [cityFilter, setCityFilter] = useState('Todos');
     const [locales, setLocales] = useState([]);
     
     // Modal state
@@ -91,7 +92,8 @@ const AdminPedidos = () => {
             p.id.includes(searchTerm);
         const matchesStatus = statusFilter === 'Todos' || p.estado === statusFilter;
         const matchesLocal = localFilter === 'Todos' || p.local_id === localFilter;
-        return matchesSearch && matchesStatus && matchesLocal;
+        const matchesCity = cityFilter === 'Todos' || p.locales?.ciudad === cityFilter;
+        return matchesSearch && matchesStatus && matchesLocal && matchesCity;
     });
 
     if (loading) return <div className="loading-state">Cargando pedidos...</div>;
@@ -119,6 +121,16 @@ const AdminPedidos = () => {
                     >
                         <option value="Todos">Todos los estados</option>
                         {estadosPosibles.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+
+                    <select 
+                        className="filter-select"
+                        value={cityFilter}
+                        onChange={(e) => setCityFilter(e.target.value)}
+                    >
+                        <option value="Todos">Todas las ciudades</option>
+                        <option value="Santo Tomé">Santo Tomé</option>
+                        <option value="Oberá">Oberá</option>
                     </select>
 
                     <select 
@@ -157,7 +169,7 @@ const AdminPedidos = () => {
                                         <div style={{ fontWeight: 700, color: 'var(--red-600)' }}>#{p.num_confirmacion || p.id.substring(0, 6)}</div>
                                         <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{p.id.substring(0, 13)}...</div>
                                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginTop: '2px' }}>
-                                            🏢 {p.locales?.nombre || 'Local'}
+                                            🏢 {p.locales?.nombre || 'Local'} {p.locales?.ciudad && <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 500 }}>({p.locales.ciudad})</span>}
                                         </div>
                                         <span style={{ 
                                             display: 'inline-block',

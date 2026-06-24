@@ -9,6 +9,18 @@ import toast from 'react-hot-toast';
 import MapProbandoComponent from '../components/MapProbandoComponent';
 import './DriverDashboard.css';
 
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Radio de la Tierra en metros
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const GOOGLE_MAPS_LIBRARIES = ['places', 'geometry'];
 
 export default function DriverProbando() {
@@ -573,33 +585,70 @@ export default function DriverProbando() {
 
   const [optimizedRoute, setOptimizedRoute] = React.useState(null);
 
+  const lastOriginRef = React.useRef(null);
+  const lastPointsSignatureRef = React.useRef("");
+
   const optimizeRoute = React.useCallback((orders, origin) => {
     if (!isMapLoaded || orders.length < 1 || !origin.lat) return;
 
-    const directionsService = new window.google.maps.DirectionsService();
-    
     // Si hay un solo local para todos, el origen es el local
     const distinctLocals = [...new Set(orders.map(o => o.local_id))];
-    const waypoints = [];
+    const destinations = orders.map(o => ({
+      lat: Number(o.lat),
+      lng: Number(o.lng),
+      pedidoId: o.id
+    }));
+
+    const allRetirados = orders.every(o => o.estado === 'Retirado');
+
+    // Build signature of points of interest
+    const interestPoints = [];
+    if (!allRetirados && localInfo.lat) {
+      interestPoints.push({ lat: Number(localInfo.lat), lng: Number(localInfo.lng) });
+    }
+    destinations.forEach(d => interestPoints.push({ lat: d.lat, lng: d.lng }));
+
+    const currentPointsSignature = JSON.stringify(interestPoints);
+    const originLat = Number(origin.lat);
+    const originLng = Number(origin.lng);
+
+    let shouldRequest = false;
+    if (currentPointsSignature !== lastPointsSignatureRef.current) {
+      shouldRequest = true;
+    } else if (!lastOriginRef.current) {
+      shouldRequest = true;
+    } else {
+      const dist = getDistanceMeters(
+        originLat, originLng,
+        lastOriginRef.current.lat, lastOriginRef.current.lng
+      );
+      if (dist > 50) {
+        shouldRequest = true;
+      }
+    }
+
+    if (!shouldRequest) {
+      console.log("ℹ️ Saltando optimización de ruta (sin cambios significativos)");
+      return;
+    }
+
+    // Actualizar referencias antes de la llamada
+    lastOriginRef.current = { lat: originLat, lng: originLng };
+    lastPointsSignatureRef.current = currentPointsSignature;
+
+    const directionsService = new window.google.maps.DirectionsService();
     
     // Destinos: Clientes
-    const destinations = orders.map(o => ({
+    const destinationsLatLng = orders.map(o => ({
       location: new window.google.maps.LatLng(o.lat, o.lng),
       stopover: true,
       pedidoId: o.id
     }));
 
-    // El origen real es la ubicación del repartidor
-    // Pero si ya retiró, el destino final es el último cliente.
-    // Si no retiró, debe pasar por el local.
-    const allRetirados = orders.every(o => o.estado === 'Retirado');
-    
     let start = new window.google.maps.LatLng(origin.lat, origin.lng);
     let waypts = [];
 
     if (!allRetirados) {
-      // Agregar local como waypoint obligatorio si hay algo pendiente de retiro
-      // (Asumimos mismo local para simplificar la prueba de stacking)
       if (localInfo.lat) {
         waypts.push({
           location: new window.google.maps.LatLng(localInfo.lat, localInfo.lng),
@@ -609,12 +658,11 @@ export default function DriverProbando() {
     }
 
     // Agregar destinos como waypoints para optimizarlos
-    destinations.forEach(d => {
+    destinationsLatLng.forEach(d => {
       waypts.push({ location: d.location, stopover: true });
     });
 
     // Para optimizar con Google, necesitamos un destino final fijo.
-    // Usaremos el último destino de la lista original y dejaremos que Google optimize el resto.
     const finalDestination = waypts.pop().location;
 
     directionsService.route(
@@ -628,8 +676,12 @@ export default function DriverProbando() {
       (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
           setOptimizedRoute(result);
-          // El orden optimizado está en result.routes[0].waypoint_order
           console.log("Ruta optimizada:", result.routes[0].waypoint_order);
+        } else {
+          console.error("Error optimizando ruta:", status);
+          // Limpiar referencias para reintentar en el próximo cambio
+          lastOriginRef.current = null;
+          lastPointsSignatureRef.current = "";
         }
       }
     );
@@ -641,6 +693,8 @@ export default function DriverProbando() {
       optimizeRoute(ordersEnCurso, driverLocation);
     } else {
       setOptimizedRoute(null);
+      lastOriginRef.current = null;
+      lastPointsSignatureRef.current = "";
     }
   }, [pedidos, driverLocation, optimizeRoute]);
 
@@ -729,10 +783,6 @@ export default function DriverProbando() {
     if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     
     const file = fd.get('foto');
-    const selectedDays = [];
-    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
-      if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
-    });
 
     const loading = toast.loading('Guardando perfil...');
     try {
@@ -748,9 +798,6 @@ export default function DriverProbando() {
         email: fd.get('email'),
         patente: fd.get('patente'),
         marca_modelo: fd.get('marca_modelo'),
-        horario_apertura: fd.get('horario_apertura'),
-        horario_cierre: fd.get('horario_cierre'),
-        dias_apertura: selectedDays,
         foto_url: fotoUrl
       };
       
@@ -1475,43 +1522,6 @@ export default function DriverProbando() {
             <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Marca y Modelo</label>
               <input name="marca_modelo" className="form-input" defaultValue={driverData?.MarcaModelo} required />
-            </div>
-          </div>
-
-          <div className="dd-form-section" style={{ marginBottom: '32px' }}>
-            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Disponibilidad y Horarios</h4>
-            <div className="dd-time-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Desde</label>
-                <input name="horario_apertura" type="time" className="form-input" defaultValue={driverData?.HorarioApertura || '09:00'} />
-              </div>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Hasta</label>
-                <input name="horario_cierre" type="time" className="form-input" defaultValue={driverData?.HorarioCierre || '23:00'} />
-              </div>
-            </div>
-            
-            <div className="dd-days-selector">
-              <label style={{ display: 'block', marginBottom: 12, fontSize: '0.9rem', fontWeight: '500' }}>Días Activo</label>
-              <div className="dd-days-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {diasSemana.map(day => (
-                  <label key={day} className="dd-day-chip" style={{ 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    borderRadius: '20px',
-                    background: currentDays.includes(day) ? 'var(--red-500)' : '#f3f4f6',
-                    color: currentDays.includes(day) ? 'white' : 'var(--gray-600)',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s'
-                  }}>
-                    <input type="checkbox" name={`day_${day}`} defaultChecked={currentDays.includes(day)} style={{ display: 'none' }} />
-                    <span>{day.substring(0, 3)}</span>
-                  </label>
-                ))}
-              </div>
             </div>
           </div>
 

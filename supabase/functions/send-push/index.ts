@@ -65,10 +65,28 @@ Deno.serve(async (req) => {
         });
       }
 
+      const finalLocalId = localId || order.local_id;
+      const finalPrecioEnvio = precioEnvio || order.precio_envio || 0;
+
+      // Obtener datos del local de forma explícita y robusta
+      let nombreLocal = "";
+      let ciudadLocal = "";
+      if (finalLocalId) {
+        const { data: localData } = await supabase
+          .from('locales')
+          .select('nombre, ciudad')
+          .eq('id', finalLocalId)
+          .single();
+        if (localData) {
+          nombreLocal = localData.nombre || "";
+          ciudadLocal = localData.ciudad || "";
+        }
+      }
+
       // 2. Obtener repartidores aceptados
       const { data: drivers, error: driversErr } = await supabase
         .from('repartidores')
-        .select('onesignal_id, locales_prioridad')
+        .select('onesignal_id, locales_prioridad, ciudad')
         .eq('admin_status', 'Aceptado')
         .not('onesignal_id', 'is', null);
 
@@ -79,20 +97,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      const finalLocalId = localId || order.local_id;
-      const finalPrecioEnvio = precioEnvio || order.precio_envio || 0;
-
-      // 3. Obtener nombre del local si existe localId
-      let nombreLocal = "";
-      if (finalLocalId) {
-        const { data: localData } = await supabase
-          .from('locales')
-          .select('nombre')
-          .eq('id', finalLocalId)
-          .single();
-        if (localData?.nombre) {
-          nombreLocal = localData.nombre;
-        }
+      // 4. Filtrar repartidores por ciudad (pedidos de una ciudad solo se envían a repartidores de esa ciudad)
+      let targetDrivers = drivers;
+      if (ciudadLocal) {
+        targetDrivers = drivers.filter(d => d.ciudad === ciudadLocal);
+        console.log(`📌 [Broadcast] Filtrando por ciudad: ${ciudadLocal}. Repartidores totales: ${drivers.length}, de la ciudad: ${targetDrivers.length}`);
       }
 
       const titleStr = '¡Nuevo Pedido Disponible! 🛵';
@@ -101,11 +110,11 @@ Deno.serve(async (req) => {
         : `¡Nuevo pedido! Generá $${Number(finalPrecioEnvio).toLocaleString('es-AR')}`;
 
       // Separar prioritarios y comunes
-      const priorityDrivers = finalLocalId ? drivers.filter(d => d.locales_prioridad?.includes(finalLocalId)) : [];
-      const otherDrivers = drivers.filter(d => !priorityDrivers.includes(d));
+      const priorityDrivers = finalLocalId ? targetDrivers.filter(d => d.locales_prioridad?.includes(finalLocalId)) : [];
+      const otherDrivers = targetDrivers.filter(d => !priorityDrivers.includes(d));
 
-      const sendToOneSignal = async (targetDrivers: any[]) => {
-        const ids = targetDrivers.map(d => d.onesignal_id).filter(Boolean);
+      const sendToOneSignal = async (targetDriversList: any[]) => {
+        const ids = targetDriversList.map(d => d.onesignal_id).filter(Boolean);
         if (ids.length === 0) return;
 
         const payload = {
@@ -181,8 +190,8 @@ Deno.serve(async (req) => {
           }
         }
       } else {
-        console.log(`🔔 [Broadcast] No hay prioritarios. Enviando notificación inmediata a todos los ${drivers.length} repartidores.`);
-        await sendToOneSignal(drivers);
+        console.log(`🔔 [Broadcast] No hay prioritarios. Enviando notificación inmediata a todos los ${targetDrivers.length} repartidores.`);
+        await sendToOneSignal(targetDrivers);
       }
 
       return new Response(JSON.stringify({ success: true, message: 'Broadcast initiated successfully' }), {

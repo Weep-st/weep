@@ -466,6 +466,7 @@ _Este es un mensaje de difusión. No responder_`;
                         <tr>
                             <th>Nombre</th>
                             <th>Contacto</th>
+                            <th>Tipo Cuenta</th>
                             <th>Vehículo</th>
                             <th>Push</th>
                             <th>Disponibilidad</th>
@@ -477,7 +478,7 @@ _Este es un mensaje de difusión. No responder_`;
                     </thead>
                     <tbody>
                         {repartidores.length === 0 ? (
-                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No hay repartidores registrados.</td></tr>
+                            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No hay repartidores registrados.</td></tr>
                         ) : (
                             repartidores.map(rep => (
                                 <tr key={rep.id}>
@@ -495,6 +496,23 @@ _Este es un mensaje de difusión. No responder_`;
                                         </div>
                                     </td>
                                     <td>{rep.telefono}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={rep.es_partner || false} 
+                                                    onChange={(e) => handleUpdateVehicle(rep.id, 'es_partner', e.target.checked)}
+                                                />
+                                                Partner Logístico
+                                            </label>
+                                            {rep.partner_id && (
+                                                <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: '500' }}>
+                                                    🔗 Chofer Vinculado
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                             <select 

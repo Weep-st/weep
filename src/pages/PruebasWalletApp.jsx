@@ -13,6 +13,8 @@ import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../util
 import { evaluatePromotions } from '../utils/promoEngine';
 import './PruebasWalletApp.css';
 
+const GOOGLE_MAPS_LIBRARIES = ['places'];
+
 export default function PruebasWalletApp() {
   const { slug } = useParams();
   const location = useLocation();
@@ -27,7 +29,7 @@ export default function PruebasWalletApp() {
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: googleMapsApiKey,
-    libraries: ['places']
+    libraries: GOOGLE_MAPS_LIBRARIES
   });
 
   if (loadError) {
@@ -39,20 +41,86 @@ export default function PruebasWalletApp() {
   const navigate = useNavigate();
 
   const [activeCity, setActiveCity] = React.useState(() => {
-    return user?.ciudad || localStorage.getItem('guestCiudad') || null;
+    const sessionCity = sessionStorage.getItem('sessionCity');
+    return sessionCity || null;
   });
 
   const selectCity = React.useCallback((city) => {
     setActiveCity(city);
+    sessionStorage.setItem('sessionCity', city);
     localStorage.setItem('guestCiudad', city);
     toast.success(`Ciudad seleccionada: ${city}`, { icon: '📍' });
   }, []);
 
   React.useEffect(() => {
-    if (user?.ciudad) {
-      setActiveCity(user.ciudad);
+    const sessionCity = sessionStorage.getItem('sessionCity');
+    if (!sessionCity) {
+      setActiveCity(null);
     }
   }, [user?.ciudad]);
+
+  const getAbbreviatedCity = (city) => {
+    if (!city) return 'Seleccionar';
+    const norm = city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (norm.includes('santo tome')) return 'ST';
+    if (norm.includes('obera')) return 'OBE';
+    return city;
+  };
+
+  const handleBadgeClick = () => {
+    sessionStorage.removeItem('sessionCity');
+    setActiveCity(null);
+  };
+
+  // PWA states and deferred prompt
+  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+  const [showConfirmedModal, setShowConfirmedModal] = React.useState(false);
+  const [confirmedOrderId, setConfirmedOrderId] = React.useState('');
+  const [showPwaSteps, setShowPwaSteps] = React.useState(false);
+  const [isStandalone, setIsStandalone] = React.useState(false);
+  const [notificationPermission, setNotificationPermission] = React.useState(
+    window.Notification ? Notification.permission : 'default'
+  );
+  const [showNotificationBanner, setShowNotificationBanner] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  React.useEffect(() => {
+    const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone || (navigator && navigator['standalone']);
+    setIsStandalone(!!checkStandalone);
+
+    const hasPermission = window.Notification && Notification.permission === 'granted';
+    if (checkStandalone && !hasPermission) {
+      setShowNotificationBanner(true);
+    } else {
+      setShowNotificationBanner(false);
+    }
+  }, [notificationPermission]);
+
+  const handleRequestNotificationPermission = () => {
+    if (window.Notification) {
+      Notification.requestPermission().then(permission => {
+        setNotificationPermission(permission);
+        if (permission === 'granted') {
+          toast.success('¡Notificaciones activadas! 🔔');
+          if (window.OneSignal) {
+            window.OneSignal.Notifications.requestPermission();
+          }
+        } else {
+          toast.error('Permiso de notificaciones denegado.');
+        }
+      });
+    } else {
+      toast.error('Tu navegador no soporta notificaciones.');
+    }
+  };
 
   const [locals, setLocals] = React.useState([]);
   const [menus, setMenus] = React.useState([]);
@@ -1005,6 +1073,8 @@ export default function PruebasWalletApp() {
           const pendingData = JSON.parse(pendingRaw);
           if (status === 'approved') {
             toast.success(`¡Pago confirmado! Tu pedido #${pendingData.pedidoId} está siendo procesado.`);
+            setConfirmedOrderId(pendingData.pedidoId);
+            setShowConfirmedModal(true);
             
             // Actualizar estado del pedido en la base de datos
             api.markOrderAsPaid(
@@ -1909,6 +1979,8 @@ export default function PruebasWalletApp() {
             // RETIRO O ENVIO DE SHOPS + EFECTIVO
             if (mp === 'efectivo') {
               toast.success(`¡Pedido #${pregeneratedId} registrado exitosamente!`);
+              setConfirmedOrderId(pregeneratedId);
+              setShowConfirmedModal(true);
               // Refrescar balance y estado tras pedido exitoso
               api.getUserWalletBalance(user.id).then(setWalletBalance).catch(() => {});
               api.getUserOrderCount(user.id).then(cnt => {
@@ -2094,6 +2166,8 @@ export default function PruebasWalletApp() {
           if (pendingData.metodoPago === 'efectivo') {
             try {
               toast.success('¡Pedido confirmado!');
+              setConfirmedOrderId(pendingData.pedidoId);
+              setShowConfirmedModal(true);
               setSearchingDriver(false);
               setFoundDriver(null);
               setPendingOrderId(null);
@@ -2220,7 +2294,7 @@ export default function PruebasWalletApp() {
             </div>
           )}
           {/* City Selector in Header */}
-          <div className="city-header-badge" onClick={() => setActiveCity(null)} style={{
+          <div className="city-header-badge" onClick={handleBadgeClick} style={{
              display: 'flex',
              alignItems: 'center',
              gap: '6px',
@@ -2234,7 +2308,7 @@ export default function PruebasWalletApp() {
              color: '#f1f5f9',
              marginRight: '8px'
            }}>
-             📍 {activeCity || 'Seleccionar Ciudad'}
+             📍 {getAbbreviatedCity(activeCity)}
            </div>
           <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
             <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
@@ -2267,6 +2341,36 @@ export default function PruebasWalletApp() {
 
       <main className="app-main">
         <div className="banners-container" style={{ marginBottom: '20px' }}>
+          {showNotificationBanner && (
+            <div className="notification-permission-banner animate-fade-in" style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fca5a5',
+              padding: '12px 20px',
+              borderRadius: '12px',
+              textAlign: 'center',
+              color: '#991b1b',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              marginBottom: '12px',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+                <span style={{ fontSize: '1.25rem' }}>🔔</span>
+                <span><strong>Activar Notificaciones:</strong> Necesitamos tu permiso para avisarte cuando tu pedido esté en camino.</span>
+              </div>
+              <button 
+                className="btn btn-primary" 
+                style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                onClick={handleRequestNotificationPermission}
+              >
+                Activar
+              </button>
+            </div>
+          )}
           {user && hasActiveOrder && (
             <div className="active-order-banner" style={{
               background: '#ff9800',
@@ -3504,6 +3608,93 @@ export default function PruebasWalletApp() {
         </div>
       )}
 
+      {/* ─── Modal de Pedido Confirmado y Activación de Notificaciones PWA ─── */}
+      {showConfirmedModal && (
+        <div className="modal-overlay" style={{ zIndex: 11000 }} onClick={() => setShowConfirmedModal(false)}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '450px', textAlign: 'center', padding: '30px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🎉</div>
+            <h3 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#16a34a', marginBottom: '8px', fontFamily: "'Outfit', sans-serif" }}>¡Pedido Confirmado!</h3>
+            <p style={{ color: '#475569', fontSize: '0.95rem', marginBottom: '24px', lineHeight: '1.5' }}>
+              Tu pedido <strong style={{color: '#0f172a'}}>#{confirmedOrderId}</strong> ha sido registrado con éxito y ya está en preparación.
+            </p>
+
+            <button 
+              className="btn btn-full" 
+              style={{ marginBottom: '12px', background: 'var(--red-600)', color: 'white', padding: '14px 20px', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(220, 38, 38, 0.2)' }}
+              onClick={() => {
+                setShowConfirmedModal(false);
+                setShowPwaSteps(true);
+              }}
+            >
+              🔔 Activar Notificaciones
+            </button>
+            <button 
+              className="btn btn-secondary btn-full"
+              style={{ padding: '14px 20px', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer' }}
+              onClick={() => setShowConfirmedModal(false)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPwaSteps && (
+        <div className="modal-overlay" style={{ zIndex: 11000 }} onClick={() => setShowPwaSteps(false)}>
+          <div className="modal-box animate-fade-in" style={{ maxWidth: '450px', textAlign: 'left', padding: '24px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: '800', marginBottom: '12px', color: '#0f172a', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📲 Recibí alertas en tiempo real
+            </h3>
+            <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '16px', lineHeight: '1.5' }}>
+              Para recibir notificaciones del estado de tu envío en tu celular, debés agregar Wepi a tu pantalla de inicio:
+            </p>
+            
+            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', marginBottom: '12px', border: '1px solid #e2e8f0' }}>
+              <h4 style={{ fontWeight: '700', fontSize: '0.9rem', marginBottom: '6px', color: '#0f172a' }}>🤖 En Android (Chrome):</h4>
+              <ol style={{ paddingLeft: '18px', fontSize: '0.85rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                <li style={{ marginBottom: '4px' }}>Presioná el menú de tres puntos <strong>⫶</strong> arriba a la derecha.</li>
+                <li>Seleccioná <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.</li>
+              </ol>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+              <h4 style={{ fontWeight: '700', fontSize: '0.9rem', marginBottom: '6px', color: '#0f172a' }}>🍎 En iOS (Safari / iPhone):</h4>
+              <ol style={{ paddingLeft: '18px', fontSize: '0.85rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                <li style={{ marginBottom: '4px' }}>Presioná el botón de compartir <strong>📤</strong> abajo en la barra.</li>
+                <li>Deslizá y seleccioná <strong>"Agregar al inicio"</strong> <strong>➕</strong>.</li>
+              </ol>
+            </div>
+
+            {deferredPrompt && (
+              <button 
+                className="btn btn-full"
+                style={{ marginBottom: '10px', background: 'var(--red-600)', color: 'white', padding: '14px 20px', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', border: 'none', cursor: 'pointer' }}
+                onClick={() => {
+                  deferredPrompt.prompt();
+                  deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                      console.log('User accepted the install prompt');
+                    }
+                    setDeferredPrompt(null);
+                    setShowPwaSteps(false);
+                  });
+                }}
+              >
+                Instalar Ahora
+              </button>
+            )}
+
+            <button 
+              className="btn btn-secondary btn-full"
+              style={{ padding: '14px 20px', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer' }}
+              onClick={() => setShowPwaSteps(false)}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ——— Ice Cream Modal ——— */}
       {iceCreamModal && (
         <div className="modal-overlay" onClick={() => setIceCreamModal(null)}>
@@ -4002,38 +4193,42 @@ export default function PruebasWalletApp() {
                   <div className="radar"></div>
                   <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Buscando" className="moving-moto" />
                 </div>
-                <h2>Confirmando pedido...</h2>
-                <div className="searching-status-pill">
-                  {searchSeconds < 10 ? 'Iniciando búsqueda...' : 
-                   searchSeconds < 30 ? 'Notificando a repartidores cercanos...' :
-                   searchSeconds < 60 ? 'Estamos esperando una aceptación...' :
-                   'Ampliando zona de búsqueda...'}
-                </div>
-                <p className="searching-description">
-                  Estamos buscando al mejor repartidor disponible para llevar tu pedido. Esto puede demorar unos minutos.
+                <h2>🔎Buscando tu repartidor</h2>
+                
+                <p className="searching-description" style={{ fontSize: '1.05rem', fontWeight: '500', marginBottom: '16px' }}>
+                  Estamos buscando un repartidor disponible para retirar y entregar tu pedido lo antes posible.
                 </p>
+
+                <div className="searching-status-pill" style={{ display: 'inline-block', margin: '8px auto', padding: '6px 16px', borderRadius: '20px', background: 'var(--primary-light, #f0fdf4)', color: 'var(--primary-dark, #16a34a)', fontWeight: '600', fontSize: '0.9rem' }}>
+                  📍 Notificando repartidores cercanos...
+                </div>
+
+                <p style={{ fontSize: '0.85rem', color: '#666', margin: '12px 0' }}>
+                  ⏳ Esto puede tardar unos minutos según la demanda y disponibilidad de la zona.
+                </p>
+
                 <div style={{
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  background: 'rgba(239, 68, 68, 0.08)',
                   color: '#dc2626',
-                  padding: '12px',
+                  padding: '14px',
                   borderRadius: '12px',
                   fontSize: '0.85rem',
                   fontWeight: '600',
                   marginTop: '10px',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                  textAlign: 'left',
+                  lineHeight: '1.4'
                 }}>
-                  <span>⚠️</span> 
-                  <span><strong>NO CIERRES ESTA VENTANA:</strong> Una vez que encontremos repartidor, deberás realizar el pago para confirmar tu pedido.</span>
+                  ⚠️ <strong>Mantené esta ventana abierta.</strong> Una vez que un repartidor acepte el viaje, podrás realizar el pago y confirmar tu pedido.
                 </div>
-                <div className="searching-timer">
-                  Buscando repartidor... 
-                  <span style={{ fontWeight: 800, color: 'var(--red-600)', marginLeft: '8px', fontSize: '1.1rem' }}>
+
+                <div className="searching-timer" style={{ marginTop: '20px', fontSize: '1rem', fontWeight: '500' }}>
+                  ⏳ Tiempo de espera...{' '}
+                  <span style={{ fontWeight: 800, color: 'var(--red-600)', fontSize: '1.1rem' }}>
                     0{Math.floor((60 - searchSeconds) / 60)}:{( (60 - searchSeconds) % 60 ).toString().padStart(2, '0')}
                   </span>
                 </div>
+
                 <button 
                   className="searching-cancel-btn"
                   onClick={async () => {

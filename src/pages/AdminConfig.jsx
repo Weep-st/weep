@@ -10,12 +10,18 @@ const AdminConfig = () => {
         valor_envio_shops: 2000,
         codigo_acceso: ''
     });
+    const [ciudades, setCiudades] = useState([]);
+    const [partners, setPartners] = useState([]);
 
     useEffect(() => {
         const fetchConfig = async () => {
             try {
                 const data = await api.getConfiguracion();
                 setConfig(data);
+                const citiesData = await api.getCiudadesConfig();
+                setCiudades(citiesData);
+                const partnersData = await api.getPartners();
+                setPartners(partnersData);
             } catch (err) {
                 console.error(err);
                 toast.error('Error al cargar la configuración');
@@ -38,6 +44,9 @@ const AdminConfig = () => {
                 mantenimiento_repartidores: config.mantenimiento_repartidores,
                 codigo_acceso: config.codigo_acceso
             });
+            for (const c of ciudades) {
+                await api.updateCityLogisticsConfig(c.ciudad, c.tipo_logistica, c.partner_oficial_id);
+            }
             toast.success('Configuración guardada correctamente');
         } catch (err) {
             console.error(err);
@@ -183,6 +192,86 @@ const AdminConfig = () => {
                                 <span className="slider round"></span>
                             </label>
                         </div>
+                    </div>
+                </div>
+
+                <div className="maintenance-section" style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
+                    <h3 style={{ marginBottom: '1.5rem', color: 'white' }}>Logística por Ciudad</h3>
+                    
+                    <div style={{ display: 'grid', gap: '1.5rem' }}>
+                        {ciudades.map((c, idx) => (
+                            <div key={c.ciudad} style={{ 
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                padding: '16px',
+                                marginBottom: '16px',
+                                maxWidth: '500px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: c.tipo_logistica === 'partner' ? '12px' : 0 }}>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{c.ciudad}</h4>
+                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Modalidad de distribución</p>
+                                    </div>
+                                    <select
+                                        value={c.tipo_logistica}
+                                        onChange={(e) => {
+                                            const newCities = [...ciudades];
+                                            newCities[idx].tipo_logistica = e.target.value;
+                                            if (e.target.value !== 'partner') {
+                                                newCities[idx].partner_oficial_id = null;
+                                            }
+                                            setCiudades(newCities);
+                                        }}
+                                        className="admin-input"
+                                        style={{
+                                            padding: '0.5rem',
+                                            background: 'rgba(0,0,0,0.5)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '0.25rem',
+                                            color: 'white',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        <option value="individual" style={{ background: '#222' }}>Repartidor Individual (Broadcast)</option>
+                                        <option value="partner" style={{ background: '#222' }}>Partner Logístico (Empresa)</option>
+                                    </select>
+                                </div>
+
+                                {c.tipo_logistica === 'partner' && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '10px' }}>
+                                        <div>
+                                            <span style={{ fontSize: '0.85rem', color: 'white' }}>Partner Oficial:</span>
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Empresa asociada a esta ciudad</p>
+                                        </div>
+                                        <select
+                                            value={c.partner_oficial_id || ''}
+                                            onChange={(e) => {
+                                                const newCities = [...ciudades];
+                                                newCities[idx].partner_oficial_id = e.target.value || null;
+                                                setCiudades(newCities);
+                                            }}
+                                            className="admin-input"
+                                            style={{
+                                                padding: '0.5rem',
+                                                background: 'rgba(0,0,0,0.5)',
+                                                border: '1px solid var(--border-color)',
+                                                borderRadius: '0.25rem',
+                                                color: 'white',
+                                                fontSize: '0.9rem'
+                                            }}
+                                        >
+                                            <option value="" style={{ background: '#222' }}>-- Sin Asignar --</option>
+                                            {partners.map(p => (
+                                                <option key={p.id} value={p.id} style={{ background: '#222' }}>
+                                                    {p.nombre} ({p.id}) - {p.ciudad || 'Sin Ciudad'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 

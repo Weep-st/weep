@@ -12,6 +12,8 @@ import HelpChatbot from '../components/HelpChatbot';
 import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
 import './CustomerApp.css';
 
+const GOOGLE_MAPS_LIBRARIES = ['places'];
+
 export default function CustomerApp() {
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -22,7 +24,7 @@ export default function CustomerApp() {
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: googleMapsApiKey,
-    libraries: ['places']
+    libraries: GOOGLE_MAPS_LIBRARIES
   });
 
   if (loadError) {

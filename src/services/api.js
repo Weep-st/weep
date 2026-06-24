@@ -291,7 +291,10 @@ export async function repartidorLogin(email, password) {
       FotoUrl: data.foto_url,
       HorarioApertura: data.horario_apertura,
       HorarioCierre: data.horario_cierre,
-      DiasApertura: data.dias_apertura
+      DiasApertura: data.dias_apertura,
+      es_partner: data.es_partner,
+      partner_id: data.partner_id,
+      ciudad: data.ciudad
     },
   };
 }
@@ -387,6 +390,30 @@ export async function reenviarEmailConfirmacion(email, tipo) {
 export async function repartidorGetDatos(driverId) {
   const { data, error } = await supabase.from('repartidores').select('*').eq('id', driverId).single();
   if (error) return { success: false };
+  
+  // Lazy generate PIN for partner if not present
+  let partnerPin = data.partner_pin;
+  if (data.es_partner && !partnerPin) {
+    partnerPin = Math.floor(100000 + Math.random() * 900000).toString();
+    const { error: updateErr } = await supabase.from('repartidores').update({ partner_pin: partnerPin }).eq('id', driverId);
+    if (updateErr) {
+      console.warn("⚠️ Failed to update partner_pin, database column probably missing. Run supabase_partner_linking.sql.", updateErr);
+      partnerPin = '------';
+    }
+  }
+
+  let partnerNombre = null;
+  if (data.partner_id) {
+    const { data: pData } = await supabase.from('repartidores').select('nombre').eq('id', data.partner_id).single();
+    partnerNombre = pData?.nombre || null;
+  }
+
+  let solicitadoNombre = null;
+  if (data.partner_vinculo_solicitado_id) {
+    const { data: sData } = await supabase.from('repartidores').select('nombre').eq('id', data.partner_vinculo_solicitado_id).single();
+    solicitadoNombre = sData?.nombre || null;
+  }
+
   return {
     success: true,
     data: {
@@ -405,7 +432,15 @@ export async function repartidorGetDatos(driverId) {
       PedidosIgnorados: data.pedidos_ignorados_count || 0,
       OneSignalId: data.onesignal_id,
       TipoVehiculo: data.tipo_vehiculo || 'Moto',
-      NivelRepartidor: data.nivel_repartidor || 1
+      NivelRepartidor: data.nivel_repartidor || 1,
+      ciudad: data.ciudad,
+      es_partner: data.es_partner,
+      partner_id: data.partner_id,
+      partner_pin: partnerPin,
+      partner_vinculo_status: data.partner_vinculo_status || 'Ninguno',
+      partner_vinculo_solicitado_id: data.partner_vinculo_solicitado_id,
+      partner_nombre: partnerNombre,
+      partner_solicitado_nombre: solicitadoNombre
     },
   };
 }
@@ -480,6 +515,8 @@ export async function repartidorUpdatePerfil(params) {
   if (params.horario_apertura !== undefined) dbUpdates.horario_apertura = params.horario_apertura;
   if (params.horario_cierre !== undefined) dbUpdates.horario_cierre = params.horario_cierre;
   if (params.dias_apertura !== undefined) dbUpdates.dias_apertura = params.dias_apertura;
+  if (params.es_partner !== undefined) dbUpdates.es_partner = params.es_partner;
+  if (params.partner_id !== undefined) dbUpdates.partner_id = params.partner_id;
 
   const { error } = await supabase.from('repartidores').update(dbUpdates).eq('id', driverId);
   if (error) throw new Error(error.message);
@@ -1440,7 +1477,7 @@ export async function getItemsByPedidoLocal(pedidoId, localId) {
 }
 
 export async function getPedidoGeneral(pedidoId) {
-  const { data } = await supabase.from('pedidos_general').select('*, repartidores(nombre, telefono)').eq('id', pedidoId).single();
+  const { data } = await supabase.from('pedidos_general').select('*, repartidores!pedidos_repartidor_id_fkey(nombre, telefono)').eq('id', pedidoId).single();
   if (!data) return {};
   return {
     direccion: data.direccion, observaciones: data.observaciones,
@@ -1590,7 +1627,7 @@ export async function getMisPedidos(userId) {
     .from('pedidos_general')
     .select(`
       *,
-      repartidor:repartidores(nombre, telefono),
+      repartidor:repartidores!pedidos_repartidor_id_fkey(nombre, telefono),
       pedidos_items:pedidos_items(
         *
       )
@@ -2222,7 +2259,7 @@ export async function adminUpdateLocalCommission(localId, habilitada, valor) {
 export async function adminGetDriverSettlements() {
   const { data, error } = await supabase
     .from('pedidos_general')
-    .select('id, created_at, total, precio_envio, metodo_pago, repartidor_id, cobro_repartidor_procesado, repartidores(nombre)')
+    .select('id, created_at, total, precio_envio, metodo_pago, repartidor_id, cobro_repartidor_procesado, repartidores!pedidos_repartidor_id_fkey(nombre)')
     .eq('estado', 'Entregado')
     .order('created_at', { ascending: false });
   
@@ -2282,7 +2319,7 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
 // ═══════════════════════════════════════════════════
 export async function adminGetPedidosGeneral() {
   const { data, error } = await supabase.from('pedidos_general')
-    .select('*, locales(nombre, tipo_servicio), repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
+    .select('*, locales(nombre, tipo_servicio, ciudad), repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
     .order('created_at', { ascending: false })
     .limit(20);
   if (error) throw new Error(error.message);
@@ -2563,8 +2600,8 @@ export async function getLocalCierreReport(localId, options = {}) {
     let cuponCreditoWepi = 0;
     let cuponDescuentoLocal = 0;
 
-    if (descuentoCupon > 0 && pg.cupon_id) {
-      const promo = promocionesMap.get(pg.cupon_id);
+    if (descuentoCupon > 0) {
+      const promo = pg.cupon_id ? promocionesMap.get(pg.cupon_id) : null;
       let porcWepi = 100; // Por defecto Wepi asume el 100%
       let porcLocal = 0;
       if (promo && promo.financiacion) {
@@ -3160,7 +3197,7 @@ export async function assignRepartidor(pedidoId) {
 export async function getPedidosDisponibles(repartidorId) {
   // 1. Obtener datos del repartidor para ver sus prioridades y capacidad
   const { data: repData, error: repError } = await supabase.from('repartidores')
-    .select('locales_prioridad, nivel_repartidor, estado')
+    .select('locales_prioridad, nivel_repartidor, estado, ciudad, partner_id')
     .eq('id', repartidorId)
     .single();
 
@@ -3197,7 +3234,7 @@ export async function getPedidosDisponibles(repartidorId) {
 
   // 4. Obtener Pedidos (Asignados o Disponibles para Broadcast)
   const { data, error } = await supabase.from('pedidos_general')
-    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono)')
+    .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, repartidor_propuesto_id, usuarios(telefono), locales(ciudad)')
     .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
@@ -3209,6 +3246,7 @@ export async function getPedidosDisponibles(repartidorId) {
 
   // 5. Obtener configuración de rubros para tiempos de stacking
   const { data: rubrosConfig } = await supabase.from('rubros_config').select('*');
+  const { data: ciudadesConfig } = await supabase.from('ciudades_config').select('*');
 
   // 6. Filtrar dinámicamente
   const ahora = Date.now();
@@ -3217,6 +3255,24 @@ export async function getPedidosDisponibles(repartidorId) {
   const filtered = (data || []).filter(p => {
     // Si el pedido ya es mío, lo muestro siempre
     if (p.repartidor_id === repartidorId) return true;
+
+    // --- FILTRADO POR CIUDAD ---
+    const pedidoCiudad = p.locales?.ciudad;
+    if (repData?.ciudad && pedidoCiudad && pedidoCiudad !== repData.ciudad) return false;
+
+    // --- FILTRADO POR LOGISTICA DE PARTNER ---
+    const configCiudad = ciudadesConfig?.find(c => c.ciudad === pedidoCiudad);
+    const esCiudadPartner = configCiudad?.tipo_logistica === 'partner';
+
+    if (repData?.partner_id) {
+      // Repartidor vinculado a partner: solo ve si fue asignado a él
+      if (p.repartidor_propuesto_id !== repartidorId) return false;
+    } else {
+      // Repartidor individual:
+      // No ve si la ciudad se gestiona por Partner o si ya está asignado a otro
+      if (esCiudadPartner) return false;
+      if (p.repartidor_propuesto_id) return false;
+    }
 
     // --- LÓGICA DE CAPACIDAD ---
     // Si soy Bici (Nivel 2) y ya tengo un pedido, no puedo tomar más (a menos que sea del mismo local)
@@ -4790,7 +4846,7 @@ export async function updateRubroConfig(id, updates) {
 
 export async function adminGetRepartidoresDetallado() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor, foto_url, onesignal_id, horario_apertura, horario_cierre, dias_apertura, ultima_actividad, locales_prioridad')
+    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor, foto_url, onesignal_id, horario_apertura, horario_cierre, dias_apertura, ultima_actividad, locales_prioridad, es_partner, partner_id')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -5814,4 +5870,408 @@ export async function adminDeleteAd(id) {
     .eq('id', id);
   if (error) throw error;
   return true;
+}
+
+// ═══════════════════════════════════════════════════
+// LOGÍSTICA DE PARTNERS Y CIUDADES (NUEVO)
+// ═══════════════════════════════════════════════════
+
+export async function getCiudadesConfig() {
+  const { data, error } = await supabase
+    .from('ciudades_config')
+    .select('*')
+    .order('ciudad', { ascending: true });
+    
+  if (error) {
+    console.error('Error fetching ciudades config:', error);
+    return [];
+  }
+  return data;
+}
+
+export async function updateCityLogisticsConfig(ciudad, tipoLogistica, partnerOficialId = null) {
+  const { error } = await supabase
+    .from('ciudades_config')
+    .upsert({ 
+      ciudad, 
+      tipo_logistica: tipoLogistica, 
+      partner_oficial_id: partnerOficialId || null, 
+      updated_at: new Date().toISOString() 
+    });
+    
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function getPartners() {
+  const { data, error } = await supabase
+    .from('repartidores')
+    .select('id, nombre, ciudad')
+    .eq('es_partner', true)
+    .order('nombre', { ascending: true });
+    
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function getPartnerDrivers(partnerId) {
+  const { data, error } = await supabase
+    .from('repartidores')
+    .select('*')
+    .eq('partner_id', partnerId)
+    .order('nombre', { ascending: true });
+    
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function getPartnerPedidos(partnerId, ciudad) {
+  const { data: drivers, error: driversError } = await supabase
+    .from('repartidores')
+    .select('id, nombre')
+    .eq('partner_id', partnerId);
+    
+  if (driversError) throw new Error(driversError.message);
+  
+  const driverIds = (drivers || []).map(d => d.id);
+  const driverNamesMap = {};
+  (drivers || []).forEach(d => {
+    driverNamesMap[d.id] = d.nombre;
+  });
+
+  // Obtener ciudades donde este partner es el oficial
+  let ciudadesPartner = [ciudad];
+  try {
+    const { data: configCiudades } = await supabase
+      .from('ciudades_config')
+      .select('ciudad')
+      .eq('partner_oficial_id', partnerId);
+      
+    if (configCiudades && configCiudades.length > 0) {
+      ciudadesPartner = configCiudades.map(c => c.ciudad);
+    }
+  } catch (err) {
+    console.warn("Failed to check cities config, falling back to partner home city:", err);
+  }
+
+  let activeOrders = [];
+  if (driverIds.length > 0) {
+    const { data: active, error: activeError } = await supabase
+      .from('pedidos_general')
+      .select('id, total, precio_envio, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, locales(nombre)')
+      .in('repartidor_id', driverIds)
+      .not('estado', 'in', '(\"Entregado\",\"Cancelado\",\"Rechazado\")')
+      .order('created_at', { ascending: false });
+      
+    if (activeError) throw new Error(activeError.message);
+    activeOrders = (active || []).map(p => ({
+      id: p.id,
+      monto: Number(p.total) || 0,
+      precio_envio: Number(p.precio_envio) || 0,
+      pago: p.metodo_pago,
+      estado: p.estado,
+      direccion: p.direccion,
+      observaciones: p.observaciones,
+      envio: p.tipo_entrega,
+      nombre_cliente: p.nombre_cliente || 'Cliente',
+      created_at: p.created_at,
+      repartidor_id: p.repartidor_id,
+      nombre_repartidor: driverNamesMap[p.repartidor_id] || 'Repartidor',
+      nombre_local: p.locales?.nombre || 'Local'
+    }));
+  }
+
+  let historyOrders = [];
+  if (driverIds.length > 0) {
+    const { data: history, error: historyError } = await supabase
+      .from('pedidos_general')
+      .select('id, total, precio_envio, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, locales(nombre)')
+      .in('repartidor_id', driverIds)
+      .eq('estado', 'Entregado')
+      .order('created_at', { ascending: false })
+      .limit(100);
+      
+    if (historyError) throw new Error(historyError.message);
+    historyOrders = (history || []).map(p => ({
+      id: p.id,
+      monto: Number(p.total) || 0,
+      precio_envio: Number(p.precio_envio) || 0,
+      pago: p.metodo_pago,
+      estado: p.estado,
+      direccion: p.direccion,
+      observaciones: p.observaciones,
+      envio: p.tipo_entrega,
+      nombre_cliente: p.nombre_cliente || 'Cliente',
+      created_at: p.created_at,
+      repartidor_id: p.repartidor_id,
+      nombre_repartidor: driverNamesMap[p.repartidor_id] || 'Repartidor',
+      nombre_local: p.locales?.nombre || 'Local'
+    }));
+  }
+
+  const { data: broadcasts, error: broadcastsError } = await supabase
+    .from('pedidos_general')
+    .select('id, total, precio_envio, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, repartidor_propuesto_id, locales(nombre, ciudad)')
+    .is('repartidor_id', null)
+    .eq('tipo_entrega', 'Con Envío')
+    .in('estado', ['Pendiente', 'Buscando Repartidor', 'Listo', 'Preparando', 'Aceptado'])
+    .order('created_at', { ascending: false });
+    
+  if (broadcastsError) throw new Error(broadcastsError.message);
+  
+  const broadcastOrders = (broadcasts || [])
+    .filter(p => ciudadesPartner.includes(p.locales?.ciudad))
+    .map(p => ({
+      id: p.id,
+      monto: Number(p.total) || 0,
+      precio_envio: Number(p.precio_envio) || 0,
+      pago: p.metodo_pago,
+      estado: p.estado,
+      direccion: p.direccion,
+      observaciones: p.observaciones,
+      envio: p.tipo_entrega,
+      nombre_cliente: p.nombre_cliente || 'Cliente',
+      created_at: p.created_at,
+      repartidor_id: p.repartidor_id,
+      repartidor_propuesto_id: p.repartidor_propuesto_id,
+      nombre_repartidor_propuesto: driverNamesMap[p.repartidor_propuesto_id] || null,
+      nombre_local: p.locales?.nombre || 'Local'
+    }));
+
+  return {
+    activeOrders,
+    historyOrders,
+    broadcastOrders
+  };
+}
+
+export async function partnerAssignPedido(pedidoId, driverId) {
+  const { error } = await supabase
+    .from('pedidos_general')
+    .update({ repartidor_propuesto_id: driverId })
+    .eq('id', pedidoId);
+    
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function partnerUnassignPedido(pedidoId) {
+  const { error } = await supabase
+    .from('pedidos_general')
+    .update({ repartidor_propuesto_id: null })
+    .eq('id', pedidoId);
+    
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function partnerRegisterDriver(partnerId, ciudad, params) {
+  const id = 'REP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const { error } = await supabase.from('repartidores').insert({
+    id, 
+    nombre: params.nombre, 
+    telefono: params.telefono,
+    email: params.email, 
+    password: params.password,
+    patente: params.patente, 
+    marca_modelo: params.marcaModelo,
+    fecha_registro: new Date().toISOString(),
+    terms_accepted: true,
+    privacy_accepted: true,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: 'v1',
+    email_confirmado: true,
+    token_confirmacion: code,
+    ciudad: ciudad,
+    partner_id: partnerId,
+    admin_status: 'Aceptado',
+    tipo_vehiculo: params.tipoVehiculo || 'Moto',
+    nivel_repartidor: params.tipoVehiculo === 'Bici' ? 2 : 1
+  });
+  
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function solicitarVinculacionPartner(driverId, pin) {
+  try {
+    const { data: partner, error } = await supabase
+      .from('repartidores')
+      .select('id, nombre')
+      .eq('es_partner', true)
+      .eq('partner_pin', pin.trim())
+      .single();
+
+    if (error) {
+      if (error.message?.includes('partner_pin') || error.code === 'PGRST100') {
+        return { success: false, error: 'Error: La columna partner_pin no existe en la base de datos. Por favor, ejecuta la migración SQL supabase_partner_linking.sql.' };
+      }
+      return { success: false, error: 'Código PIN inválido o partner no encontrado' };
+    }
+
+    if (!partner) {
+      return { success: false, error: 'Código PIN inválido o partner no encontrado' };
+    }
+
+    const { error: updateError } = await supabase
+      .from('repartidores')
+      .update({
+        partner_vinculo_solicitado_id: partner.id,
+        partner_vinculo_status: 'Pendiente'
+      })
+      .eq('id', driverId);
+
+    if (updateError) {
+      if (updateError.message?.includes('partner_vinculo_status')) {
+        return { success: false, error: 'Error: Faltan las columnas de vinculación en la base de datos. Por favor, ejecuta la migración SQL supabase_partner_linking.sql.' };
+      }
+      return { success: false, error: updateError.message };
+    }
+    return { success: true, partnerNombre: partner.nombre };
+  } catch (err) {
+    return { success: false, error: 'Error de conexión: ' + err.message };
+  }
+}
+
+export async function cancelarSolicitudVinculacion(driverId) {
+  try {
+    const { error } = await supabase
+      .from('repartidores')
+      .update({
+        partner_vinculo_solicitado_id: null,
+        partner_vinculo_status: 'Ninguno'
+      })
+      .eq('id', driverId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getPartnerPendingRequests(partnerId) {
+  try {
+    const { data, error } = await supabase
+      .from('repartidores')
+      .select('id, nombre, email, telefono, patente, marca_modelo, tipo_vehiculo, estado')
+      .eq('partner_vinculo_solicitado_id', partnerId)
+      .eq('partner_vinculo_status', 'Pendiente')
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      console.warn("⚠️ getPartnerPendingRequests error (probably missing columns):", error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.warn("⚠️ getPartnerPendingRequests caught exception:", err);
+    return [];
+  }
+}
+
+export async function confirmarVinculacion(driverId, partnerId, aceptar) {
+  try {
+    const updates = {
+      partner_vinculo_solicitado_id: null,
+      partner_vinculo_status: aceptar ? 'Aceptado' : 'Ninguno'
+    };
+    if (aceptar) {
+      updates.partner_id = partnerId;
+    }
+    const { error } = await supabase
+      .from('repartidores')
+      .update(updates)
+      .eq('id', driverId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function desvincularDriver(driverId) {
+  try {
+    const { error } = await supabase
+      .from('repartidores')
+      .update({
+        partner_id: null,
+        partner_vinculo_status: 'Ninguno',
+        partner_vinculo_solicitado_id: null
+      })
+      .eq('id', driverId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function partnerUpdateDriverSchedule(driverId, updates) {
+  const { error } = await supabase
+    .from('repartidores')
+    .update({
+      horario_apertura: updates.horario_apertura,
+      horario_cierre: updates.horario_cierre,
+      dias_apertura: updates.dias_apertura
+    })
+    .eq('id', driverId);
+    
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+export async function partnerGetFinancialReport(partnerId, startDate, endDate) {
+  const { data: drivers, error: driversError } = await supabase
+    .from('repartidores')
+    .select('id, nombre')
+    .eq('partner_id', partnerId);
+    
+  if (driversError) throw new Error(driversError.message);
+  const driverIds = (drivers || []).map(d => d.id);
+  
+  if (driverIds.length === 0) {
+    return [];
+  }
+  
+  let query = supabase
+    .from('pedidos_general')
+    .select('id, total, precio_envio, created_at, repartidor_id')
+    .in('repartidor_id', driverIds)
+    .eq('estado', 'Entregado');
+    
+  if (startDate) {
+    query = query.gte('created_at', startDate);
+  }
+  if (endDate) {
+    query = query.lte('created_at', endDate);
+  }
+  
+  const { data: orders, error: ordersError } = await query;
+  if (ordersError) throw new Error(ordersError.message);
+  
+  const reportMap = {};
+  drivers.forEach(d => {
+    reportMap[d.id] = {
+      driverId: d.id,
+      driverName: d.nombre,
+      totalDeliveries: 0,
+      totalVolume: 0,
+      totalEarnings: 0
+    };
+  });
+  
+  (orders || []).forEach(o => {
+    const rep = reportMap[o.repartidor_id];
+    if (rep) {
+      rep.totalDeliveries += 1;
+      rep.totalVolume += Number(o.total) || 0;
+      rep.totalEarnings += Number(o.precio_envio) || 0;
+    }
+  });
+  
+  return Object.values(reportMap);
 }

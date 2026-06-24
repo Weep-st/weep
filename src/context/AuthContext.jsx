@@ -39,7 +39,9 @@ export function AuthProvider({ children }) {
     if (repartidorId) {
       setDriver({ 
         id: repartidorId,
-        emailConfirmado: localStorage.getItem('driverEmailConfirmado') === 'true'
+        emailConfirmado: localStorage.getItem('driverEmailConfirmado') === 'true',
+        esPartner: localStorage.getItem('driverEsPartner') === 'true',
+        partnerId: localStorage.getItem('driverPartnerId') || null
       });
     }
   }, []);
@@ -128,14 +130,22 @@ export function AuthProvider({ children }) {
   const loginAsDriver = (data) => {
     const id = typeof data === 'string' ? data : (data.ID || data.id);
     const confirmed = typeof data === 'object' ? !!(data.EmailConfirmado || data.emailConfirmado) : (localStorage.getItem('driverEmailConfirmado') === 'true');
+    const esPartner = typeof data === 'object' ? !!(data.es_partner || data.esPartner) : (localStorage.getItem('driverEsPartner') === 'true');
+    const partnerId = typeof data === 'object' ? (data.partner_id || data.partnerId || null) : localStorage.getItem('driverPartnerId');
 
     localStorage.setItem('repartidorId', id);
     localStorage.setItem('driverEmailConfirmado', String(confirmed));
-    setDriver({ id, emailConfirmado: confirmed });
+    localStorage.setItem('driverEsPartner', String(esPartner));
+    if (partnerId) {
+      localStorage.setItem('driverPartnerId', partnerId);
+    } else {
+      localStorage.removeItem('driverPartnerId');
+    }
+    setDriver({ id, emailConfirmado: confirmed, esPartner, partnerId });
   };
 
   const logoutDriver = () => {
-    ['repartidorId', 'driverEmailConfirmado'].forEach(k => localStorage.removeItem(k));
+    ['repartidorId', 'driverEmailConfirmado', 'driverEsPartner', 'driverPartnerId'].forEach(k => localStorage.removeItem(k));
     setDriver(null);
   };
 

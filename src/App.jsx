@@ -10,6 +10,7 @@ import PruebasWalletApp from './pages/PruebasWalletApp';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import PruebaDashboard from './pages/PruebaDashboard';
 import DriverDashboard from './pages/DriverDashboard';
+import PartnerDashboard from './pages/PartnerDashboard';
 import DriverProbando from './pages/DriverProbando';
 import MisPedidos from './pages/MisPedidos';
 import ConfirmarEmail from './pages/ConfirmarEmail';
@@ -115,7 +116,7 @@ export default function App() {
 
     // 3. Section Tracking for PWA Magic Redirect
     const path = location.pathname;
-    if (['/pedir', '/repartidores', '/locales', '/admin', '/prueba', '/mis-pedidos'].some(s => path.startsWith(s))) {
+    if (['/pedir', '/repartidores', '/partners', '/locales', '/admin', '/prueba', '/mis-pedidos'].some(s => path.startsWith(s))) {
       localStorage.setItem('weep-last-section', path);
     }
   }, [location]);
@@ -130,6 +131,7 @@ export default function App() {
     else if (path.startsWith('/locales') || path.startsWith('/prueba')) { config = { name: "Wepi - Locales", start: "/locales", title: "Wepi - Locales" }; }
     else if (path.startsWith('/admin')) { config = { name: "Wepi - Admin", start: "/admin", title: "Wepi - Admin" }; }
     else if (path.startsWith('/repartidores')) { config = { name: "Wepi - Repartidores", start: "/repartidores", title: "Wepi - Repartidores" }; }
+    else if (path.startsWith('/partners')) { config = { name: "Wepi - Partners", start: "/partners", title: "Wepi - Partners" }; }
 
     // URL Robusta para start_url (usa el truco de ?p= para evitar recortes de Safari)
     const pwaStartUrl = 'https://wepi.com.ar' + (config.start === '/' ? '/?mode=pwa' : '/?p=' + config.start + '&mode=pwa');
@@ -212,6 +214,11 @@ export default function App() {
           <Route path="/repartidores" element={
             <MaintenanceGuard configKey="mantenimiento_repartidores">
               <DriverDashboard />
+            </MaintenanceGuard>
+          } />
+          <Route path="/partners" element={
+            <MaintenanceGuard configKey="mantenimiento_repartidores">
+              <PartnerDashboard />
             </MaintenanceGuard>
           } />
           <Route path="/probando" element={

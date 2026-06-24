@@ -9,18 +9,25 @@ DECLARE
   v_push_payload JSONB;
   v_headers JSONB;
   v_onesignal_id TEXT;
+  v_ciudad TEXT;
 BEGIN
   -- CASO 1: PEDIDO BROADCAST (Nuevo pedido sin asignar)
   IF (TG_OP = 'INSERT' AND NEW.repartidor_id IS NULL AND NEW.estado = 'Pendiente' AND NEW.tipo_entrega = 'Con Envío') THEN
     
-    -- Recolectar IDs de OneSignal de todos los repartidores ACEPTADOS
+    -- Obtener la ciudad del local del pedido
+    SELECT ciudad INTO v_ciudad
+    FROM public.locales
+    WHERE id = NEW.local_id;
+
+    -- Recolectar IDs de OneSignal de todos los repartidores ACEPTADOS de esa misma ciudad
     -- No importa su estado de actividad (según requerimiento previo), solo que estén aceptados por admin
     SELECT array_agg(onesignal_id)
     INTO v_onesignal_ids
     FROM public.repartidores
     WHERE admin_status = 'Aceptado'
       AND onesignal_id IS NOT NULL
-      AND onesignal_id <> '';
+      AND onesignal_id <> ''
+      AND (v_ciudad IS NULL OR ciudad = v_ciudad);
 
     -- Solo enviar si hay al menos un destinatario
     IF v_onesignal_ids IS NOT NULL AND array_length(v_onesignal_ids, 1) > 0 THEN
