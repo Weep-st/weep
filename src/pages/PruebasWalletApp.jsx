@@ -171,6 +171,22 @@ export default function PruebasWalletApp() {
   const [deleting, setDeleting] = React.useState(false);
   const [banners, setBanners] = React.useState([]);
   const [bannersLoading, setBannersLoading] = React.useState(true);
+  const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (banners.length <= 1 || isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prev => (prev + 1) % banners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [banners.length, isPaused]);
+
+  React.useEffect(() => {
+    if (currentBannerIndex >= banners.length) {
+      setCurrentBannerIndex(0);
+    }
+  }, [banners.length, currentBannerIndex]);
   const [promoItems, setPromoItems] = React.useState([]);
   const [allPromotions, setAllPromotions] = React.useState([]);
   const [loadingPromos, setLoadingPromos] = React.useState(false);
@@ -2412,20 +2428,40 @@ export default function PruebasWalletApp() {
         {/* ——— Banners Carousel ——— */}
         {!bannersLoading && banners.length > 0 && (
           <div className="banners-carousel-wrapper animate-fade-in">
-            <div className="banners-carousel">
-              {banners.map(b => (
-                <div 
-                  key={b.id} 
-                  className={`banner-slide ${b.link ? 'clickable' : ''}`}
-                  onClick={() => b.link && window.open(b.link, '_blank')}
-                >
-                  <img 
-                    src={b.imagen_url} 
-                    alt="Promo" 
-                  />
-                </div>
-              ))}
+            <div 
+              className="banners-carousel-container"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              <div 
+                className="banners-carousel"
+                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
+              >
+                {banners.map(b => (
+                  <div 
+                    key={b.id} 
+                    className={`banner-slide ${b.link ? 'clickable' : ''}`}
+                    onClick={() => b.link && window.open(b.link, '_blank')}
+                  >
+                    <img 
+                      src={b.imagen_url} 
+                      alt="Promo" 
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
+            {banners.length > 1 && (
+              <div className="carousel-dots">
+                {banners.map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
+                    onClick={() => setCurrentBannerIndex(idx)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
