@@ -1824,7 +1824,7 @@ export default function RestaurantDashboard() {
                       border: '1px solid #e2e8f0'
                   }}>
                       {(regTipoServicio === 'shops' 
-                          ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'] 
+                          ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas'] 
                           : ['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Bebidas']
                       ).map(r => (
                           <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0, color: 'var(--gray-700)' }}>
@@ -3689,7 +3689,7 @@ export default function RestaurantDashboard() {
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                       {(profileData?.tipo_servicio === 'shops'
-                        ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes']
+                        ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas']
                         : ['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Bebidas']
                       ).map(r => {
                         const isSelected = profileData?.rubros?.includes(r);

@@ -205,7 +205,8 @@ export default function PruebasWalletApp() {
       { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
       { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
       { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
-      { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' }
+      { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
     ] : [
       { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
       { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
@@ -358,7 +359,7 @@ export default function PruebasWalletApp() {
       return { 
           title: "Vidriera Digital — Tiendas Locales", 
           banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
-          rubros: ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'],
+          rubros: ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas'],
           marketCats: []
       };
     }
@@ -982,7 +983,8 @@ export default function PruebasWalletApp() {
               { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
               { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
               { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' }
+              { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
+              { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
             ] : [
               { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
               { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
