@@ -2429,20 +2429,20 @@ export default function PruebasWalletApp() {
         
         {/* ——— Banners Carousel ——— */}
         {!bannersLoading && banners.length > 0 && (
-          <div className="banners-carousel-wrapper animate-fade-in">
+          <div className="wallet-banners-carousel-wrapper animate-fade-in">
             <div 
-              className="banners-carousel-container"
+              className="wallet-banners-carousel-container"
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
             >
               <div 
-                className="banners-carousel"
+                className="wallet-banners-carousel"
                 style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
               >
                 {banners.map(b => (
                   <div 
                     key={b.id} 
-                    className={`banner-slide ${b.link ? 'clickable' : ''}`}
+                    className={`wallet-banner-slide ${b.link ? 'clickable' : ''}`}
                     onClick={() => b.link && window.open(b.link, '_blank')}
                   >
                     <img 
@@ -2454,11 +2454,11 @@ export default function PruebasWalletApp() {
               </div>
             </div>
             {banners.length > 1 && (
-              <div className="carousel-dots">
+              <div className="wallet-carousel-dots">
                 {banners.map((_, idx) => (
                   <span 
                     key={idx} 
-                    className={`carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
+                    className={`wallet-carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
                     onClick={() => setCurrentBannerIndex(idx)}
                   />
                 ))}

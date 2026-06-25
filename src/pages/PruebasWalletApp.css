@@ -1275,26 +1275,26 @@
   object-fit: contain;
 }
 
-.banners-carousel-wrapper {
+.wallet-banners-carousel-wrapper {
   padding: 0 20px;
   margin-bottom: 24px;
 }
 
-.banners-carousel-container {
+.wallet-banners-carousel-container {
   width: 100%;
   overflow: hidden;
   border-radius: 16px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.banners-carousel {
+.wallet-banners-carousel {
   display: flex;
   flex-wrap: nowrap;
   transition: transform 0.5s ease-in-out;
   width: 100%;
 }
 
-.banner-slide {
+.wallet-banner-slide {
   flex: 0 0 100%;
   width: 100%;
   height: 180px;
@@ -1303,22 +1303,22 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.banner-slide.clickable { cursor: pointer; }
+.wallet-banner-slide.clickable { cursor: pointer; }
 
-.banner-slide img {
+.wallet-banner-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.carousel-dots {
+.wallet-carousel-dots {
   display: flex;
   justify-content: center;
   gap: 6px;
   margin-top: 10px;
 }
 
-.carousel-dot {
+.wallet-carousel-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -1327,13 +1327,13 @@
   transition: background 0.3s ease, transform 0.3s ease;
 }
 
-.carousel-dot.active {
+.wallet-carousel-dot.active {
   background: var(--blue-600);
   transform: scale(1.2);
 }
 
 @media (max-width: 480px) {
-  .banner-slide {
+  .wallet-banner-slide {
     flex: 0 0 100%;
     width: 100%;
     height: auto;
@@ -1341,12 +1341,12 @@
   }
 }
 
-.banner-slide:hover {
+.wallet-banner-slide:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 
-.banner-slide img {
+.wallet-banner-slide img {
   user-select: none;
   pointer-events: none;
 }

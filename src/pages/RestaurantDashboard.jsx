@@ -163,6 +163,8 @@ export default function RestaurantDashboard() {
 
   // Stock State (Moved to top level)
   const [itemManejaStock, setItemManejaStock] = React.useState(false);
+  const [selectedStockBaseId, setSelectedStockBaseId] = React.useState('');
+  const [editingStockItem, setEditingStockItem] = React.useState(null);
   const [needsStockConfirmation, setNeedsStockConfirmation] = React.useState(false);
   const [stockToConfirm, setStockToConfirm] = React.useState([]);
   const [showStockModal, setShowStockModal] = React.useState(false);
@@ -174,8 +176,10 @@ export default function RestaurantDashboard() {
   React.useEffect(() => {
     if (editItem) {
       setItemManejaStock(editItem.maneja_stock || false);
+      setSelectedStockBaseId(editItem.stock_base_id || '');
     } else {
       setItemManejaStock(false);
+      setSelectedStockBaseId('');
     }
   }, [editItem]);
 
@@ -1093,6 +1097,18 @@ export default function RestaurantDashboard() {
       setMenuItems(menuItems.map(m => m.id === id ? { ...m, descuento: discount } : m));
       toast.success('Descuento actualizado', { id: `quick-disc-${id}` });
     } catch (e) { toast.error('Error al actualizar descuento'); }
+  };
+
+  const handleQuickStockSave = async (itemId, newStock) => {
+    try {
+      await api.updateMenuItem({ itemId, stock_actual: newStock });
+      setMenuItems(prev => prev.map(m => m.id === itemId ? { ...m, stock_actual: newStock } : m));
+      toast.success('Stock actualizado');
+    } catch (err) {
+      toast.error('Error al actualizar stock');
+    } finally {
+      setEditingStockItem(null);
+    }
   };
 
   const handleOrderAction = async (pedido, action, reason = '') => {
@@ -2718,9 +2734,75 @@ export default function RestaurantDashboard() {
                       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                         <span className="badge badge-gray">{item.categoria || 'Sin categoría'}</span>
                         {item.maneja_stock && (
-                          <span className={`badge ${item.stock_actual <= item.stock_minimo ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
-                            Stock: {item.stock_actual}
-                          </span>
+                          (() => {
+                            const baseItem = item.stock_base_id ? menuItems.find(mi => mi.id === item.stock_base_id) : null;
+                            const displayStock = baseItem 
+                              ? Math.floor((baseItem.stock_actual || 0) / (item.unidades_por_venta || 1)) 
+                              : (item.stock_actual || 0);
+                            const displayMin = baseItem 
+                              ? Math.floor((baseItem.stock_minimo || 10) / (item.unidades_por_venta || 1)) 
+                              : (item.stock_minimo || 10);
+                            const isLowStock = displayStock <= displayMin;
+
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                                {editingStockItem === (baseItem ? baseItem.id : item.id) ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>
+                                      {baseItem ? `Stock de ${baseItem.nombre}:` : 'Stock:'}
+                                    </span>
+                                    <input 
+                                      type="number"
+                                      defaultValue={baseItem ? baseItem.stock_actual : item.stock_actual}
+                                      className="form-input"
+                                      style={{ width: '70px', padding: '4px', fontSize: '0.75rem', marginBottom: 0, textAlign: 'center' }}
+                                      autoFocus
+                                      onKeyDown={async (e) => {
+                                        if (e.key === 'Enter') {
+                                          const val = parseInt(e.target.value) || 0;
+                                          await handleQuickStockSave(baseItem ? baseItem.id : item.id, val);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingStockItem(null);
+                                        }
+                                      }}
+                                      id={`quick-stock-input-${baseItem ? baseItem.id : item.id}`}
+                                    />
+                                    <button 
+                                      className="btn btn-xs btn-success" 
+                                      style={{ padding: '2px 6px', fontSize: '0.7rem' }}
+                                      onClick={async () => {
+                                        const input = document.getElementById(`quick-stock-input-${baseItem ? baseItem.id : item.id}`);
+                                        const val = parseInt(input?.value) || 0;
+                                        await handleQuickStockSave(baseItem ? baseItem.id : item.id, val);
+                                      }}
+                                    >
+                                      ✓
+                                    </button>
+                                    <button 
+                                      className="btn btn-xs btn-secondary" 
+                                      style={{ padding: '2px 6px', fontSize: '0.7rem' }}
+                                      onClick={() => setEditingStockItem(null)}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span className={`badge ${isLowStock ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
+                                      Stock: {displayStock} {baseItem && `(${baseItem.nombre})`}
+                                    </span>
+                                    <button 
+                                      className="btn btn-xs btn-outline" 
+                                      style={{ padding: '2px 6px', fontSize: '0.65rem', color: '#c2410c', borderColor: '#ffedd5', background: '#fff7ed', borderRadius: '4px', cursor: 'pointer' }}
+                                      onClick={() => setEditingStockItem(baseItem ? baseItem.id : item.id)}
+                                    >
+                                      ⚙️ Gestionar Stock
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })()
                         )}
                         {item.stock_base_id && (
                           <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
@@ -3072,9 +3154,14 @@ export default function RestaurantDashboard() {
                           ) : (
                             <>
                               <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Vincular a Producto Base (Requerido)</label>
-                                <select name="stock_base_id" className="form-select" defaultValue={editItem?.stock_base_id || ''} required>
-                                  <option value="" disabled>-- Seleccionar Producto Base --</option>
+                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Vincular a Producto Base (Opcional)</label>
+                                <select 
+                                  name="stock_base_id" 
+                                  className="form-select" 
+                                  value={selectedStockBaseId} 
+                                  onChange={(e) => setSelectedStockBaseId(e.target.value)}
+                                >
+                                  <option value="">-- Controlar stock de forma independiente (Directo) --</option>
                                   {menuItems
                                     .filter(mi => mi.categoria === 'Base' && mi.id !== editItem?.id)
                                     .map(mi => (
@@ -3083,14 +3170,30 @@ export default function RestaurantDashboard() {
                                   }
                                 </select>
                               </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Unidades por Venta</label>
-                                <input name="unidades_por_venta" type="number" className="form-input" placeholder="Ej: 1 o 6" defaultValue={editItem?.unidades_por_venta || 1} />
-                              </div>
-                              <div style={{ display: 'none' }}>
-                                <input name="stock_actual" type="number" defaultValue={0} />
-                                <input name="stock_minimo" type="number" defaultValue={0} />
-                              </div>
+                              {selectedStockBaseId ? (
+                                <>
+                                  <div>
+                                    <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Unidades por Venta</label>
+                                    <input name="unidades_por_venta" type="number" className="form-input" placeholder="Ej: 1 o 6" defaultValue={editItem?.unidades_por_venta || 1} required />
+                                  </div>
+                                  <div style={{ display: 'none' }}>
+                                    <input name="stock_actual" type="number" value={0} />
+                                    <input name="stock_minimo" type="number" value={0} />
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>
+                                    <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Stock Actual</label>
+                                    <input name="stock_actual" type="number" className="form-input" defaultValue={editItem?.stock_actual || 0} required />
+                                  </div>
+                                  <div>
+                                    <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Alerta Stock Bajo</label>
+                                    <input name="stock_minimo" type="number" className="form-input" defaultValue={editItem?.stock_minimo || 10} />
+                                  </div>
+                                  <input type="hidden" name="unidades_por_venta" value="1" />
+                                </>
+                              )}
                             </>
                           )}
                         </div>
