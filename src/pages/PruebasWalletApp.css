@@ -1296,7 +1296,9 @@
 
 .wallet-banner-slide {
   flex: 0 0 100%;
+  min-width: 100%;
   width: 100%;
+  flex-shrink: 0;
   height: 180px;
   overflow: hidden;
   user-select: none;
@@ -1335,7 +1337,9 @@
 @media (max-width: 480px) {
   .wallet-banner-slide {
     flex: 0 0 100%;
+    min-width: 100%;
     width: 100%;
+    flex-shrink: 0;
     height: auto;
     aspect-ratio: 2.5 / 1;
   }
