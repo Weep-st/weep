@@ -208,6 +208,7 @@ export default function PruebasWalletApp() {
       { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
       { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
     ] : [
+      { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' },
       { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
       { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
       { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
@@ -986,6 +987,7 @@ export default function PruebasWalletApp() {
               { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
               { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
             ] : [
+              { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' },
               { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
               { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
               { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
@@ -1370,6 +1372,10 @@ export default function PruebasWalletApp() {
   }, [getTimeBasedTitle, isLocalOpen]);
 
   const fetchByCategory = React.useCallback((cat, label = null) => {
+    if (cat === 'SHOPS') {
+      navigate('/shops');
+      return;
+    }
     setDiscoveryItems([]); // Clear discovery when entering specific category
     api.trackDemandSignal('category_view', sessionId).catch(() => {});
     if (cat === 'favoritos') {
@@ -1426,7 +1432,7 @@ export default function PruebasWalletApp() {
         document.querySelector('.locals-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }).catch(() => toast.error('Error al cargar locales')).finally(() => setLoadingLocals(false));
-  }, [user, favorites]);
+  }, [user, favorites, navigate, isShopsMode]);
 
   const toggleFav = React.useCallback(async (menuId) => {
     if (!user) { setModal('login'); return; }

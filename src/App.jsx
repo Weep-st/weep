@@ -33,19 +33,26 @@ function MaintenanceGuard({ children, configKey }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false); // Fallback: force render if Supabase takes too long or is offline
+    }, 3000);
+
     async function checkMaintenance() {
       try {
         const config = await api.getConfiguracion();
-        if (config[configKey] && user?.role !== 'admin') {
+        if (config && config[configKey] && user?.role !== 'admin') {
           setInMaintenance(true);
         }
       } catch (error) {
         console.error("Error checking maintenance status:", error);
       } finally {
+        clearTimeout(timer);
         setLoading(false);
       }
     }
     checkMaintenance();
+
+    return () => clearTimeout(timer);
   }, [configKey, user]);
 
   if (loading) return null;
