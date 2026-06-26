@@ -208,13 +208,13 @@ export default function PruebasWalletApp() {
       { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
       { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
     ] : [
-      { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' },
       { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
       { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
       { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
       { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
       { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
-      { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
+      { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
+      { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
     ],
     dynamicBanner: '',
     dynamicRubros: [],
@@ -987,13 +987,13 @@ export default function PruebasWalletApp() {
               { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
               { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
             ] : [
-              { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' },
               { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
               { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
               { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
               { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
               { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
-              { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
+              { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
+              { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
             ],
             allLocales: boosted,
             dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
@@ -2557,7 +2557,7 @@ export default function PruebasWalletApp() {
 
              
              {/* 4. PROMOS DEL DÍA */}
-             {homeLayout.promosOfDay.length > 0 && (
+             {!isShopsMode && homeLayout.promosOfDay.length > 0 && (
                <section className="home-section promos-imperdibles">
                  <div className="section-header-with-link">
                     <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -2644,7 +2644,7 @@ export default function PruebasWalletApp() {
 
              
                            {/* 5.5 LO MÁS PEDIDO (Igual a Promos, sin Corazón) */}
-             {homeLayout.mostOrdered && homeLayout.mostOrdered.length > 0 && (
+              {!isShopsMode && homeLayout.mostOrdered && homeLayout.mostOrdered.length > 0 && (
                <section className="home-section top-ordered">
                   <div className="section-header-simple">
                     <h2>Lo más pedido 🔥</h2>
