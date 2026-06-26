@@ -1,6 +1,5 @@
 -- ═══════════════════════════════════════════════════
--- FINAL VERSION: create_pedido_completo SIN ASIGNACIÓN AL AZAR
--- Incluye soporte para cupones y elimina la auto-asignación de repartidor.
+-- SQL MIGRATION: UPDATE STOCK VALIDATION LOGIC FOR ALL DEPARTMENTS
 -- ═══════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION public.create_pedido_completo(
@@ -131,7 +130,6 @@ BEGIN
                 v_local_id
             FROM jsonb_array_elements(p_cart) AS el
             WHERE COALESCE(el->>'local_id', 'unknown') = v_local_id;
-
 
         END LOOP;
 

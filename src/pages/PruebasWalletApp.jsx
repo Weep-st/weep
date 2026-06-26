@@ -2427,45 +2427,7 @@ export default function PruebasWalletApp() {
           )}
         </div>
         
-        {/* ——— Banners Carousel ——— */}
-        {!bannersLoading && banners.length > 0 && (
-          <div className="wallet-banners-carousel-wrapper animate-fade-in">
-            <div 
-              className="wallet-banners-carousel-container"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-            >
-              <div 
-                className="wallet-banners-carousel"
-                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
-              >
-                {banners.map(b => (
-                  <div 
-                    key={b.id} 
-                    className={`wallet-banner-slide ${b.link ? 'clickable' : ''}`}
-                    onClick={() => b.link && window.open(b.link, '_blank')}
-                  >
-                    <img 
-                      src={b.imagen_url} 
-                      alt="Promo" 
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-            {banners.length > 1 && (
-              <div className="wallet-carousel-dots">
-                {banners.map((_, idx) => (
-                  <span 
-                    key={idx} 
-                    className={`wallet-carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentBannerIndex(idx)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+
 
         <div className="app-greeting-container">
           {user && !user.telefono && (
@@ -2487,19 +2449,62 @@ export default function PruebasWalletApp() {
         {/* ─── HOME SCREEN ─── */}
         {!showMenus && !filteredLocals && (
           <div className="home-screen animate-fade-in">
-             {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
-             <section className="home-section dynamic-banner-section">
-               <div 
-                 className="dynamic-banner animate-fade-in" 
-                 onClick={handleBannerClick}
-               >
-                 <img src={homeLayout.dynamicBanner} alt={homeLayout.dynamicTitle} />
-                 <div className="banner-overlay">
-                   <h2>{homeLayout.dynamicTitle}</h2>
-                   <button className="banner-btn">Ver locales ➔</button>
-                 </div>
-               </div>
+                          {/* Banners Grid Container */}
+             <div className="home-banners-grid">
+               {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
+             <section className="home-section dynamic-banner-section">
+               <div 
+                 className="dynamic-banner animate-fade-in" 
+                 onClick={handleBannerClick}
+               >
+                 <img src={homeLayout.dynamicBanner} alt={homeLayout.dynamicTitle} />
+                 <div className="banner-overlay">
+                   <h2>{homeLayout.dynamicTitle}</h2>
+                   <button className="banner-btn">Ver locales ➔</button>
+                 </div>
+               </div>
              </section>
+
+               {/* ——— Banners Carousel ——— */}
+        {!bannersLoading && banners.length > 0 && (
+          <div className="wallet-banners-carousel-wrapper animate-fade-in">
+            <div 
+              className="wallet-banners-carousel-container"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              <div 
+                className="wallet-banners-carousel"
+                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
+              >
+                {banners.map(b => (
+                  <div 
+                    key={b.id} 
+                    className={`wallet-banner-slide ${b.link ? 'clickable' : ''}`}
+                    onClick={() => b.link && window.open(b.link, '_blank')}
+                  >
+                    <img 
+                      src={b.imagen_url} 
+                      alt="Promo" 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {banners.length > 1 && (
+              <div className="wallet-carousel-dots">
+                {banners.map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`wallet-carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
+                    onClick={() => setCurrentBannerIndex(idx)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+             </div>
               <div className="home-brand-message-box" style={{ padding: '0 20px', margin: '24px 0 12px', textAlign: 'center' }}>
                 <p className="home-brand-quote" style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--gray-900)', margin: 0, letterSpacing: '-0.5px' }}>
                   Todo lo que buscás, <span style={{ color: 'var(--red-600)' }}>está en Wepi.</span>
