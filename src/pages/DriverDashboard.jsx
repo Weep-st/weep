@@ -262,10 +262,10 @@ export default function DriverDashboard() {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          // Sincronizar con DB para seguimiento en tiempo real del cliente (Throttle: 10 segundos para evitar saturación de base de datos)
+          // Sincronizar con DB para seguimiento en tiempo real del cliente (Throttle: 20 segundos para evitar saturación de base de datos)
           if (driver?.id) {
             const nowTime = Date.now();
-            if (nowTime - lastLocationSyncRef.current >= 10000) {
+            if (nowTime - lastLocationSyncRef.current >= 20000) {
               lastLocationSyncRef.current = nowTime;
               api.updateDriverCoords(driver.id, position.coords.latitude, position.coords.longitude)
                 .catch(err => console.warn("Error syncing coords:", err));
