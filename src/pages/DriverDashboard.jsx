@@ -104,6 +104,8 @@ export default function DriverDashboard() {
 
   const lastOriginRef = React.useRef(null);
   const lastPointsSignatureRef = React.useRef("");
+  const geocodeAttemptsRef = React.useRef(new Set());
+  const lastRouteRequestTimeRef = React.useRef(0);
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -164,7 +166,7 @@ export default function DriverDashboard() {
         originLat, originLng,
         lastOriginRef.current.lat, lastOriginRef.current.lng
       );
-      if (dist > 50) { // Umbral de 50 metros
+      if (dist > 150) { // Umbral de 150 metros (optimizado de 50m)
         shouldRequest = true;
       }
     }
@@ -173,6 +175,14 @@ export default function DriverDashboard() {
       console.log("ℹ️ Saltando llamada a Directions API (sin cambios significativos en ruta u origen)");
       return;
     }
+
+    // Throttling para evitar sobreconsulta (máximo una llamada cada 30 segundos)
+    const nowTime = Date.now();
+    if (nowTime - lastRouteRequestTimeRef.current < 30000) {
+      console.log("ℹ️ Throttling route request to prevent Google API key overuse.");
+      return;
+    }
+    lastRouteRequestTimeRef.current = nowTime;
 
     // Actualizar referencias antes de la llamada para evitar solicitudes concurrentes
     lastOriginRef.current = { lat: originLat, lng: originLng };
@@ -225,9 +235,9 @@ export default function DriverDashboard() {
           if (status === 'ZERO_RESULTS') {
             toast.error("No se encontró una ruta por calle.");
           }
-          // Resetear refs para reintentar en el próximo cambio
-          lastOriginRef.current = null;
-          lastPointsSignatureRef.current = "";
+          // IMPORTANTE: NO limpiar las referencias a null/vacío ante un error.
+          // Al mantener lastOriginRef, evitamos entrar en un bucle inmediato de reintentos rápidos
+          // en la siguiente actualización del GPS del repartidor.
         }
       }
     );
@@ -880,8 +890,16 @@ export default function DriverDashboard() {
 
   const geocodeAndSave = (address, type, id) => {
     if (!address || !window.google) return;
+
+    // Evitar reintentos infinitos si ya se intentó en la sesión actual
+    const attemptKey = `${type}_${id}`;
+    if (geocodeAttemptsRef.current.has(attemptKey)) return;
+    geocodeAttemptsRef.current.add(attemptKey);
     
-    const fullAddress = `${address}, Santo Tomé, Corrientes, Argentina`;
+    const lowerAddr = address.toLowerCase();
+    const isOberaAddr = lowerAddr.includes('obera') || lowerAddr.includes('oberá');
+    const citySuffix = isOberaAddr ? 'Oberá, Misiones, Argentina' : 'Santo Tomé, Corrientes, Argentina';
+    const fullAddress = address.includes('Argentina') ? address : `${address}, ${citySuffix}`;
     
     if (!geocoderRef.current) {
       geocoderRef.current = new window.google.maps.Geocoder();
@@ -895,8 +913,10 @@ export default function DriverDashboard() {
         const latVal = results[0].geometry.location.lat();
         const lngVal = results[0].geometry.location.lng();
 
-        // VALIDACIÓN: Solo guardar si está en Santo Tomé (aprox)
-        const isSafe = latVal <= -28.4 && latVal >= -28.7 && lngVal <= -55.9 && lngVal >= -56.2;
+        // VALIDACIÓN: Soportar Santo Tomé u Oberá
+        const isSantoTome = latVal <= -28.1 && latVal >= -28.9 && lngVal <= -55.7 && lngVal >= -56.4;
+        const isObera = latVal <= -27.3 && latVal >= -27.7 && lngVal <= -54.9 && lngVal >= -55.4;
+        const isSafe = isSantoTome || isObera;
         
         if (isSafe) {
           if (type === 'local') {
@@ -907,7 +927,7 @@ export default function DriverDashboard() {
             api.updatePedidoCoords(id, latVal, lngVal).catch(console.error);
           }
         } else {
-          console.warn('Geocoding result outside Santo Tomé bounds, ignoring:', latVal, lngVal);
+          console.warn('Geocoding result outside bounds, ignoring:', latVal, lngVal);
         }
       }
     });

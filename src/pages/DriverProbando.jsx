@@ -66,6 +66,10 @@ export default function DriverProbando() {
   // Map state
   const [deliveryCoords, setDeliveryCoords] = React.useState({ lat: null, lng: null });
   const geocoderRef = React.useRef(null);
+  const geocodeAttemptsRef = React.useRef(new Set());
+  const lastRouteRequestTimeRef = React.useRef(0);
+  const lastOriginRef = React.useRef(null);
+  const lastPointsSignatureRef = React.useRef("");
 
   // New views state
   const [view, setView] = React.useState('main'); // 'main', 'cobros', 'perfil'
@@ -540,6 +544,51 @@ export default function DriverProbando() {
   //   Evitamos desconectar al refrescar. El CRON de inactividad se encarga si cierran la página.
   // }, [driver, isActive]);
 
+  const geocodeAndSave = (address, type, id) => {
+    if (!address || !window.google) return;
+
+    // Evitar reintentos infinitos si ya se intentó en la sesión actual
+    const attemptKey = `${type}_${id}`;
+    if (geocodeAttemptsRef.current.has(attemptKey)) return;
+    geocodeAttemptsRef.current.add(attemptKey);
+    
+    const lowerAddr = address.toLowerCase();
+    const isOberaAddr = lowerAddr.includes('obera') || lowerAddr.includes('oberá');
+    const citySuffix = isOberaAddr ? 'Oberá, Misiones, Argentina' : 'Santo Tomé, Corrientes, Argentina';
+    const fullAddress = address.includes('Argentina') ? address : `${address}, ${citySuffix}`;
+    
+    if (!geocoderRef.current) {
+      geocoderRef.current = new window.google.maps.Geocoder();
+    }
+
+    geocoderRef.current.geocode({ 
+      address: fullAddress,
+      componentRestrictions: { country: 'AR' }
+    }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const latVal = results[0].geometry.location.lat();
+        const lngVal = results[0].geometry.location.lng();
+
+        // VALIDACIÓN: Soportar Santo Tomé u Oberá
+        const isSantoTome = latVal <= -28.1 && latVal >= -28.9 && lngVal <= -55.7 && lngVal >= -56.4;
+        const isObera = latVal <= -27.3 && latVal >= -27.7 && lngVal <= -54.9 && lngVal >= -55.4;
+        const isSafe = isSantoTome || isObera;
+        
+        if (isSafe) {
+          if (type === 'local') {
+            setLocalInfo(prev => ({ ...prev, lat: latVal, lng: lngVal }));
+            api.updateLocalCoords(id, latVal, lngVal).catch(console.error);
+          } else {
+            setDeliveryCoords({ lat: latVal, lng: lngVal });
+            api.updatePedidoCoords(id, latVal, lngVal).catch(console.error);
+          }
+        } else {
+          console.warn('Geocoding result outside bounds, ignoring:', latVal, lngVal);
+        }
+      }
+    });
+  };
+
   // Carga de datos del local para viaje en curso
   React.useEffect(() => {
     if (!isMapLoaded) return;
@@ -585,9 +634,6 @@ export default function DriverProbando() {
 
   const [optimizedRoute, setOptimizedRoute] = React.useState(null);
 
-  const lastOriginRef = React.useRef(null);
-  const lastPointsSignatureRef = React.useRef("");
-
   const optimizeRoute = React.useCallback((orders, origin) => {
     if (!isMapLoaded || orders.length < 1 || !origin.lat) return;
 
@@ -622,7 +668,7 @@ export default function DriverProbando() {
         originLat, originLng,
         lastOriginRef.current.lat, lastOriginRef.current.lng
       );
-      if (dist > 50) {
+      if (dist > 150) { // Umbral de 150 metros (optimizado de 50m)
         shouldRequest = true;
       }
     }
@@ -631,6 +677,14 @@ export default function DriverProbando() {
       console.log("ℹ️ Saltando optimización de ruta (sin cambios significativos)");
       return;
     }
+
+    // Throttling para evitar sobreconsulta (máximo una llamada cada 30 segundos)
+    const nowTime = Date.now();
+    if (nowTime - lastRouteRequestTimeRef.current < 30000) {
+      console.log("ℹ️ Throttling route optimization request to prevent Google API key overuse.");
+      return;
+    }
+    lastRouteRequestTimeRef.current = nowTime;
 
     // Actualizar referencias antes de la llamada
     lastOriginRef.current = { lat: originLat, lng: originLng };
@@ -679,9 +733,9 @@ export default function DriverProbando() {
           console.log("Ruta optimizada:", result.routes[0].waypoint_order);
         } else {
           console.error("Error optimizando ruta:", status);
-          // Limpiar referencias para reintentar en el próximo cambio
-          lastOriginRef.current = null;
-          lastPointsSignatureRef.current = "";
+          // IMPORTANTE: NO limpiar las referencias a null/vacío ante un error.
+          // Al mantener lastOriginRef, evitamos entrar en un bucle inmediato de reintentos rápidos
+          // en la siguiente actualización del GPS del repartidor.
         }
       }
     );
