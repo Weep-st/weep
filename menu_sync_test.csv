@@ -1,0 +1,6 @@
+codigo,descripcion,precio_venta,stock_fisico,rubro,codigo_barras
+PROD-001,Hamburguesa Clasica con Queso,1200.00,50,Hamburguesas,7791234567891
+PROD-002,Papas Fritas Medianas,650.50,120,Bebidas,7791234567892
+PROD-003,Coca Cola Sin Azucar 500ml,800.00,85,Bebidas,7791234567893
+PROD-004,Pizza Mozzarella Familiar,3500.00,20,Pizzas,7791234567894
+PROD-005,Combo Triple Burger y Papas,4500.00,15,Combos,7791234567895

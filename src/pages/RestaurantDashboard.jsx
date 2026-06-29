@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useJsApiLoader } from '@react-google-maps/api';
 import AddressSelector from '../components/AddressSelector';
 import * as api from '../services/api';
+import * as syncEngine from '../services/syncEngine';
 import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import './RestaurantDashboard.css';
@@ -169,7 +170,34 @@ export default function RestaurantDashboard() {
   const [stockToConfirm, setStockToConfirm] = React.useState([]);
   const [showStockModal, setShowStockModal] = React.useState(false);
   const [showDiscountPanel, setShowDiscountPanel] = React.useState(false);
+  const [showStockPanel, setShowStockPanel] = React.useState(false);
+  const [quickUploadItemId, setQuickUploadItemId] = React.useState(null);
+  const quickImageInputRef = React.useRef(null);
   const [menuAddOpen, setMenuAddOpen] = React.useState(false);
+
+  // ─── Wepi Sync V1 States ───
+  const [syncFile, setSyncFile] = React.useState(null);
+  const [syncFileType, setSyncFileType] = React.useState('csv'); // 'csv', 'xlsx'
+  const [syncHeaders, setSyncHeaders] = React.useState([]);
+  const [syncMapeo, setSyncMapeo] = React.useState({ sku: '', nombre: '', precio: '', stock: '', categoria: '', codigo_barras: '' });
+  const [syncCamposActualizables, setSyncCamposActualizables] = React.useState(['precio', 'stock', 'nombre', 'categoria']);
+  const [syncDesactivarFaltantes, setSyncDesactivarFaltantes] = React.useState(false);
+  const [syncGoogleSheetsUrl, setSyncGoogleSheetsUrl] = React.useState('');
+  const [syncEngineLoading, setSyncEngineLoading] = React.useState(false);
+  const [syncEngineResult, setSyncEngineResult] = React.useState(null);
+  const [syncPreviewRows, setSyncPreviewRows] = React.useState([]);
+  const [syncStep, setSyncStep] = React.useState('upload'); // 'upload', 'mapping', 'result'
+
+  React.useEffect(() => {
+    if (profileData?.sync_config_data) {
+      const syncConfig = profileData.sync_config_data;
+      if (syncConfig.mapeo_columnas) setSyncMapeo(syncConfig.mapeo_columnas);
+      if (syncConfig.campos_actualizables) setSyncCamposActualizables(syncConfig.campos_actualizables);
+      if (syncConfig.desactivar_faltantes !== undefined) setSyncDesactivarFaltantes(syncConfig.desactivar_faltantes);
+      if (syncConfig.url_origen) setSyncGoogleSheetsUrl(syncConfig.url_origen);
+      if (syncConfig.metodo) setSyncFileType(syncConfig.metodo);
+    }
+  }, [profileData]);
   const [showGamification, setShowGamification] = React.useState(false);
   const [configHorarios, setConfigHorarios] = React.useState({});
   const [showHorariosConfig, setShowHorariosConfig] = React.useState(false);
@@ -1050,6 +1078,8 @@ export default function RestaurantDashboard() {
         stock_minimo: parseInt(fd.get('stock_minimo')) || 10,
         unidades_por_venta: parseInt(fd.get('unidades_por_venta')) || 1,
         stock_base_id: fd.get('stock_base_id') || null,
+        sku: fd.get('sku') || null,
+        codigo_barras: fd.get('codigo_barras') || null,
       };
       if (editItem) {
         data.itemId = editItem.id;
@@ -2075,6 +2105,413 @@ export default function RestaurantDashboard() {
     );
   };
 
+  // ─── Wepi Sync V1 Handlers & Views ───
+  const handleExecuteSync = async () => {
+    if (!profileData?.id) {
+      toast.error('No se ha podido identificar el local actual.');
+      return;
+    }
+    setSyncEngineLoading(true);
+    setSyncEngineResult(null);
+
+    try {
+      let syncResult;
+
+      if (syncFileType === 'sheets') {
+        if (!syncGoogleSheetsUrl) {
+          toast.error('Por favor, ingresa una URL pública de Google Sheets.');
+          setSyncEngineLoading(false);
+          return;
+        }
+        syncResult = await syncEngine.syncCatalog({
+          localId: profileData.id,
+          metodo: 'sheets',
+          urlOrigen: syncGoogleSheetsUrl,
+          mapeoColumnas: syncMapeo,
+          camposActualizables: syncCamposActualizables,
+          desactivarFaltantes: syncDesactivarFaltantes,
+          supabaseInstance: api.supabase
+        });
+      } else {
+        if (!syncFile) {
+          toast.error('Por favor, selecciona un archivo CSV o Excel.');
+          setSyncEngineLoading(false);
+          return;
+        }
+        syncResult = await syncEngine.syncCatalog({
+          localId: profileData.id,
+          metodo: syncFileType,
+          archivo: syncFile,
+          mapeoColumnas: syncMapeo,
+          camposActualizables: syncCamposActualizables,
+          desactivarFaltantes: syncDesactivarFaltantes,
+          supabaseInstance: api.supabase
+        });
+      }
+
+      setSyncEngineResult(syncResult);
+      setSyncStep('result');
+
+      // Guardar configuración e historial en locales
+      const nuevoHistorialLog = {
+        fecha: new Date().toISOString(),
+        origen: syncFileType === 'sheets' ? 'sheets' : syncFile.name,
+        estado: syncResult.errores > 0 ? (syncResult.creados + syncResult.actualizados > 0 ? 'parcial' : 'fallido') : 'exitoso',
+        creados: syncResult.creados,
+        actualizados: syncResult.actualizados,
+        errores: syncResult.errores
+      };
+
+      const historialActual = profileData.sync_config_data?.historial || [];
+      const nuevoHistorial = [nuevoHistorialLog, ...historialActual].slice(0, 10); // Conservar últimos 10
+
+      const nuevaConfigData = {
+        ...profileData.sync_config_data,
+        url_origen: syncGoogleSheetsUrl,
+        metodo: syncFileType,
+        mapeo_columnas: syncMapeo,
+        campos_actualizables: syncCamposActualizables,
+        desactivar_faltantes: syncDesactivarFaltantes,
+        historial: nuevoHistorial
+      };
+
+      await api.updateLocalSyncConfig(profileData.id, nuevaConfigData);
+      
+      // Recargar perfil del dashboard para reflejar el historial e info nueva
+      if (typeof loadProfile === 'function') {
+        await loadProfile();
+      } else {
+        // Fallback si no está definido en este dashboard
+        const { data: refreshedProfile } = await api.supabase
+          .from('locales')
+          .select('*')
+          .eq('id', profileData.id)
+          .single();
+        if (refreshedProfile) {
+          setProfileData(refreshedProfile);
+        }
+      }
+
+      await loadMenu(); // Recargar los platos del menú locales
+
+      if (syncResult.errores > 0) {
+        toast.error(`Sincronización completada con ${syncResult.errores} errores.`);
+      } else {
+        toast.success(`Sincronización exitosa: +${syncResult.creados} nuevos, ${syncResult.actualizados} actualizados.`);
+      }
+
+    } catch (error) {
+      console.error('Error ejecutando sincronización:', error);
+      toast.error('Error ejecutando sincronización: ' + (error.message || error));
+    } finally {
+      setSyncEngineLoading(false);
+    }
+  };
+
+  const renderSyncView = () => {
+    const historial = profileData?.sync_config_data?.historial || [];
+
+    return (
+      <div className="animate-fade-in" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
+        <div className="card card-body" style={{ marginBottom: '24px' }}>
+          <h2 style={{ color: 'var(--red-600)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔄 Wepi Sync
+          </h2>
+          <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: '20px' }}>
+            Sincroniza el catálogo de productos de tu sistema de gestión (ERP, Excel o CSV) con Wepi. Wepi actualizará automáticamente precios, stock e incorporará los nuevos productos mapeados por su SKU.
+          </p>
+
+          {syncStep === 'upload' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--gray-200)', paddingBottom: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: syncFileType === 'csv' ? 'bold' : 'normal', color: syncFileType === 'csv' ? 'var(--red-600)' : 'inherit' }}>
+                  <input type="radio" name="syncType" checked={syncFileType === 'csv'} onChange={() => { setSyncFileType('csv'); setSyncFile(null); }} />
+                  Archivo CSV (.csv)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: syncFileType === 'xlsx' ? 'bold' : 'normal', color: syncFileType === 'xlsx' ? 'var(--red-600)' : 'inherit' }}>
+                  <input type="radio" name="syncType" checked={syncFileType === 'xlsx'} onChange={() => { setSyncFileType('xlsx'); setSyncFile(null); }} />
+                  Archivo Excel (.xlsx)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: syncFileType === 'sheets' ? 'bold' : 'normal', color: syncFileType === 'sheets' ? 'var(--red-600)' : 'inherit' }}>
+                  <input type="radio" name="syncType" checked={syncFileType === 'sheets'} onChange={() => { setSyncFileType('sheets'); setSyncFile(null); }} />
+                  Google Sheets público
+                </label>
+              </div>
+
+              {syncFileType === 'sheets' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Enlace público de Google Sheets</label>
+                  <input 
+                    type="url" 
+                    className="form-input" 
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit?usp=sharing"
+                    value={syncGoogleSheetsUrl}
+                    onChange={(e) => setSyncGoogleSheetsUrl(e.target.value)}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
+                    Asegúrate de que el documento esté configurado como "Cualquier persona con el enlace puede leer".
+                  </span>
+                </div>
+              ) : (
+                <div style={{ border: '2px dashed var(--gray-300)', padding: '30px', borderRadius: '8px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }} onClick={() => document.getElementById('syncFileInput').click()}>
+                  <input 
+                    id="syncFileInput"
+                    type="file" 
+                    accept={syncFileType === 'csv' ? '.csv' : '.xlsx'} 
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      setSyncFile(file);
+                      
+                      try {
+                        const parsedHeaders = await syncEngine.parseFile(file, syncFileType);
+                        setSyncHeaders(parsedHeaders);
+                        // Auto-mapeo inteligente inicial
+                        const nuevoMapeo = { ...syncMapeo };
+                        parsedHeaders.forEach(header => {
+                          const lower = header.toLowerCase().trim();
+                          if (lower === 'sku' || lower === 'código' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
+                          if (lower === 'nombre' || lower === 'producto' || lower === 'descripción' || lower === 'descripcion' || lower === 'item' || lower === 'titulo') nuevoMapeo.nombre = header;
+                          if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
+                          if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
+                          if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
+                          if (lower === 'codigo_barras' || lower === 'codigo de barras' || lower === 'barras' || lower === 'upc' || lower === 'ean') nuevoMapeo.codigo_barras = header;
+                        });
+                        setSyncMapeo(nuevoMapeo);
+                        setSyncStep('mapping');
+                      } catch (err) {
+                        toast.error('Error al leer el archivo: ' + err.message);
+                      }
+                    }}
+                  />
+                  <p style={{ fontSize: '1rem', color: 'var(--gray-600)', margin: '0 0 8px 0' }}>
+                    Drag & drop o haz clic para subir tu archivo <strong>{syncFileType === 'csv' ? 'CSV' : 'Excel'}</strong>
+                  </p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', margin: 0 }}>
+                    {syncFileType === 'csv' ? 'Formato CSV delimitado por comas o punto y coma' : 'Formato de hoja de cálculo estándar (.xlsx)'}
+                  </p>
+                </div>
+              )}
+
+              {syncFileType === 'sheets' && (
+                <button type="button" className="btn btn-primary" style={{ background: 'var(--red-600)', borderColor: 'var(--red-600)' }} onClick={async () => {
+                  if (!syncGoogleSheetsUrl) {
+                    toast.error('Por favor ingresa la URL de Google Sheets.');
+                    return;
+                  }
+                  setSyncEngineLoading(true);
+                  try {
+                    const parsedHeaders = await syncEngine.parseFile(null, 'sheets', syncGoogleSheetsUrl);
+                    setSyncHeaders(parsedHeaders);
+                    const nuevoMapeo = { ...syncMapeo };
+                    parsedHeaders.forEach(header => {
+                      const lower = header.toLowerCase().trim();
+                      if (lower === 'sku' || lower === 'código' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
+                      if (lower === 'nombre' || lower === 'producto' || lower === 'descripción' || lower === 'descripcion' || lower === 'item' || lower === 'titulo') nuevoMapeo.nombre = header;
+                      if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
+                      if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
+                      if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
+                      if (lower === 'codigo_barras' || lower === 'codigo de barras' || lower === 'barras' || lower === 'upc' || lower === 'ean') nuevoMapeo.codigo_barras = header;
+                    });
+                    setSyncMapeo(nuevoMapeo);
+                    setSyncStep('mapping');
+                  } catch (err) {
+                    toast.error('Error al conectarse a Google Sheets: ' + err.message);
+                  } finally {
+                    setSyncEngineLoading(false);
+                  }
+                }} disabled={syncEngineLoading}>
+                  {syncEngineLoading ? <span className="spinner spinner-white" /> : 'Siguiente: Mapear Columnas ➔'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {syncStep === 'mapping' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '8px' }}>Archivo cargado:</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--gray-600)' }}>
+                  {syncFileType === 'sheets' ? `Google Sheet: ${syncGoogleSheetsUrl}` : `Archivo local: ${syncFile?.name} (${(syncFile?.size / 1024).toFixed(1)} KB)`}
+                </p>
+              </div>
+
+              {/* Mapeo de Columnas */}
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '12px' }}>
+                  🗺️ Mapeo de Columnas
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '16px' }}>
+                  Elige a qué columna de tu archivo corresponde cada dato requerido en Wepi. El <strong>SKU</strong> es el campo clave para asociar y buscar tus productos.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
+                  {Object.keys(syncMapeo).map(campo => {
+                    const esRequerido = campo === 'sku' || campo === 'nombre' || campo === 'precio';
+                    return (
+                      <div key={campo} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8.5rem', fontWeight: 'bold', color: esRequerido ? 'var(--red-600)' : 'var(--gray-700)' }}>
+                          {campo.toUpperCase()} {esRequerido && '*'}
+                        </label>
+                        <select 
+                          className="form-select"
+                          style={{ marginBottom: 0 }}
+                          value={syncMapeo[campo] || ''}
+                          onChange={(e) => setSyncMapeo({ ...syncMapeo, [campo]: e.target.value })}
+                        >
+                          <option value="">-- No mapeado --</option>
+                          {syncHeaders.map(h => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--gray-200)', margin: '10px 0' }} />
+
+              {/* Configuración de Sincronización */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flexWrap: 'wrap' }}>
+                {/* Campos a Actualizar */}
+                <div>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '8px' }}>
+                    Sobrescribir los siguientes campos de productos existentes:
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {['precio', 'stock', 'nombre', 'categoria'].map(campo => {
+                      const mapped = campo === 'nombre' || syncMapeo[campo];
+                      return (
+                        <label key={campo} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: mapped ? 'pointer' : 'not-allowed', opacity: mapped ? 1 : 0.5 }}>
+                          <input 
+                            type="checkbox" 
+                            disabled={!mapped}
+                            checked={mapped && syncCamposActualizables.includes(campo)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSyncCamposActualizables([...syncCamposActualizables, campo]);
+                              } else {
+                                setSyncCamposActualizables(syncCamposActualizables.filter(c => c !== campo));
+                              }
+                            }}
+                          />
+                          {campo.charAt(0).toUpperCase() + campo.slice(1)}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Desactivar faltantes */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox"
+                      checked={syncDesactivarFaltantes}
+                      onChange={(e) => setSyncDesactivarFaltantes(e.target.checked)}
+                    />
+                    <span>⚠️ Desactivar automáticamente productos en Wepi que no estén en este archivo.</span>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSyncStep('upload')} disabled={syncEngineLoading}>
+                  Atrás
+                </button>
+                <button type="button" className="btn btn-primary" style={{ flex: 2, background: 'var(--red-600)', borderColor: 'var(--red-600)' }} onClick={handleExecuteSync} disabled={syncEngineLoading}>
+                  {syncEngineLoading ? <span className="spinner spinner-white" /> : 'Ejecutar Sincronización ⚡'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {syncStep === 'result' && syncEngineResult && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                <h3 style={{ color: '#16a34a', margin: '0 0 4px 0', fontSize: '1.2rem' }}>Sincronización Procesada</h3>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#15803d' }}>
+                  El proceso ha terminado. Se han procesado los registros del catálogo con los siguientes resultados:
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 'bold' }}>Nuevos</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#16a34a' }}>+{syncEngineResult.creados}</p>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 'bold' }}>Actualizados</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb' }}>{syncEngineResult.actualizados}</p>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#991b1b', fontWeight: 'bold' }}>Errores</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b91c1c' }}>{syncEngineResult.errores}</p>
+                </div>
+              </div>
+
+              <button type="button" className="btn btn-primary" style={{ background: 'var(--red-600)', borderColor: 'var(--red-600)', width: '100%' }} onClick={() => { setSyncStep('upload'); setSyncFile(null); setSyncEngineResult(null); }}>
+                Volver a Sincronizar
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Historial de Sincronizaciones */}
+        <div className="card card-body">
+          <h3 style={{ fontSize: '1rem', color: 'var(--gray-800)', marginBottom: '16px', fontWeight: 'bold' }}>
+            📋 Historial de Sincronizaciones
+          </h3>
+          {historial.length === 0 ? (
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', textAlign: 'center', padding: '16px' }}>
+              Aún no se han realizado sincronizaciones en este local.
+            </p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--gray-200)', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 4px', color: 'var(--gray-600)' }}>Fecha</th>
+                    <th style={{ padding: '8px 4px', color: 'var(--gray-600)' }}>Origen</th>
+                    <th style={{ padding: '8px 4px', color: 'var(--gray-600)' }}>Estado</th>
+                    <th style={{ padding: '8px 4px', color: 'var(--gray-600)', textAlign: 'center' }}>Nuevos</th>
+                    <th style={{ padding: '8px 4px', color: 'var(--gray-600)', textAlign: 'center' }}>Modificados</th>
+                    <th style={{ padding: '8px 4px', color: 'var(--gray-600)', textAlign: 'center' }}>Errores</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historial.map((log, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                      <td style={{ padding: '8px 4px' }}>{new Date(log.fecha).toLocaleString()}</td>
+                      <td style={{ padding: '8px 4px', textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.75rem' }}>{log.origen}</td>
+                      <td style={{ padding: '8px 4px' }}>
+                        <span style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          background: log.estado === 'exitoso' ? '#dcfce7' : (log.estado === 'parcial' ? '#fef3c7' : '#fee2e2'),
+                          color: log.estado === 'exitoso' ? '#15803d' : (log.estado === 'parcial' ? '#b45309' : '#b91c1c')
+                        }}>
+                          {log.estado}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', color: '#15803d', fontWeight: 'bold' }}>+{log.creados}</td>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', color: '#1d4ed8', fontWeight: 'bold' }}>{log.actualizados}</td>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', color: '#b91c1c', fontWeight: log.errores > 0 ? 'bold' : 'normal' }}>{log.errores}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // ─── Dashboard ───
   return (
     <div className="rd-page">
@@ -2437,10 +2874,13 @@ export default function RestaurantDashboard() {
               }
             }}
           >
-            📖 Menú
+            📖 Catálogo
           </button>
           
         </nav>
+
+        {/* ─── Wepi Sync View ─── */}
+        {view === 'sync' && renderSyncView()}
 
         {/* ─── Orders View ─── */}
         {view === 'orders' && (
@@ -2553,8 +2993,16 @@ export default function RestaurantDashboard() {
                       )}
                    </div>
 
-                   <button className={`btn ${showDiscountPanel ? 'btn-primary' : 'btn-outline'}`} onClick={() => setShowDiscountPanel(!showDiscountPanel)}>
+                   <button className={`btn ${showStockPanel ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setShowStockPanel(!showStockPanel); setShowDiscountPanel(false); }} style={showStockPanel ? { background: '#f97316', borderColor: '#f97316' } : {}}>
+                     📦 Stock
+                   </button>
+
+                   <button className={`btn ${showDiscountPanel ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setShowDiscountPanel(!showDiscountPanel); setShowStockPanel(false); }}>
                      🎁 Descuentos
+                   </button>
+
+                   <button className="btn btn-outline" onClick={() => setView('sync')}>
+                     🔄 Wepi Sync
                    </button>
                 </div>
 
@@ -2563,7 +3011,7 @@ export default function RestaurantDashboard() {
                      const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
                      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                      const isPromo = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
-                     return isPromo ? <span style={{ color: 'var(--red-600)' }}>🔥 PROMO {profileData?.descuento_general}% OFF {profileData?.categoria_descuento ? `en ${profileData.categoria_descuento}` : 'en todo el menú'}</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
+                     return isPromo ? <span style={{ color: 'var(--red-600)' }}>🔥 PROMO {profileData?.descuento_general}% OFF {profileData?.categoria_descuento ? `en ${profileData.categoria_descuento}` : 'en todo el catálogo'}</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
                    })()}
                 </div>
             </div>
@@ -2592,7 +3040,7 @@ export default function RestaurantDashboard() {
                             style={{ width: '180px', marginBottom: 0, marginLeft: '6px' }}
                             defaultValue={profileData?.categoria_descuento || ''}
                           >
-                            <option value="">Todo el menú</option>
+                            <option value="">Todo el catálogo</option>
                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                           <button type="submit" className="btn btn-success btn-sm" style={{ marginLeft: '10px' }}>Guardar Configuración</button>
@@ -2632,7 +3080,7 @@ export default function RestaurantDashboard() {
             )}
             
             {/* ─── Panel de Stock Rápido ─── */}
-            {menuItems.some(i => i.maneja_stock) && (
+            {showStockPanel && menuItems.some(i => i.maneja_stock) && (
               <div className="card animate-fade-in" style={{ marginBottom: 24, padding: '16px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                   <h3 style={{ color: '#c2410c', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2712,14 +3160,14 @@ export default function RestaurantDashboard() {
             )}
 
             <div className="rd-menu-filters">
-              <input className="form-input" placeholder="🔍 Buscar plato..." value={menuFilter} onChange={e => setMenuFilter(e.target.value)} />
+              <input className="form-input" placeholder="🔍 Buscar artículo o plato..." value={menuFilter} onChange={e => setMenuFilter(e.target.value)} />
               <select className="form-select" value={menuCatFilter} onChange={e => setMenuCatFilter(e.target.value)}>
                 <option value="">Todas las categorías</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             {menuLoading ? (
-              <div className="loading-state"><div className="spinner" /> Cargando menú...</div>
+              <div className="loading-state"><div className="spinner" /> Cargando catálogo...</div>
             ) : finalMenu.length === 0 ? (
               <p className="rd-empty">No hay {isInventory ? 'artículos' : 'platos'}. ¡Agregá tu primer {isInventory ? 'artículo' : 'plato'}!</p>
             ) : finalMenu.map(item => (
@@ -2884,7 +3332,21 @@ export default function RestaurantDashboard() {
                       <span className="toggle-thumb" />
                     </label>
                     <span className="rd-disp-text">{item.disponibilidad ? 'Disponible' : 'No disponible'}</span>
-                    <div className="rd-menu-actions">
+                    <div className="rd-menu-actions" style={{ display: 'flex', gap: '6px' }}>
+                      {!item.imagen_url && (
+                        <button 
+                          className="btn btn-sm btn-outline" 
+                          style={{ borderColor: 'var(--amber-500)', color: 'var(--amber-600)', background: 'white' }} 
+                          onClick={() => {
+                            setQuickUploadItemId(item.id);
+                            if (quickImageInputRef.current) {
+                              quickImageInputRef.current.click();
+                            }
+                          }}
+                        >
+                          Cargar Imagen
+                        </button>
+                      )}
                       <button className="btn btn-sm" style={{ background: 'var(--amber-500)', color: '#fff' }} onClick={() => { 
                         setEditItem(item); 
                         setItemCategory(item.categoria);
@@ -2994,6 +3456,17 @@ export default function RestaurantDashboard() {
                       <option value="true">Disponible/Visible</option>
                       <option value="false">Oculto/No disponible</option>
                     </select>
+                  </div>
+                </div>
+
+                <div className="rd-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>SKU (Código de Sincronización)</label>
+                    <input name="sku" type="text" className="form-input" placeholder="Ej: SKU-12345" defaultValue={editItem?.sku || ''} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Código de Barras</label>
+                    <input name="codigo_barras" type="text" className="form-input" placeholder="Ej: 7791234567890" defaultValue={editItem?.codigo_barras || ''} />
                   </div>
                 </div>
                 
@@ -4499,6 +4972,31 @@ export default function RestaurantDashboard() {
           title="Ubicación de tu Local"
         />
       )}
+
+      <input
+        ref={quickImageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ position: 'absolute', width: 0, height: 0, opacity: 0, zIndex: -1 }}
+        onChange={async (e) => {
+          const file = e.target.files[0];
+          if (!file || !quickUploadItemId) return;
+          const loadingId = toast.loading('Subiendo imagen de producto...');
+          try {
+            const imgUrl = await api.uploadImage(file);
+            if (!imgUrl) throw new Error('No se pudo obtener la URL de la imagen.');
+            
+            await api.updateMenuItem({ itemId: quickUploadItemId, imagen_url: imgUrl });
+            toast.success('¡Imagen subida y guardada exitosamente!', { id: loadingId });
+            await loadMenu();
+          } catch (err) {
+            toast.error('Error al subir la imagen: ' + (err.message || err), { id: loadingId });
+          } finally {
+            setQuickUploadItemId(null);
+            e.target.value = ''; // Limpiar el input
+          }
+        }}
+      />
     </div>
   );
 }

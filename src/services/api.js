@@ -1012,6 +1012,8 @@ export async function addMenuItem(params) {
     stock_minimo: params.stock_minimo || 10,
     unidades_por_venta: params.unidades_por_venta || 1,
     stock_base_id: params.stock_base_id || null,
+    sku: params.sku || null,
+    codigo_barras: params.codigo_barras || null,
   });
   if (error) throw new Error(error.message);
   return { success: true };
@@ -1036,6 +1038,9 @@ export async function updateMenuItem(params) {
   if (params.unidades_por_venta !== undefined) updates.unidades_por_venta = params.unidades_por_venta;
   if (params.stock_base_id !== undefined) updates.stock_base_id = params.stock_base_id;
   if (params.ultima_confirmacion_stock !== undefined) updates.ultima_confirmacion_stock = params.ultima_confirmacion_stock;
+  
+  if (params.sku !== undefined) updates.sku = params.sku || null;
+  if (params.codigo_barras !== undefined) updates.codigo_barras = params.codigo_barras || null;
 
   const { error } = await supabase.from('menu').update(updates).eq('id', params.itemId);
   if (error) throw new Error(error.message);
@@ -1050,6 +1055,16 @@ export async function deleteMenuItem(itemId) {
 
 export async function updateDisponibilidad(itemId, disponibilidad) {
   const { error } = await supabase.from('menu').update({ disponibilidad }).eq('id', itemId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// Actualizar configuración de sincronización de un local (Wepi Sync V1)
+export async function updateLocalSyncConfig(localId, syncConfigData) {
+  const { error } = await supabase
+    .from('locales')
+    .update({ sync_config_data: syncConfigData })
+    .eq('id', localId);
   if (error) throw new Error(error.message);
   return { success: true };
 }

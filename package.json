@@ -13,10 +13,12 @@
     "@react-google-maps/api": "^2.20.8",
     "@supabase/supabase-js": "^2.99.2",
     "firebase": "^12.13.0",
+    "papaparse": "^5.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.13.1"
+    "react-router-dom": "^7.13.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
