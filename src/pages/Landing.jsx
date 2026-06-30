@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Landing.css';
+import { supabase } from '../services/supabase';
 
 // SVG Icons to avoid using generic emojis
 const CheckIcon = () => (
@@ -28,37 +29,88 @@ export default function Landing() {
       }
     }
 
-    // 2. Animate numbers
-    let startPedidos = 0;
-    const endPedidos = 400;
-    const duration = 1500; // ms
-    const stepTime = 15;
-    const totalStepsPedidos = Math.floor(duration / stepTime);
-    const incrementPedidos = Math.ceil(endPedidos / totalStepsPedidos);
+    // 2. Fetch stats and animate numbers
+    let timerPedidos;
+    let timerUsuarios;
+    let active = true;
 
-    const timerPedidos = setInterval(() => {
-      startPedidos += incrementPedidos;
-      if (startPedidos >= endPedidos) {
-        setPedidos(endPedidos);
-        clearInterval(timerPedidos);
-      } else {
-        setPedidos(startPedidos);
+    const fetchStats = async () => {
+      try {
+        const { data: cierres, error: errorC } = await supabase
+          .from('cierre_caja')
+          .select('num_pedidos')
+          .gte('fecha', '2026-04-01');
+
+        const { count: countU, error: errorU } = await supabase
+          .from('usuarios')
+          .select('*', { count: 'exact', head: true });
+
+        if (!active) return;
+
+        const basePedidos = cierres ? cierres.reduce((sum, c) => sum + (c.num_pedidos || 0), 0) : 448;
+        const targetPedidos = errorC ? 448 : basePedidos;
+        const targetUsuarios = errorU ? 450 : (countU || 0);
+
+        let startPedidos = 0;
+        const duration = 1500; // ms
+        const stepTime = 15;
+        const totalSteps = Math.floor(duration / stepTime);
+        const incrementPedidos = Math.ceil(targetPedidos / totalSteps) || 1;
+
+        timerPedidos = setInterval(() => {
+          startPedidos += incrementPedidos;
+          if (startPedidos >= targetPedidos) {
+            setPedidos(targetPedidos);
+            clearInterval(timerPedidos);
+          } else {
+            setPedidos(startPedidos);
+          }
+        }, stepTime);
+
+        let startUsuarios = 0;
+        const incrementUsuarios = Math.ceil(targetUsuarios / totalSteps) || 1;
+
+        timerUsuarios = setInterval(() => {
+          startUsuarios += incrementUsuarios;
+          if (startUsuarios >= targetUsuarios) {
+            setUsuarios(targetUsuarios);
+            clearInterval(timerUsuarios);
+          } else {
+            setUsuarios(startUsuarios);
+          }
+        }, stepTime);
+
+      } catch (err) {
+        console.error("Error fetching landing stats:", err);
+        setPedidos(400);
+        setUsuarios(450);
       }
-    }, stepTime);
+    };
 
-    let startUsuarios = 0;
-    const endUsuarios = 450;
-    const incrementUsuarios = Math.ceil(endUsuarios / totalStepsPedidos);
+    fetchStats();
 
-    const timerUsuarios = setInterval(() => {
-      startUsuarios += incrementUsuarios;
-      if (startUsuarios >= endUsuarios) {
-        setUsuarios(endUsuarios);
-        clearInterval(timerUsuarios);
-      } else {
-        setUsuarios(startUsuarios);
-      }
-    }, stepTime);
+    // 3. Realtime subscriptions
+    const channelPedidos = supabase
+      .channel('landing_pedidos_realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'pedidos_general'
+      }, () => {
+        setPedidos(prev => prev + 1);
+      })
+      .subscribe();
+
+    const channelUsuarios = supabase
+      .channel('landing_usuarios_realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'usuarios'
+      }, () => {
+        setUsuarios(prev => prev + 1);
+      })
+      .subscribe();
 
     // Trigger progress bar animation after a slight delay
     const progressTimeout = setTimeout(() => {
@@ -66,8 +118,11 @@ export default function Landing() {
     }, 100);
 
     return () => {
-      clearInterval(timerPedidos);
-      clearInterval(timerUsuarios);
+      active = false;
+      if (timerPedidos) clearInterval(timerPedidos);
+      if (timerUsuarios) clearInterval(timerUsuarios);
+      supabase.removeChannel(channelPedidos);
+      supabase.removeChannel(channelUsuarios);
       clearTimeout(progressTimeout);
     };
   }, []);
