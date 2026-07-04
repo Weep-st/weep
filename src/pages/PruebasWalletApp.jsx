@@ -2276,11 +2276,17 @@ export default function PruebasWalletApp() {
   return (
     <div className="customer-app">
       <header className="app-header">
-        <Link to="/" className="app-logo-link">
-          <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="app-logo" />
-        </Link>
+        <div className="header-left-brand">
+          <Link to="/" className="app-logo-link">
+            <img src="https://i.postimg.cc/W1qfzj0L/wepi-(1)-(1).png" alt="Wepi" className="app-logo" />
+          </Link>
+          <div className="city-selector-dropdown" onClick={handleBadgeClick}>
+            <span className="city-selector-name">{activeCity || 'Santo Tomé'}</span>
+            <span className="city-selector-arrow">▼</span>
+          </div>
+        </div>
         <div className="search-wrapper">
-          <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 34, height: 34, objectFit: 'contain' }} />
           <input type="text" placeholder="Buscar menús o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         </div>
         <div className="header-actions">
@@ -2317,23 +2323,6 @@ export default function PruebasWalletApp() {
                </button>
             </div>
           )}
-          {/* City Selector in Header */}
-          <div className="city-header-badge" onClick={handleBadgeClick} style={{
-             display: 'flex',
-             alignItems: 'center',
-             gap: '6px',
-             background: 'rgba(255, 255, 255, 0.05)',
-             border: '1px solid rgba(255, 255, 255, 0.1)',
-             padding: '6px 12px',
-             borderRadius: '10px',
-             cursor: 'pointer',
-             fontSize: '0.85rem',
-             fontWeight: '600',
-             color: '#f1f5f9',
-             marginRight: '8px'
-           }}>
-             📍 {getAbbreviatedCity(activeCity)}
-           </div>
           <button className="profile-btn" onClick={() => user ? setModal('profile') : setModal('login')}>
             <img src="https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png" alt="Perfil" className="profile-avatar-img" />
             <span className="hide-mobile">{user ? 'Mi Perfil' : 'Ingresar'}</span>
@@ -3469,33 +3458,17 @@ export default function PruebasWalletApp() {
 
             {modal === 'profile' && user && (
               <div>
-                <h2>Mi Perfil</h2>
-                <div className="profile-info">
-                  <p><strong>Nombre:</strong> {user.name}</p>
-                  <p><strong>Email:</strong> {user.email}</p>
-                  <p><strong>Teléfono:</strong> {user.telefono || 'No configurado'}</p>
-                  <p><strong>Dirección:</strong> {user.address || 'No configurada'}</p>
-                  <div className="wallet-profile-status" style={{
-                    marginTop: '12px',
-                    padding: '10px',
-                    background: '#f0f9ff',
-                    borderRadius: '8px',
-                    border: '1px solid #bae6fd',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}>
-                    <span style={{ fontSize: '0.9rem', color: '#0369a1', fontWeight: '600' }}>Crédito Wepi Wallet:</span>
-                    <span style={{ fontSize: '1rem', color: '#0369a1', fontWeight: '800' }}>
-                      {walletBalance === null ? 'Cargando...' : `$${(walletBalance || 0).toLocaleString()}`}
-                    </span>
-                  </div>
+                <h2>Mi perfil</h2>
+                <div className="profile-info" style={{ marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                  <p style={{ fontSize: '1rem', color: '#1e293b' }}>
+                    <strong>Usuario:</strong> {user.name}
+                  </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <button className="btn btn-primary btn-full" onClick={() => setModal('editProfile')}>✍️  Editar perfil</button>
-                  <button className="btn btn-secondary btn-full" onClick={() => setModal('editAddress')}>📍 Cambiar dirección</button>
-                  <button className="btn btn-secondary btn-full" onClick={() => navigate('/mis-pedidos')}>📦 Mis Pedidos</button>
-                  <button className="btn btn-ghost btn-full" onClick={() => { doLogout(); setModal(null); toast.success('Sesión cerrada'); }}>
+                  <button className="btn btn-secondary btn-full" onClick={() => { setModal(null); navigate('/mis-pedidos'); }}>📦 Mis pedidos</button>
+                  <button className="btn btn-secondary btn-full" onClick={() => { fetchByCategory('favoritos', 'Mis favoritos'); setModal(null); }}>❤️ Mis favoritos</button>
+                  <button className="btn btn-ghost btn-full" style={{ marginTop: '12px' }} onClick={() => { doLogout(); setModal(null); toast.success('Sesión cerrada'); }}>
                     Cerrar sesión
                   </button>
                 </div>
@@ -3523,6 +3496,27 @@ export default function PruebasWalletApp() {
                     placeholder="Número (ej: 1123456789)" 
                     required 
                   />
+                </div>
+                <label className="form-label">Dirección de entrega</label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={user?.address || 'No configurada'} 
+                    disabled 
+                    style={{ background: '#f1f5f9', flex: 1, cursor: 'not-allowed' }} 
+                  />
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    style={{ minHeight: '44px', padding: '8px 16px' }}
+                    onClick={() => {
+                      setShowProfileAddressSelector(true);
+                      setModal(null);
+                    }}
+                  >
+                    📍 Mapa
+                  </button>
                 </div>
                 <label className="form-label">Nueva contraseña (opcional)</label>
                 <input name="newPassword" type="password" className="form-input" placeholder="Dejar en blanco si no deseas cambiarla" />
@@ -4223,12 +4217,15 @@ export default function PruebasWalletApp() {
               // Podríamos necesitar recargar el usuario localmente o actualizar el context
               toast.success('Dirección de perfil actualizada');
               setShowProfileAddressSelector(false);
-              setModal('profile');
+              setModal('editProfile');
             } catch (e) {
               toast.error('Error al actualizar perfil');
             }
           }}
-          onCancel={() => setShowProfileAddressSelector(false)}
+          onCancel={() => {
+            setShowProfileAddressSelector(false);
+            setModal('editProfile');
+          }}
         />
       )}
 
