@@ -631,7 +631,7 @@ export default function PruebasWalletApp() {
     
     const cuponPromo = promoResults.appliedPromos.find(p => p.tipo === 'cupon');
     const appliedCuponId = cuponPromo ? cuponPromo.id : null;
-    const descuentoCupon = cuponPromo ? (promoResults.discountTotal || 0) : 0;
+    const descuentoCupon = cuponPromo ? ((promoResults.discountTotal || 0) + (promoResults.shippingDiscount || 0)) : 0;
     
     let result;
     if (method === 'transferencia') {
@@ -3257,7 +3257,20 @@ export default function PruebasWalletApp() {
                         </span>
                       )}
                     </span>
-                    <span>{visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`}</span>
+                    <span>
+                      {checkoutTotals?.delivery_fee > checkoutTotals?.discounted_delivery_fee ? (
+                        <>
+                          <span style={{ textDecoration: 'line-through', color: 'var(--gray-400)', marginRight: '8px', fontSize: '0.85rem' }}>
+                            ${(checkoutTotals?.delivery_fee || 0).toLocaleString('es-AR')}
+                          </span>
+                          <span style={{ color: 'var(--green-600)', fontWeight: '600' }}>
+                            {checkoutTotals?.discounted_delivery_fee === 0 ? '¡GRATIS!' : `$${(checkoutTotals?.discounted_delivery_fee || 0).toLocaleString('es-AR')}`}
+                          </span>
+                        </>
+                      ) : (
+                        visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`
+                      )}
+                    </span>
                   </div>
                 )}
                 {visibleMpFee > 0 && (

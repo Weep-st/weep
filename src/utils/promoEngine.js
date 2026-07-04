@@ -212,49 +212,98 @@ export const evaluatePromotions = (context) => {
                 break;
 
             case 'envio':
-                if (beneficios.tipo_beneficio === 'envio_gratis') {
-                    results.freeShipping = true;
-                    results.shippingDiscount = cart.deliveryFee || 0;
-                } else if (beneficios.tipo_beneficio === 'envio_fijo') {
-                    results.shippingDiscount = Math.max(0, (cart.deliveryFee || 0) - beneficios.valor);
-                } else if (beneficios.tipo_beneficio === 'porcentaje') {
-                    results.shippingDiscount = Math.round((cart.deliveryFee || 0) * (beneficios.valor / 100));
-                    // Aplicar tope específico del beneficio
-                    if (beneficios.tope_valor > 0 && results.shippingDiscount > beneficios.tope_valor) {
-                        results.shippingDiscount = beneficios.tope_valor;
+            case 'cupon':
+                // Si la promo (o cupón) tiene un beneficio relacionado a envíos
+                if (
+                    beneficios.tipo_beneficio === 'envio_gratis' ||
+                    beneficios.tipo_beneficio === 'envio_fijo' ||
+                    beneficios.tipo_beneficio === 'envio_descuento_fijo' ||
+                    beneficios.tipo_beneficio === 'envio_descuento_porcentaje'
+                ) {
+                    if (beneficios.tipo_beneficio === 'envio_gratis') {
+                        results.freeShipping = true;
+                        results.shippingDiscount = cart.deliveryFee || 0;
+                    } else if (beneficios.tipo_beneficio === 'envio_fijo') {
+                        // Hace que el costo de envío sea igual al valor fijado (ej: envío a $200)
+                        results.shippingDiscount = Math.max(0, (cart.deliveryFee || 0) - beneficios.valor);
+                    } else if (beneficios.tipo_beneficio === 'envio_descuento_fijo') {
+                        // Descuenta un valor fijo del envío (ej: $150 de descuento en envío)
+                        results.shippingDiscount = Math.min(cart.deliveryFee || 0, beneficios.valor);
+                    } else if (beneficios.tipo_beneficio === 'envio_descuento_porcentaje') {
+                        // Descuenta un porcentaje del envío (ej: 50% de descuento en envío)
+                        results.shippingDiscount = Math.round((cart.deliveryFee || 0) * (beneficios.valor / 100));
+                        if (beneficios.tope_valor > 0 && results.shippingDiscount > beneficios.tope_valor) {
+                            results.shippingDiscount = beneficios.tope_valor;
+                        }
                     }
+                    applied = true;
+                    break;
                 }
-                applied = true;
+                
+                // Si es tipo 'envio' puro pero no coincidió con los beneficios anteriores, salimos
+                if (promo.tipo === 'envio') {
+                    break;
+                }
+                
+                // Si es un cupón pero NO es de envío, caemos en el cálculo de descuento normal:
+                {
+                    let discount = 0;
+                    if (beneficios.tipo_beneficio === 'porcentaje') {
+                        discount = Math.round(applicableSubtotal * (beneficios.valor / 100));
+                    } else if (beneficios.tipo_beneficio === 'fijo') {
+                        discount = beneficios.valor;
+                    }
+
+                    // Aplicar tope específico del beneficio
+                    if (beneficios.tope_valor > 0 && discount > beneficios.tope_valor) {
+                        discount = beneficios.tope_valor;
+                    }
+
+                    // Aplicar tope de descuento
+                    if (requisitos.tope_max_descuento && discount > requisitos.tope_max_descuento) {
+                        discount = requisitos.tope_max_descuento;
+                    }
+
+                    // Validar porcentaje máximo de uso (si aplica)
+                    if (requisitos.max_porcentaje_uso) {
+                        const maxAllowed = Math.round(applicableSubtotal * (requisitos.max_porcentaje_uso / 100));
+                        if (discount > maxAllowed) discount = maxAllowed;
+                    }
+
+                    results.discountTotal += discount;
+                    applied = true;
+                }
                 break;
 
-            case 'cupon':
             case 'diario':
             case 'combo':
-                let discount = 0;
-                if (beneficios.tipo_beneficio === 'porcentaje') {
-                    discount = Math.round(applicableSubtotal * (beneficios.valor / 100));
-                } else if (beneficios.tipo_beneficio === 'fijo') {
-                    discount = beneficios.valor;
-                }
+                {
+                    let discount = 0;
+                    if (beneficios.tipo_beneficio === 'porcentaje') {
+                        discount = Math.round(applicableSubtotal * (beneficios.valor / 100));
+                    } else if (beneficios.tipo_beneficio === 'fijo') {
+                        discount = beneficios.valor;
+                    }
 
-                // Aplicar tope específico del beneficio
-                if (beneficios.tope_valor > 0 && discount > beneficios.tope_valor) {
-                    discount = beneficios.tope_valor;
-                }
+                    // Aplicar tope específico del beneficio
+                    if (beneficios.tope_valor > 0 && discount > beneficios.tope_valor) {
+                        discount = beneficios.tope_valor;
+                    }
 
-                // Aplicar tope de descuento
-                if (requisitos.tope_max_descuento && discount > requisitos.tope_max_descuento) {
-                    discount = requisitos.tope_max_descuento;
-                }
+                    // Aplicar tope de descuento
+                    if (requisitos.tope_max_descuento && discount > requisitos.tope_max_descuento) {
+                        discount = requisitos.tope_max_descuento;
+                    }
 
-                // Validar porcentaje máximo de uso (si aplica)
-                if (requisitos.max_porcentaje_uso) {
-                    const maxAllowed = Math.round(applicableSubtotal * (requisitos.max_porcentaje_uso / 100));
-                    if (discount > maxAllowed) discount = maxAllowed;
-                }
+                    // Validar porcentaje máximo de uso (si aplica)
+                    if (requisitos.max_porcentaje_uso) {
+                        const maxAllowed = Math.round(applicableSubtotal * (requisitos.max_porcentaje_uso / 100));
+                        if (discount > maxAllowed) discount = maxAllowed;
+                    }
 
-                results.discountTotal += discount;
-                applied = true;
+                    results.discountTotal += discount;
+                    applied = true;
+                }
                 break;
         }
 

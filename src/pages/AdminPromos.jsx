@@ -467,13 +467,15 @@ const AdminPromos = () => {
                                     <option value="fijo">Monto Fijo ($)</option>
                                     <option value="envio_gratis">Envío Gratis</option>
                                     <option value="envio_fijo">Envío Valor Fijo</option>
+                                    <option value="envio_descuento_fijo">Descuento Fijo en Envío ($)</option>
+                                    <option value="envio_descuento_porcentaje">Descuento Porcentaje en Envío (%)</option>
                                     <option value="producto_gratis">Producto Gratis</option>
                                     <option value="regalo_wallet">Crédito de Regalo (Wallet)</option>
                                 </select>
                             </div>
                             {formData.beneficios.tipo_beneficio !== 'envio_gratis' && (
                                 <div className="form-group">
-                                    <label>Valor del Beneficio ({formData.beneficios.tipo_beneficio === 'porcentaje' ? '%' : '$'})</label>
+                                    <label>Valor del Beneficio ({['porcentaje', 'envio_descuento_porcentaje'].includes(formData.beneficios.tipo_beneficio) ? '%' : '$'})</label>
                                     <input 
                                         type="number" className="promo-input" 
                                         value={formData.beneficios.valor} 
@@ -481,7 +483,7 @@ const AdminPromos = () => {
                                     />
                                 </div>
                             )}
-                            {formData.beneficios.tipo_beneficio === 'porcentaje' && (
+                            {['porcentaje', 'envio_descuento_porcentaje'].includes(formData.beneficios.tipo_beneficio) && (
                                 <div className="form-group">
                                     <label>Tope de Beneficio ($)</label>
                                     <input 
@@ -645,7 +647,10 @@ const AdminPromos = () => {
                                     <span className="value">
                                         {promo.beneficios?.tipo_beneficio === 'porcentaje' ? `${promo.beneficios.valor}%` : 
                                          promo.beneficios?.tipo_beneficio === 'fijo' ? `$${promo.beneficios.valor}` : 
-                                         promo.beneficios?.tipo_beneficio === 'envio_gratis' ? 'GRATIS' : 
+                                         promo.beneficios?.tipo_beneficio === 'envio_gratis' ? 'Envío Gratis' : 
+                                         promo.beneficios?.tipo_beneficio === 'envio_fijo' ? `Envío a $${promo.beneficios.valor}` : 
+                                         promo.beneficios?.tipo_beneficio === 'envio_descuento_fijo' ? `-$${promo.beneficios.valor} Envío` : 
+                                         promo.beneficios?.tipo_beneficio === 'envio_descuento_porcentaje' ? `-${promo.beneficios.valor}% Envío` : 
                                          promo.beneficios?.tipo_beneficio === 'regalo_wallet' ? `$${promo.beneficios.valor} Wallet` : 'PROMO'}
                                     </span>
                                 </div>
