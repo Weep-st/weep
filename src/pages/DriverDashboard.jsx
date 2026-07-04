@@ -438,6 +438,12 @@ export default function DriverDashboard() {
         if (d.data.EmailConfirmado !== driver.emailConfirmado) {
           loginAsDriver(d.data);
         }
+      } else {
+        setDriverData(prev => prev || {
+          Nombre: driver.nombre || driver.email?.split('@')[0] || 'Repartidor',
+          Email: driver.email || '',
+          admin_status: driver.admin_status || 'Pendiente'
+        });
       }
       // Load balance and history server-side
       loadCobros();
@@ -446,7 +452,14 @@ export default function DriverDashboard() {
       loadGamification();
       loadScheduledDates();
       fetchArchivados();
-    } catch { toast.error('Error al cargar datos'); }
+    } catch (e) {
+      toast.error('Error al cargar datos');
+      setDriverData(prev => prev || {
+        Nombre: driver.nombre || driver.email?.split('@')[0] || 'Repartidor',
+        Email: driver.email || '',
+        admin_status: driver.admin_status || 'Pendiente'
+      });
+    }
   }, [driver, loginAsDriver]);
 
   const loadScheduledDates = async () => {
@@ -2100,15 +2113,111 @@ export default function DriverDashboard() {
         )}
         {renderPWAInstructionsModal()}
         {!driver ? renderAuth() : (
-          <div style={{ 
-            display: 'flex',
-            flexDirection: 'row',
-            position: 'relative', 
-            height: 'calc(100vh - 120px)', // Ocupar el resto de la pantalla con margen para el header
-            width: '100%', 
-            overflow: 'hidden',
-            background: '#f8f9fa'
-          }}>
+          driverData === null ? (
+            <div className="loading-state" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', fontSize: '1.2rem', color: 'var(--gray-600)' }}>
+              <div className="spinner" style={{ marginRight: '12px' }}></div> Cargando panel de repartidor...
+            </div>
+          ) : driverData.admin_status !== 'Aceptado' ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 'calc(100vh - 120px)',
+              padding: '24px',
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              textAlign: 'center'
+            }}>
+              <div className="card" style={{
+                maxWidth: '480px',
+                width: '100%',
+                padding: '40px 32px',
+                borderRadius: '24px',
+                boxShadow: 'var(--shadow-lg)',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                animation: 'scaleIn 0.5s var(--ease-out) both'
+              }}>
+                <div className="pulse-orange" style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: '#fffbeb',
+                  border: '2px solid #f59e0b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2.5rem',
+                  marginBottom: '24px'
+                }}>
+                  ⏳
+                </div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--gray-900)', marginBottom: '16px' }}>
+                  Cuenta pendiente de activación
+                </h2>
+                <p style={{ color: 'var(--gray-600)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '28px' }}>
+                  Hola <strong>{driverData.Nombre || driver.nombre}</strong>. Tu cuenta de repartidor aún no ha sido dada de alta por la administración de Wepi.
+                  <br /><br />
+                  Para comenzar a recibir pedidos y realizar entregas, debés solicitar tu activación.
+                </p>
+
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  fontSize: '0.85rem',
+                  color: 'var(--gray-700)',
+                  width: '100%',
+                  textAlign: 'left',
+                  marginBottom: '28px'
+                }}>
+                  <strong>Email registrado:</strong> {driverData.Email || driver.email}
+                </div>
+
+                <a 
+                  href={`https://wa.me/5493756543610?text=${encodeURIComponent(`quiero dar de alta mi cuenta de repartidor en Wepi. Email registrado: ${driverData.Email || driver.email}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-full"
+                  style={{
+                    background: '#25D366',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)',
+                    border: 'none',
+                    fontSize: '1rem',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  💬 Pedir alta por WhatsApp
+                </a>
+
+                <button 
+                  onClick={logoutDriver}
+                  className="btn btn-ghost btn-full"
+                  style={{ marginTop: '12px', color: 'var(--red-600)', borderColor: 'var(--red-200)' }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          ) :
+            <div style={{ 
+              display: 'flex',
+              flexDirection: 'row',
+              position: 'relative', 
+              height: 'calc(100vh - 120px)', 
+              width: '100%', 
+              overflow: 'hidden',
+              background: '#f8f9fa'
+            }}>
             {/* ─── PANEL LATERAL (Side Panel para Subvistas) ─── */}
             {view !== 'main' && (
               <div className="dd-side-panel animate-slide-right">

@@ -435,6 +435,7 @@ export async function repartidorGetDatos(driverId) {
       NivelRepartidor: data.nivel_repartidor || 1,
       ciudad: data.ciudad,
       es_partner: data.es_partner,
+      admin_status: data.admin_status || 'Pendiente',
       partner_id: data.partner_id,
       partner_pin: partnerPin,
       partner_vinculo_status: data.partner_vinculo_status || 'Ninguno',
