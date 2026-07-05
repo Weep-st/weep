@@ -575,6 +575,7 @@ const PartnerDashboard = () => {
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b' }}>Vehículo / Patente</th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b' }}>Estado</th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b' }}>Turno</th>
+                <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b' }}>Promedio Retiro</th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
@@ -646,6 +647,13 @@ const PartnerDashboard = () => {
                         </div>
                       )}
                     </div>
+                  </td>
+                  <td style={{ padding: '16px 20px', fontSize: '0.9rem' }}>
+                    {d.promedio_retiro !== undefined && d.promedio_retiro !== null ? (
+                      <strong>{d.promedio_retiro} min</strong>
+                    ) : (
+                      <span style={{ color: '#94a3b8' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>

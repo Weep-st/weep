@@ -323,6 +323,41 @@ const AdminPedidos = () => {
                                                 <p style={{ margin: '2px 0 0 0', fontSize: '0.9rem' }}><strong>Teléfono:</strong> {pedidoDetalle.repartidores.telefono || 'No disponible'}</p>
                                             </div>
                                         )}
+
+                                        {/* Tiempos Cronometrados */}
+                                        <div className="driver-info-box" style={{ marginTop: '10px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}>
+                                            <p style={{ margin: '0 0 8px 0', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>⏱️ Tiempos de Control:</p>
+                                            <p style={{ margin: '4px 0', display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Preparación:</span>
+                                                <strong>
+                                                    {pedidoDetalle.tiempo_preparacion !== null && pedidoDetalle.tiempo_preparacion !== undefined ? (
+                                                        `${Math.round(pedidoDetalle.tiempo_preparacion / 60)} min`
+                                                     ) : (
+                                                        <span style={{ color: '#94a3b8', fontWeight: 'normal' }}>En curso...</span>
+                                                     )}
+                                                </strong>
+                                            </p>
+                                            <p style={{ margin: '4px 0', display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Retiro (Listo ➔ Retirado):</span>
+                                                <strong>
+                                                    {pedidoDetalle.tiempo_retiro !== null && pedidoDetalle.tiempo_retiro !== undefined ? (
+                                                        `${Math.round(pedidoDetalle.tiempo_retiro / 60)} min`
+                                                     ) : (
+                                                        <span style={{ color: '#94a3b8', fontWeight: 'normal' }}>En curso...</span>
+                                                     )}
+                                                </strong>
+                                            </p>
+                                            <p style={{ margin: '4px 0', display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Entrega (Retirado ➔ Entregado):</span>
+                                                <strong>
+                                                    {pedidoDetalle.tiempo_entrega !== null && pedidoDetalle.tiempo_entrega !== undefined ? (
+                                                        `${Math.round(pedidoDetalle.tiempo_entrega / 60)} min`
+                                                     ) : (
+                                                        <span style={{ color: '#94a3b8', fontWeight: 'normal' }}>En curso...</span>
+                                                     )}
+                                                </strong>
+                                            </p>
+                                        </div>
                                         {pedidoDetalle.payment_id && (
                                             <div className="mp-info">
                                                 <p><strong>MP ID:</strong> {pedidoDetalle.payment_id}</p>

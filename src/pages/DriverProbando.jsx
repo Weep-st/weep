@@ -1835,8 +1835,8 @@ export default function DriverProbando() {
                    </div>
                 </div>
 
-                {showStats && (
-                  <div className="dd-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                 {showStats && (
+                  <div className="dd-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
                     <div className="dd-stat-item" onClick={() => setShowRankingModal(true)} style={{ padding: '6px 4px', border: 'none', background: '#fff9f0' }}>
                       <small style={{ fontSize: '0.55rem' }}>🏆 Rank</small>
                       <strong style={{ fontSize: '0.9rem' }}>#{gamificationStats?.rank_posicion || '—'}</strong>
@@ -1845,13 +1845,17 @@ export default function DriverProbando() {
                       <small style={{ fontSize: '0.55rem' }}>💎 Pts</small>
                       <strong style={{ fontSize: '0.9rem' }}>{gamificationStats?.puntos_totales || 0}</strong>
                     </div>
-                    <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none' }}>
+                    <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none', background: '#f0fdf4' }}>
                       <small style={{ fontSize: '0.55rem' }}>📦 Env</small>
-                      <strong style={{ fontSize: '0.9rem' }}>{realStats.viajesTotales}</strong>
+                      <strong style={{ fontSize: '0.9rem' }}>{realStats.viajesHoy || 0}</strong>
                     </div>
-                    <div className="dd-stat-item" onClick={() => setView('cobros')} style={{ padding: '6px 4px', border: 'none' }}>
+                    <div className="dd-stat-item" onClick={() => setView('cobros')} style={{ padding: '6px 4px', border: 'none', background: '#fef2f2' }}>
                       <small style={{ fontSize: '0.55rem' }}>💰 Gan</small>
-                      <strong style={{ fontSize: '0.9rem' }}>${Math.round(realStats.gananciasGlobales / 1000)}k</strong>
+                      <strong style={{ fontSize: '0.9rem' }}>${realStats.gananciasTotalesHoy || 0}</strong>
+                    </div>
+                    <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none', background: '#f5f3ff' }}>
+                      <small style={{ fontSize: '0.55rem' }}>⏱️ Retiro</small>
+                      <strong style={{ fontSize: '0.9rem' }}>{realStats.promedioRetiro !== undefined && realStats.promedioRetiro !== null ? `${realStats.promedioRetiro}m` : '—'}</strong>
                     </div>
                   </div>
                 )}

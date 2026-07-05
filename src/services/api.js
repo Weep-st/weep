@@ -451,7 +451,7 @@ export async function repartidorGetDashboardStats(repartidorId) {
   today.setHours(0, 0, 0, 0);
 
   // Consideramos fecha >= hoy 00:00 (en hora local, la DB usa UTC-3 usualmente en el campo fecha)
-  const [todayRes, noCerradosRes, archivedRes] = await Promise.all([
+  const [todayRes, noCerradosRes, archivedRes, avgRes] = await Promise.all([
     supabase
       .from('pedidos_general')
       .select('precio_envio')
@@ -467,7 +467,12 @@ export async function repartidorGetDashboardStats(repartidorId) {
     supabase
       .from('cierre_repartidores')
       .select('detalles_por_repartidor')
-      .contains('detalles_por_repartidor', [{ id: repartidorId }])
+      .contains('detalles_por_repartidor', [{ id: repartidorId }]),
+    supabase
+      .from('pedidos_general')
+      .select('tiempo_retiro')
+      .eq('repartidor_id', repartidorId)
+      .not('tiempo_retiro', 'is', null)
   ]);
 
   if (todayRes.error) return { success: false, error: todayRes.error.message };
@@ -492,12 +497,19 @@ export async function repartidorGetDashboardStats(repartidorId) {
     });
   }
 
+  let promedioRetiro = null;
+  if (avgRes.data && avgRes.data.length > 0) {
+    const sum = avgRes.data.reduce((acc, curr) => acc + (curr.tiempo_retiro || 0), 0);
+    promedioRetiro = Math.round((sum / avgRes.data.length) / 60); // en minutos
+  }
+
   return {
     success: true,
     viajesHoy,
     gananciasTotalesHoy,
     viajesTotales: viajesNoCerrados + viajesArchivados,
-    gananciasGlobales: gananciasNoCerradas + gananciasArchivadas
+    gananciasGlobales: gananciasNoCerradas + gananciasArchivadas,
+    promedioRetiro
   };
 }
 
@@ -5931,14 +5943,44 @@ export async function getPartners() {
 }
 
 export async function getPartnerDrivers(partnerId) {
-  const { data, error } = await supabase
+  const { data: drivers, error } = await supabase
     .from('repartidores')
     .select('*')
     .eq('partner_id', partnerId)
     .order('nombre', { ascending: true });
     
   if (error) throw new Error(error.message);
-  return data || [];
+  
+  if (drivers && drivers.length > 0) {
+    const driverIds = drivers.map(d => d.id);
+    const { data: avgTimes, error: avgError } = await supabase
+      .from('pedidos_general')
+      .select('repartidor_id, tiempo_retiro')
+      .in('repartidor_id', driverIds)
+      .not('tiempo_retiro', 'is', null);
+      
+    if (!avgError && avgTimes) {
+      const stats = {};
+      avgTimes.forEach(row => {
+        if (!stats[row.repartidor_id]) {
+          stats[row.repartidor_id] = { sum: 0, count: 0 };
+        }
+        stats[row.repartidor_id].sum += row.tiempo_retiro;
+        stats[row.repartidor_id].count += 1;
+      });
+      
+      drivers.forEach(d => {
+        const driverStats = stats[d.id];
+        if (driverStats && driverStats.count > 0) {
+          d.promedio_retiro = Math.round((driverStats.sum / driverStats.count) / 60); // en minutos
+        } else {
+          d.promedio_retiro = null;
+        }
+      });
+    }
+  }
+  
+  return drivers || [];
 }
 
 export async function getPartnerPedidos(partnerId, ciudad) {

@@ -4248,24 +4248,10 @@ export default function PruebasWalletApp() {
           <div className="searching-modal-card">
             {!foundDriver ? (
               <>
-                <div className="searching-animation">
-                  <div className="radar"></div>
-                  <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Buscando" className="moving-moto" />
-                </div>
-                <h2>🔎Buscando tu repartidor</h2>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--gray-800, #1e293b)', marginBottom: '16px', textAlign: 'center' }}>
+                  🔎Buscando repartidor para tu pedido
+                </h2>
                 
-                <p className="searching-description" style={{ fontSize: '1.05rem', fontWeight: '500', marginBottom: '16px' }}>
-                  Estamos buscando un repartidor disponible para retirar y entregar tu pedido lo antes posible.
-                </p>
-
-                <div className="searching-status-pill" style={{ display: 'inline-block', margin: '8px auto', padding: '6px 16px', borderRadius: '20px', background: 'var(--primary-light, #f0fdf4)', color: 'var(--primary-dark, #16a34a)', fontWeight: '600', fontSize: '0.9rem' }}>
-                  📍 Notificando repartidores cercanos...
-                </div>
-
-                <p style={{ fontSize: '0.85rem', color: '#666', margin: '12px 0' }}>
-                  ⏳ Esto puede tardar unos minutos según la demanda y disponibilidad de la zona.
-                </p>
-
                 <div style={{
                   background: 'rgba(239, 68, 68, 0.08)',
                   color: '#dc2626',
@@ -4278,10 +4264,10 @@ export default function PruebasWalletApp() {
                   textAlign: 'left',
                   lineHeight: '1.4'
                 }}>
-                  ⚠️ <strong>Mantené esta ventana abierta.</strong> Una vez que un repartidor acepte el viaje, podrás realizar el pago y confirmar tu pedido.
+                  ⚠️ Mantené esta ventana abierta. Una vez que un repartidor acepte el viaje, podrás realizar el pago y confirmar tu pedido.
                 </div>
 
-                <div className="searching-timer" style={{ marginTop: '20px', fontSize: '1rem', fontWeight: '500' }}>
+                <div className="searching-timer" style={{ marginTop: '20px', fontSize: '1rem', fontWeight: '500', textAlign: 'center' }}>
                   ⏳ Tiempo de espera...{' '}
                   <span style={{ fontWeight: 800, color: 'var(--red-600)', fontSize: '1.1rem' }}>
                     0{Math.floor((60 - searchSeconds) / 60)}:{( (60 - searchSeconds) % 60 ).toString().padStart(2, '0')}
