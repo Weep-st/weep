@@ -73,15 +73,15 @@ BEGIN
     WHERE id = NEW.pedido_id;
 
     IF v_general_estado IS NOT NULL THEN
-        -- Si pedidos_general ya está 'Confirmado', pedidos_locales DEBE ser 'Confirmado'
-        IF (v_general_estado = 'Confirmado') THEN
-            NEW.estado := 'Confirmado';
         -- Si pedidos_general ya está 'Cancelado' o 'Rechazado', forzarlo
-        ELSIF (v_general_estado IN ('Cancelado', 'Rechazado')) THEN
+        IF (v_general_estado IN ('Cancelado', 'Rechazado')) THEN
             NEW.estado := v_general_estado;
         -- Si pedidos_general ya está 'Retirado' y es con envío, forzarlo a 'Entregado'
         ELSIF (v_general_estado = 'Retirado' AND v_general_tipo_entrega = 'Con Envío') THEN
             NEW.estado := 'Entregado';
+        -- En inserciones nuevas, si el general ya está confirmado, inicializarlo como confirmado
+        ELSIF (TG_OP = 'INSERT' AND v_general_estado = 'Confirmado') THEN
+            NEW.estado := 'Confirmado';
         END IF;
     END IF;
 
