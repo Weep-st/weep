@@ -4248,6 +4248,11 @@ export default function PruebasWalletApp() {
           <div className="searching-modal-card">
             {!foundDriver ? (
               <>
+                <div className="searching-animation">
+                  <div className="radar"></div>
+                  <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Buscando" className="moving-moto" />
+                </div>
+
                 <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--gray-800, #1e293b)', marginBottom: '16px', textAlign: 'center' }}>
                   🔎Buscando repartidor para tu pedido
                 </h2>
