@@ -1804,6 +1804,7 @@ export default function DriverProbando() {
                 localName={localInfo.nombre} 
                 isLoaded={isMapLoaded}
                 directions={optimizedRoute}
+                ciudad={driverData?.ciudad}
               />
             </div>
 

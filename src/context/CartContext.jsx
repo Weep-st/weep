@@ -10,6 +10,7 @@ export function CartProvider({ children }) {
   const [costoEnvioDelivery, setCostoEnvioDelivery] = useState(1800); 
   const [costoEnvioShops, setCostoEnvioShops] = useState(2000); 
   const [incentivoActivo, setIncentivoActivo] = useState(0);
+  const [customShippingCost, setCustomShippingCost] = useState(null);
 
   useEffect(() => {
     const fetchCosto = async () => {
@@ -42,7 +43,7 @@ export function CartProvider({ children }) {
   }, []);
 
   const isShops = window.location.pathname.startsWith('/shops');
-  const costoEnvio = isShops ? costoEnvioShops : costoEnvioDelivery;
+  const costoEnvio = customShippingCost !== null ? customShippingCost : (isShops ? costoEnvioShops : costoEnvioDelivery);
 
   const addItem = useCallback((menu) => {
     setItems(prev => {
@@ -90,7 +91,8 @@ export function CartProvider({ children }) {
       deliveryType, setDeliveryType,
       subtotal, shippingCost, total, totalItems, hasDrink,
       COSTO_ENVIO: costoEnvio,
-      incentivoActivo
+      incentivoActivo,
+      customShippingCost, setCustomShippingCost
     }}>
       {children}
     </CartContext.Provider>

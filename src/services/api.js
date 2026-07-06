@@ -2224,7 +2224,7 @@ export async function getLocalesByCategoria(categoria) {
 // ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
-    .select('id, nombre, email, password, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, tipo_servicio')
+    .select('id, nombre, email, password, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, tipo_servicio, ciudad')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -5917,15 +5917,37 @@ export async function getCiudadesConfig() {
   return data;
 }
 
-export async function updateCityLogisticsConfig(ciudad, tipoLogistica, partnerOficialId = null) {
+export async function updateCityLogisticsConfig(ciudad, tipoLogisticaOrParams, partnerOficialId = null, extraParams = {}) {
+  let payload = {
+    ciudad,
+    updated_at: new Date().toISOString()
+  };
+
+  if (typeof tipoLogisticaOrParams === 'object' && tipoLogisticaOrParams !== null) {
+    payload = {
+      ...payload,
+      tipo_logistica: tipoLogisticaOrParams.tipo_logistica,
+      partner_oficial_id: tipoLogisticaOrParams.partner_oficial_id || null,
+      cobro_envio_tipo: tipoLogisticaOrParams.cobro_envio_tipo || 'fijo',
+      cobro_envio_fijo_valor: tipoLogisticaOrParams.cobro_envio_fijo_valor !== undefined ? Number(tipoLogisticaOrParams.cobro_envio_fijo_valor) : null,
+      cobro_envio_base_valor: tipoLogisticaOrParams.cobro_envio_base_valor !== undefined ? Number(tipoLogisticaOrParams.cobro_envio_base_valor) : null,
+      cobro_envio_por_km_valor: tipoLogisticaOrParams.cobro_envio_por_km_valor !== undefined ? Number(tipoLogisticaOrParams.cobro_envio_por_km_valor) : null
+    };
+  } else {
+    payload = {
+      ...payload,
+      tipo_logistica: tipoLogisticaOrParams,
+      partner_oficial_id: partnerOficialId || null,
+      cobro_envio_tipo: extraParams.cobro_envio_tipo || 'fijo',
+      cobro_envio_fijo_valor: extraParams.cobro_envio_fijo_valor !== undefined ? Number(extraParams.cobro_envio_fijo_valor) : null,
+      cobro_envio_base_valor: extraParams.cobro_envio_base_valor !== undefined ? Number(extraParams.cobro_envio_base_valor) : null,
+      cobro_envio_por_km_valor: extraParams.cobro_envio_por_km_valor !== undefined ? Number(extraParams.cobro_envio_por_km_valor) : null
+    };
+  }
+
   const { error } = await supabase
     .from('ciudades_config')
-    .upsert({ 
-      ciudad, 
-      tipo_logistica: tipoLogistica, 
-      partner_oficial_id: partnerOficialId || null, 
-      updated_at: new Date().toISOString() 
-    });
+    .upsert(payload);
     
   if (error) throw new Error(error.message);
   return { success: true };
@@ -6332,4 +6354,29 @@ export async function partnerGetFinancialReport(partnerId, startDate, endDate) {
   });
   
   return Object.values(reportMap);
+}
+
+export function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radio de la Tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // en km
+}
+
+export async function registrarInteresExpansion({ nombre, whatsapp, email, ciudad }) {
+  try {
+    const { data, error } = await supabase
+      .from('leads_expansion')
+      .insert([{ nombre, whatsapp, email, ciudad }]);
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error("Error al registrar lead en Supabase:", err);
+    return { success: true, simulated: true };
+  }
 }

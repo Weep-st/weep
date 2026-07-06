@@ -45,7 +45,14 @@ const AdminConfig = () => {
                 codigo_acceso: config.codigo_acceso
             });
             for (const c of ciudades) {
-                await api.updateCityLogisticsConfig(c.ciudad, c.tipo_logistica, c.partner_oficial_id);
+                await api.updateCityLogisticsConfig(c.ciudad, {
+                    tipo_logistica: c.tipo_logistica,
+                    partner_oficial_id: c.partner_oficial_id,
+                    cobro_envio_tipo: c.cobro_envio_tipo || 'fijo',
+                    cobro_envio_fijo_valor: c.cobro_envio_fijo_valor,
+                    cobro_envio_base_valor: c.cobro_envio_base_valor,
+                    cobro_envio_por_km_valor: c.cobro_envio_por_km_valor
+                });
             }
             toast.success('Configuración guardada correctamente');
         } catch (err) {
@@ -208,7 +215,7 @@ const AdminConfig = () => {
                                 marginBottom: '16px',
                                 maxWidth: '500px'
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: c.tipo_logistica === 'partner' ? '12px' : 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{c.ciudad}</h4>
                                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Modalidad de distribución</p>
@@ -239,7 +246,7 @@ const AdminConfig = () => {
                                 </div>
 
                                 {c.tipo_logistica === 'partner' && (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '10px', marginBottom: '12px' }}>
                                         <div>
                                             <span style={{ fontSize: '0.85rem', color: 'white' }}>Partner Oficial:</span>
                                             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Empresa asociada a esta ciudad</p>
@@ -268,6 +275,84 @@ const AdminConfig = () => {
                                                 </option>
                                             ))}
                                         </select>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: '10px' }}>
+                                    <div>
+                                        <span style={{ fontSize: '0.85rem', color: 'white' }}>Tarifa de Envío:</span>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Método de cobro por envío</p>
+                                    </div>
+                                    <select
+                                        value={c.cobro_envio_tipo || 'fijo'}
+                                        onChange={(e) => {
+                                            const newCities = [...ciudades];
+                                            newCities[idx].cobro_envio_tipo = e.target.value;
+                                            setCiudades(newCities);
+                                        }}
+                                        className="admin-input"
+                                        style={{
+                                            padding: '0.5rem',
+                                            background: 'rgba(0,0,0,0.5)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '0.25rem',
+                                            color: 'white',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        <option value="fijo" style={{ background: '#222' }}>Tarifa Fija</option>
+                                        <option value="dinamico" style={{ background: '#222' }}>Tarifa Dinámica (por Km)</option>
+                                    </select>
+                                </div>
+
+                                {c.cobro_envio_tipo === 'dinamico' ? (
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Valor Base ($)</label>
+                                            <input
+                                                type="number"
+                                                value={c.cobro_envio_base_valor !== undefined && c.cobro_envio_base_valor !== null ? c.cobro_envio_base_valor : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].cobro_envio_base_valor = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.85rem' }}
+                                                required
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Valor por Km ($)</label>
+                                            <input
+                                                type="number"
+                                                value={c.cobro_envio_por_km_valor !== undefined && c.cobro_envio_por_km_valor !== null ? c.cobro_envio_por_km_valor : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].cobro_envio_por_km_valor = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.85rem' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ marginTop: '10px' }}>
+                                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Valor Tarifa Fija ($)</label>
+                                        <input
+                                            type="number"
+                                            value={c.cobro_envio_fijo_valor !== undefined && c.cobro_envio_fijo_valor !== null ? c.cobro_envio_fijo_valor : ''}
+                                            onChange={(e) => {
+                                                const newCities = [...ciudades];
+                                                newCities[idx].cobro_envio_fijo_valor = e.target.value !== '' ? Number(e.target.value) : '';
+                                                setCiudades(newCities);
+                                            }}
+                                            className="admin-input"
+                                            style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.85rem' }}
+                                            required
+                                        />
                                     </div>
                                 )}
                             </div>

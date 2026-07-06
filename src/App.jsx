@@ -243,7 +243,17 @@ export default function App() {
               <PruebasWalletApp />
             </MaintenanceGuard>
           } />
+          <Route path="/p/:ciudad/:slug" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasWalletApp />
+            </MaintenanceGuard>
+          } />
           <Route path="/pedir/:slug" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasWalletApp />
+            </MaintenanceGuard>
+          } />
+          <Route path="/pedir/:ciudad/:slug" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
               <PruebasWalletApp />
             </MaintenanceGuard>
@@ -254,6 +264,11 @@ export default function App() {
             </MaintenanceGuard>
           } />
           <Route path="/shops/:slug" element={
+            <MaintenanceGuard configKey="mantenimiento_pedir">
+              <PruebasWalletApp />
+            </MaintenanceGuard>
+          } />
+          <Route path="/shops/:ciudad/:slug" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
               <PruebasWalletApp />
             </MaintenanceGuard>

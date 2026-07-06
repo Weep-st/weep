@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
+import { getCitySlug } from '../utils/city';
 import AdminPagos from './AdminPagos';
 import './AdminLocales.css';
 
@@ -388,7 +389,9 @@ const AdminLocales = () => {
                                                     className="btn btn-primary btn-sm"
                                                     onClick={() => {
                                                         if (!local.slug) return toast.error('Falta el slug');
-                                                        const link = `https://wepi.com.ar/pedir/${local.slug}`;
+                                                        const citySlug = getCitySlug(local.ciudad);
+                                                        const prefix = local.tipo_servicio === 'shops' ? 'shops' : 'pedir';
+                                                        const link = `https://wepi.com.ar/${prefix}/${citySlug}/${local.slug}`;
                                                         navigator.clipboard.writeText(link);
                                                         toast.success('¡Enlace copiado!', { icon: '📋' });
                                                     }}

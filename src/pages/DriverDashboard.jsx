@@ -2251,6 +2251,7 @@ export default function DriverDashboard() {
                 isLoaded={isMapLoaded}
                 directions={directions}
                 routeSequence={routeSequence}
+                ciudad={driverData?.ciudad}
               />
 
               {/* ─── BANNER DE PRÓXIMA PARADA ─── */}

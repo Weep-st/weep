@@ -6,6 +6,7 @@ import AddressSelector from '../components/AddressSelector';
 import * as api from '../services/api';
 import * as syncEngine from '../services/syncEngine';
 import { isValidEmail } from '../utils/validation';
+import { getCitySlug } from '../utils/city';
 import toast from 'react-hot-toast';
 import './RestaurantDashboard.css';
 import { isLocalOpen, getNextStatusChange } from '../utils/businessHours';
@@ -4336,7 +4337,9 @@ export default function RestaurantDashboard() {
                           minWidth: '200px'
                         }}>
                           <span style={{ color: '#64748b', fontSize: '0.85rem', whiteSpace: 'nowrap', userSelect: 'none' }}>
-                            {profileData?.tipo_servicio === 'shops' ? 'https://wepi.com.ar/shops/' : 'https://wepi.com.ar/pedir/'}
+                            {profileData?.tipo_servicio === 'shops' 
+                              ? `https://wepi.com.ar/shops/${getCitySlug(profileData?.ciudad)}/` 
+                              : `https://wepi.com.ar/pedir/${getCitySlug(profileData?.ciudad)}/`}
                           </span>
                           <input 
                             type="text"
@@ -4374,7 +4377,10 @@ export default function RestaurantDashboard() {
                             style={{ background: '#0284c7', whiteSpace: 'nowrap' }}
                             disabled={!profileData?.slug}
                             onClick={() => {
-                              const prefix = profileData?.tipo_servicio === 'shops' ? 'https://wepi.com.ar/shops/' : 'https://wepi.com.ar/pedir/';
+                              const citySlug = getCitySlug(profileData?.ciudad);
+                              const prefix = profileData?.tipo_servicio === 'shops' 
+                                ? `https://wepi.com.ar/shops/${citySlug}/` 
+                                : `https://wepi.com.ar/pedir/${citySlug}/`;
                               const link = `${prefix}${profileData?.slug || ''}`;
                               navigator.clipboard.writeText(link);
                               toast.success('¡Enlace copiado!', { icon: '📋' });

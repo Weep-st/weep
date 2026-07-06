@@ -16,26 +16,51 @@ const MapProbandoComponent = ({
   localName = 'Local', 
   isLoaded,
   directions,
-  routeSequence = []
+  routeSequence = [],
+  ciudad = 'Santo Tomé'
 }) => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [map, setMap] = useState(null);
 
+  const getCityConfig = useCallback((cityName) => {
+    if (String(cityName || '').toLowerCase().includes('ober')) {
+      return {
+        center: { lat: -27.485, lng: -55.120 },
+        bounds: { north: -27.3, south: -27.7, west: -55.3, east: -54.9 },
+        zoom: 15
+      };
+    }
+    // Default: Santo Tomé
+    return {
+      center: { lat: -28.548, lng: -56.041 },
+      bounds: { north: -28.3, south: -28.8, west: -56.3, east: -55.8 },
+      zoom: 15
+    };
+  }, []);
+
+  const cityConfig = useMemo(() => getCityConfig(ciudad), [ciudad, getCityConfig]);
+
   const center = useMemo(() => {
     if (driverLat && driverLng) return { lat: Number(driverLat), lng: Number(driverLng) };
     if (localLat && localLng) return { lat: Number(localLat), lng: Number(localLng) };
-    return { lat: -28.548, lng: -56.041 }; 
-  }, [localLat, localLng, driverLat, driverLng]);
+    return cityConfig.center; 
+  }, [localLat, localLng, driverLat, driverLng, cityConfig]);
 
-  const isWithinSantoTome = (lat, lng) => {
+  const isWithinCity = useCallback((lat, lng, cityName) => {
     const latNum = Number(lat);
     const lngNum = Number(lng);
-    return latNum <= -28.3 && latNum >= -28.8 && lngNum <= -55.8 && lngNum >= -56.3;
-  };
+    const config = getCityConfig(cityName);
+    
+    const maxLat = Math.max(config.bounds.north, config.bounds.south);
+    const minLat = Math.min(config.bounds.north, config.bounds.south);
+    const maxLng = Math.max(config.bounds.west, config.bounds.east);
+    const minLng = Math.min(config.bounds.west, config.bounds.east);
+    
+    return latNum <= maxLat && latNum >= minLat && lngNum <= maxLng && lngNum >= minLng;
+  }, [getCityConfig]);
 
   const markers = useMemo(() => {
     const m = [];
-    // Mostrar marcador del local solo si hay pedidos pendientes de retiro
     const hayPendientesDeRetiro = pedidosActivos.some(p => p.estado !== 'Retirado');
     
     const getSequenceNumber = (lat, lng) => {
@@ -47,7 +72,7 @@ const MapProbandoComponent = ({
         return idx !== -1 ? idx + 1 : null;
     };
 
-    if (localLat && localLng && isWithinSantoTome(localLat, localLng) && hayPendientesDeRetiro) {
+    if (localLat && localLng && isWithinCity(localLat, localLng, ciudad) && hayPendientesDeRetiro) {
       const seqNum = getSequenceNumber(localLat, localLng);
       m.push({
         id: 'local',
@@ -64,8 +89,7 @@ const MapProbandoComponent = ({
     }
 
     pedidosActivos.forEach((p, index) => {
-        // Solo mostrar marcador de entrega si el pedido ya fue retirado
-        if (p.estado === 'Retirado' && p.lat && p.lng && isWithinSantoTome(p.lat, p.lng)) {
+        if (p.estado === 'Retirado' && p.lat && p.lng && isWithinCity(p.lat, p.lng, ciudad)) {
             const seqNum = getSequenceNumber(p.lat, p.lng);
             m.push({
                 id: `pedido-${p.id}`,
@@ -82,7 +106,7 @@ const MapProbandoComponent = ({
         }
     });
 
-    if (driverLat && driverLng && isWithinSantoTome(driverLat, driverLng)) {
+    if (driverLat && driverLng && isWithinCity(driverLat, driverLng, ciudad)) {
       m.push({
         id: 'driver',
         position: { lat: Number(driverLat), lng: Number(driverLng) },
@@ -91,7 +115,7 @@ const MapProbandoComponent = ({
       });
     }
     return m;
-  }, [localLat, localLng, pedidosActivos, driverLat, driverLng, localName]);
+  }, [localLat, localLng, pedidosActivos, driverLat, driverLng, localName, ciudad, isWithinCity, routeSequence]);
 
   const onLoad = useCallback((mapInstance) => {
     setMap(mapInstance);
@@ -122,7 +146,7 @@ const MapProbandoComponent = ({
           }
         ],
         restriction: {
-          latLngBounds: { north: -28.3, south: -28.8, west: -56.3, east: -55.8 },
+          latLngBounds: cityConfig.bounds,
           strictBounds: false
         }
       }}

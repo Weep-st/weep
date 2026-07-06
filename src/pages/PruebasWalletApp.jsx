@@ -11,12 +11,13 @@ import AddressSelector from '../components/AddressSelector';
 import HelpChatbot from '../components/HelpChatbot';
 import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
 import { evaluatePromotions } from '../utils/promoEngine';
+import { getCitySlug, citiesMatch } from '../utils/city';
 import './PruebasWalletApp.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 export default function PruebasWalletApp() {
-  const { slug } = useParams();
+  const { ciudad, slug } = useParams();
   const location = useLocation();
   const isShopsMode = location.pathname.startsWith('/shops');
   console.log("🚀 PruebasWalletApp: Initialization started, isShopsMode:", isShopsMode);
@@ -82,6 +83,21 @@ export default function PruebasWalletApp() {
     window.Notification ? Notification.permission : 'default'
   );
   const [showNotificationBanner, setShowNotificationBanner] = React.useState(false);
+
+  // Oberá popup states
+  const [showOberaPopup, setShowOberaPopup] = React.useState(false);
+  const [leadNombre, setLeadNombre] = React.useState('');
+  const [leadWhatsapp, setLeadWhatsapp] = React.useState('');
+  const [isSubmittingLead, setIsSubmittingLead] = React.useState(false);
+  const [leadRegistered, setLeadRegistered] = React.useState(() => {
+    return localStorage.getItem('wepi-obera-registered') === 'true';
+  });
+
+  React.useEffect(() => {
+    if (activeCity === 'Oberá') {
+      setShowOberaPopup(true);
+    }
+  }, [activeCity]);
 
   React.useEffect(() => {
     const handleBeforeInstall = (e) => {
@@ -354,6 +370,58 @@ export default function PruebasWalletApp() {
       checkMundialPointsEarned(storedOldPts, storedOldSobres, storedIsNew);
     }
   }, [user]);
+
+  // ─── Estado y Efectos para Tarifas de Envío Multi-ciudad ───
+  const [ciudadesConfig, setCiudadesConfig] = React.useState([]);
+
+  React.useEffect(() => {
+    const loadCities = async () => {
+      try {
+        const data = await api.getCiudadesConfig();
+        setCiudadesConfig(data);
+      } catch (err) {
+        console.error("Error loading cities config for checkout:", err);
+      }
+    };
+    loadCities();
+  }, []);
+
+  React.useEffect(() => {
+    if (!cart) return;
+
+    const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
+    if (!currentLocal) {
+      cart.setCustomShippingCost(null);
+      return;
+    }
+
+    const city = currentLocal.ciudad || 'Santo Tomé';
+    const config = ciudadesConfig.find(c => String(c.ciudad).toLowerCase() === city.toLowerCase());
+    
+    if (!config) {
+      cart.setCustomShippingCost(null);
+      return;
+    }
+
+    if (config.cobro_envio_tipo === 'dinamico') {
+      const uLat = addressData?.lat;
+      const uLng = addressData?.lng;
+      const lLat = currentLocal.lat;
+      const lLng = currentLocal.lng;
+
+      if (uLat && uLng && lLat && lLng) {
+        const dist = api.calculateHaversineDistance(lLat, lLng, uLat, uLng);
+        const base = Number(config.cobro_envio_base_valor) || 0;
+        const perKm = Number(config.cobro_envio_por_km_valor) || 0;
+        const totalCost = base + (dist * perKm);
+        cart.setCustomShippingCost(Math.round(totalCost));
+      } else {
+        cart.setCustomShippingCost(Number(config.cobro_envio_base_valor) || 2000);
+      }
+    } else {
+      cart.setCustomShippingCost(Number(config.cobro_envio_fijo_valor) || 2000);
+    }
+  }, [ciudadesConfig, selectedLocal, locals, cart.items, addressData?.lat, addressData?.lng, cart.deliveryType]);
 
   const getTimeBasedTitle = React.useCallback(() => {
     if (isShopsMode) {
@@ -1263,6 +1331,25 @@ export default function PruebasWalletApp() {
       api.getLocalBySlug(slug).then(local => {
         if (local && local.admin_status === 'Aceptado') {
           console.log("✅ PruebasWalletApp: Local encontrado y aceptado:", local.nombre);
+          
+          // Redirección y compatibilidad multiciudad
+          const citySlug = getCitySlug(local.ciudad);
+          const hasIncorrectCity = !ciudad || !citiesMatch(ciudad, local.ciudad);
+          
+          if (hasIncorrectCity) {
+            const prefix = location.pathname.startsWith('/shops') 
+              ? '/shops' 
+              : location.pathname.startsWith('/p/') 
+                ? '/p' 
+                : '/pedir';
+            navigate(`${prefix}/${citySlug}/${local.slug}`, { replace: true });
+          }
+
+          // Sincronizar ciudad activa de la sesión
+          if (local.ciudad && activeCity !== local.ciudad) {
+            selectCity(local.ciudad);
+          }
+
           fetchMenusByLocal(local.id);
         } else if (local && local.admin_status !== 'Aceptado') {
           console.warn("⚠️ PruebasWalletApp: Local no aceptado:", local.nombre);
@@ -1281,7 +1368,7 @@ export default function PruebasWalletApp() {
       setShowMenus(false);
       setSelectedLocal(null);
     }
-  }, [slug, navigate, fetchMenusByLocal]);
+  }, [slug, ciudad, activeCity, selectCity, navigate, fetchMenusByLocal, location.pathname]);
 
   const handleBannerClick = React.useCallback(async () => {
     const info = getTimeBasedTitle();
@@ -3639,7 +3726,7 @@ export default function PruebasWalletApp() {
               </button>
               
               <button 
-                onClick={() => selectCity('Oberá')} 
+                onClick={() => { selectCity('Oberá'); setShowOberaPopup(true); }} 
                 className="btn btn-full"
                 style={{ 
                   background: 'rgba(255, 255, 255, 0.05)', 
@@ -4430,6 +4517,181 @@ export default function PruebasWalletApp() {
           }}
         />
       </Link>
+
+      {/* ─── Popup "Próximamente Oberá" ─── */}
+      {showOberaPopup && (
+        <div className="modal-overlay" style={{ zIndex: 12000, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }} onClick={() => setShowOberaPopup(false)}>
+          <div className="modal-box animate-scale-in" style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '24px',
+            padding: '35px 25px',
+            maxWidth: '460px',
+            width: '90%',
+            color: '#0f172a',
+            textAlign: 'center',
+            position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)'
+          }} onClick={e => e.stopPropagation()}>
+            
+            <button 
+              onClick={() => setShowOberaPopup(false)} 
+              style={{
+                position: 'absolute', top: '16px', right: '16px',
+                background: '#f1f5f9', border: 'none',
+                color: '#64748b', borderRadius: '50%', width: '32px', height: '32px',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.2s, color 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}
+            >
+              ✕
+            </button>
+
+            <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <img 
+                src="https://i.postimg.cc/d1myDmBb/wepi.png" 
+                alt="Wepi Logo" 
+                style={{ width: '80px', height: '80px', borderRadius: '20px', marginBottom: '15px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }} 
+              />
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 8px 0', fontFamily: "'Outfit', sans-serif", color: '#dc2626' }}>
+                ¡Wepi llega muy pronto a Oberá!
+              </h2>
+              <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: '1.4', margin: 0, fontWeight: '500' }}>
+                Estamos preparando los últimos detalles para que pidas de la forma más fácil.
+              </p>
+            </div>
+
+            {!leadRegistered ? (
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!leadNombre.trim() || !leadWhatsapp.trim()) {
+                    toast.error('Por favor, completa todos los campos.');
+                    return;
+                  }
+                  setIsSubmittingLead(true);
+                  try {
+                    const res = await api.registrarInteresExpansion({
+                      nombre: leadNombre.trim(),
+                      whatsapp: leadWhatsapp.trim(),
+                      ciudad: 'Oberá'
+                    });
+                    if (res.success) {
+                      toast.success('¡Registro exitoso! Te avisaremos pronto.', { icon: '🎉' });
+                      localStorage.setItem('wepi-obera-registered', 'true');
+                      setLeadRegistered(true);
+                    } else {
+                      toast.error('Error al registrar tus datos. Inténtalo de nuevo.');
+                    }
+                  } catch (err) {
+                    toast.error('Error de conexión.');
+                  } finally {
+                    setIsSubmittingLead(false);
+                  }
+                }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}
+              >
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.92rem', fontWeight: '700', color: '#334155', textAlign: 'left' }}>
+                  🔔 Recibí alertas de lanzamiento y beneficios exclusivos:
+                </h4>
+                
+                <input 
+                  type="text" 
+                  placeholder="Tu Nombre completo" 
+                  value={leadNombre}
+                  onChange={(e) => setLeadNombre(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                  required
+                />
+                
+                <input 
+                  type="tel" 
+                  placeholder="Tu WhatsApp (ej: 3755123456)" 
+                  value={leadWhatsapp}
+                  onChange={(e) => setLeadWhatsapp(e.target.value.replace(/[^0-9+]/g, ''))}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                  required
+                />
+
+                <button 
+                  type="submit" 
+                  className="btn btn-full"
+                  disabled={isSubmittingLead}
+                  style={{
+                    background: '#dc2626',
+                    color: 'white',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    fontSize: '0.95rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(220, 38, 38, 0.2)',
+                    marginTop: '5px',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
+                >
+                  {isSubmittingLead ? 'Registrando...' : 'Quiero que me avisen'}
+                </button>
+              </form>
+            ) : (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '20px', borderRadius: '16px', color: '#15803d', fontSize: '0.95rem', fontWeight: '600', marginBottom: '20px', lineHeight: '1.4' }}>
+                🎉 ¡Ya estás registrado! Te enviaremos un WhatsApp en cuanto el servicio comience en Oberá para que disfrutes de beneficios especiales.
+              </div>
+            )}
+
+            {/* Instalación de PWA */}
+            {deferredPrompt ? (
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p style={{ color: '#64748b', fontSize: '0.82rem', lineHeight: '1.4', margin: '0 0 10px 0' }}>
+                  ¡Instalá nuestra App en tu teléfono para acceder más rápido y sin consumir memoria!
+                </p>
+                <button 
+                  onClick={() => {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                      if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                      }
+                      setDeferredPrompt(null);
+                      setShowOberaPopup(false);
+                    });
+                  }}
+                  className="btn btn-full"
+                  style={{
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 15px rgba(220, 38, 38, 0.2)',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
+                >
+                  📲 Agregar Wepi a Inicio
+                </button>
+              </div>
+            ) : (
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '15px', fontSize: '0.78rem', color: '#94a3b8' }}>
+                Wepi ya se encuentra agregada al inicio o tu navegador no soporta instalación directa. ¡Podés acceder siempre desde tu pantalla de inicio!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
