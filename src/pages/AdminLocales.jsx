@@ -742,7 +742,7 @@ const AdminLocales = () => {
                                     borderRadius: '8px',
                                     border: '1px solid #e2e8f0'
                                 }}>
-                                    {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => (
+                                    {['Restaurante', 'Cafetería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Carnicería', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => (
                                         <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
                                             <input 
                                                 type="checkbox" 

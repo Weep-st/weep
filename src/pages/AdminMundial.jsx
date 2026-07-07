@@ -1422,7 +1422,7 @@ const AdminMundial = () => {
                                             onChange={e => setMisionForm({...misionForm, target_rubro: e.target.value})}
                                         >
                                             <option value="">Selecciona un rubro...</option>
-                                            {['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => (
+                                            {['Restaurante', 'Cafetería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Carnicería', 'Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes'].map(r => (
                                                 <option key={r} value={r}>{r}</option>
                                             ))}
                                         </select>

@@ -1872,7 +1872,7 @@ export default function RestaurantDashboard() {
                   }}>
                       {(regTipoServicio === 'shops' 
                           ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas'] 
-                          : ['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Bebidas']
+                          : ['Restaurante', 'Cafetería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Carnicería']
                       ).map(r => (
                           <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0, color: 'var(--gray-700)' }}>
                               <input 
@@ -2969,14 +2969,14 @@ export default function RestaurantDashboard() {
                    {/* Dropdown Añadir */}
                    <div style={{ position: 'relative' }}>
                       <button className="btn btn-success" onClick={() => {
-                        const needsDropdown = profileData?.rubros?.includes('Panadería') || profileData?.rubros?.includes('Heladería');
+                        const needsDropdown = profileData?.rubros?.includes('Cafetería') || profileData?.rubros?.includes('Heladería');
                         if (needsDropdown) {
                           setMenuAddOpen(!menuAddOpen);
                         } else {
                           setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
                         }
                       }}>
-                        + Añadir { (profileData?.rubros?.includes('Panadería') || profileData?.rubros?.includes('Heladería')) && '▾' }
+                        + Añadir { (profileData?.rubros?.includes('Cafetería') || profileData?.rubros?.includes('Heladería')) && '▾' }
                       </button>
                       
                       {menuAddOpen && (
@@ -3411,9 +3411,10 @@ export default function RestaurantDashboard() {
                       (function() {
                         const rubros = profileData?.rubros || [];
                         const rubroConfigs = [
-                          { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Panadería', 'Combos', 'Bebidas'] },
-                          { name: 'Panadería', cats: ['Pan', 'Facturas', 'Pastelería', 'Galletas', 'Salados', 'Desayuno/Merienda', 'Promos'] },
+                          { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Cafetería', 'Combos', 'Bebidas'] },
+                          { name: 'Cafetería', cats: ['Café', 'Licuados', 'Facturas', 'Pastelería', 'Galletas', 'Tostados', 'Promos'] },
                           { name: 'Heladería', cats: ['Helados'] },
+                          { name: 'Carnicería', cats: ['Carne Vacuna', 'Pollo', 'Cerdo', 'Embutidos', 'Achuras', 'Promos'] },
                           { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
                           { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] },
                           { name: 'Bebidas', cats: ['Gaseosas', 'Sin gas', 'Cervezas', 'Vinos/Espumantes', 'Aperitivos', 'Otros'] },
@@ -4267,7 +4268,7 @@ export default function RestaurantDashboard() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
                       {(profileData?.tipo_servicio === 'shops'
                         ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas']
-                        : ['Restaurante', 'Panadería', 'Heladería', 'Market', 'Farmacia', 'Bebidas']
+                        : ['Restaurante', 'Cafetería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Carnicería']
                       ).map(r => {
                         const isSelected = profileData?.rubros?.includes(r);
                         return (

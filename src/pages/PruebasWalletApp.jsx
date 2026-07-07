@@ -226,10 +226,11 @@ export default function PruebasWalletApp() {
     ] : [
       { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
       { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
-      { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+      { label: 'Cafetería', type: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
       { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
       { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
       { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Carnicería', type: 'Carnicería', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
       { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
     ],
     dynamicBanner: '',
@@ -470,7 +471,7 @@ export default function PruebasWalletApp() {
     if (hour >= 6 && hour < 11) return { 
         title: "¡Buenos días! Un rico desayuno", 
         banner: "https://i.postimg.cc/HnhC4bjV/Gemini-Generated-Image-pl34hbpl34hbpl34.png",
-        rubros: ['Panadería', 'Market', 'Bebidas'],
+        rubros: ['Cafetería', 'Market', 'Bebidas'],
         marketCats: ['Snacks', 'Bebidas']
     };
     // 11 hs a 13 hs (almuerzo)
@@ -491,7 +492,7 @@ export default function PruebasWalletApp() {
     if (hour >= 16 && hour < 20) return { 
         title: "Merienda: Un break para vos", 
         banner: "https://i.postimg.cc/JzgG4Bqb/Gemini-Generated-Image-nut1r8nut1r8nut1.png",
-        rubros: ['Panadería', 'Heladería', 'Market', 'Bebidas'],
+        rubros: ['Cafetería', 'Heladería', 'Market', 'Bebidas'],
         marketCats: ['Snacks', 'Bebidas']
     };
     // 20 a 00 hs (cena)
@@ -1082,10 +1083,11 @@ export default function PruebasWalletApp() {
             ] : [
               { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
               { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
-              { label: 'Panadería', type: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+              { label: 'Cafetería', type: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
               { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
               { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
               { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
+              { label: 'Carnicería', type: 'Carnicería', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
               { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
             ],
             allLocales: boosted,
@@ -2380,7 +2382,7 @@ export default function PruebasWalletApp() {
     { type: 'Pizzas', label: 'Pizzas', img: 'https://i.postimg.cc/cJkcvmFw/descarga-(1)-(10).jpg' },
     { type: 'Empanadas', label: 'Empanadas', img: 'https://i.postimg.cc/KYjPhTmk/descarga-(1)-(11).jpg' },
     { type: 'Panchos', label: 'Panchos', img: 'https://i.postimg.cc/XqcCXxZr/buscamos-repartidores-(30).png' },
-    { type: 'Panadería', label: 'Panadería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+    { type: 'Cafetería', label: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
     { type: 'Combos', label: 'Combos', img: 'https://i.postimg.cc/1X1wQDX5/buscamos-repartidores-(19).png' },
     { type: 'Bebidas', label: 'Bebidas', img: 'https://i.postimg.cc/KvhCcGkT/descarga-(1)-(14).jpg' },
     { type: 'favoritos', label: 'Mis favoritos', img: 'https://i.postimg.cc/RCktgLyZ/buscamos-repartidores-(7).png' },

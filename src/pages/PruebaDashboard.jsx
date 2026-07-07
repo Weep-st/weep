@@ -2061,7 +2061,8 @@ export default function PruebaDashboard() {
                     <option value="Pizzas">Pizzas</option>
                     <option value="Empanadas">Empanadas</option>
                     <option value="Panchos">Panchos</option>
-                    <option value="Panadería">Panadería</option>
+                    <option value="Cafetería">Cafetería</option>
+                    <option value="Carnicería">Carnicería</option>
                     <option value="Helados">Helados</option>
                     <option value="Combos">Combos</option>
                     <option value="Bebidas">Bebidas</option>
