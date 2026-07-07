@@ -5929,9 +5929,17 @@ export async function updateCityLogisticsConfig(ciudad, tipoLogisticaOrParams, p
       tipo_logistica: tipoLogisticaOrParams.tipo_logistica,
       partner_oficial_id: tipoLogisticaOrParams.partner_oficial_id || null,
       cobro_envio_tipo: tipoLogisticaOrParams.cobro_envio_tipo || 'fijo',
-      cobro_envio_fijo_valor: tipoLogisticaOrParams.cobro_envio_fijo_valor !== undefined ? Number(tipoLogisticaOrParams.cobro_envio_fijo_valor) : null,
-      cobro_envio_base_valor: tipoLogisticaOrParams.cobro_envio_base_valor !== undefined ? Number(tipoLogisticaOrParams.cobro_envio_base_valor) : null,
-      cobro_envio_por_km_valor: tipoLogisticaOrParams.cobro_envio_por_km_valor !== undefined ? Number(tipoLogisticaOrParams.cobro_envio_por_km_valor) : null
+      cobro_envio_fijo_valor: tipoLogisticaOrParams.cobro_envio_fijo_valor !== undefined && tipoLogisticaOrParams.cobro_envio_fijo_valor !== '' ? Number(tipoLogisticaOrParams.cobro_envio_fijo_valor) : null,
+      cobro_envio_base_valor: tipoLogisticaOrParams.cobro_envio_base_valor !== undefined && tipoLogisticaOrParams.cobro_envio_base_valor !== '' ? Number(tipoLogisticaOrParams.cobro_envio_base_valor) : null,
+      cobro_envio_por_km_valor: tipoLogisticaOrParams.cobro_envio_por_km_valor !== undefined && tipoLogisticaOrParams.cobro_envio_por_km_valor !== '' ? Number(tipoLogisticaOrParams.cobro_envio_por_km_valor) : null,
+      city_slug: tipoLogisticaOrParams.city_slug || null,
+      center_name: tipoLogisticaOrParams.center_name || null,
+      center_lat: tipoLogisticaOrParams.center_lat !== undefined && tipoLogisticaOrParams.center_lat !== '' ? Number(tipoLogisticaOrParams.center_lat) : null,
+      center_lng: tipoLogisticaOrParams.center_lng !== undefined && tipoLogisticaOrParams.center_lng !== '' ? Number(tipoLogisticaOrParams.center_lng) : null,
+      base_radius_km: tipoLogisticaOrParams.base_radius_km !== undefined && tipoLogisticaOrParams.base_radius_km !== '' ? Number(tipoLogisticaOrParams.base_radius_km) : null,
+      min_delivery_fee: tipoLogisticaOrParams.min_delivery_fee !== undefined && tipoLogisticaOrParams.min_delivery_fee !== '' ? Number(tipoLogisticaOrParams.min_delivery_fee) : null,
+      extra_fee_per_km: tipoLogisticaOrParams.extra_fee_per_km !== undefined && tipoLogisticaOrParams.extra_fee_per_km !== '' ? Number(tipoLogisticaOrParams.extra_fee_per_km) : null,
+      max_delivery_distance_km: tipoLogisticaOrParams.max_delivery_distance_km !== undefined && tipoLogisticaOrParams.max_delivery_distance_km !== '' ? Number(tipoLogisticaOrParams.max_delivery_distance_km) : null
     };
   } else {
     payload = {
@@ -5939,9 +5947,17 @@ export async function updateCityLogisticsConfig(ciudad, tipoLogisticaOrParams, p
       tipo_logistica: tipoLogisticaOrParams,
       partner_oficial_id: partnerOficialId || null,
       cobro_envio_tipo: extraParams.cobro_envio_tipo || 'fijo',
-      cobro_envio_fijo_valor: extraParams.cobro_envio_fijo_valor !== undefined ? Number(extraParams.cobro_envio_fijo_valor) : null,
-      cobro_envio_base_valor: extraParams.cobro_envio_base_valor !== undefined ? Number(extraParams.cobro_envio_base_valor) : null,
-      cobro_envio_por_km_valor: extraParams.cobro_envio_por_km_valor !== undefined ? Number(extraParams.cobro_envio_por_km_valor) : null
+      cobro_envio_fijo_valor: extraParams.cobro_envio_fijo_valor !== undefined && extraParams.cobro_envio_fijo_valor !== '' ? Number(extraParams.cobro_envio_fijo_valor) : null,
+      cobro_envio_base_valor: extraParams.cobro_envio_base_valor !== undefined && extraParams.cobro_envio_base_valor !== '' ? Number(extraParams.cobro_envio_base_valor) : null,
+      cobro_envio_por_km_valor: extraParams.cobro_envio_por_km_valor !== undefined && extraParams.cobro_envio_por_km_valor !== '' ? Number(extraParams.cobro_envio_por_km_valor) : null,
+      city_slug: extraParams.city_slug || null,
+      center_name: extraParams.center_name || null,
+      center_lat: extraParams.center_lat !== undefined && extraParams.center_lat !== '' ? Number(extraParams.center_lat) : null,
+      center_lng: extraParams.center_lng !== undefined && extraParams.center_lng !== '' ? Number(extraParams.center_lng) : null,
+      base_radius_km: extraParams.base_radius_km !== undefined && extraParams.base_radius_km !== '' ? Number(extraParams.base_radius_km) : null,
+      min_delivery_fee: extraParams.min_delivery_fee !== undefined && extraParams.min_delivery_fee !== '' ? Number(extraParams.min_delivery_fee) : null,
+      extra_fee_per_km: extraParams.extra_fee_per_km !== undefined && extraParams.extra_fee_per_km !== '' ? Number(extraParams.extra_fee_per_km) : null,
+      max_delivery_distance_km: extraParams.max_delivery_distance_km !== undefined && extraParams.max_delivery_distance_km !== '' ? Number(extraParams.max_delivery_distance_km) : null
     };
   }
 
@@ -6379,4 +6395,213 @@ export async function registrarInteresExpansion({ nombre, whatsapp, email, ciuda
     console.error("Error al registrar lead en Supabase:", err);
     return { success: true, simulated: true };
   }
+}
+
+export async function logGoogleApiUsage(apiName, citySlug, context, cacheHit) {
+  try {
+    const { error } = await supabase
+      .from('google_api_usage_logs')
+      .insert({
+        api_name: apiName,
+        city_slug: citySlug,
+        context: context,
+        cache_hit: cacheHit,
+        created_at: new Date().toISOString()
+      });
+    if (error) console.error("Error logging API usage:", error);
+  } catch (e) {
+    console.error("Exception logging API usage:", e);
+  }
+}
+
+export async function geocodeAddressWithGoogle(address, citySlug = 'global') {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    console.error("VITE_GOOGLE_MAPS_API_KEY is not defined");
+    return null;
+  }
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&components=country:AR`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.status === 'OK' && data.results && data.results[0]) {
+      const result = data.results[0];
+      return {
+        lat: result.geometry.location.lat,
+        lng: result.geometry.location.lng,
+        formatted_address: result.formatted_address,
+        google_place_id: result.place_id
+      };
+    }
+    console.warn("Geocoding failed for address:", address, data.status);
+    return null;
+  } catch (error) {
+    console.error("Error calling Google Geocoding API:", error);
+    return null;
+  }
+}
+
+export async function calculateDeliveryFeeByCity(citySlug, destination) {
+  const { data: configs, error: configError } = await supabase
+    .from('ciudades_config')
+    .select('*');
+    
+  if (configError) throw new Error(configError.message);
+  
+  const slugify = (text) => 
+    String(text)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+  const config = configs.find(c => c.city_slug === citySlug || slugify(c.ciudad) === citySlug);
+  if (!config) {
+    return {
+      citySlug,
+      deliveryFee: 2000,
+      unavailable: false,
+      calculationMethod: 'fallback',
+      googleApiUsed: false
+    };
+  }
+
+  const centerLat = Number(config.center_lat);
+  const centerLng = Number(config.center_lng);
+  const baseRadius = Number(config.base_radius_km) || 2;
+  const minFee = Number(config.min_delivery_fee) || 2500;
+  const extraFeePerKm = Number(config.extra_fee_per_km) || 200;
+  const maxDistance = Number(config.max_delivery_distance_km) || 8;
+
+  const computeFee = (distKm) => {
+    if (distKm > maxDistance) {
+      return {
+        distanceKm: distKm,
+        baseRadiusKm: baseRadius,
+        extraKm: Math.max(0, distKm - baseRadius),
+        deliveryFee: minFee,
+        unavailable: true
+      };
+    }
+    const extraKm = Math.max(0, distKm - baseRadius);
+    const extraBlocks = Math.ceil(extraKm);
+    const fee = minFee + (extraBlocks * extraFeePerKm);
+    return {
+      distanceKm: distKm,
+      baseRadiusKm: baseRadius,
+      extraKm,
+      deliveryFee: fee,
+      unavailable: false
+    };
+  };
+
+  // Coordenadas lat/lng
+  if (destination && typeof destination.lat === 'number' && typeof destination.lng === 'number') {
+    const lat = Math.round(destination.lat * 100000) / 100000;
+    const lng = Math.round(destination.lng * 100000) / 100000;
+    
+    if (isNaN(centerLat) || isNaN(centerLng)) {
+      return {
+        citySlug,
+        deliveryFee: minFee,
+        unavailable: false,
+        calculationMethod: 'fallback',
+        googleApiUsed: false
+      };
+    }
+
+    const dist = calculateHaversineDistance(centerLat, centerLng, lat, lng);
+    const result = computeFee(dist);
+    return {
+      citySlug,
+      ...result,
+      calculationMethod: 'coordinates',
+      googleApiUsed: false
+    };
+  }
+
+  // Dirección textual
+  const rawAddress = String(destination || '').trim();
+  if (!rawAddress) {
+    return {
+      citySlug,
+      deliveryFee: minFee,
+      unavailable: false,
+      calculationMethod: 'fallback',
+      googleApiUsed: false
+    };
+  }
+
+  const normalized = rawAddress.toLowerCase().replace(/\s+/g, ' ');
+
+  // Consultar cache
+  const { data: cached } = await supabase
+    .from('delivery_address_cache')
+    .select('*')
+    .eq('city_slug', citySlug)
+    .eq('normalized_address', normalized)
+    .maybeSingle();
+
+  if (cached) {
+    await supabase
+      .from('delivery_address_cache')
+      .update({
+        usage_count: (cached.usage_count || 1) + 1,
+        last_used_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', cached.id);
+
+    await logGoogleApiUsage('Geocoding', citySlug, `Cache hit: ${normalized}`, true);
+
+    const dist = calculateHaversineDistance(centerLat, centerLng, cached.lat, cached.lng);
+    const result = computeFee(dist);
+    return {
+      citySlug,
+      ...result,
+      calculationMethod: 'cached_geocode',
+      googleApiUsed: false,
+      cachedCoords: { lat: cached.lat, lng: cached.lng }
+    };
+  }
+
+  // Miss: llamar a Google Geocoding API
+  const geocoded = await geocodeAddressWithGoogle(rawAddress, citySlug);
+  await logGoogleApiUsage('Geocoding', citySlug, `Geocode call for: ${normalized}`, false);
+
+  if (geocoded) {
+    await supabase
+      .from('delivery_address_cache')
+      .upsert({
+        city_slug: citySlug,
+        normalized_address: normalized,
+        lat: geocoded.lat,
+        lng: geocoded.lng,
+        formatted_address: geocoded.formatted_address,
+        google_place_id: geocoded.google_place_id,
+        updated_at: new Date().toISOString(),
+        last_used_at: new Date().toISOString(),
+        usage_count: 1
+      });
+
+    const dist = calculateHaversineDistance(centerLat, centerLng, geocoded.lat, geocoded.lng);
+    const result = computeFee(dist);
+    return {
+      citySlug,
+      ...result,
+      calculationMethod: 'geocode',
+      googleApiUsed: true,
+      cachedCoords: { lat: geocoded.lat, lng: geocoded.lng }
+    };
+  }
+
+  // Si falla, usar fallback
+  return {
+    citySlug,
+    deliveryFee: minFee,
+    unavailable: false,
+    calculationMethod: 'fallback',
+    googleApiUsed: false
+  };
 }

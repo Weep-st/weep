@@ -2763,6 +2763,8 @@ export default function PruebaDashboard() {
           onConfirm={handleAddressConfirm}
           onCancel={() => setShowAddressSelector(false)}
           title="Ubicación de tu Local"
+          ciudad={profileData?.ciudad || 'Santo Tomé'}
+          allowJustCity={true}
         />
       )}
     </div>

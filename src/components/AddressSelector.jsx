@@ -52,7 +52,8 @@ const AddressSelector = ({
   isLoaded,
   title = 'Confirmar Ubicación de Entrega',
   errorMsg = '',
-  ciudad = 'Santo Tomé'
+  ciudad = 'Santo Tomé',
+  allowJustCity = false
 }) => {
 
   const cityStrings = CITY_STRINGS_MAP[ciudad] || CITY_STRINGS_MAP['Santo Tomé'];
@@ -116,7 +117,7 @@ const AddressSelector = ({
       if (place.geometry) {
         const fmtAddr = place.formatted_address || '';
         
-        if (isJustCity(fmtAddr)) {
+        if (!allowJustCity && isJustCity(fmtAddr)) {
           toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
           return;
         }
@@ -176,7 +177,7 @@ const AddressSelector = ({
         if (status === 'OK' && results[0]) {
           const fmtAddr = results[0].formatted_address;
 
-          if (isJustCity(fmtAddr)) {
+          if (!allowJustCity && isJustCity(fmtAddr)) {
             resolve(null);
             return;
           }
@@ -220,7 +221,7 @@ const AddressSelector = ({
     }
 
     // Doble verificación: asegurarnos que tenemos calle y altura (o al menos no es solo el nombre de la ciudad)
-    if (isJustCity(finalAddress)) {
+    if (!allowJustCity && isJustCity(finalAddress)) {
       toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
       return;
     }

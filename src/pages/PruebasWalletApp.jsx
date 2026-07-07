@@ -373,6 +373,7 @@ export default function PruebasWalletApp() {
 
   // ─── Estado y Efectos para Tarifas de Envío Multi-ciudad ───
   const [ciudadesConfig, setCiudadesConfig] = React.useState([]);
+  const [isOutofCoverage, setIsOutofCoverage] = React.useState(false);
 
   React.useEffect(() => {
     const loadCities = async () => {
@@ -392,36 +393,60 @@ export default function PruebasWalletApp() {
     const currentLocal = selectedLocal || (cart.items.length > 0 ? locals.find(l => l.id === cart.items[0].local_id) : null);
     if (!currentLocal) {
       cart.setCustomShippingCost(null);
+      setIsOutofCoverage(false);
       return;
     }
 
-    const city = currentLocal.ciudad || 'Santo Tomé';
-    const config = ciudadesConfig.find(c => String(c.ciudad).toLowerCase() === city.toLowerCase());
-    
-    if (!config) {
-      cart.setCustomShippingCost(null);
-      return;
-    }
+    const calculateFee = async () => {
+      try {
+        const city = currentLocal.ciudad || 'Santo Tomé';
+        const slugify = (text) => 
+          String(text)
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)+/g, '');
 
-    if (config.cobro_envio_tipo === 'dinamico') {
-      const uLat = addressData?.lat;
-      const uLng = addressData?.lng;
-      const lLat = currentLocal.lat;
-      const lLng = currentLocal.lng;
+        const citySlug = slugify(city);
+        
+        let destination = null;
+        if (addressData?.lat && addressData?.lng) {
+          destination = { lat: Number(addressData.lat), lng: Number(addressData.lng) };
+        } else if (addressData?.address) {
+          destination = addressData.address;
+        }
 
-      if (uLat && uLng && lLat && lLng) {
-        const dist = api.calculateHaversineDistance(lLat, lLng, uLat, uLng);
-        const base = Number(config.cobro_envio_base_valor) || 0;
-        const perKm = Number(config.cobro_envio_por_km_valor) || 0;
-        const totalCost = base + (dist * perKm);
-        cart.setCustomShippingCost(Math.round(totalCost));
-      } else {
-        cart.setCustomShippingCost(Number(config.cobro_envio_base_valor) || 2000);
+        if (cart.deliveryType === 'retiro') {
+          cart.setCustomShippingCost(null);
+          setIsOutofCoverage(false);
+          return;
+        }
+
+        if (destination) {
+          const res = await api.calculateDeliveryFeeByCity(citySlug, destination);
+          if (res.unavailable) {
+            setIsOutofCoverage(true);
+            cart.setCustomShippingCost(res.deliveryFee);
+          } else {
+            setIsOutofCoverage(false);
+            cart.setCustomShippingCost(res.deliveryFee);
+          }
+        } else {
+          const config = ciudadesConfig.find(c => slugify(c.ciudad) === citySlug);
+          const defaultMin = config ? Number(config.min_delivery_fee) : 2000;
+          cart.setCustomShippingCost(defaultMin);
+          setIsOutofCoverage(false);
+        }
+      } catch (err) {
+        console.error("Error calculating dynamic shipping fee:", err);
+        cart.setCustomShippingCost(2000);
+        setIsOutofCoverage(false);
       }
-    } else {
-      cart.setCustomShippingCost(Number(config.cobro_envio_fijo_valor) || 2000);
-    }
-  }, [ciudadesConfig, selectedLocal, locals, cart.items, addressData?.lat, addressData?.lng, cart.deliveryType]);
+    };
+
+    calculateFee();
+  }, [ciudadesConfig, selectedLocal, locals, cart.items, addressData?.lat, addressData?.lng, addressData?.address, cart.deliveryType]);
 
   const getTimeBasedTitle = React.useCallback(() => {
     if (isShopsMode) {
@@ -1863,6 +1888,10 @@ export default function PruebasWalletApp() {
     const mp = metodoPago; // Use state instead of FormData
     const dir = addressData.address;
     if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
+    if (cart.deliveryType === 'envio' && isOutofCoverage) {
+      toast.error('Esta dirección está fuera del área de cobertura por el momento.');
+      return;
+    }
 
     // Validación de dirección correcta (no solo el nombre de la ciudad)
     if (cart.deliveryType === 'envio') {
@@ -3443,7 +3472,22 @@ export default function PruebasWalletApp() {
                 )}
                 {/* Observaciones removidas por solicitud */}
                 <input type="hidden" name="observaciones" value="" />
-                <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading}>
+                {isOutofCoverage && (
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    color: '#dc2626',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    marginBottom: '12px',
+                    border: '1px solid rgba(239, 68, 68, 0.15)',
+                    textAlign: 'center'
+                  }}>
+                    Esta dirección está fuera del área de cobertura por el momento.
+                  </div>
+                )}
+                <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading || isOutofCoverage}>
                   {checkoutLoading ? <span className="spinner spinner-white" /> : 'Realizar Pedido'}
                 </button>
               </form>

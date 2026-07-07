@@ -51,7 +51,15 @@ const AdminConfig = () => {
                     cobro_envio_tipo: c.cobro_envio_tipo || 'fijo',
                     cobro_envio_fijo_valor: c.cobro_envio_fijo_valor,
                     cobro_envio_base_valor: c.cobro_envio_base_valor,
-                    cobro_envio_por_km_valor: c.cobro_envio_por_km_valor
+                    cobro_envio_por_km_valor: c.cobro_envio_por_km_valor,
+                    city_slug: c.city_slug,
+                    center_name: c.center_name,
+                    center_lat: c.center_lat,
+                    center_lng: c.center_lng,
+                    base_radius_km: c.base_radius_km,
+                    min_delivery_fee: c.min_delivery_fee,
+                    extra_fee_per_km: c.extra_fee_per_km,
+                    max_delivery_distance_km: c.max_delivery_distance_km
                 });
             }
             toast.success('Configuración guardada correctamente');
@@ -355,6 +363,144 @@ const AdminConfig = () => {
                                         />
                                     </div>
                                 )}
+
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '14px' }}>
+                                    <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#38bdf8', fontWeight: 'bold' }}>Configuración Geográfica y Cobertura</h5>
+                                    
+                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Slug Ciudad (ej: obera)</label>
+                                            <input
+                                                type="text"
+                                                value={c.city_slug || ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].city_slug = e.target.value;
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="obera"
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Nombre Centro Ref.</label>
+                                            <input
+                                                type="text"
+                                                value={c.center_name || ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].center_name = e.target.value;
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="Centro Cívico"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Latitud Centro</label>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                value={c.center_lat !== undefined && c.center_lat !== null ? c.center_lat : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].center_lat = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="-27.4856"
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Longitud Centro</label>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                value={c.center_lng !== undefined && c.center_lng !== null ? c.center_lng : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].center_lng = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="-55.1249"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Radio Base (Km)</label>
+                                            <input
+                                                type="number"
+                                                value={c.base_radius_km !== undefined && c.base_radius_km !== null ? c.base_radius_km : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].base_radius_km = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="2"
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Envío Mínimo ($)</label>
+                                            <input
+                                                type="number"
+                                                value={c.min_delivery_fee !== undefined && c.min_delivery_fee !== null ? c.min_delivery_fee : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].min_delivery_fee = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="2500"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Extra por Km ($)</label>
+                                            <input
+                                                type="number"
+                                                value={c.extra_fee_per_km !== undefined && c.extra_fee_per_km !== null ? c.extra_fee_per_km : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].extra_fee_per_km = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="200"
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Dist. Máxima (Km)</label>
+                                            <input
+                                                type="number"
+                                                value={c.max_delivery_distance_km !== undefined && c.max_delivery_distance_km !== null ? c.max_delivery_distance_km : ''}
+                                                onChange={(e) => {
+                                                    const newCities = [...ciudades];
+                                                    newCities[idx].max_delivery_distance_km = e.target.value !== '' ? Number(e.target.value) : '';
+                                                    setCiudades(newCities);
+                                                }}
+                                                className="admin-input"
+                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                                placeholder="8"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>

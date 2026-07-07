@@ -4976,6 +4976,8 @@ export default function RestaurantDashboard() {
           onConfirm={handleAddressConfirm}
           onCancel={() => setShowAddressSelector(false)}
           title="Ubicación de tu Local"
+          ciudad={profileData?.ciudad || 'Santo Tomé'}
+          allowJustCity={true}
         />
       )}
 
