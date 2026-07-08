@@ -4175,6 +4175,9 @@ export default function RestaurantDashboard() {
               <button className={profileSubView === 'printing' ? 'active' : ''} onClick={() => setProfileSubView('printing')}>
                 🖨️ Impresión Ticket
               </button>
+              <button className={profileSubView === 'notifications' ? 'active' : ''} onClick={() => setProfileSubView('notifications')}>
+                📳 Notificaciones
+              </button>
             </div>
 
             {profileSubView === 'edit' && (
@@ -4532,6 +4535,112 @@ export default function RestaurantDashboard() {
                     <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
                     <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
                   </ol>
+                </div>
+              </div>
+            )}
+
+            {profileSubView === 'notifications' && (
+              <div className="card card-body animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto', padding: '24px' }}>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 12, textAlign: 'center' }}>📳 Notificaciones de Pedidos</h2>
+                <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: 24, textAlign: 'center' }}>
+                  Configurá múltiples dispositivos (computadora, celulares) para recibir alertas al instante cuando entre un nuevo pedido.
+                </p>
+
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Estado en este dispositivo:</span>
+                    <span style={{ 
+                      fontSize: '0.8rem', 
+                      padding: '4px 8px', 
+                      borderRadius: 12, 
+                      fontWeight: 'bold',
+                      background: notificationStatus === 'granted' ? '#dcfce7' : (notificationStatus === 'denied' ? '#fee2e2' : '#fef9c3'),
+                      color: notificationStatus === 'granted' ? '#15803d' : (notificationStatus === 'denied' ? '#b91c1c' : '#a16207')
+                    }}>
+                      {notificationStatus === 'granted' ? 'Habilitado' : (notificationStatus === 'denied' ? 'Bloqueado' : 'Sin activar')}
+                    </span>
+                  </div>
+
+                  {notificationStatus !== 'granted' && (
+                    <button 
+                      type="button" 
+                      className="btn btn-primary btn-sm" 
+                      style={{ width: '100%', background: 'var(--red-600)', borderColor: 'var(--red-600)' }}
+                      onClick={async () => {
+                        if (window.OneSignalDeferred) {
+                          window.OneSignalDeferred.push(async (OneSignal) => {
+                            await OneSignal.Notifications.requestPermission();
+                          });
+                        }
+                      }}
+                    >
+                      Activar en esta Computadora
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                  <h3 style={{ fontSize: '0.95rem', color: '#c2410c', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📱 Vincular Celular u Otro Dispositivo
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: '#9a3412', margin: '0 0 16px 0' }}>
+                    Escaneá este código QR con tu celular para abrir tu panel y habilitar las notificaciones. Se sumarán a las de tu computadora.
+                  </p>
+
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(window.location.origin + '/locales')}`} 
+                      alt="QR Vinculación Celular" 
+                      style={{ border: '4px solid white', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
+                  </div>
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#c2410c', wordBreak: 'break-all', display: 'block', background: 'white', padding: '8px', borderRadius: 6, border: '1px solid #ffedd5' }}>
+                      {window.location.origin + '/locales'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.95rem', display: 'block' }}>Dispositivos Activos:</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
+                        Hay {profileData?.onesignal_id ? profileData.onesignal_id.split(',').length : 0} dispositivo(s) registrado(s).
+                      </span>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      className="btn btn-sm btn-ghost" 
+                      style={{ color: '#991b1b', background: '#fee2e2', border: '1px solid #fca5a5' }}
+                      onClick={async () => {
+                        if (window.confirm("¿Seguro que querés restablecer todos los dispositivos vinculados? Deberás volver a habilitar las notificaciones en cada uno.")) {
+                          try {
+                            if (window.OneSignalDeferred) {
+                              window.OneSignalDeferred.push(async (OneSignal) => {
+                                const subId = OneSignal.User.PushSubscription.id;
+                                if (subId) {
+                                  await api.localResetOneSignalId(restaurant.id, subId);
+                                  setProfileData(prev => ({ ...prev, onesignal_id: subId }));
+                                  toast.success("Dispositivos restablecidos. Solo este dispositivo está activo.");
+                                } else {
+                                  await api.localResetOneSignalId(restaurant.id, "");
+                                  setProfileData(prev => ({ ...prev, onesignal_id: "" }));
+                                  toast.success("Dispositivos restablecidos.");
+                                }
+                              });
+                            }
+                          } catch (err) {
+                            toast.error("Error al restablecer dispositivos.");
+                          }
+                        }
+                      }}
+                    >
+                      Limpiar y Restablecer
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

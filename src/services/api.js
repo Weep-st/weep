@@ -629,12 +629,50 @@ export function subscribeToDriverLocation(driverId, onUpdate) {
 export async function localUpdateOneSignalId(localId, onesignalId) {
   if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
   
+  const { data, error: fetchError } = await supabase
+    .from('locales')
+    .select('onesignal_id')
+    .eq('id', localId)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching local for OneSignal:", fetchError);
+    return { success: false };
+  }
+
+  let currentIds = [];
+  if (data?.onesignal_id) {
+    currentIds = data.onesignal_id.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  if (!currentIds.includes(onesignalId)) {
+    currentIds.push(onesignalId);
+  }
+
+  if (currentIds.length > 5) {
+    currentIds = currentIds.slice(-5);
+  }
+
+  const updatedIds = currentIds.join(',');
+
   const { error } = await supabase.from('locales')
-    .update({ onesignal_id: onesignalId })
+    .update({ onesignal_id: updatedIds })
     .eq('id', localId);
     
   if (error) {
     console.error("Error updating Local OneSignal ID:", error);
+    throw new Error(error.message);
+  }
+  return { success: true };
+}
+
+export async function localResetOneSignalId(localId, onesignalId) {
+  const { error } = await supabase.from('locales')
+    .update({ onesignal_id: onesignalId || null })
+    .eq('id', localId);
+    
+  if (error) {
+    console.error("Error resetting Local OneSignal ID:", error);
     throw new Error(error.message);
   }
   return { success: true };
@@ -3808,13 +3846,16 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
 
         // Notificación OneSignal
         if (localData.onesignal_id) {
-          sendPushNotification({
-            subscriptionIds: [localData.onesignal_id],
-            title: '¡Nuevo Pedido! 🛵',
-            message: `Has recibido el pedido #${pedidoId}. ¡Entra al panel para aceptarlo!`,
-            url: 'https://wepi.com.ar/locales',
-            data: { type: 'new_order', pedidoId }
-          }).catch(err => console.error("Error enviando push a local:", err));
+          const subscriptionIds = localData.onesignal_id.split(',').map(id => id.trim()).filter(Boolean);
+          if (subscriptionIds.length > 0) {
+            sendPushNotification({
+              subscriptionIds: subscriptionIds,
+              title: '¡Nuevo Pedido! 🛵',
+              message: `Has recibido el pedido #${pedidoId}. ¡Entra al panel para aceptarlo!`,
+              url: 'https://wepi.com.ar/locales',
+              data: { type: 'new_order', pedidoId }
+            }).catch(err => console.error("Error enviando push a local:", err));
+          }
         }
 
         await supabase.functions.invoke('send-email', {
