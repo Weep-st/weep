@@ -622,3 +622,56 @@
   opacity: 0.9;
 }
 
+/* Responsive Catalog Card Layout for Mobile */
+@media (max-width: 600px) {
+  .rd-menu-item {
+    flex-direction: column !important;
+  }
+  
+  .rd-menu-img, 
+  .rd-menu-img-placeholder {
+    width: 100% !important;
+    height: 160px !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+  
+  .rd-menu-top {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  
+  .rd-menu-top > div:last-child {
+    text-align: left !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    border-top: 1px solid var(--gray-100) !important;
+    padding-top: 8px !important;
+    margin-top: 4px !important;
+  }
+  
+  .rd-menu-top > div:last-child > div {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .rd-menu-bottom {
+    border-top: 1px solid var(--gray-100) !important;
+    padding-top: 12px !important;
+    margin-top: 12px !important;
+  }
+  
+  .rd-menu-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    margin-top: 8px !important;
+    margin-left: 0 !important;
+  }
+}
+

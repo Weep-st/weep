@@ -3023,9 +3023,8 @@ export default function RestaurantDashboard() {
         {/* ─── Menu View ─── */}
         {view === 'menu' && (
           <section className="animate-fade-in">
-            {/* Header Buttons */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                    {/* Dropdown Añadir */}
                    <div style={{ position: 'relative' }}>
                       <button className="btn btn-success" onClick={() => {
