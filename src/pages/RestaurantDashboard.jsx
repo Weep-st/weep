@@ -170,6 +170,8 @@ export default function RestaurantDashboard() {
   const [needsStockConfirmation, setNeedsStockConfirmation] = React.useState(false);
   const [stockToConfirm, setStockToConfirm] = React.useState([]);
   const [showStockModal, setShowStockModal] = React.useState(false);
+  const [showStockSelectorModal, setShowStockSelectorModal] = React.useState(false);
+  const [showVariantsConfig, setShowVariantsConfig] = React.useState(false);
   const [showDiscountPanel, setShowDiscountPanel] = React.useState(false);
   const [showStockPanel, setShowStockPanel] = React.useState(false);
   const [quickUploadItemId, setQuickUploadItemId] = React.useState(null);
@@ -513,21 +515,25 @@ export default function RestaurantDashboard() {
       if (cat !== 'Base' && (cat !== 'Helados' || (cat === 'Helados' && sub !== 'Helado por kg'))) {
         try {
           const cfg = typeof editItem.variantes === 'string' ? JSON.parse(editItem.variantes) : (editItem.variantes || {});
+          const hasVariants = cfg.variants?.length > 0 || cfg.extras?.length > 0 || !!cfg.con_papas;
           setBurgerVariants(cfg.variants?.length > 0 ? cfg.variants.map(v => ({ ...v, disponible: v.disponible !== false })) : [{ nombre: '', precio: '', disponible: true }]);
           setBurgerExtras(cfg.extras?.length > 0 ? cfg.extras : [{ nombre: '', precio: '' }]);
           setBurgerOfferPapas(!!cfg.con_papas);
           setBurgerPrecioPapas(cfg.precio_papas || '');
+          setShowVariantsConfig(hasVariants);
         } catch (e) {
           setBurgerVariants([{ nombre: '', precio: '', disponible: true }]);
           setBurgerExtras([{ nombre: '', precio: '' }]);
           setBurgerOfferPapas(false);
           setBurgerPrecioPapas('');
+          setShowVariantsConfig(false);
         }
       } else {
         setBurgerVariants([{ nombre: '', precio: '', disponible: true }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
         setBurgerOfferPapas(false);
         setBurgerPrecioPapas('');
+        setShowVariantsConfig(false);
       }
     } else if (view === 'addItem' && !editItem) {
         setItemCategory('');
@@ -535,6 +541,7 @@ export default function RestaurantDashboard() {
         setBurgerExtras([{ nombre: '', precio: '' }]);
         setBurgerOfferPapas(false);
         setBurgerPrecioPapas('');
+        setShowVariantsConfig(false);
     }
 
     // ─── Sync OneSignal ID ───
@@ -1074,11 +1081,11 @@ export default function RestaurantDashboard() {
         tiempo_preparacion: fd.get('tiempo_preparacion'),
         imagen_url: imgUrl,
         // Stock management fields
-        maneja_stock: fd.get('maneja_stock') === 'on',
-        stock_actual: parseInt(fd.get('stock_actual')) || 0,
-        stock_minimo: parseInt(fd.get('stock_minimo')) || 10,
-        unidades_por_venta: parseInt(fd.get('unidades_por_venta')) || 1,
-        stock_base_id: fd.get('stock_base_id') || null,
+        maneja_stock: fd.has('maneja_stock') ? (fd.get('maneja_stock') === 'on') : (editItem?.maneja_stock || false),
+        stock_actual: fd.has('stock_actual') ? (parseInt(fd.get('stock_actual')) || 0) : (editItem?.stock_actual || 0),
+        stock_minimo: fd.has('stock_minimo') ? (parseInt(fd.get('stock_minimo')) || 10) : (editItem?.stock_minimo || 10),
+        unidades_por_venta: fd.has('unidades_por_venta') ? (parseInt(fd.get('unidades_por_venta')) || 1) : (editItem?.unidades_por_venta || 1),
+        stock_base_id: fd.has('stock_base_id') ? (fd.get('stock_base_id') || null) : (editItem?.stock_base_id || null),
         sku: fd.get('sku') || null,
         codigo_barras: fd.get('codigo_barras') || null,
       };
@@ -2106,6 +2113,64 @@ export default function RestaurantDashboard() {
     );
   };
 
+  const renderStockSelectorModal = () => {
+    if (!showStockSelectorModal) return null;
+
+    return (
+      <div className="modal-overlay animate-fade-in" style={{ zIndex: 10001 }}>
+        <div className="modal-content animate-slide-up" style={{ maxWidth: '500px', width: '95%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ color: '#c2410c', margin: 0, fontSize: '1.2rem' }}>⚙️ Habilitar Stock de Productos</h2>
+            <button className="close-btn" style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setShowStockSelectorModal(false)}>✕</button>
+          </div>
+          <p style={{ color: 'var(--gray-600)', fontSize: '0.85rem', marginBottom: 20 }}>
+            Activá el control de stock para los productos que quieras gestionar desde el panel de Stock Rápido.
+          </p>
+
+          <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {menuItems.map(item => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  {item.imagen_url ? <img src={item.imagen_url} alt="" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover' }} /> :
+                    <div style={{ width: 36, height: 36, borderRadius: 6, background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: '#94a3b8' }}>Sin foto</div>}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.nombre}</p>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--gray-500)' }}>{item.categoria}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="switch">
+                    <input 
+                      type="checkbox" 
+                      checked={item.maneja_stock || false} 
+                      onChange={async (e) => {
+                        const checked = e.target.checked;
+                        // Optimistic update
+                        setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, maneja_stock: checked } : m));
+                        try {
+                          await api.updateMenuItem({ itemId: item.id, maneja_stock: checked });
+                          toast.success(checked ? `Control de stock activado para ${item.nombre}` : `Control de stock desactivado para ${item.nombre}`, { id: `toggle-stock-${item.id}` });
+                        } catch (err) {
+                          toast.error('Error al actualizar control de stock');
+                          loadMenu();
+                        }
+                      }}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-primary" style={{ background: '#f97316', borderColor: '#f97316' }} onClick={() => setShowStockSelectorModal(false)}>Listo</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ─── Wepi Sync V1 Handlers & Views ───
   const handleExecuteSync = async () => {
     if (!profileData?.id) {
@@ -2518,6 +2583,7 @@ export default function RestaurantDashboard() {
     <div className="rd-page">
       {renderTutorial()}
       {renderStockModal()}
+      {renderStockSelectorModal()}
       <header className="rd-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <Link to="/">
@@ -3081,15 +3147,15 @@ export default function RestaurantDashboard() {
             )}
             
             {/* ─── Panel de Stock Rápido ─── */}
-            {showStockPanel && menuItems.some(i => i.maneja_stock) && (
+            {showStockPanel && (
               <div className="card animate-fade-in" style={{ marginBottom: 24, padding: '16px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                   <h3 style={{ color: '#c2410c', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                     📦 Gestión de Stock Rápida
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                     <button className="btn btn-sm btn-success" style={{ fontSize: '0.8rem', background: '#22c55e', border: 'none' }} onClick={() => { setEditItem(null); setView('addItem'); setItemCategory('Base'); setItemSubcategory(''); setIsBaseProductMode(true); }}>
-                       + Nuevo Producto Base
+                     <button className="btn btn-sm btn-success" style={{ fontSize: '0.8rem', background: '#22c55e', border: 'none' }} onClick={() => setShowStockSelectorModal(true)}>
+                       + Nuevo producto
                      </button>
                      <span style={{ fontSize: '0.75rem', background: '#fff7ed', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', border: '1px solid #ffedd5', fontWeight: 600 }}>
                        Sólo ítems que manejan stock
@@ -3107,7 +3173,7 @@ export default function RestaurantDashboard() {
                 }}>
                   {menuItems.filter(i => i.maneja_stock).length === 0 ? (
                     <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', textAlign: 'center', gridColumn: '1/-1', padding: '20px' }}>
-                      No tenés platos con stock habilitado. Editá un plato para activarlo.
+                      No tenés platos con stock habilitado. Habilitá stock presionando "+ Nuevo producto".
                     </p>
                   ) : (
                     menuItems.filter(i => i.maneja_stock).map(item => (
@@ -3530,158 +3596,81 @@ export default function RestaurantDashboard() {
                 {/* ─── Advanced Configuration (Variants/Extras) ─── */}
                 {(itemCategory !== 'Base' && (itemCategory !== '' || editItem) && (itemCategory !== 'Helados' || (itemCategory === 'Helados' && itemSubcategory !== 'Helado por kg'))) && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>✨ Configuración de Variantes y Extras</h3>
+                    <div 
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                      onClick={() => setShowVariantsConfig(!showVariantsConfig)}
+                    >
+                      <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        ✨ Configuración de Variantes y Extras
+                      </h3>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>{showVariantsConfig ? '▲ Ocultar' : '▼ Configurar'}</span>
+                    </div>
                     
-                    <div style={{ marginBottom: '20px' }}>
-                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>El cliente debe elegir una sola opción. Cada una tiene su propio precio total.</p>
-                      {burgerVariants.map((v, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
-                          <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].precio = e.target.value; setBurgerVariants(newV); }} />
-                          <label className="toggle" style={{ transform: 'scale(0.8)', flexShrink: 0, margin: 0 }} title="Variante disponible">
-                            <input 
-                              type="checkbox" 
-                              checked={v.disponible !== false} 
-                              onChange={(e) => {
-                                const newV = [...burgerVariants];
-                                newV[idx].disponible = e.target.checked;
-                                setBurgerVariants(newV);
-                              }} 
-                            />
-                            <span className="toggle-track" />
-                            <span className="toggle-thumb" />
+                    <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '8px', marginBottom: showVariantsConfig ? '16px' : 0 }}>
+                      Son adicionales opcionales que se suman al precio de la variante elegida. El cliente debe elegir una sola opción. Cada una tiene su propio precio total.
+                    </p>
+
+                    {showVariantsConfig && (
+                      <div className="animate-fade-in" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
+                        <div style={{ marginBottom: '20px' }}>
+                          <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>El cliente debe elegir una sola opción. Cada una tiene su propio precio total.</p>
+                          {burgerVariants.map((v, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
+                              <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={v.precio} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].precio = e.target.value; setBurgerVariants(newV); }} />
+                              <label className="toggle" style={{ transform: 'scale(0.8)', flexShrink: 0, margin: 0 }} title="Variante disponible">
+                                <input 
+                                  type="checkbox" 
+                                  checked={v.disponible !== false} 
+                                  onChange={(e) => {
+                                    const newV = [...burgerVariants];
+                                    newV[idx].disponible = e.target.checked;
+                                    setBurgerVariants(newV);
+                                  }} 
+                                />
+                                <span className="toggle-track" />
+                                <span className="toggle-thumb" />
+                              </label>
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
+                            </div>
+                          ))}
+                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '', disponible: true }])}>+ Añadir Variante</button>
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                          <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Extras (Bacon, Cheddar, etc.)</p>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>Son adicionales opcionales que se suman al precio de la variante elegida.</p>
+                          {burgerExtras.map((ex, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                              <input placeholder="Nombre extra" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={ex.nombre} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].nombre = e.target.value; setBurgerExtras(newE); }} />
+                              <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={ex.precio} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].precio = e.target.value; setBurgerExtras(newE); }} />
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerExtras(burgerExtras.filter((_, i) => i !== idx))}>✕</button>
+                            </div>
+                          ))}
+                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Añadir Extra</button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #edf2f7', paddingTop: '15px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                            <input type="checkbox" name="ofrecer_papas" checked={burgerOfferPapas} onChange={(e) => setBurgerOfferPapas(e.target.checked)} />
+                            Ofrecer con papas
                           </label>
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
-                        </div>
-                      ))}
-                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '', disponible: true }])}>+ Añadir Variante</button>
-                    </div>
-
-                    <div style={{ marginBottom: '20px' }}>
-                      <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Extras (Bacon, Cheddar, etc.)</p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>Son adicionales opcionales que se suman al precio de la variante elegida.</p>
-                      {burgerExtras.map((ex, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                          <input placeholder="Nombre extra" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={ex.nombre} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].nombre = e.target.value; setBurgerExtras(newE); }} />
-                          <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={ex.precio} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].precio = e.target.value; setBurgerExtras(newE); }} />
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerExtras(burgerExtras.filter((_, i) => i !== idx))}>✕</button>
-                        </div>
-                      ))}
-                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Añadir Extra</button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #edf2f7', paddingTop: '15px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
-                        <input type="checkbox" name="ofrecer_papas" checked={burgerOfferPapas} onChange={(e) => setBurgerOfferPapas(e.target.checked)} />
-                        Ofrecer con papas
-                      </label>
-                      {burgerOfferPapas && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '0.8rem' }}>Precio extra papas: $</span>
-                          <input name="precio_papas" type="number" className="form-input" style={{ width: '80px', marginBottom: 0 }} value={burgerPrecioPapas} onChange={(e) => setBurgerPrecioPapas(e.target.value)} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <input name="foto" type="file" className="form-input" accept="image/*" />
-                {/* ─── Gestión de Stock ─── */}
-                {(isBaseProductMode || editItem?.categoria === 'Base' || true) && (
-                  <div style={{ marginTop: 20, padding: 16, background: '#fff7ed', borderRadius: 12, border: '1px solid #ffedd5' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#9a3412', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      📦 Control de Inventario
-                    </h3>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                      <label className="switch">
-                        <input 
-                          type="checkbox" 
-                          name="maneja_stock" 
-                          checked={(isBaseProductMode || editItem?.categoria === 'Base') ? true : itemManejaStock} 
-                          readOnly={isBaseProductMode || editItem?.categoria === 'Base'}
-                          onChange={(e) => setItemManejaStock(e.target.checked)}
-                        />
-                        <span className="slider round"></span>
-                      </label>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#c2410c' }}>
-                        {(isBaseProductMode || editItem?.categoria === 'Base') ? 'Control de stock obligatorio para Productos Base' : 'Habilitar control de stock propio para este plato'}
-                      </span>
-                    </div>
-
-                    {((isBaseProductMode || editItem?.categoria === 'Base') || itemManejaStock) && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <div className="rd-form-row rd-form-row-3">
-                          {((isBaseProductMode || editItem?.categoria === 'Base')) ? (
-                            <>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Stock Actual</label>
-                                <input name="stock_actual" type="number" className="form-input" defaultValue={editItem?.stock_actual || 0} required />
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Alerta Stock Bajo</label>
-                                <input name="stock_minimo" type="number" className="form-input" defaultValue={editItem?.stock_minimo || 10} />
-                              </div>
-                              <input type="hidden" name="unidades_por_venta" value="1" />
-                              <input type="hidden" name="stock_base_id" value="" />
-                            </>
-                          ) : (
-                            <>
-                              <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Vincular a Producto Base (Opcional)</label>
-                                <select 
-                                  name="stock_base_id" 
-                                  className="form-select" 
-                                  value={selectedStockBaseId} 
-                                  onChange={(e) => setSelectedStockBaseId(e.target.value)}
-                                >
-                                  <option value="">-- Controlar stock de forma independiente (Directo) --</option>
-                                  {menuItems
-                                    .filter(mi => mi.categoria === 'Base' && mi.id !== editItem?.id)
-                                    .map(mi => (
-                                      <option key={mi.id} value={mi.id}>{mi.nombre} (Stock: {mi.stock_actual})</option>
-                                    ))
-                                  }
-                                </select>
-                              </div>
-                              {selectedStockBaseId ? (
-                                <>
-                                  <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Unidades por Venta</label>
-                                    <input name="unidades_por_venta" type="number" className="form-input" placeholder="Ej: 1 o 6" defaultValue={editItem?.unidades_por_venta || 1} required />
-                                  </div>
-                                  <div style={{ display: 'none' }}>
-                                    <input name="stock_actual" type="number" value={0} />
-                                    <input name="stock_minimo" type="number" value={0} />
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Stock Actual</label>
-                                    <input name="stock_actual" type="number" className="form-input" defaultValue={editItem?.stock_actual || 0} required />
-                                  </div>
-                                  <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#9a3412' }}>Alerta Stock Bajo</label>
-                                    <input name="stock_minimo" type="number" className="form-input" defaultValue={editItem?.stock_minimo || 10} />
-                                  </div>
-                                  <input type="hidden" name="unidades_por_venta" value="1" />
-                                </>
-                              )}
-                            </>
+                          {burgerOfferPapas && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '0.8rem' }}>Precio extra papas: $</span>
+                              <input name="precio_papas" type="number" className="form-input" style={{ width: '80px', marginBottom: 0 }} value={burgerPrecioPapas} onChange={(e) => setBurgerPrecioPapas(e.target.value)} />
+                            </div>
                           )}
                         </div>
-                        
-                        {!(isBaseProductMode || editItem?.categoria === 'Base') && (
-                          <p style={{ fontSize: '0.7rem', color: '#c2410c' }}>
-                            Al vincular un ítem base, el stock se descontará del producto original (Ej: Pack de 6 medialunas descuenta 6 del ítem base Medialuna).
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
                 )}
+
+                <input name="foto" type="file" className="form-input" accept="image/*" />
+                {/* Ocultar control de stock del formulario de añadir/editar, manejar vía Stock Rápido */}
+                <input type="hidden" name="maneja_stock" value={editItem?.maneja_stock ? 'on' : 'off'} />
 
                 <div className="rd-form-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); setIsBaseProductMode(false); }}>Cancelar</button>
