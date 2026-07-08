@@ -2814,13 +2814,7 @@ export default function RestaurantDashboard() {
         {/* Persistent Alerts for Missing Configs */}
         {profileData && (
           <div className="rd-alerts" style={{ padding: '0 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* Alerta de Confirmación Diaria (Stock) */}
-            {needsStockConfirmation && (
-              <div style={{ backgroundColor: '#fff7ed', border: '1px solid #ffedd5', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ color: '#9a3412', fontWeight: '600' }}>🥖 <strong>Stock del día no confirmado:</strong> Actualizá tus unidades de hoy para evitar ventas sin stock.</span>
-                <button className="btn btn-sm" style={{ backgroundColor: '#f97316', color: '#fff', border: 'none' }} onClick={() => setShowStockModal(true)}>Confirmar Ahora</button>
-              </div>
-            )}
+
 
             {/* Alert of low stock items */}
             {menuItems.filter(i => i.maneja_stock && !i.stock_base_id && i.stock_actual <= i.stock_minimo).length > 0 && (
