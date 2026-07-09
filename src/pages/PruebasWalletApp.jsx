@@ -1154,7 +1154,7 @@ export default function PruebasWalletApp() {
       // Fetch dynamic commission for the local
       api.getPlanInfo(localId)
         .then(res => {
-          if (res.success && res.comision_actual) {
+          if (res.success && typeof res.comision_actual === 'number') {
             console.log(`📊 PruebasWalletApp: Comisión para local ${localId}: ${res.comision_actual}%`);
             setLocalCommission(res.comision_actual / 100);
           } else {

@@ -4745,20 +4745,20 @@ export default function RestaurantDashboard() {
             {profileSubView === 'cobros' && (
               <div className="card card-body">
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 16, textAlign: 'center' }}>Gestión de Pagos</h2>
-                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Wepi {planInfo?.comision_actual || 15}% • Abona tu saldo pendiente por transferencia</p>
+                <p style={{ textAlign: 'center', color: 'var(--gray-500)', marginBottom: 24 }}>Comisión Wepi {planInfo?.comision_actual ?? 15}% • Abona tu saldo pendiente por transferencia</p>
                 
                 {cobrosLoading || !cobrosData ? (
                   <div className="loading-state"><div className="spinner" /> Cargando...</div>
                 ) : (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
                       {/* Total */}
                       <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--gray-400)' }}>
                         <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Total ventas</p>
                         <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem' }}>${cobrosData.totalVentas}</h3>
                       </div>
                       <div className="card" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid var(--amber-500)' }}>
-                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total ({planInfo?.comision_actual || 15}%)</p>
+                        <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: '0.85rem' }}>Comisión Total ({planInfo?.comision_actual ?? 15}%)</p>
                         <h3 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: 'var(--amber-600)' }}>${cobrosData.comisionTotal}</h3>
                       </div>
 

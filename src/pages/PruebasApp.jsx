@@ -47,6 +47,25 @@ export default function PruebasApp() {
   const [modal, setModal] = React.useState(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [authLoading, setAuthLoading] = React.useState(false);
+  const [localCommission, setLocalCommission] = React.useState(0.08); // Comisión por defecto de Wepi (8%)
+
+  React.useEffect(() => {
+    const localId = cart.items[0]?.local_id;
+    if (localId) {
+      api.getPlanInfo(localId)
+        .then(res => {
+          if (res && res.success && typeof res.comision_actual === 'number') {
+            console.log(`📊 PruebasApp: Comisión dinámica para local ${localId}: ${res.comision_actual}%`);
+            setLocalCommission(res.comision_actual / 100);
+          } else {
+            setLocalCommission(0.08);
+          }
+        })
+        .catch(() => setLocalCommission(0.08));
+    } else {
+      setLocalCommission(0.08);
+    }
+  }, [cart.items]);
   const [iceCreamModal, setIceCreamModal] = React.useState(null);
   const [iceCreamFlavors, setIceCreamFlavors] = React.useState([]);
   const [iceCreamSauces, setIceCreamSauces] = React.useState([]);
@@ -501,11 +520,10 @@ export default function PruebasApp() {
   };
 
   // --- Business Logic for Totals ---
-  const PLATFORM_COMMISSION = 0.08;
   const MP_FEE_RATE = 0.0824;
 
   const calculateCheckoutTotals = (P, E, method) => {
-    const net_commission = P * PLATFORM_COMMISSION;
+    const net_commission = P * localCommission;
     const net_local = P - net_commission;
     const total_net = P + E;
 
