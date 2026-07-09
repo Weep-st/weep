@@ -89,7 +89,22 @@ const PartnerDashboard = () => {
       }
       const ciudad = res.success ? res.data?.ciudad : 'Santo Tomé';
       const data = await api.getPartnerPedidos(driver.id, ciudad);
-      setPartnerData(data);
+      
+      setPartnerData(prev => {
+        const prevCount = prev?.broadcastOrders?.length || 0;
+        const newCount = data?.broadcastOrders?.length || 0;
+        if (newCount > prevCount && isSilent) {
+          try {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-120.wav');
+            audio.play().catch(e => console.log('Audio play blocked:', e));
+          } catch (e) {
+            console.log('Audio init failed:', e);
+          }
+          toast.success('📢 ¡Nuevo pedido disponible para tu flota!', { duration: 5000 });
+        }
+        return data;
+      });
+
       const drivers = await api.getPartnerDrivers(driver.id);
       setPartnerDrivers(drivers);
       const reqs = await api.getPartnerPendingRequests(driver.id);
@@ -414,14 +429,13 @@ const PartnerDashboard = () => {
       return (
         <div style={{ textAlign: 'center', padding: '48px', background: 'white', borderRadius: '16px', color: '#64748b' }}>
           <h4 style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>No hay alertas de pedidos en curso</h4>
-          <p style={{ margin: 0 }}>Cuando entre un pedido para entrega en tu ciudad, aparecerá aquí para que puedas asignarlo.</p>
+          <p style={{ margin: 0 }}>Cuando entre un pedido para entrega en tu ciudad, aparecerá aquí.</p>
         </div>
       );
     }
     return (
       <div style={{ display: 'grid', gap: '16px' }}>
         {list.map(p => {
-          const proposedDriverId = selectedDriverForAssign[p.id] || p.repartidor_propuesto_id || '';
           return (
             <div key={p.id} className="partner-broadcast-card" style={{
               background: 'white',
@@ -438,7 +452,7 @@ const PartnerDashboard = () => {
               <div style={{ flex: '1', minWidth: '240px' }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                   <strong style={{ color: 'var(--red-600)', fontSize: '1.05rem' }}>#{p.id.split('-')[1] || p.id}</strong>
-                  <span style={{ fontSize: '0.75rem', background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>NUEVO BROADCAST</span>
+                  <span style={{ fontSize: '0.75rem', background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>NUEVO PEDIDO EN BROADCAST</span>
                 </div>
                 <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: '700' }}>{p.nombre_local}</h4>
                 <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#64748b' }}>📍 {p.direccion}</p>
@@ -457,45 +471,13 @@ const PartnerDashboard = () => {
                 background: '#f8fafc',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid #edf2f7'
+                border: '1px solid #edf2f7',
+                color: '#475569',
+                fontSize: '0.9rem',
+                fontWeight: '500'
               }}>
-                {p.repartidor_propuesto_id ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                      Asignado a: <strong style={{ color: '#2563eb' }}>{p.nombre_repartidor_propuesto}</strong> (Esperando...)
-                    </span>
-                    <button 
-                      className="btn btn-outline btn-sm text-red"
-                      onClick={() => handleUnassignPedido(p.id)}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Asignar a:</span>
-                    <select
-                      value={proposedDriverId}
-                      onChange={(e) => setSelectedDriverForAssign({ ...selectedDriverForAssign, [p.id]: e.target.value })}
-                      className="form-input"
-                      style={{ padding: '6px 12px', fontSize: '0.85rem', minWidth: '160px', width: 'auto', margin: 0 }}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {partnerDrivers.filter(d => (d.estado === 'Activo' || d.estado === 'Ocupado') && isDriverOnShift(d)).map(d => (
-                        <option key={d.id} value={d.id}>
-                          {d.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleAssignPedido(p.id, proposedDriverId)}
-                      disabled={!proposedDriverId}
-                    >
-                      Asignar
-                    </button>
-                  </div>
-                )}
+                <span className="spinner-small" style={{ marginRight: '8px', display: 'inline-block' }}></span>
+                <span>⚡ Enviado a toda tu flota (Esperando que un repartidor acepte...)</span>
               </div>
             </div>
           );
@@ -801,24 +783,6 @@ const PartnerDashboard = () => {
     const p = todosDisponibles[0];
     const isLento = p.nivel_rapidez === 2;
 
-    const handleAssign = async () => {
-      if (!selectedDriverForOverlayAssign) {
-        toast.error("Selecciona un repartidor para asignar");
-        return;
-      }
-      try {
-        const res = await api.partnerAssignPedido(p.id, selectedDriverForOverlayAssign);
-        if (res.success) {
-          toast.success("Pedido propuesto con éxito");
-          setSelectedDriverForOverlayAssign('');
-          setDismissedBroadcasts(prev => ({ ...prev, [p.id]: true }));
-          fetchPartnerData(true);
-        }
-      } catch (err) {
-        toast.error("Error al asignar: " + err.message);
-      }
-    };
-
     return (
       <div className="dd-broadcast-overlay" style={{ zIndex: 2500 }}>
         <div className={`dd-broadcast-popup animate-pop-in ${isLento ? 'lento' : ''}`} style={{ maxWidth: '380px' }}>
@@ -847,51 +811,18 @@ const PartnerDashboard = () => {
               </div>
             </div>
 
-            {/* Selector de Repartidor */}
-            <div style={{ borderTop: '1px solid #edf2f7', paddingTop: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>
-                Asignar Repartidor:
-              </label>
-              <select
-                value={selectedDriverForOverlayAssign}
-                onChange={e => setSelectedDriverForOverlayAssign(e.target.value)}
-                className="admin-input"
-                style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  fontSize: '0.9rem', 
-                  marginBottom: '12px', 
-                  background: 'white', 
-                  border: '1px solid #cbd5e1', 
-                  borderRadius: '6px', 
-                  color: 'black' 
-                }}
-              >
-                <option value="">-- Seleccionar Repartidor --</option>
-                {partnerDrivers.filter(d => (d.estado === 'Activo' || d.estado === 'Ocupado') && isDriverOnShift(d)).map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre}
-                  </option>
-                ))}
-              </select>
+            <div style={{ borderTop: '1px solid #edf2f7', paddingTop: '16px', textAlign: 'center', color: '#475569', fontSize: '0.85rem', fontWeight: '500' }}>
+              ⚡ Enviado automáticamente a tu flota de repartidores activos.
             </div>
           </div>
 
           <div className="popup-footer" style={{ display: 'flex', gap: '10px', padding: '15px 20px', background: '#f8fafc', borderTop: '1px solid #edf2f7' }}>
             <button 
-              className="btn btn-outline" 
-              style={{ flex: 1, padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}
+              className="btn btn-primary btn-full" 
+              style={{ flex: 1, padding: '10px', background: '#10b981', borderColor: '#10b981', color: 'white', borderRadius: '6px', fontWeight: 'bold' }}
               onClick={() => setDismissedBroadcasts(prev => ({ ...prev, [p.id]: true }))}
             >
-              Cerrar
-            </button>
-            <button 
-              className="btn btn-primary" 
-              style={{ flex: 1, padding: '10px', background: '#10b981', borderColor: '#10b981', color: 'white', borderRadius: '6px' }}
-              onClick={handleAssign}
-              disabled={!selectedDriverForOverlayAssign}
-            >
-              Proponer →
+              Entendido
             </button>
           </div>
         </div>

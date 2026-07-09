@@ -3330,13 +3330,16 @@ export async function getPedidosDisponibles(repartidorId) {
     const configCiudad = ciudadesConfig?.find(c => c.ciudad === pedidoCiudad);
     const esCiudadPartner = configCiudad?.tipo_logistica === 'partner';
 
-    if (repData?.partner_id) {
-      // Repartidor vinculado a partner: solo ve si fue asignado a él
-      if (p.repartidor_propuesto_id !== repartidorId) return false;
+    if (esCiudadPartner) {
+      // En ciudades de Partner, el pedido solo es visible para repartidores vinculados a este partner oficial
+      if (!repData?.partner_id || repData.partner_id !== configCiudad.partner_oficial_id) {
+        return false;
+      }
     } else {
-      // Repartidor individual:
-      // No ve si la ciudad se gestiona por Partner o si ya está asignado a otro
-      if (esCiudadPartner) return false;
+      // En ciudades de logística Local, solo lo ven repartidores independientes (no vinculados)
+      if (repData?.partner_id) {
+        return false;
+      }
       if (p.repartidor_propuesto_id) return false;
     }
 

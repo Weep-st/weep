@@ -64,8 +64,8 @@ SET
   center_name = 'Centro Cívico Oberá',
   center_lat = -27.48561,
   center_lng = -55.12495,
-  base_radius_km = 2,
-  min_delivery_fee = 2500,
+  base_radius_km = 0.5,
+  min_delivery_fee = 2200,
   extra_fee_per_km = 200,
   max_delivery_distance_km = 8
 WHERE ciudad = 'Oberá';

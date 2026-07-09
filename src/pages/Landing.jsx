@@ -10,10 +10,43 @@ const CheckIcon = () => (
   </svg>
 );
 
+const VisionIcon = () => (
+  <svg className="purpose-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const MisionIcon = () => (
+  <svg className="purpose-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg className="pilar-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const StoreIcon = () => (
+  <svg className="pilar-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+);
+
+const LogisticaIcon = () => (
+  <svg className="pilar-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17h2" />
+  </svg>
+);
+
 export default function Landing() {
   const [pedidos, setPedidos] = useState(0);
   const [usuarios, setUsuarios] = useState(0);
   const [animateProgress, setAnimateProgress] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // 1. PWA Magic Redirect Fallback
@@ -47,9 +80,10 @@ export default function Landing() {
 
         if (!active) return;
 
-        const basePedidos = cierres ? cierres.reduce((sum, c) => sum + (c.num_pedidos || 0), 0) : 448;
-        const targetPedidos = errorC ? 448 : basePedidos;
-        const targetUsuarios = errorU ? 450 : (countU || 0);
+        const basePedidos = cierres ? cierres.reduce((sum, c) => sum + (c.num_pedidos || 0), 0) : 520;
+        // Establecer un límite mínimo de 520 para pedidos y 450 para usuarios para cumplir con los indicadores
+        const targetPedidos = Math.max(520, errorC ? 520 : basePedidos);
+        const targetUsuarios = Math.max(450, errorU ? 450 : (countU || 0));
 
         let startPedidos = 0;
         const duration = 1500; // ms
@@ -82,7 +116,7 @@ export default function Landing() {
 
       } catch (err) {
         console.error("Error fetching landing stats:", err);
-        setPedidos(400);
+        setPedidos(520);
         setUsuarios(450);
       }
     };
@@ -140,29 +174,66 @@ export default function Landing() {
             />
           </Link>
           <nav className="navbar-menu">
-            <a href="#procesos" className="nav-link">Procesos</a>
-            <a href="#ecosistema" className="nav-link">Ecosistema</a>
-            <a href="#expansion" className="nav-link">Expansión</a>
+            <a href="#vision-mision" className="nav-link">Nosotros</a>
+            <a href="#pilares" className="nav-link">Pilares</a>
+            <a href="#marcas" className="nav-link">Marcas</a>
+            <a href="#expansion" className="nav-link">Ciudades</a>
           </nav>
           <div className="navbar-actions">
             <Link to="/locales" className="btn-nav-secondary">Comercios</Link>
             <Link to="/repartidores" className="btn-nav-secondary">Repartidores</Link>
             <Link to="/pedir" className="btn-nav-primary">Pedir ahora</Link>
+            
+            {/* Hamburger Button for Mobile */}
+            <button 
+              className={`menu-toggle ${mobileMenuOpen ? 'open' : ''}`}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Menú de navegación"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Lateral Mobile Drawer */}
+      <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}></div>
+        <div className="mobile-drawer-content">
+          <div className="drawer-header">
+            <img
+              src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png"
+              alt="Wepi Logo"
+              className="drawer-logo"
+            />
+            <button className="drawer-close" onClick={() => setMobileMenuOpen(false)} aria-label="Cerrar menú">
+              &times;
+            </button>
+          </div>
+          <nav className="drawer-nav">
+            <a href="#vision-mision" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Nosotros</a>
+            <a href="#pilares" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Pilares</a>
+            <a href="#marcas" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Marcas</a>
+            <a href="#expansion" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Ciudades</a>
+            
+            <div className="drawer-actions">
+              <Link to="/locales" className="btn-drawer-secondary" onClick={() => setMobileMenuOpen(false)}>Comercios</Link>
+              <Link to="/repartidores" className="btn-drawer-secondary" onClick={() => setMobileMenuOpen(false)}>Repartidores</Link>
+              <Link to="/pedir" className="btn-drawer-primary" onClick={() => setMobileMenuOpen(false)}>Pedir ahora</Link>
+            </div>
+          </nav>
+        </div>
+      </div>
 
       {/* 2. HERO Section */}
       <section className="hero-section">
         <div className="grid-overlay"></div>
         <div className="hero-container-split">
           <div className="hero-content">
-            <h1 className="hero-title animate-fade-in animate-delay-1">
-              La forma más fácil de pedir en <span>mercados regionales.</span>
-            </h1>
-            <p className="hero-subtitle animate-fade-in animate-delay-2">
-              Conectamos clientes, comercios y logística local para que pedir, vender y entregar sea simple, rápido y desde un solo lugar.
-            </p>
+            <h1 className="hero-title animate-fade-in animate-delay-1">La forma más fácil de <span>pedir.</span></h1>
+            <p className="hero-subtitle animate-fade-in animate-delay-2">Innovamos e impulsamos el comercio digital en ciudades pequeñas y medianas de Argentina para que pedir, vender y entregar sea más fácil.</p>
             <div className="hero-buttons animate-fade-in animate-delay-2">
               <Link to="/pedir" className="btn-hero-primary">
                 Pedir ahora
@@ -174,13 +245,14 @@ export default function Landing() {
                 Ser repartidor
               </Link>
             </div>
-            {/* Quick Metrics Underneath with Dynamic Counters & Progress Bar */}
+            
+            {/* Indicadores Bar */}
             <div className="hero-metrics-bar animate-fade-in animate-delay-2">
               <div className="metric-item-dynamic">
-                <span className="metric-label">Pedidos entregados</span>
+                <span className="metric-label">Pedidos realizados</span>
                 <span className="metric-number">+{pedidos}</span>
                 <div className="metric-progress-track">
-                  <div className="metric-progress-bar" style={{ width: animateProgress ? '80%' : '0%' }}></div>
+                  <div className="metric-progress-bar" style={{ width: animateProgress ? '85%' : '0%' }}></div>
                 </div>
               </div>
               <div className="metric-divider"></div>
@@ -191,230 +263,283 @@ export default function Landing() {
                   <div className="metric-progress-bar" style={{ width: animateProgress ? '90%' : '0%' }}></div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className="hero-visual-mockup animate-fade-in animate-delay-1">
-            <div className="mockup-screen-container">
-              <img
-                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80"
-                alt="Wepi Dashboard Mockup"
-                className="mockup-img"
-              />
+              <div className="metric-divider"></div>
+              <div className="metric-item-dynamic">
+                <span className="metric-label">Ciudades activas</span>
+                <span className="metric-number">2</span>
+                <div className="metric-progress-track">
+                  <div className="metric-progress-bar" style={{ width: animateProgress ? '100%' : '0%', backgroundColor: '#2e7d32' }}></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. MARCAS Y ALIANZAS */}
-      <section className="brands-section">
+      {/* 3. NUESTRA VISIÓN & NUESTRA MISIÓN */}
+      <section id="vision-mision" className="vision-mision-section">
+        <div className="vision-mision-container">
+          <div className="text-center">
+            <h3 className="section-label">Propósito</h3>
+            <h2 className="section-title">Nuestra Visión y Misión</h2>
+          </div>
+          <div className="vision-mision-grid">
+            <div className="purpose-card vision-card animate-hover-glow">
+              <div className="purpose-header">
+                <div className="purpose-icon-wrapper">
+                  <VisionIcon />
+                </div>
+                <h4>NUESTRA VISIÓN</h4>
+              </div>
+              <h3 className="purpose-headline">Queremos cambiar la forma en que las ciudades piden.</h3>
+              <p className="purpose-body">
+                Convertirnos en el principal canal de pedidos de las ciudades del interior, ofreciendo la forma más simple de comprar para los usuarios y el canal de ventas más eficiente para los comercios.
+              </p>
+            </div>
+            
+            <div className="purpose-card mision-card animate-hover-glow">
+              <div className="purpose-header">
+                <div className="purpose-icon-wrapper">
+                  <MisionIcon />
+                </div>
+                <h4>NUESTRA MISIÓN</h4>
+              </div>
+              <p className="purpose-body-large">
+                Digitalizar y simplificar la operación comercial de las ciudades, conectando usuarios, comercios y logística en un único ecosistema.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. UN ECOSISTEMA. TRES PILARES */}
+      <section id="pilares" className="pilares-section">
+        <div className="pilares-container">
+          <div className="text-center">
+            <h3 className="section-label">Estructura</h3>
+            <h2 className="section-title">Un Ecosistema. Tres Pilares</h2>
+          </div>
+          
+          <div className="pilares-grid">
+            {/* Pilar 1: Usuarios */}
+            <div className="pilar-card pilar-usuarios">
+              <div className="pilar-card-glow"></div>
+              <div className="pilar-badge-icon">
+                <UserIcon />
+              </div>
+              <h3 className="pilar-name">Usuarios</h3>
+              <h4 className="pilar-tagline">La forma más fácil de pedir.</h4>
+              <p className="pilar-desc">Todo en un solo lugar.</p>
+              <p className="pilar-detail">Elegís, pedís y recibís en pocos clics</p>
+              <div className="pilar-spacer"></div>
+              <Link to="/pedir" className="btn-pilar">
+                Pedir ahora
+              </Link>
+            </div>
+
+            {/* Pilar 2: Comercios */}
+            <div className="pilar-card pilar-comercios">
+              <div className="pilar-card-glow"></div>
+              <div className="pilar-badge-icon">
+                <StoreIcon />
+              </div>
+              <h3 className="pilar-name">Comercios</h3>
+              <h4 className="pilar-tagline">Sumá un nuevo canal de pedidos.</h4>
+              <p className="pilar-desc">
+                Simplificá tu operación. Mientras vos preparás el pedido, nosotros nos encargamos del resto.
+              </p>
+              <p className="pilar-detail">
+                Wepi procesa pedidos, gestiona cobros y coordina entregas.
+              </p>
+              <div className="pilar-spacer"></div>
+              <Link to="/locales" className="btn-pilar">
+                Sumar comercio
+              </Link>
+            </div>
+
+            {/* Pilar 3: Logística */}
+            <div className="pilar-card pilar-logistica">
+              <div className="pilar-card-glow"></div>
+              <div className="pilar-badge-icon">
+                <LogisticaIcon />
+              </div>
+              <h3 className="pilar-name">Logística</h3>
+              <h4 className="pilar-tagline">Operación y Entregas.</h4>
+              <p className="pilar-desc">
+                Generamos demanda de pedidos con nuestro sistema integrado, para que empresas logísticas y repartidores asociados realicen entregas más eficientes.
+              </p>
+              <p className="pilar-detail">
+                Más pedidos, más entregas, más oportunidades.
+              </p>
+              <div className="pilar-spacer"></div>
+              <Link to="/repartidores" className="btn-pilar">
+                Ser repartidor
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. MARCAS QUE YA CONFÍAN */}
+      <section id="marcas" className="brands-section">
         <div className="brands-container">
-          <h3 className="section-label">MARCAS Y ALIANZAS</h3>
-          <h2 className="brands-title">Franquicias y marcas líderes en la plataforma</h2>
-          <div className="brands-grid">
-            <div className="brand-logo-card">
-              <div className="brand-img-container">
-                <img src="https://i.postimg.cc/vB7vG6KK/full.png" alt="YPF Full" className="brand-logo-img" />
-              </div>
-              <span>YPF Full</span>
-            </div>
-            <div className="brand-logo-card">
-              <div className="brand-img-container">
-                <img src="https://i.postimg.cc/43V619Xt/images.png" alt="Puma Energy" className="brand-logo-img" />
-              </div>
-              <span>Puma Energy</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. PROCESOS */}
-      <section id="procesos" className="how-it-works-section">
-        <div className="how-container">
-          <div className="text-center">
-            <h3 className="section-label">PROCESOS</h3>
-            <h2 className="section-title">Simple y Automatizado</h2>
-          </div>
-
-          <div className="steps-grid">
-            <div className="steps-column">
-              <h4 className="steps-column-title">Para Usuarios</h4>
-              <div className="step-card">
-                <span className="step-number">1</span>
-                <div>
-                  <h5>Descubrí comercios</h5>
-                  <p>Explorá los comercios disponibles en tu ciudad y encontrá todo lo que necesitás en un solo lugar.</p>
+          <h3 className="section-label">Alianzas</h3>
+          <h2 className="brands-title">Marcas que ya confían</h2>
+          <div className="marquee-wrapper">
+            <div className="marquee-content">
+              {/* Primer set de logos */}
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/vB7vG6KK/full.png" alt="YPF Full" className="brand-logo-img" />
                 </div>
+                <span>YPF Full</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
-              <div className="step-card">
-                <span className="step-number">2</span>
-                <div>
-                  <h5>Realizá tu pedido</h5>
-                  <p>Elegì productos y confirmá tu compra en segundos.</p>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/43V619Xt/images.png" alt="Puma Energy" className="brand-logo-img" />
                 </div>
+                <span>Puma Energy</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
-              <div className="step-card">
-                <span className="step-number">3</span>
-                <div>
-                  <h5>Pagá de forma segura</h5>
-                  <p>Completá el pago online mediante Mercado Pago y otros medios integrados.</p>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/DwTHyZNq/58410974-283680839182896-2525901164772327424-n.jpg" alt="Helados Ideal" className="brand-logo-img" />
                 </div>
+                <span>Helados Ideal</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
-              <div className="step-card">
-                <span className="step-number">4</span>
-                <div>
-                  <h5>Recibí tu compra</h5>
-                  <p>Seguí el pedido en tiempo real hasta la entrega en tu domicilio.</p>
+              {/* Segundo set duplicado para scroll infinito y suave */}
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/vB7vG6KK/full.png" alt="YPF Full" className="brand-logo-img" />
                 </div>
+                <span>YPF Full</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
-            </div>
-
-            <div className="steps-column">
-              <h4 className="steps-column-title">Para Comercios</h4>
-              <div className="step-card accent">
-                <span className="step-number">1</span>
-                <div>
-                  <h5>Recibí pedidos confirmados</h5>
-                  <p>Los pedidos ingresan automáticamente al sistema con toda la información necesaria listo para preparar.</p>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/43V619Xt/images.png" alt="Puma Energy" className="brand-logo-img" />
                 </div>
+                <span>Puma Energy</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
-              <div className="step-card accent">
-                <span className="step-number">2</span>
-                <div>
-                  <h5>Coordinación automática</h5>
-                  <p>La plataforma procesa pagos, asigna entregas y mantiene informados a clientes y repartidores.</p>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/DwTHyZNq/58410974-283680839182896-2525901164772327424-n.jpg" alt="Helados Ideal" className="brand-logo-img" />
                 </div>
+                <span>Helados Ideal</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
-              <div className="step-card accent">
-                <span className="step-number">3</span>
-                <div>
-                  <h5>Escalá tu negocio</h5>
-                  <p>Atendé más pedidos con menos trabajo operativo y obtené métricas para impulsar el crecimiento.</p>
+              {/* Tercer set duplicado para pantallas extra anchas */}
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/vB7vG6KK/full.png" alt="YPF Full" className="brand-logo-img" />
                 </div>
+                <span>YPF Full</span>
+                <span className="brand-city">Santo Tomé</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/43V619Xt/images.png" alt="Puma Energy" className="brand-logo-img" />
+                </div>
+                <span>Puma Energy</span>
+                <span className="brand-city">Santo Tomé</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/DwTHyZNq/58410974-283680839182896-2525901164772327424-n.jpg" alt="Helados Ideal" className="brand-logo-img" />
+                </div>
+                <span>Helados Ideal</span>
+                <span className="brand-city">Santo Tomé</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. ECOSISTEMA WEPI */}
-      <section id="ecosistema" className="solutions-simple-section">
-        <div className="solutions-simple-container">
-          <div className="text-center">
-            <h3 className="section-label">ECOSISTEMA WEPI</h3>
-            <h2 className="section-title">una plataforma - 3 pilares</h2>
-          </div>
-          <div className="solutions-simple-grid">
-            <div className="solution-card">
-              <div className="solution-card-header">
-                <span className="solution-bullet"></span>
-                <h4>Usuarios</h4>
-              </div>
-              <p>Pedí en segundos desde tus comercios favoritos.</p>
-              <Link to="/pedir" className="solution-link">Pedir ahora ➜</Link>
-            </div>
-            <div className="solution-card">
-              <div className="solution-card-header">
-                <span className="solution-bullet"></span>
-                <h4>Comercios</h4>
-              </div>
-              <p>Menos operación. Más ventas.</p>
-              <Link to="/locales" className="solution-link">Sumar comercio ➜</Link>
-            </div>
-            <div className="solution-card">
-              <div className="solution-card-header">
-                <span className="solution-bullet"></span>
-                <h4>Logística</h4>
-              </div>
-              <p>Más entregas. Más oportunidades.</p>
-              <Link to="/repartidores" className="solution-link">Ser repartidor ➜</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. CRECIENDO CIUDAD POR CIUDAD */}
+      {/* 6. CRECEMOS CIUDAD POR CIUDAD */}
       <section id="expansion" className="expansion-section">
         <div className="expansion-container">
           <div className="expansion-content">
             <h3 className="section-label">EXPANSIÓN</h3>
-            <h2 className="section-title">Creciendo ciudad por ciudad</h2>
+            <h2 className="section-title">Crecemos ciudad por ciudad</h2>
             <div className="cities-list">
               <div className="city-item active">
                 <span className="status-dot green"></span>
-                <strong>Santo Tomé</strong> (Activo desde abril 2026 · +400 pedidos entregados)
+                <strong>Santo Tomé</strong>&nbsp;(Activo desde abril 2026 · +{pedidos} pedidos entregados)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Oberá</strong> (A partir de julio 2026)
+                <strong>Oberá</strong>&nbsp;(Activo desde julio 2026 · Lanzamiento)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Virasoro</strong> (Próximamente)
+                <strong>Virasoro</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Apóstoles</strong> (Próximamente)
+                <strong>Apóstoles</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Leandro N. Alem</strong> (Próximamente)
+                <strong>Leandro N. Alem</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item search">
                 <span className="status-dot pulse"></span>
-                <strong>Nuevas ciudades</strong> (En planificación)
+                <strong>Nuevas ciudades</strong>&nbsp;(En planificación)
               </div>
             </div>
           </div>
           <div className="expansion-vision-card">
             <div className="vision-bullet-icon"><CheckIcon /></div>
-            <p>Construimos infraestructura digital para ciudades medianas y pequeñas de Argentina.</p>
+            <p>Innovamos la forma de pedir e impulsamos el comercio digital en ciudades pequeñas y medianas de Argentina.</p>
           </div>
         </div>
       </section>
 
-      {/* 7. CTA FINAL */}
-      <section className="cta-final-section">
-        <div className="cta-final-container">
-          <h2>¿Querés sumarte a la red Wepi?</h2>
-          <div className="cta-buttons">
-            <Link to="/locales" className="btn-cta-primary">
-              Sumar comercio
-            </Link>
-            <a href="https://wa.me/543756543610" className="btn-cta-secondary" target="_blank" rel="noopener noreferrer">
-              Hablar con nosotros
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Corporate Footer */}
+      {/* 7. Footer */}
       <footer className="corporate-footer">
         <div className="footer-container">
           <div className="footer-brand-col">
             <img
               src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png"
-              alt="Wepi Logo Dark"
+              alt="Wepi Logo"
               className="footer-logo"
             />
+            <h4 className="footer-brand-title">WEPI</h4>
             <p className="footer-tagline">
-              Plataforma de pedidos y operación comercial con logística integrada.
+              La forma más fácil de pedir.
             </p>
           </div>
           <div className="footer-links-col">
-            <h5>Ecosistema</h5>
-            <Link to="/pedir">Para usuarios</Link>
-            <Link to="/locales">Para comercios</Link>
-            <Link to="/repartidores">Para repartidores</Link>
+            <h5>Usuarios</h5>
+            <Link to="/pedir">Pedir ahora</Link>
+            <Link to="/mis-pedidos">Mis pedidos</Link>
           </div>
           <div className="footer-links-col">
-            <h5>Compañía</h5>
-            <a href="#procesos">Procesos</a>
-            <a href="#expansion">Expansión</a>
-            <span className="footer-location">Santo Tomé, Corrientes, Argentina</span>
+            <h5>Comercios</h5>
+            <Link to="/locales">Sumar comercio</Link>
+            <Link to="/prueba">Probar panel</Link>
+          </div>
+          <div className="footer-links-col">
+            <h5>Repartidores</h5>
+            <Link to="/repartidores">Ser repartidor</Link>
+            <Link to="/partners">Empresas asociadas</Link>
+          </div>
+          <div className="footer-links-col">
+            <h5>Ciudades</h5>
+            <a href="#expansion">Santo Tomé</a>
+            <a href="#expansion">Oberá</a>
+          </div>
+          <div className="footer-links-col">
+            <h5>Nosotros</h5>
+            <a href="#vision-mision">Visión y Misión</a>
+            <a href="https://wa.me/543756543610" target="_blank" rel="noopener noreferrer">Contacto</a>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2026 <strong>Wepi</strong>. Todos los derechos reservados. Infraestructura digital para ciudades del interior.</p>
+          <p>© 2026 <strong>Wepi</strong>. Todos los derechos reservados. Santo Tomé, Corrientes, Argentina.</p>
         </div>
       </footer>
     </div>

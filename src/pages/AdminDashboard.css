@@ -200,7 +200,7 @@
 }
 
 /* Mobile Responsiveness */
-.menu-toggle {
+.admin-container .menu-toggle {
   display: none;
   background: var(--sidebar-bg);
   color: white;
@@ -229,7 +229,7 @@
 }
 
 @media (max-width: 768px) {
-  .menu-toggle {
+  .admin-container .menu-toggle {
     display: block;
   }
 

@@ -84,7 +84,7 @@
   text-align: center;
 }
 
-.hero-content h1 {
+.ads-hero .hero-content h1 {
   font-size: clamp(2rem, 5vw, 2.8rem);
   font-weight: 800;
   color: #1e293b;
@@ -92,7 +92,7 @@
   margin-bottom: 10px;
 }
 
-.hero-content p {
+.ads-hero .hero-content p {
   font-size: clamp(1rem, 2.5vw, 1.15rem);
   color: #64748b;
   max-width: 600px;

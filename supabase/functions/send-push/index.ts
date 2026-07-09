@@ -83,10 +83,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 2. Obtener repartidores aceptados
+      // 2. Obtener repartidores aceptados con su partner_id
       const { data: drivers, error: driversErr } = await supabase
         .from('repartidores')
-        .select('onesignal_id, locales_prioridad, ciudad')
+        .select('onesignal_id, locales_prioridad, ciudad, partner_id')
         .eq('admin_status', 'Aceptado')
         .not('onesignal_id', 'is', null);
 
@@ -97,11 +97,34 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 4. Filtrar repartidores por ciudad (pedidos de una ciudad solo se envían a repartidores de esa ciudad)
+      // 3. Consultar configuración de la ciudad para ver tipo de logística
+      let configCiudad = null;
+      if (ciudadLocal) {
+        try {
+          const { data: config } = await supabase
+            .from('ciudades_config')
+            .select('tipo_logistica, partner_oficial_id')
+            .eq('ciudad', ciudadLocal)
+            .maybeSingle();
+          configCiudad = config;
+        } catch (err) {
+          console.error("Error al obtener ciudades_config en send-push:", err);
+        }
+      }
+
+      // 4. Filtrar repartidores:
+      // Si la ciudad es de tipo partner, enviamos solo a los vinculados a dicho partner
+      // Si es local, enviamos solo a los independientes (sin partner_id)
       let targetDrivers = drivers;
       if (ciudadLocal) {
-        targetDrivers = drivers.filter(d => d.ciudad === ciudadLocal);
-        console.log(`📌 [Broadcast] Filtrando por ciudad: ${ciudadLocal}. Repartidores totales: ${drivers.length}, de la ciudad: ${targetDrivers.length}`);
+        if (configCiudad?.tipo_logistica === 'partner') {
+          const partnerId = configCiudad.partner_oficial_id;
+          targetDrivers = drivers.filter(d => d.ciudad === ciudadLocal && d.partner_id === partnerId);
+          console.log(`📌 [Broadcast] Ciudad Partner detectada (${ciudadLocal}). Notificando solo a repartidores vinculados al partner ${partnerId}. Total: ${targetDrivers.length}`);
+        } else {
+          targetDrivers = drivers.filter(d => d.ciudad === ciudadLocal && !d.partner_id);
+          console.log(`📌 [Broadcast] Ciudad Local detectada (${ciudadLocal}). Notificando solo a repartidores independientes. Total: ${targetDrivers.length}`);
+        }
       }
 
       const titleStr = '¡Nuevo Pedido Disponible! 🛵';
