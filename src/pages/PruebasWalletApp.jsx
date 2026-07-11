@@ -88,6 +88,7 @@ export default function PruebasWalletApp() {
   const [showOberaPopup, setShowOberaPopup] = React.useState(false);
   const [leadNombre, setLeadNombre] = React.useState('');
   const [leadWhatsapp, setLeadWhatsapp] = React.useState('');
+  const [showOberaPassword, setShowOberaPassword] = React.useState(false);
   const [isSubmittingLead, setIsSubmittingLead] = React.useState(false);
   const [leadRegistered, setLeadRegistered] = React.useState(() => {
     return localStorage.getItem('wepi-obera-registered') === 'true';
@@ -1060,7 +1061,11 @@ export default function PruebasWalletApp() {
             return discB - discA;
           });
 
-          let rawMostOrdered = (most || []).filter(item => item.imagen_url).sort((a, b) => {
+          let rawMostOrdered = (most || []).filter(item => {
+            if (!item.imagen_url) return false;
+            const l = allLocs.find(loc => loc.id === item.local_id);
+            return !!l;
+          }).sort((a, b) => {
             const locA = allLocs.find(l => l.id === a.local_id);
             const locB = allLocs.find(l => l.id === b.local_id);
             const openA = isLocalOpen(locA) ? 1 : 0;
@@ -1095,7 +1100,10 @@ export default function PruebasWalletApp() {
             promosOfDay: formatCarouselItems(rawPromos).slice(0, 40),
             mostOrdered: formatCarouselItems(rawMostOrdered),
             newLocales: [...allLocs].filter(l => l.admin_status === 'Aceptado').sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10),
-            exploreItems: expl || [],
+            exploreItems: (expl || []).filter(item => {
+              const l = allLocs.find(loc => loc.id === item.local_id);
+              return !!l;
+            }),
             featuredProLocales: proFound,
             recommendedPlusLocales: plusFound,
             newFreemiumLocales: freeFound.slice(0, 12)
@@ -4609,30 +4617,48 @@ export default function PruebasWalletApp() {
               </p>
             </div>
 
-            {!leadRegistered ? (
+            {(!user && !leadRegistered) ? (
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!leadNombre.trim() || !leadWhatsapp.trim()) {
-                    toast.error('Por favor, completa todos los campos.');
-                    return;
-                  }
+                  const fd = new FormData(e.target);
+                  const email = fd.get('email').toLowerCase();
+                  const nombre = fd.get('nombre');
+                  const password = fd.get('password');
+                  const prefix = fd.get('prefix');
+                  const localNumber = fd.get('telefono');
+                  const telefono = `${prefix}${localNumber}`;
+                  const ciudad = 'Oberá';
+
+                  if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+                  if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+                  if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
+
                   setIsSubmittingLead(true);
                   try {
-                    const res = await api.registrarInteresExpansion({
-                      nombre: leadNombre.trim(),
-                      whatsapp: leadWhatsapp.trim(),
-                      ciudad: 'Oberá'
-                    });
-                    if (res.success) {
-                      toast.success('¡Registro exitoso! Te avisaremos pronto.', { icon: '🎉' });
+                    const d = await api.registerUsuario(
+                      nombre, email, password, '', telefono,
+                      fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+                      fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
+                      ciudad
+                    );
+                    if (d.success) {
+                      loginAsUser({ 
+                        userId: d.userId, 
+                        name: nombre, 
+                        email: email, 
+                        address: '',
+                        telefono: telefono,
+                        ciudad: ciudad
+                      });
+                      toast.success('¡Registro exitoso!', { icon: '🎉' });
                       localStorage.setItem('wepi-obera-registered', 'true');
                       setLeadRegistered(true);
                     } else {
-                      toast.error('Error al registrar tus datos. Inténtalo de nuevo.');
+                      toast.error('Error al registrar');
                     }
                   } catch (err) {
-                    toast.error('Error de conexión.');
+                    toast.error(err.message || 'Error de conexión');
                   } finally {
                     setIsSubmittingLead(false);
                   }
@@ -4640,26 +4666,80 @@ export default function PruebasWalletApp() {
                 style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}
               >
                 <h4 style={{ margin: '0 0 10px 0', fontSize: '0.92rem', fontWeight: '700', color: '#334155', textAlign: 'left' }}>
-                  🔔 Recibí alertas de lanzamiento y beneficios exclusivos:
+                  🔔 Registrate para ser el primero en usar Wepi y recibir beneficios exclusivos:
                 </h4>
                 
                 <input 
-                  type="text" 
-                  placeholder="Tu Nombre completo" 
-                  value={leadNombre}
-                  onChange={(e) => setLeadNombre(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                  type="email" 
+                  name="email"
+                  placeholder="Tu Email" 
+                  className="form-input"
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
                   required
+                  autoComplete="username"
                 />
-                
+
                 <input 
-                  type="tel" 
-                  placeholder="Tu WhatsApp (ej: 3755123456)" 
-                  value={leadWhatsapp}
-                  onChange={(e) => setLeadWhatsapp(e.target.value.replace(/[^0-9+]/g, ''))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                  type="text" 
+                  name="nombre"
+                  placeholder="Tu Nombre completo" 
+                  className="form-input"
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
                   required
+                  autoComplete="name"
                 />
+
+                <div className="password-container" style={{ position: 'relative', width: '100%' }}>
+                  <input 
+                    type={showOberaPassword ? "text" : "password"} 
+                    name="password"
+                    placeholder="Contraseña (mínimo 6 caracteres)" 
+                    className="form-input"
+                    style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
+                    required
+                    autoComplete="new-password"
+                  />
+                  <button 
+                    type="button" 
+                    className="password-toggle"
+                    onClick={() => setShowOberaPassword(!showOberaPassword)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <img 
+                      src={showOberaPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                      alt="Ver" 
+                      style={{ width: '20px', height: '20px', opacity: 0.6 }}
+                    />
+                  </button>
+                </div>
+
+                <div className="phone-input-group" style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <select 
+                    name="prefix" 
+                    className="phone-prefix-select"
+                    style={{ padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
+                    defaultValue="+549"
+                  >
+                    <option value="+549">🇦🇷 +549</option>
+                    <option value="+55">🇧🇷 +55</option>
+                  </select>
+                  <input 
+                    type="tel" 
+                    name="telefono"
+                    placeholder="Tu WhatsApp (ej: 3755123456)" 
+                    className="form-input phone-number-input"
+                    style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
+                    required
+                    autoComplete="tel-national"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '4px', textAlign: 'left' }}>
+                  <input type="checkbox" id="obera_terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+                  <label htmlFor="obera_terms_accepted" style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: '1.4' }}>
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: '#dc2626', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => { setModal('terms'); setShowOberaPopup(false); }}>Términos y Condiciones y Política de Privacidad</button> para Usuarios.
+                  </label>
+                </div>
 
                 <button 
                   type="submit" 
@@ -4681,12 +4761,16 @@ export default function PruebasWalletApp() {
                   onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
                   onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
                 >
-                  {isSubmittingLead ? 'Registrando...' : 'Quiero que me avisen'}
+                  {isSubmittingLead ? 'Registrando...' : 'Quiero registrarme'}
                 </button>
+
+                <p style={{ margin: '10px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                  ¿Ya tenés cuenta? <button type="button" style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 'bold', padding: 0, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => { setShowOberaPopup(false); setModal('login'); }}>Iniciar sesión</button>
+                </p>
               </form>
             ) : (
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '20px', borderRadius: '16px', color: '#15803d', fontSize: '0.95rem', fontWeight: '600', marginBottom: '20px', lineHeight: '1.4' }}>
-                🎉 ¡Ya estás registrado! Te enviaremos un WhatsApp en cuanto el servicio comience en Oberá para que disfrutes de beneficios especiales.
+                🎉 ¡Ya estás registrado{user ? ` como ${user.name}` : ''}! Te enviaremos un WhatsApp en cuanto el servicio comience en Oberá para que disfrutes de beneficios especiales.
               </div>
             )}
 
