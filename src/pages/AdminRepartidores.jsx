@@ -506,10 +506,66 @@ _Este es un mensaje de difusión. No responder_`;
                                                 />
                                                 Partner Logístico
                                             </label>
+                                            
+                                            {/* Si es chofer regular, mostrar opción para vincular a un partner */}
                                             {rep.partner_id && (
                                                 <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: '500' }}>
-                                                    🔗 Chofer Vinculado
+                                                    🔗 Vinculado a: {repartidores.find(r => r.id === rep.partner_id)?.nombre || 'Partner'}
                                                 </span>
+                                            )}
+                                            {!rep.es_partner && (
+                                                <div style={{ marginTop: '4px' }}>
+                                                    <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>Vincular a Partner:</span>
+                                                    <select
+                                                        value={rep.partner_id || ''}
+                                                        onChange={(e) => handleUpdateVehicle(rep.id, 'partner_id', e.target.value || null)}
+                                                        style={{ 
+                                                            padding: '2px 4px', 
+                                                            fontSize: '0.8rem', 
+                                                            borderRadius: '4px',
+                                                            width: '100%',
+                                                            border: '1px solid #cbd5e1'
+                                                        }}
+                                                    >
+                                                        <option value="">(Sin vincular / Indep.)</option>
+                                                        {repartidores.filter(r => r.es_partner).map(p => (
+                                                            <option key={p.id} value={p.id}>{p.nombre}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {/* Si es partner logístico, mostrar su flota y opción para agregar choferes a su flota */}
+                                            {rep.es_partner && (
+                                                <>
+                                                    <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#475569' }}>
+                                                        <strong>Flota:</strong> {repartidores.filter(r => r.partner_id === rep.id).map(r => r.nombre).join(', ') || 'Ninguno'}
+                                                    </div>
+                                                    <div style={{ marginTop: '4px' }}>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>Agregar a Flota:</span>
+                                                        <select
+                                                            value=""
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val) handleUpdateVehicle(val, 'partner_id', rep.id);
+                                                            }}
+                                                            style={{ 
+                                                                padding: '2px 4px', 
+                                                                fontSize: '0.8rem', 
+                                                                borderRadius: '4px',
+                                                                width: '100%',
+                                                                border: '1px solid #cbd5e1'
+                                                            }}
+                                                        >
+                                                            <option value="">-- Seleccionar Chofer --</option>
+                                                            {repartidores.filter(r => !r.es_partner && r.partner_id !== rep.id).map(d => (
+                                                                <option key={d.id} value={d.id}>
+                                                                    {d.nombre} {d.partner_id ? `(De otro partner)` : ''}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     </td>

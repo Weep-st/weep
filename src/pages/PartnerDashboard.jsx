@@ -38,11 +38,11 @@ const isDriverOnShift = (d) => {
 };
 
 const PartnerDashboard = () => {
-  const { driver, logoutDriver } = useAuth();
+  const { driver, loginAsDriver, logoutDriver } = useAuth();
 
   // Route Guard Client-Side Redirect
   React.useEffect(() => {
-    if (!driver || !driver.esPartner) {
+    if (driver && !driver.esPartner) {
       window.location.replace('/repartidores');
     }
   }, [driver]);
@@ -69,6 +69,7 @@ const PartnerDashboard = () => {
 
   // Terms and Account Deletion
   const [showTerms, setShowTerms] = React.useState(false);
+  const [showPartnerTerms, setShowPartnerTerms] = React.useState(false);
   const [showRegretModal, setShowRegretModal] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
 
@@ -77,6 +78,73 @@ const PartnerDashboard = () => {
   const [activeChatPedidoId, setActiveChatPedidoId] = React.useState(null);
   const [chatMessages, setChatMessages] = React.useState([]);
   const [chatInput, setChatInput] = React.useState('');
+
+  // Auth States for Partner Login / Registration
+  const [authView, setAuthView] = React.useState('login');
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    setAuthLoading(true);
+    try {
+      const d = await api.repartidorLogin(fd.get('email'), fd.get('password'));
+      if (d?.success && d.data) {
+        if (!d.data.es_partner) {
+          toast.error('Esta cuenta no es de un Partner Logístico');
+          setAuthLoading(false);
+          return;
+        }
+        loginAsDriver(d.data);
+        toast.success('¡Bienvenido!');
+      } else {
+        toast.error(d?.error || 'Credenciales incorrectas');
+      }
+    } catch (err) {
+      toast.error('Error de conexión');
+    }
+    setAuthLoading(false);
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const email = fd.get('email');
+    if (!email || !email.includes('@')) {
+      toast.error('Ingresá un email válido');
+      return;
+    }
+    const prefix = fd.get('prefix');
+    const localNumber = fd.get('telefono');
+    const telefono = `${prefix}${localNumber}`;
+    if (!localNumber) {
+      toast.error('El teléfono es obligatorio');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const d = await api.partnerRegister({
+        nombre: fd.get('nombre'),
+        telefono,
+        email,
+        password: fd.get('password'),
+        ciudad: fd.get('ciudad') || 'Santo Tomé',
+        termsAccepted: fd.get('partner_terms_accepted') === 'on' || !!fd.get('partner_terms_accepted'),
+        privacyAccepted: fd.get('partner_terms_accepted') === 'on' || !!fd.get('partner_terms_accepted'),
+        termsVersion: 'Términos v1.0'
+      });
+      if (d?.success) {
+        toast.success('¡Registro exitoso! Iniciá sesión.');
+        setAuthView('login');
+      } else {
+        toast.error(d?.error || 'Error al registrar');
+      }
+    } catch (err) {
+      toast.error('Error de conexión');
+    }
+    setAuthLoading(false);
+  };
 
   // Data Fetching Function (supports silent reloading)
   const fetchPartnerData = React.useCallback(async (isSilent = false) => {
@@ -395,27 +463,13 @@ const PartnerDashboard = () => {
               <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>📍 {p.direccion}</p>
             </div>
             <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>Cliente:</span>
-                <strong>{p.nombre_cliente}</strong>
-              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Repartidor:</span>
                 <strong style={{ color: '#2563eb' }}>🛵 {p.nombre_repartidor}</strong>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #edf2f7' }}>
-              <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Valor: <strong>${Math.round(p.monto)}</strong></span>
-              <button 
-                className="btn btn-outline btn-sm"
-                onClick={() => {
-                  setActiveChatPedidoId(p.id);
-                  setShowChatModal(true);
-                  api.getChatMessages(p.id).then(msgs => setChatMessages(msgs)).catch(console.error);
-                }}
-              >
-                💬 Chat Cliente
-              </button>
+              <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Envío: <strong>${Math.round(p.precio_envio)}</strong></span>
             </div>
           </div>
         ))}
@@ -670,7 +724,6 @@ const PartnerDashboard = () => {
   };
 
   const renderPartnerReports = () => {
-    const totalVolume = financialReport.reduce((acc, r) => acc + r.totalVolume, 0);
     const totalDeliveries = financialReport.reduce((acc, r) => acc + r.totalDeliveries, 0);
     const totalEarnings = financialReport.reduce((acc, r) => acc + r.totalEarnings, 0);
 
@@ -722,19 +775,13 @@ const PartnerDashboard = () => {
           gap: '16px'
         }}>
           <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #edf2f7', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>VOLUMEN TOTAL VENDIDO</span>
-            <h3 style={{ margin: '6px 0 0', fontSize: '1.6rem', color: '#1e293b', fontWeight: '800' }}>
-              ${totalVolume.toLocaleString('es-AR')}
-            </h3>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #edf2f7', textAlign: 'center' }}>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>ENTREGAS COMPLETADAS</span>
             <h3 style={{ margin: '6px 0 0', fontSize: '1.6rem', color: '#1e293b', fontWeight: '800' }}>
               {totalDeliveries}
             </h3>
           </div>
           <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #edf2f7', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>INGRESOS TOTALES ENVÍOS</span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>INGRESOS TOTALES ENVÍO</span>
             <h3 style={{ margin: '6px 0 0', fontSize: '1.6rem', color: '#10b981', fontWeight: '800' }}>
               ${totalEarnings.toLocaleString('es-AR')}
             </h3>
@@ -747,7 +794,6 @@ const PartnerDashboard = () => {
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #edf2f7' }}>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b' }}>Repartidor</th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textAlign: 'center' }}>Entregas</th>
-                <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textAlign: 'right' }}>Volumen Ventas</th>
                 <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textAlign: 'right' }}>Ingreso Envios</th>
               </tr>
             </thead>
@@ -756,13 +802,12 @@ const PartnerDashboard = () => {
                 <tr key={r.driverId} style={{ borderBottom: '1px solid #edf2f7' }}>
                   <td style={{ padding: '16px 20px', fontWeight: '600' }}>{r.driverName}</td>
                   <td style={{ padding: '16px 20px', textAlign: 'center' }}>{r.totalDeliveries}</td>
-                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>${r.totalVolume.toLocaleString('es-AR')}</td>
                   <td style={{ padding: '16px 20px', textAlign: 'right', fontWeight: '700', color: '#10b981' }}>${r.totalEarnings.toLocaleString('es-AR')}</td>
                 </tr>
               ))}
               {financialReport.length === 0 && (
                 <tr>
-                  <td colSpan="4" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan="3" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
                     No hay datos registrados en este rango de fechas.
                   </td>
                 </tr>
@@ -928,7 +973,280 @@ const PartnerDashboard = () => {
     );
   };
 
-  if (!driver || !driver.esPartner) {
+  const renderPartnerTermsModal = () => {
+    if (!showPartnerTerms) return null;
+    return (
+      <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowPartnerTerms(false)}>
+        <div className="dd-modal-content animate-slide-down" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '600px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+          <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center' }}>Términos y Condiciones para Partners Logísticos</h4>
+          <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
+            <h5 style={{ color: 'red', marginTop: 0, fontWeight: 'bold' }}>📄 ACUERDO PARA PARTNERS LOGÍSTICOS DE WEPI</h5>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Última actualización: Julio 2026</p>
+            
+            <p><strong>1. Objeto</strong></p>
+            <p>El presente acuerdo regula las condiciones de participación de los Partners Logísticos dentro del ecosistema WEPI.</p>
+            <p>WEPI es una plataforma tecnológica que conecta usuarios, comercios y partners logísticos para facilitar la gestión de pedidos y entregas.</p>
+
+            <p><strong>2. Naturaleza de la relación</strong></p>
+            <p>El Partner Logístico actúa de manera totalmente independiente.</p>
+            <p>La aceptación del presente acuerdo no genera relación laboral, sociedad, franquicia, representación comercial ni exclusividad entre las partes.</p>
+
+            <p><strong>3. Función del Partner Logístico</strong></p>
+            <p>El Partner Logístico se compromete a:</p>
+            <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+              <li>Mantener disponibilidad operativa durante los horarios acordados.</li>
+              <li>Gestionar correctamente a sus repartidores.</li>
+              <li>Utilizar el sistema WEPI para la administración de los pedidos asignados.</li>
+              <li>Cumplir los tiempos de retiro y entrega establecidos.</li>
+              <li>Brindar una atención cordial y profesional a usuarios y comercios.</li>
+              <li>Mantener actualizada la información de sus repartidores.</li>
+            </ul>
+
+            <p><strong>4. Responsabilidad sobre las entregas</strong></p>
+            <p>El Partner Logístico será responsable por la correcta ejecución de las entregas realizadas por sus repartidores.</p>
+            <p>Entre otros aspectos, será responsable por:</p>
+            <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+              <li>Demoras atribuibles a su operación.</li>
+              <li>Incumplimientos de retiro o entrega.</li>
+              <li>Cancelaciones imputables al Partner.</li>
+              <li>Conductas inapropiadas de sus repartidores.</li>
+              <li>Daños ocasionados durante la entrega.</li>
+              <li>Cualquier inconveniente operativo derivado de su organización logística.</li>
+            </ul>
+            <p>WEPI podrá suspender temporal o definitivamente el acceso del Partner cuando la calidad del servicio afecte la experiencia de usuarios o comercios.</p>
+
+            <p><strong>5. Función de WEPI</strong></p>
+            <p>WEPI será responsable de:</p>
+            <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+              <li>Administrar la plataforma tecnológica.</li>
+              <li>Gestionar la relación con usuarios y comercios.</li>
+              <li>Generar pedidos mediante acciones comerciales y de marketing.</li>
+              <li>Coordinar el funcionamiento del ecosistema.</li>
+              <li>Asignar pedidos conforme a los criterios definidos por la plataforma.</li>
+              <li>Liquidar los importes correspondientes al Partner.</li>
+            </ul>
+
+            <p><strong>6. Administración del ecosistema</strong></p>
+            <p>WEPI administra la plataforma y la relación con usuarios, comercios y partners logísticos. Los Partners podrán recomendar nuevos comercios o repartidores, pero toda negociación comercial, alta, configuración y administración será realizada exclusivamente por WEPI. Ningún Partner podrá representar a WEPI sin autorización expresa por escrito.</p>
+
+            <p><strong>7. Repartidores</strong></p>
+            <p>Todos los repartidores deberán registrarse mediante los canales oficiales de WEPI. Las cuentas serán creadas y administradas exclusivamente por WEPI. Cada Partner será responsable de la organización, coordinación y administración de los repartidores vinculados a su operación.</p>
+
+            <p><strong>8. Relación económica</strong></p>
+            <p>WEPI actúa únicamente como plataforma tecnológica para la generación y coordinación de pedidos. Los importes abonados por los usuarios en concepto de envío corresponden al Partner Logístico. WEPI no obtiene ingresos provenientes de las comisiones internas que cada Partner cobre a sus repartidores ni interviene en la definición de dichas condiciones. La relación económica entre el Partner y sus repartidores será exclusiva entre dichas partes.</p>
+
+            <p><strong>9. Liquidaciones</strong></p>
+            <p>WEPI realizará la liquidación de los importes correspondientes al Partner mediante los medios de pago habilitados.</p>
+            <p>Las liquidaciones podrán efectuarse dentro de un plazo estimado de 7 a 15 días corridos, sujeto a:</p>
+            <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+              <li>tiempos de acreditación;</li>
+              <li>retenciones;</li>
+              <li>verificaciones;</li>
+              <li>demoras propias de Mercado Pago u otros proveedores de pago.</li>
+            </ul>
+            <p>El Partner reconoce que dichos plazos son ajenos a WEPI y podrán variar según el proveedor de pagos.</p>
+
+            <p><strong>10. Relación con los repartidores</strong></p>
+            <p>Cada Partner será el único responsable de:</p>
+            <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
+              <li>Pago a sus repartidores.</li>
+              <li>Comisiones internas.</li>
+              <li>Liquidaciones.</li>
+              <li>Organización operativa.</li>
+              <li>Horarios.</li>
+              <li>Obligaciones fiscales o laborales que pudieran corresponder.</li>
+              <li>Reclamos entre el Partner y sus repartidores.</li>
+            </ul>
+            <p>WEPI no será responsable por conflictos o diferencias entre el Partner y los repartidores vinculados a su organización.</p>
+
+            <p><strong>11. Integración de nuevos Partners</strong></p>
+            <p>WEPI podrá incorporar uno o más Partners Logísticos cuando lo considere conveniente. La incorporación, negociación, administración y condiciones comerciales de nuevos Partners serán definidas exclusivamente por WEPI. Ningún Partner podrá negociar en nombre de WEPI ni establecer condiciones comerciales con otros operadores logísticos utilizando la marca o representación de WEPI. Asimismo, ningún Partner podrá exigir, solicitar o percibir comisiones, cánones o contraprestaciones de otros Partners por su incorporación o permanencia dentro del ecosistema WEPI, salvo autorización expresa y por escrito de WEPI.</p>
+
+            <p><strong>12. Asignación de pedidos</strong></p>
+            <p>La asignación de pedidos será realizada exclusivamente por WEPI mediante criterios operativos, disponibilidad, cercanía, capacidad y calidad del servicio. La participación como Partner Logístico no garantiza un volumen mínimo de pedidos ni implica exclusividad.</p>
+
+            <p><strong>13. Confidencialidad</strong></p>
+            <p>Toda la información obtenida mediante la utilización de WEPI tendrá carácter confidencial. Incluye, entre otros: funcionamiento de la plataforma, procesos internos, estrategias comerciales, usuarios, comercios, métricas, tarifas, documentación e información técnica. El Partner se compromete a no divulgar ni utilizar dicha información fuera del marco de la relación con WEPI.</p>
+
+            <p><strong>14. Uso de la marca</strong></p>
+            <p>El Partner podrá identificarse únicamente como: "Partner Logístico de WEPI". No podrá utilizar la marca WEPI como propia ni presentarse como representante, franquiciado, propietario o socio de la plataforma sin autorización expresa y por escrito.</p>
+
+            <p><strong>15. No exclusividad</strong></p>
+            <p>El Partner podrá prestar servicios a terceros. Del mismo modo, WEPI podrá trabajar simultáneamente con uno o más Partners Logísticos.</p>
+
+            <p><strong>16. Modificaciones</strong></p>
+            <p>WEPI podrá actualizar los presentes términos cuando resulte necesario para el correcto funcionamiento de la plataforma. Las nuevas versiones serán notificadas a los Partners antes de su entrada en vigencia.</p>
+
+            <p><strong>17. Terminación</strong></p>
+            <p>Cualquiera de las partes podrá finalizar la relación comercial en cualquier momento. WEPI podrá suspender inmediatamente el acceso cuando existan incumplimientos graves, afectación de la calidad del servicio, uso indebido de la plataforma o incumplimiento de los presentes términos.</p>
+
+            <p><strong>18. Propiedad intelectual y desarrollo de la plataforma</strong></p>
+            <p>La plataforma WEPI, su software, funcionalidades, procesos, identidad visual, documentación y modelo operativo constituyen desarrollos propios de WEPI y se encuentran protegidos por la legislación aplicable. El acceso a la plataforma como Partner Logístico no otorga derechos de propiedad, licencia, representación o explotación sobre dichos desarrollos.</p>
+
+            <p><strong>19. Aceptación</strong></p>
+            <p>Al registrarse como Partner Logístico de WEPI o utilizar la plataforma, el usuario declara haber leído, comprendido y aceptado íntegramente el presente Acuerdo.</p>
+          </div>
+          <button className="btn btn-secondary btn-full" onClick={() => setShowPartnerTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAuth = () => (
+    <div className="dd-auth-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 0', width: '100%' }}>
+      <div className="dd-auth-card card animate-fade-in" style={{ width: '100%', maxWidth: '420px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <div className="card-body">
+          <h2 style={{ textAlign: 'center', marginBottom: '24px', fontWeight: '800', color: 'var(--red-600)' }}>Acceso Partner Logístico</h2>
+          <div className="rd-auth-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button 
+              className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} 
+              style={{ flex: 1, padding: '10px 0', fontWeight: 'bold' }} 
+              onClick={() => { setAuthView('login'); setShowPassword(false); }}
+            >
+              Iniciar Sesión
+            </button>
+            <button 
+              className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} 
+              style={{ flex: 1, padding: '10px 0', fontWeight: 'bold' }} 
+              onClick={() => { setAuthView('register'); setShowPassword(false); }}
+            >
+              Registrarme
+            </button>
+          </div>
+          {authView === 'login' ? (
+            <form onSubmit={handleLogin} className="dd-form" key="login">
+              <input name="email" type="email" className="form-input" placeholder="Email de la empresa" required autoComplete="username" style={{ marginBottom: '12px' }} />
+              <div className="password-container" style={{ position: 'relative', marginBottom: '20px' }}>
+                <input 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  className="form-input" 
+                  placeholder="Contraseña" 
+                  required 
+                  autoComplete="current-password" 
+                  style={{ width: '100%', paddingRight: '45px' }}
+                />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <img 
+                    src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                    alt="Ver" 
+                    style={{ width: '20px', opacity: 0.6 }}
+                  />
+                </button>
+              </div>
+              <button type="submit" className="btn btn-primary btn-full animate-pulse" disabled={authLoading} style={{ background: 'var(--red-600)', border: 'none', fontWeight: 'bold', height: '45px' }}>
+                {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="dd-form" key="register">
+              <input name="email" type="email" className="form-input" placeholder="Email de la empresa" required autoComplete="username" style={{ marginBottom: '12px' }} />
+              <input name="nombre" className="form-input" placeholder="Nombre de la empresa logística" required autoComplete="name" style={{ marginBottom: '12px' }} />
+              
+              <div className="phone-input-group" style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <select name="prefix" className="phone-prefix-select" style={{ padding: '0 8px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+                  <option value="+549">🇦🇷 +549</option>
+                  <option value="+55">🇧🇷 +55</option>
+                </select>
+                <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Teléfono de contacto (ej: 1123456789)" required autoComplete="tel-national" style={{ flex: 1, margin: 0 }} />
+              </div>
+              
+              <div className="password-container" style={{ position: 'relative', marginBottom: '12px' }}>
+                <input 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  className="form-input" 
+                  placeholder="Contraseña" 
+                  required 
+                  autoComplete="new-password" 
+                  style={{ width: '100%', paddingRight: '45px' }}
+                />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <img 
+                    src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                    alt="Ver" 
+                    style={{ width: '20px', opacity: 0.6 }}
+                  />
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <select 
+                  name="ciudad" 
+                  className="form-input" 
+                  required
+                  defaultValue="Oberá"
+                  style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
+                >
+                  <option value="" disabled>Seleccioná tu Ciudad de operaciones</option>
+                  <option value="Santo Tomé">Santo Tomé</option>
+                  <option value="Oberá">Oberá</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
+                <input type="checkbox" id="partner_terms_accepted" name="partner_terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
+                <label htmlFor="partner_terms_accepted" style={{ fontSize: '0.82rem', color: 'var(--gray-600)', lineHeight: '1.4', cursor: 'pointer' }}>
+                  Aceptás el <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setShowPartnerTerms(true)}>Acuerdo para Operadores Logísticos Asociados.</button>
+                </label>
+              </div>
+
+              <button type="submit" className="btn btn-success btn-full" disabled={authLoading} style={{ background: '#10b981', border: 'none', fontWeight: 'bold', height: '45px' }}>
+                {authLoading ? <span className="spinner spinner-white" /> : 'Registrarme'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!driver) {
+    return (
+      <div className="dd-page">
+        <header className="dd-header">
+          <div className="dd-header-top">
+            <Link to="/">
+              <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="dd-logo" />
+            </Link>
+          </div>
+          <h1>Panel Partner Logístico</h1>
+        </header>
+
+        <main className="dd-main partner-container animate-fade-in" style={{
+          background: '#f8f9fa',
+          maxWidth: '1200px',
+          width: '100%',
+          margin: '0 auto',
+          flex: 1,
+          padding: '24px 16px',
+          color: 'var(--gray-800)',
+          fontFamily: "'Inter', sans-serif",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          {renderAuth()}
+        </main>
+
+        <footer className="footer" style={{ background: 'var(--red-800)', color: 'white', borderTop: 'none', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
+          <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
+          <p style={{ margin: 0 }}>© 2026 Wepi - Todos los derechos reservados</p>
+          <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>Panel de Administración de Partners Logísticos • GPS en tiempo real</p>
+          <button 
+            onClick={() => setShowPartnerTerms(true)} 
+            style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem', opacity: 0.9 }}
+          >
+            Ver Términos y Condiciones
+          </button>
+        </footer>
+
+        {renderPartnerTermsModal()}
+      </div>
+    );
+  }
+
+  if (!driver.esPartner) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '50px', color: '#64748b' }}>
         Redireccionando...
@@ -1111,7 +1429,7 @@ const PartnerDashboard = () => {
         <p style={{ margin: 0 }}>© 2026 Wepi - Todos los derechos reservados</p>
         <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>Panel de Administración de Partners Logísticos • GPS en tiempo real</p>
         <button 
-          onClick={() => setShowTerms(true)} 
+          onClick={() => setShowPartnerTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem', opacity: 0.9 }}
         >
           Ver Términos y Condiciones
@@ -1213,6 +1531,7 @@ const PartnerDashboard = () => {
           </div>
         </div>
       )}
+      {renderPartnerTermsModal()}
       {renderBroadcastOverlay()}
     </div>
   );

@@ -323,6 +323,31 @@ export async function repartidorRegister(params) {
   return { success: true };
 }
 
+export async function partnerRegister(params) {
+  const id = 'REP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const { error } = await supabase.from('repartidores').insert({
+    id, nombre: params.nombre, telefono: params.telefono,
+    email: params.email, password: params.password,
+    fecha_registro: new Date().toISOString(),
+    terms_accepted: params.termsAccepted ?? true,
+    privacy_accepted: params.privacyAccepted ?? true,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: params.termsVersion || 'Términos v1.0',
+    email_confirmado: false,
+    token_confirmacion: code,
+    ciudad: params.ciudad || 'Santo Tomé',
+    es_partner: true,
+    admin_status: 'Pendiente'
+  });
+  if (error) return { success: false, error: error.message };
+  
+  // Enviar email de confirmación
+  sendConfirmationEmail(params.email, code, 'repartidor', params.nombre).catch(console.error);
+  
+  return { success: true };
+}
+
 // ─── Email Confirmation Logic ───
 async function sendConfirmationEmail(email, code, tipo, nombre) {
   const isProd = window.location.hostname !== 'localhost';
