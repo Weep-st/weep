@@ -2225,7 +2225,9 @@ export default function RestaurantDashboard() {
         estado: syncResult.errores > 0 ? (syncResult.creados + syncResult.actualizados > 0 ? 'parcial' : 'fallido') : 'exitoso',
         creados: syncResult.creados,
         actualizados: syncResult.actualizados,
-        errores: syncResult.errores
+        errores: syncResult.errores,
+        totalFilas: syncResult.totalFilas || 0,
+        filasSalteadas: syncResult.filasSalteadas || 0
       };
 
       const historialActual = profileData.sync_config_data?.historial || [];
@@ -2498,9 +2500,16 @@ export default function RestaurantDashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
                 <h3 style={{ color: '#16a34a', margin: '0 0 4px 0', fontSize: '1.2rem' }}>Sincronización Procesada</h3>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#15803d' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: '#15803d' }}>
                   El proceso ha terminado. Se han procesado los registros del catálogo con los siguientes resultados:
                 </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.85rem', color: '#14532d', fontWeight: 'bold' }}>
+                  <span>Total filas en archivo: {syncEngineResult.totalFilas || 0}</span>
+                  <span>•</span>
+                  <span style={{ color: syncEngineResult.filasSalteadas > 0 ? '#991b1b' : '#14532d' }}>
+                    Filas salteadas: {syncEngineResult.filasSalteadas || 0}
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
@@ -2551,7 +2560,14 @@ export default function RestaurantDashboard() {
                   {historial.map((log, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--gray-100)' }}>
                       <td style={{ padding: '8px 4px' }}>{new Date(log.fecha).toLocaleString()}</td>
-                      <td style={{ padding: '8px 4px', textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.75rem' }}>{log.origen}</td>
+                      <td style={{ padding: '8px 4px' }}>
+                        <div style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.75rem' }}>{log.origen}</div>
+                        {log.totalFilas !== undefined && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)', marginTop: '2px', fontWeight: 'normal' }}>
+                            {log.totalFilas} filas {log.filasSalteadas > 0 && <span style={{ color: '#b91c1c' }}>({log.filasSalteadas} salt.)</span>}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '8px 4px' }}>
                         <span style={{
                           padding: '2px 6px',

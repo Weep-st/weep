@@ -141,6 +141,23 @@ export async function syncCatalog({
   // 1. Obtener y parsear las filas de datos crudos
   const rawRows = await parseFileToRows(archivo, metodo, urlOrigen);
 
+  // Normalizar las claves de mapeoColumnas (quitar espacios en blanco)
+  const cleanMapeoColumnas = {};
+  Object.keys(mapeoColumnas).forEach(k => {
+    cleanMapeoColumnas[k] = mapeoColumnas[k] ? mapeoColumnas[k].toString().trim() : '';
+  });
+
+  // Normalizar cada fila limpiando de espacios alrededor sus claves
+  const cleanRows = (rawRows || []).map(row => {
+    const cleanRow = {};
+    Object.keys(row).forEach(key => {
+      if (key !== null && key !== undefined) {
+        cleanRow[key.toString().trim()] = row[key];
+      }
+    });
+    return cleanRow;
+  });
+
   // 2. Obtener el menú actual de Supabase
   const { data: menuActual, error: fetchError } = await supabase
     .from('menu')
@@ -163,15 +180,17 @@ export async function syncCatalog({
   const productosParaActualizar = [];
   const skusProcesadosEnArchivo = new Set();
   let productosConError = 0;
+  let totalFilasSalteadas = 0;
 
   // 3. Procesar y normalizar cada fila
-  rawRows.forEach((row, index) => {
+  cleanRows.forEach((row, index) => {
     try {
-      const rawSku = row[mapeoColumnas.sku];
-      const rawNombre = row[mapeoColumnas.nombre];
+      const rawSku = row[cleanMapeoColumnas.sku];
+      const rawNombre = row[cleanMapeoColumnas.nombre];
 
-      if (rawSku === undefined || rawSku === null || rawSku === "" || 
-          rawNombre === undefined || rawNombre === null || rawNombre === "") {
+      if (rawSku === undefined || rawSku === null || rawSku.toString().trim() === "" || 
+          rawNombre === undefined || rawNombre === null || rawNombre.toString().trim() === "") {
+        totalFilasSalteadas++;
         return; // Saltear filas inválidas
       }
 
@@ -183,10 +202,10 @@ export async function syncCatalog({
       skusProcesadosEnArchivo.add(skuLower);
 
       // Obtener opcionales
-      const rawPrecio = mapeoColumnas.precio ? row[mapeoColumnas.precio] : null;
-      const rawStock = mapeoColumnas.stock ? row[mapeoColumnas.stock] : null;
-      const rawCategoria = mapeoColumnas.categoria ? row[mapeoColumnas.categoria] : null;
-      const rawCodigoBarras = mapeoColumnas.codigo_barras ? row[mapeoColumnas.codigo_barras] : null;
+      const rawPrecio = cleanMapeoColumnas.precio ? row[cleanMapeoColumnas.precio] : null;
+      const rawStock = cleanMapeoColumnas.stock ? row[cleanMapeoColumnas.stock] : null;
+      const rawCategoria = cleanMapeoColumnas.categoria ? row[cleanMapeoColumnas.categoria] : null;
+      const rawCodigoBarras = cleanMapeoColumnas.codigo_barras ? row[cleanMapeoColumnas.codigo_barras] : null;
 
       // Sanitizar precio
       let precio = 0;
@@ -363,6 +382,8 @@ export async function syncCatalog({
     creados: productosCreadosCount,
     actualizados: productosActualizadosCount,
     desactivados: productosDesactivadosCount,
-    errores: productosConError
+    errores: productosConError,
+    totalFilas: cleanRows.length,
+    filasSalteadas: totalFilasSalteadas
   };
 }
