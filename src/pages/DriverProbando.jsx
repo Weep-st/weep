@@ -50,6 +50,8 @@ export default function DriverProbando() {
 
   // Dashboard state
   const [driverData, setDriverData] = React.useState(null);
+  const [isEditingEmail, setIsEditingEmail] = React.useState(false);
+  const [tempEmail, setTempEmail] = React.useState('');
   const [isActive, setIsActive] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('disponibles'); // 'disponibles', 'historial'
   const [pedidos, setPedidos] = React.useState([]);
@@ -775,6 +777,25 @@ export default function DriverProbando() {
       if (res.success) toast.success('¡Email reenviado!', { id: loading });
       else toast.error(res.error || 'Error al reenviar', { id: loading });
     } catch { toast.error('Error de conexión', { id: loading }); }
+  };
+
+  const handleSaveEmailInBanner = async () => {
+    if (!isValidEmail(tempEmail)) {
+      toast.error('Ingresá un email válido');
+      return;
+    }
+    const loading = toast.loading('Actualizando email...');
+    try {
+      await api.repartidorUpdatePerfil({
+        driverId: driver.id,
+        email: tempEmail
+      });
+      setDriverData(prev => prev ? { ...prev, Email: tempEmail } : null);
+      toast.success('Email actualizado', { id: loading });
+      setIsEditingEmail(false);
+    } catch (err) {
+      toast.error('Error al actualizar email: ' + err.message, { id: loading });
+    }
   };
 
   const handleRegister = async (e) => {
@@ -1684,14 +1705,78 @@ export default function DriverProbando() {
             position: 'relative',
             zIndex: 20
           }}>
-            <span>⚠️ <strong>Email no confirmado:</strong> Por favor confirma tu correo.</span>
-            <button 
-              className="btn btn-sm" 
-              style={{ background: '#faad14', color: '#fff', border: 'none' }}
-              onClick={handleResendConfirmation}
-            >
-              Reenviar
-            </button>
+            {isEditingEmail ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', width: '100%' }}>
+                <span style={{ fontWeight: 'bold' }}>Editar Email:</span>
+                <input
+                  type="email"
+                  value={tempEmail}
+                  onChange={(e) => setTempEmail(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #faad14',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    minWidth: '220px',
+                    flex: 1,
+                    background: '#fff',
+                    color: '#000'
+                  }}
+                  placeholder="nuevo-email@dominio.com"
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: '#52c41a', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={handleSaveEmailInBanner}
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: '#ff4d4f', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={() => setIsEditingEmail(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>⚠️ <strong>Email no confirmado:</strong> Por favor confirma tu correo.</span>
+                  <span style={{ background: '#ffe7ba', padding: '2px 8px', borderRadius: '4px', border: '1px solid #ffd591', fontSize: '0.85rem', color: '#d46b08', fontWeight: 'bold' }}>
+                    {driverData?.Email || driver.email}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setTempEmail(driverData?.Email || driver.email || '');
+                      setIsEditingEmail(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#1890ff',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      textDecoration: 'underline',
+                      padding: 0,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    (Editar)
+                  </button>
+                </div>
+                <button 
+                  className="btn btn-sm" 
+                  style={{ background: '#faad14', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={handleResendConfirmation}
+                >
+                  Enviar Código
+                </button>
+              </div>
+            )}
           </div>
         )}
 
