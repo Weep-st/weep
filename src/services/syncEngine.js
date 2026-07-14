@@ -206,6 +206,7 @@ export async function syncCatalog({
       const rawStock = cleanMapeoColumnas.stock ? row[cleanMapeoColumnas.stock] : null;
       const rawCategoria = cleanMapeoColumnas.categoria ? row[cleanMapeoColumnas.categoria] : null;
       const rawCodigoBarras = cleanMapeoColumnas.codigo_barras ? row[cleanMapeoColumnas.codigo_barras] : null;
+      const rawDescripcion = cleanMapeoColumnas.descripcion ? row[cleanMapeoColumnas.descripcion] : null;
 
       // Sanitizar precio
       let precio = 0;
@@ -228,6 +229,7 @@ export async function syncCatalog({
 
       const categoria = rawCategoria ? rawCategoria.toString().trim() : 'General';
       const codigoBarras = rawCodigoBarras ? rawCodigoBarras.toString().trim() : null;
+      const descripcion = rawDescripcion ? rawDescripcion.toString().trim() : 'Sincronizado desde ERP';
 
       const itemExistente = menuActualPorSku[skuLower];
 
@@ -260,6 +262,10 @@ export async function syncCatalog({
           updates.codigo_barras = codigoBarras;
           hayCambios = true;
         }
+        if (camposActualizables.includes('descripcion') && itemExistente.descripcion !== descripcion) {
+          updates.descripcion = descripcion;
+          hayCambios = true;
+        }
         if (itemExistente.sku !== sku) {
           updates.sku = sku;
           hayCambios = true;
@@ -279,7 +285,7 @@ export async function syncCatalog({
           stock_actual: stock,
           codigo_barras: codigoBarras,
           disponibilidad: true,
-          descripcion: 'Sincronizado desde ERP',
+          descripcion: descripcion,
           tamano: '',
           variantes: [],
           tiempo_preparacion: '30',

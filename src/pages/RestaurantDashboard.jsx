@@ -182,8 +182,8 @@ export default function RestaurantDashboard() {
   const [syncFile, setSyncFile] = React.useState(null);
   const [syncFileType, setSyncFileType] = React.useState('csv'); // 'csv', 'xlsx'
   const [syncHeaders, setSyncHeaders] = React.useState([]);
-  const [syncMapeo, setSyncMapeo] = React.useState({ sku: '', nombre: '', precio: '', stock: '', categoria: '', codigo_barras: '' });
-  const [syncCamposActualizables, setSyncCamposActualizables] = React.useState(['precio', 'stock', 'nombre', 'categoria']);
+  const [syncMapeo, setSyncMapeo] = React.useState({ sku: '', nombre: '', descripcion: '', precio: '', stock: '', categoria: '', codigo_barras: '' });
+  const [syncCamposActualizables, setSyncCamposActualizables] = React.useState(['precio', 'stock', 'nombre', 'descripcion', 'categoria']);
   const [syncDesactivarFaltantes, setSyncDesactivarFaltantes] = React.useState(false);
   const [syncGoogleSheetsUrl, setSyncGoogleSheetsUrl] = React.useState('');
   const [syncEngineLoading, setSyncEngineLoading] = React.useState(false);
@@ -2340,7 +2340,8 @@ export default function RestaurantDashboard() {
                         parsedHeaders.forEach(header => {
                           const lower = header.toLowerCase().trim();
                           if (lower === 'sku' || lower === 'código' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
-                          if (lower === 'nombre' || lower === 'producto' || lower === 'descripción' || lower === 'descripcion' || lower === 'item' || lower === 'titulo') nuevoMapeo.nombre = header;
+                          if (lower === 'nombre' || lower === 'producto' || lower === 'item' || lower === 'titulo' || lower === 'plato') nuevoMapeo.nombre = header;
+                          if (lower === 'descripción' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
                           if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
                           if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
                           if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
@@ -2376,7 +2377,8 @@ export default function RestaurantDashboard() {
                     parsedHeaders.forEach(header => {
                       const lower = header.toLowerCase().trim();
                       if (lower === 'sku' || lower === 'código' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
-                      if (lower === 'nombre' || lower === 'producto' || lower === 'descripción' || lower === 'descripcion' || lower === 'item' || lower === 'titulo') nuevoMapeo.nombre = header;
+                      if (lower === 'nombre' || lower === 'producto' || lower === 'item' || lower === 'titulo' || lower === 'plato') nuevoMapeo.nombre = header;
+                      if (lower === 'descripción' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
                       if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
                       if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
                       if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
@@ -2449,8 +2451,8 @@ export default function RestaurantDashboard() {
                     Sobrescribir los siguientes campos de productos existentes:
                   </h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {['precio', 'stock', 'nombre', 'categoria'].map(campo => {
-                      const mapped = campo === 'nombre' || syncMapeo[campo];
+                    {['precio', 'stock', 'nombre', 'descripcion', 'categoria'].map(campo => {
+                      const mapped = campo === 'nombre' || campo === 'descripcion' || syncMapeo[campo];
                       return (
                         <label key={campo} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: mapped ? 'pointer' : 'not-allowed', opacity: mapped ? 1 : 0.5 }}>
                           <input 
