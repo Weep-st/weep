@@ -254,6 +254,7 @@ export default function PruebasWalletApp() {
   const [refreshingWallet, setRefreshingWallet] = React.useState(false);
   const [couponInput, setCouponInput] = React.useState('');
   const [appliedCoupon, setAppliedCoupon] = React.useState('');
+  const [citiesList, setCitiesList] = React.useState([]);
   
   const refreshWallet = async () => {
     if (user?.id) {
@@ -842,6 +843,23 @@ export default function PruebasWalletApp() {
   }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission, appliedCoupon]);
 
 
+  const checkIsComingSoon = React.useCallback((local) => {
+    if (!local) return false;
+    const name = local.nombre || '';
+    if (name.toUpperCase().includes('AXION') || name.toUpperCase().includes('YPF')) {
+      return true;
+    }
+    const disp = local.disponible_desde || local.local_disponible_desde;
+    if (disp) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parts = disp.split('-');
+      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (today < availableDate) return true;
+    }
+    return false;
+  }, []);
+
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
@@ -856,21 +874,21 @@ export default function PruebasWalletApp() {
       disponible_desde: realLocal.disponible_desde || realLocal.local_disponible_desde
     };
 
-    // 1. Verificar si ya pasó la fecha de disponibilidad
-    if (localToPass.disponible_desde) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const parts = localToPass.disponible_desde.split('-');
-      const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
-      if (today < availableDate) return false;
-    }
+    if (checkIsComingSoon(localToPass)) return false;
 
     // 2. Usar utilidad flexible
     return isLocalOpenFlexible(localToPass);
-  }, [locals]);
+  }, [locals, checkIsComingSoon]);
 
   const getLocalStatusText = React.useCallback((local) => {
     if (!local) return null;
+    if (checkIsComingSoon(local)) {
+      return (
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
+          <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.62rem', color: '#f59e0b' }}>Próximamente</span>
+        </span>
+      );
+    }
     const isOpen = isLocalOpen(local);
     const statusStr = getNextStatusChange(local) || '';
 
@@ -897,7 +915,7 @@ export default function PruebasWalletApp() {
         {subText && <span style={{ fontSize: '0.52rem', color: '#888', marginTop: '1px', fontWeight: '600' }}>{subText}</span>}
       </span>
     );
-  }, [isLocalOpen]);
+  }, [isLocalOpen, checkIsComingSoon]);
 
   React.useEffect(() => {
     console.log("🚀 PruebasWalletApp: Main data useEffect running, activeCity:", activeCity);
@@ -906,12 +924,14 @@ export default function PruebasWalletApp() {
     const loadHomeData = async () => {
       try {
         // 1. Cargar promociones activas, locales y configs de wallet primero para saber qué buscar
-        const [allPrms, locsRaw, wcfgsRaw] = await Promise.all([
+        const [allPrms, locsRaw, wcfgsRaw, citiesRaw] = await Promise.all([
           api.getActivePromotions(),
           api.getLocales(),
-          api.getAllWalletConfigs()
+          api.getAllWalletConfigs(),
+          api.getCiudadesConfig()
         ]);
         setAllPromotions(allPrms || []);
+        setCitiesList(citiesRaw || []);
 
         // Filtrar locales por la ciudad activa y por tipo de servicio (Shops o Delivery)
         const currentCity = activeCity || 'Santo Tomé';
@@ -965,7 +985,10 @@ export default function PruebasWalletApp() {
         // El configMap ya se seteó arriba
  
         setDrinks(deks || []);
-        setBanners(bans || []);
+        const filteredBanners = (bans || []).filter(b => 
+          !b.ciudad || b.ciudad === 'Todas' || b.ciudad === currentCity
+        );
+        setBanners(filteredBanners);
         setPromoItems(prms || []);
         setBannersLoading(false);
         setLoadingPromos(false);
@@ -1078,23 +1101,34 @@ export default function PruebasWalletApp() {
             dynamicTitle: timeInfo.title,
             dynamicBanner: timeInfo.banner,
             dynamicRubros: timeInfo.rubros,
-            categories: isShopsMode ? [
-              { label: 'Hogar', type: 'Hogar', img: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
-            ] : [
-              { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
-              { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
-              { label: 'Cafetería', type: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
-              { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
-              { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
-              { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
-              { label: 'Carnicería', type: 'Carnicería', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
-              { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
-            ],
+            categories: (() => {
+              const defaultCats = isShopsMode ? [
+                { label: 'Hogar', type: 'Hogar', img: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
+              ] : [
+                { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
+                { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
+                { label: 'Cafetería', type: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+                { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
+                { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
+                { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Carnicería', type: 'Carnicería', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
+                { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
+              ];
+
+              const cityConf = (citiesRaw || []).find(c => c.ciudad === currentCity);
+              if (cityConf && Array.isArray(cityConf.rubros_habilitados) && cityConf.rubros_habilitados.length > 0) {
+                return defaultCats.filter(cat => 
+                  cityConf.rubros_habilitados.includes(cat.type) || 
+                  cityConf.rubros_habilitados.includes(cat.label)
+                );
+              }
+              return defaultCats;
+            })(),
             allLocales: boosted,
             dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
             promosOfDay: formatCarouselItems(rawPromos).slice(0, 40),
@@ -1294,8 +1328,12 @@ export default function PruebasWalletApp() {
   }, [search]);
 
   const fetchMenusByLocal = React.useCallback((localId, catId = null) => {
-    setLoadingMenus(true);
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
+    if (local && checkIsComingSoon(local)) {
+      toast.error(`${local.nombre} estará disponible próximamente.`);
+      return;
+    }
+    setLoadingMenus(true);
     setSelectedLocal(local);
 
     // Tracking: Local View
@@ -1326,7 +1364,7 @@ export default function PruebasWalletApp() {
       setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `Menú de ${local?.nombre || 'Local'}`);
       setShowMenus(true);
     }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
-  }, [locals, filteredLocals]);
+  }, [locals, filteredLocals, checkIsComingSoon]);
   
   // Auto-scroll to category if coming from rubro click
   React.useEffect(() => {
@@ -2654,10 +2692,23 @@ export default function PruebasWalletApp() {
                   <div className="horizontal-scroll-premium">
                     {homeLayout.featuredProLocales.map((local) => {
                       const open = isLocalOpen(local);
+                      const isComingSoon = checkIsComingSoon(local);
                       return (
-                        <div key={local.id} className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} onClick={() => fetchMenusByLocal(local.id)}>
-                          <div className={`logo-box ${open ? 'online' : 'offline'}`} style={{ border: open ? '2px solid #a855f7' : '' }}>
-                            <img src={local.logo} alt={local.nombre} />
+                        <div 
+                          key={local.id} 
+                          className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} 
+                          onClick={() => fetchMenusByLocal(local.id)}
+                          style={isComingSoon ? { filter: 'none', opacity: 1 } : {}}
+                        >
+                          <div 
+                            className={`logo-box ${open ? 'online' : 'offline'}`} 
+                            style={{ 
+                              border: open ? '2px solid #a855f7' : (isComingSoon ? '2px solid #f59e0b' : ''),
+                              filter: isComingSoon ? 'none' : '',
+                              opacity: isComingSoon ? 1 : ''
+                            }}
+                          >
+                            <img src={local.logo} alt={local.nombre} style={isComingSoon ? { filter: 'none', opacity: 1 } : {}} />
                             {open && <span className="online-dot-mini" />}
                           </div>
                           <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
@@ -2741,10 +2792,23 @@ export default function PruebasWalletApp() {
                   <div className="horizontal-scroll-premium">
                     {homeLayout.recommendedPlusLocales.map((local) => {
                       const open = isLocalOpen(local);
+                      const isComingSoon = checkIsComingSoon(local);
                       return (
-                        <div key={local.id} className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} onClick={() => fetchMenusByLocal(local.id)}>
-                          <div className={`logo-box ${open ? 'online' : 'offline'}`} style={{ border: open ? '2px solid #f59e0b' : '' }}>
-                            <img src={local.logo} alt={local.nombre} />
+                        <div 
+                          key={local.id} 
+                          className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} 
+                          onClick={() => fetchMenusByLocal(local.id)}
+                          style={isComingSoon ? { filter: 'none', opacity: 1 } : {}}
+                        >
+                          <div 
+                            className={`logo-box ${open ? 'online' : 'offline'}`} 
+                            style={{ 
+                              border: open ? '2px solid #f59e0b' : (isComingSoon ? '2px solid #f59e0b' : ''),
+                              filter: isComingSoon ? 'none' : '',
+                              opacity: isComingSoon ? 1 : ''
+                            }}
+                          >
+                            <img src={local.logo} alt={local.nombre} style={isComingSoon ? { filter: 'none', opacity: 1 } : {}} />
                             {open && <span className="online-dot-mini" />}
                           </div>
                           <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
@@ -2829,10 +2893,23 @@ export default function PruebasWalletApp() {
                   <div className="horizontal-scroll-premium">
                     {homeLayout.newFreemiumLocales.map((local) => {
                       const open = isLocalOpen(local);
+                      const isComingSoon = checkIsComingSoon(local);
                       return (
-                        <div key={local.id} className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} onClick={() => fetchMenusByLocal(local.id)}>
-                          <div className={`logo-box ${open ? 'online' : 'offline'}`}>
-                            <img src={local.logo} alt={local.nombre} />
+                        <div 
+                          key={local.id} 
+                          className={`suggestion-circle-home ${open ? '' : 'is-closed'}`} 
+                          onClick={() => fetchMenusByLocal(local.id)}
+                          style={isComingSoon ? { filter: 'none', opacity: 1 } : {}}
+                        >
+                          <div 
+                            className={`logo-box ${open ? 'online' : 'offline'}`} 
+                            style={{ 
+                              border: isComingSoon ? '2px solid #f59e0b' : '',
+                              filter: isComingSoon ? 'none' : '',
+                              opacity: isComingSoon ? 1 : ''
+                            }}
+                          >
+                            <img src={local.logo} alt={local.nombre} style={isComingSoon ? { filter: 'none', opacity: 1 } : {}} />
                             {open && <span className="online-dot-mini" />}
                           </div>
                           <span className="local-status-label" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}>
@@ -3021,10 +3098,16 @@ export default function PruebasWalletApp() {
                           key={local.id} 
                           className={`suggestion-categoria ${open ? 'open' : 'closed'} ${isPremium ? 'is-premium' : ''}`} 
                           onClick={() => fetchMenusByLocal(local.id)}
-                          style={{ flex: '0 0 auto', border: 'none', outline: 'none' }}
+                          style={{ 
+                            flex: '0 0 auto', 
+                            border: 'none', 
+                            outline: 'none',
+                            filter: checkIsComingSoon(local) ? 'none' : '',
+                            opacity: checkIsComingSoon(local) ? 1 : ''
+                          }}
                         >
                           {isPremium && <div className="premium-badge-mini">DESTACADO</div>}
-                          <img src={local.logo} alt={local.nombre} />
+                          <img src={local.logo} alt={local.nombre} style={checkIsComingSoon(local) ? { filter: 'none', opacity: 1 } : {}} />
                           <div className="suggestion-info">
                             <div className="local-name">{local.nombre}</div>
                             {open ? (
@@ -3035,8 +3118,8 @@ export default function PruebasWalletApp() {
                                 <span className="precio-min">desde ${Number(local.precio_min || 0).toLocaleString('es-AR')}</span>
                               </div>
                             ) : (
-                              <div className="availability-badge" style={{ color: 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                CERRADO
+                              <div className="availability-badge" style={{ color: checkIsComingSoon(local) ? '#f59e0b' : 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                {checkIsComingSoon(local) ? 'PRÓXIMAMENTE' : 'CERRADO'}
                               </div>
                             )}
                           </div>

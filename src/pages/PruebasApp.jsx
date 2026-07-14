@@ -180,7 +180,10 @@ export default function PruebasApp() {
     // [Resto del código existente]
     api.getLocales().then(d => setLocals(d || [])).catch(() => {});
     api.getBebidas().then(d => setDrinks(d || [])).catch(() => {});
-    api.getBanners().then(d => setBanners(d || [])).catch(() => {}).finally(() => setBannersLoading(false));
+    api.getBanners().then(d => {
+      const filtered = (d || []).filter(b => !b.ciudad || b.ciudad === 'Todas' || b.ciudad === 'Santo Tomé');
+      setBanners(filtered);
+    }).catch(() => {}).finally(() => setBannersLoading(false));
     
     // Cargar promociones
     setLoadingPromos(true);
@@ -1246,7 +1249,7 @@ export default function PruebasApp() {
             )}
              {!loadingLocals && (filteredLocals || locals).map(local => {
                const open = isLocalOpen(local);
-               const isYPF = local.nombre?.toUpperCase().includes('YPF') || local.id === 'LOC-1774905718292';
+               const isYPF = local.nombre?.toUpperCase().includes('YPF') || local.nombre?.toUpperCase().includes('AXION') || local.id === 'LOC-1774905718292';
                
                // Verificar si es una apertura futura
                let isFutureOpening = false;
@@ -1275,12 +1278,18 @@ export default function PruebasApp() {
                        }
                        fetchMenusByLocal(local.id, selectedCategory);
                      }}
-                     style={{ flex: '0 0 auto', border: 'none' }}
+                     style={{ 
+                       flex: '0 0 auto', 
+                       border: 'none',
+                       filter: (isFutureOpening || isYPF) ? 'none' : '',
+                       opacity: (isFutureOpening || isYPF) ? 1 : ''
+                     }}
                    >
                      <img
                        src={local.logo || `https://placehold.co/120x120?text=${encodeURIComponent(local.nombre)}`}
                        alt={local.nombre}
                        onError={(e) => { e.target.src = 'https://placehold.co/120x120?text=Local'; }}
+                       style={(isFutureOpening || isYPF) ? { filter: 'none', opacity: 1 } : {}}
                      />
                      <div className="suggestion-info">
                        <div className="local-name">{local.nombre}</div>
@@ -1327,12 +1336,13 @@ export default function PruebasApp() {
                      fetchMenusByLocal(local.id, selectedCategory);
                    }}
                    title={isYPF ? 'PRÓXIMAMENTE' : isFutureOpening ? availabilityMsg : local.nombre}
+                   style={(isFutureOpening || isYPF) ? { filter: 'none', opacity: 1 } : {}}
                  >
                    <img
                      src={local.logo || `https://placehold.co/200x200?text=${encodeURIComponent(local.nombre)}`}
                      alt={local.nombre}
                      onError={(e) => { e.target.src = 'https://placehold.co/200x200?text=Local'; }}
-                     style={(isFutureOpening || isYPF) ? { filter: 'grayscale(0.5)' } : {}}
+                     style={(isFutureOpening || isYPF) ? { filter: 'none', opacity: 1 } : {}}
                    />
                    {open && <span className="open-dot" />}
                    {isYPF ? (

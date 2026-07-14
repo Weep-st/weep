@@ -31,6 +31,7 @@ const AdminBanners = () => {
         const link = fd.get('link');
         const activo = fd.get('activo') === 'on';
         const posicion = parseInt(fd.get('posicion')) || 0;
+        const ciudad = fd.get('ciudad') || null;
 
         setIsSaving(true);
         try {
@@ -45,7 +46,7 @@ const AdminBanners = () => {
                 return;
             }
 
-            const payload = { imagen_url, link, activo, posicion };
+            const payload = { imagen_url, link, activo, posicion, ciudad };
 
             if (editingBanner) {
                 await api.adminUpdateBanner(editingBanner.id, payload);
@@ -98,6 +99,9 @@ const AdminBanners = () => {
                                     <span className={`badge ${b.activo ? 'badge-green' : 'badge-gray'}`}>
                                         {b.activo ? 'Activo' : 'Inactivo'}
                                     </span>
+                                    <span style={{ fontSize: '0.8rem', color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                                        📍 {b.ciudad || 'Todas'}
+                                    </span>
                                     <span style={{ fontSize: '0.8rem', color: '#666' }}>Posición: {b.posicion}</span>
                                 </div>
                                 <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '15px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -131,6 +135,20 @@ const AdminBanners = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Link de Redirección (opcional)</label>
                                 <input name="link" type="text" className="form-input" placeholder="https://..." defaultValue={editingBanner?.link || ''} />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Ciudad del Banner</label>
+                                <select 
+                                    name="ciudad" 
+                                    className="form-input" 
+                                    defaultValue={editingBanner?.ciudad || ''}
+                                    style={{ width: '100%', height: '42px', padding: '0 12px' }}
+                                >
+                                    <option value="">General (Todas las ciudades)</option>
+                                    <option value="Santo Tomé">Santo Tomé</option>
+                                    <option value="Oberá">Oberá</option>
+                                </select>
                             </div>
 
                             <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>

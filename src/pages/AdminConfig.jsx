@@ -2,6 +2,22 @@ import React, { useState, useEffect } from 'react';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
 
+const ALL_RUBROS = [
+    { label: 'Restaurante', type: 'Restaurante' },
+    { label: 'Helados', type: 'Heladería' },
+    { label: 'Cafetería', type: 'Cafetería' },
+    { label: 'Market', type: 'Market' },
+    { label: 'Farmacia', type: 'Farmacia' },
+    { label: 'Bebidas', type: 'Bebidas' },
+    { label: 'Carnicería', type: 'Carnicería' },
+    { label: 'SHOPS', type: 'SHOPS' },
+    { label: 'Hogar (Shops)', type: 'Hogar' },
+    { label: 'Tecnología (Shops)', type: 'Tecnología' },
+    { label: 'Moda (Shops)', type: 'Moda' },
+    { label: 'Regalería (Shops)', type: 'Regalería' },
+    { label: 'Deportes (Shops)', type: 'Deportes' }
+];
+
 const AdminConfig = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -59,7 +75,8 @@ const AdminConfig = () => {
                     base_radius_km: c.base_radius_km,
                     min_delivery_fee: c.min_delivery_fee,
                     extra_fee_per_km: c.extra_fee_per_km,
-                    max_delivery_distance_km: c.max_delivery_distance_km
+                    max_delivery_distance_km: c.max_delivery_distance_km,
+                    rubros_habilitados: c.rubros_habilitados || []
                 });
             }
             toast.success('Configuración guardada correctamente');
@@ -494,10 +511,38 @@ const AdminConfig = () => {
                                                     newCities[idx].max_delivery_distance_km = e.target.value !== '' ? Number(e.target.value) : '';
                                                     setCiudades(newCities);
                                                 }}
-                                                className="admin-input"
-                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
+                                        style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
                                                 placeholder="8"
                                             />
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px' }}>
+                                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>Atajos de Rubros Habilitados en Home</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '6px', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '4px' }}>
+                                            {ALL_RUBROS.map(r => {
+                                                const isChecked = c.rubros_habilitados?.includes(r.type);
+                                                return (
+                                                    <label key={r.type} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: 'white', cursor: 'pointer', userSelect: 'none' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked || false}
+                                                            onChange={(e) => {
+                                                                const newCities = [...ciudades];
+                                                                let currentRubros = c.rubros_habilitados || [];
+                                                                if (e.target.checked) {
+                                                                    currentRubros = [...currentRubros, r.type];
+                                                                } else {
+                                                                    currentRubros = currentRubros.filter(x => x !== r.type);
+                                                                }
+                                                                newCities[idx].rubros_habilitados = currentRubros;
+                                                                setCiudades(newCities);
+                                                            }}
+                                                            style={{ cursor: 'pointer' }}
+                                                        />
+                                                        {r.label}
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 </div>

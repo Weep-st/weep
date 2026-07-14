@@ -4243,8 +4243,8 @@ export async function adminGetBanners() {
   return data || [];
 }
 
-export async function adminAddBanner({ imagen_url, link, activo, posicion }) {
-  const { error } = await supabase.from('banners').insert({ imagen_url, link, activo, posicion });
+export async function adminAddBanner({ imagen_url, link, activo, posicion, ciudad }) {
+  const { error } = await supabase.from('banners').insert({ imagen_url, link, activo, posicion, ciudad });
   if (error) throw new Error(error.message);
   return { success: true };
 }
@@ -6008,7 +6008,8 @@ export async function updateCityLogisticsConfig(ciudad, tipoLogisticaOrParams, p
       base_radius_km: tipoLogisticaOrParams.base_radius_km !== undefined && tipoLogisticaOrParams.base_radius_km !== '' ? Number(tipoLogisticaOrParams.base_radius_km) : null,
       min_delivery_fee: tipoLogisticaOrParams.min_delivery_fee !== undefined && tipoLogisticaOrParams.min_delivery_fee !== '' ? Number(tipoLogisticaOrParams.min_delivery_fee) : null,
       extra_fee_per_km: tipoLogisticaOrParams.extra_fee_per_km !== undefined && tipoLogisticaOrParams.extra_fee_per_km !== '' ? Number(tipoLogisticaOrParams.extra_fee_per_km) : null,
-      max_delivery_distance_km: tipoLogisticaOrParams.max_delivery_distance_km !== undefined && tipoLogisticaOrParams.max_delivery_distance_km !== '' ? Number(tipoLogisticaOrParams.max_delivery_distance_km) : null
+      max_delivery_distance_km: tipoLogisticaOrParams.max_delivery_distance_km !== undefined && tipoLogisticaOrParams.max_delivery_distance_km !== '' ? Number(tipoLogisticaOrParams.max_delivery_distance_km) : null,
+      rubros_habilitados: tipoLogisticaOrParams.rubros_habilitados || null
     };
   } else {
     payload = {
@@ -6026,7 +6027,8 @@ export async function updateCityLogisticsConfig(ciudad, tipoLogisticaOrParams, p
       base_radius_km: extraParams.base_radius_km !== undefined && extraParams.base_radius_km !== '' ? Number(extraParams.base_radius_km) : null,
       min_delivery_fee: extraParams.min_delivery_fee !== undefined && extraParams.min_delivery_fee !== '' ? Number(extraParams.min_delivery_fee) : null,
       extra_fee_per_km: extraParams.extra_fee_per_km !== undefined && extraParams.extra_fee_per_km !== '' ? Number(extraParams.extra_fee_per_km) : null,
-      max_delivery_distance_km: extraParams.max_delivery_distance_km !== undefined && extraParams.max_delivery_distance_km !== '' ? Number(extraParams.max_delivery_distance_km) : null
+      max_delivery_distance_km: extraParams.max_delivery_distance_km !== undefined && extraParams.max_delivery_distance_km !== '' ? Number(extraParams.max_delivery_distance_km) : null,
+      rubros_habilitados: extraParams.rubros_habilitados || null
     };
   }
 
