@@ -2234,7 +2234,8 @@ export async function getLocalesByRubro(rubro) {
     rubro: l.rubro,
     rubros: l.rubros || [],
     config_horarios: l.config_horarios || {},
-    tipo_servicio: l.tipo_servicio || 'delivery'
+    tipo_servicio: l.tipo_servicio || 'delivery',
+    ciudad: l.ciudad
   }));
 
   return enrichLocalesWithMinPrices(baseLocales, 'local_id');
