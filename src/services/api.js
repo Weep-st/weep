@@ -1347,6 +1347,9 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
   // Otorgar puntos de campaña mundialista (try-catch para no romper el flujo de pedidos)
   if (userId) {
     try {
+      const todayDate = new Date();
+      const todayStr = `${todayDate.getFullYear()}-${(todayDate.getMonth() + 1).toString().padStart(2, '0')}-${todayDate.getDate().toString().padStart(2, '0')}`;
+
       const itemIds = items.map(i => i.menuId || i.id || i.item_id).filter(Boolean);
       const localId = items[0]?.local_id;
 
@@ -1437,7 +1440,7 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
             if (m.activo_desde || m.activo_hasta) {
               const desde = m.activo_desde ? new Date(m.activo_desde) : null;
               const hasta = m.activo_hasta ? new Date(m.activo_hasta) : null;
-              return (!desde || now >= desde) && (!hasta || now <= hasta);
+              return (!desde || todayDate >= desde) && (!hasta || todayDate <= hasta);
             }
             return m.fecha === todayStr;
           });

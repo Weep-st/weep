@@ -9,6 +9,7 @@ import { isValidEmail } from '../utils/validation';
 import toast from 'react-hot-toast';
 import AddressSelector from '../components/AddressSelector';
 import HelpChatbot from '../components/HelpChatbot';
+import CountdownTimer from '../components/CountdownTimer';
 import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../utils/businessHours';
 import { evaluatePromotions } from '../utils/promoEngine';
 import { getCitySlug, citiesMatch } from '../utils/city';
@@ -255,6 +256,8 @@ export default function PruebasWalletApp() {
   const [couponInput, setCouponInput] = React.useState('');
   const [appliedCoupon, setAppliedCoupon] = React.useState('');
   const [citiesList, setCitiesList] = React.useState([]);
+  const [mpRedirectUrl, setMpRedirectUrl] = React.useState(null);
+  const [acceptedOrder, setAcceptedOrder] = React.useState(null);
   
   const refreshWallet = async () => {
     if (user?.id) {
@@ -2188,6 +2191,7 @@ export default function PruebasWalletApp() {
               checkMundialPointsEarned(prePts, preSobres, isNew);
             } else {
               // RETIRO O ENVIO DE SHOPS + TRANSFERENCIA: Redirigir a MP
+              setCartOpen(false);
               triggerMPCheckout(pendingOrderInfo);
             }
             return;
@@ -2343,6 +2347,7 @@ export default function PruebasWalletApp() {
         .single();
       
       setFoundDriver(rep || { nombre: 'Repartidor' });
+      setAcceptedOrder(orderData);
       setEstimatedTime('15-30 min');
       toast.success('¡Repartidor encontrado! 🚀');
       
@@ -2368,15 +2373,37 @@ export default function PruebasWalletApp() {
             triggerMPCheckout(orderData);
           }
         }
-      }, 3500);
+      }, 1000);
 
     } catch (e) {
       console.error("Error fetching driver info:", e);
     }
   };
 
+  const handleCancelPendingOrder = async () => {
+    const orderIdToCancel = pendingOrderId;
+    setSearchingDriver(false);
+    setFoundDriver(null);
+    setAcceptedOrder(null);
+    setMpRedirectUrl(null);
+    setPendingOrderId(null);
+    setCartOpen(true);
+    localStorage.removeItem('pendingOrderDataPruebas');
+    
+    if (orderIdToCancel) {
+      try {
+        await Promise.all([
+          api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
+          api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
+        ]);
+        toast.success('Búsqueda cancelada');
+      } catch (e) {
+        console.error("Error cancelling order:", e);
+      }
+    }
+  };
+
   const triggerMPCheckout = async (originalOrder) => {
-    const loadingToast = toast.loading('Abriendo Mercado Pago...');
     try {
       const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
       if (!pendingRaw) throw new Error('No se encontró la información del pedido');
@@ -2401,8 +2428,6 @@ export default function PruebasWalletApp() {
       const paymentResponse = await iniciarPagoMercadoPago(paymentData);
 
       if (paymentResponse?.init_point) {
-        toast.dismiss(loadingToast);
-        
         // Use standard key for return handling
         localStorage.setItem('pendingOrderData', JSON.stringify({
            ...pendingData,
@@ -2411,14 +2436,14 @@ export default function PruebasWalletApp() {
         })); 
         localStorage.removeItem('pendingOrderDataPruebas');
         
-        window.location.href = paymentResponse.init_point;
+        setMpRedirectUrl(paymentResponse.init_point);
+        setCheckoutLoading(false);
       } else {
         throw new Error(paymentResponse?.error || 'No se pudo generar el link de pago');
       }
     } catch (err) {
-      toast.dismiss(loadingToast);
       toast.error('Error al iniciar Mercado Pago: ' + err.message);
-      setSearchingDriver(false);
+      setCheckoutLoading(false);
     }
   };
 
@@ -4426,6 +4451,7 @@ export default function PruebasWalletApp() {
           </div>
         </div>
       )}
+
       {/* ─── Address Selector Modals ─── */}
       {showAddressSelector && (
         <AddressSelector
@@ -4466,10 +4492,64 @@ export default function PruebasWalletApp() {
         />
       )}
 
+      {/* Mercado Pago Standalone Loading Overlay (for pickup/shops orders while link is generating) */}
+      {checkoutLoading && !cartOpen && !searchingDriver && (
+        <div className="searching-modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="searching-modal-card animate-slide-up" style={{ maxWidth: '320px', padding: '24px', textAlign: 'center' }}>
+            <div className="spinner-small" style={{ width: '40px', height: '40px', border: '3px solid #f3f3f3', borderTop: '3px solid #009ee3', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }}></div>
+            <p style={{ fontWeight: '600', color: '#333', fontSize: '0.95rem', margin: 0 }}>Generando enlace de pago...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Mercado Pago Standalone Warning Modal (for pickup/shops orders without driver) */}
+      {mpRedirectUrl && !searchingDriver && (
+        <div className="searching-modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="searching-modal-card animate-slide-up" style={{ maxWidth: '380px', padding: '24px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+              <img 
+                src="https://i.postimg.cc/Z5K8N29n/download.png" 
+                alt="Mercado Pago" 
+                style={{ height: '40px', objectFit: 'contain' }} 
+              />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '12px', color: '#333' }}>
+              Confirmación de Pago
+            </h3>
+            <p style={{ fontSize: '0.95rem', color: '#555', lineHeight: '1.5', marginBottom: '24px' }}>
+              Se abrirá la app de Mercado Pago para realizar el pago de tu pedido.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-primary" 
+                style={{ background: '#009ee3', borderColor: '#009ee3', flex: 1, fontWeight: '700' }}
+                onClick={() => {
+                  window.location.href = mpRedirectUrl;
+                }}
+              >
+                Aceptar
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                style={{ flex: 1, fontWeight: '700' }}
+                onClick={() => {
+                  setMpRedirectUrl(null);
+                  setCheckoutLoading(false);
+                  setCartOpen(true);
+                  toast.error('Pago cancelado. Puedes intentar pagar de nuevo desde tu historial.');
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Búsqueda de Repartidor */}
       {searchingDriver && (
         <div className="searching-modal-overlay">
-          <div className="searching-modal-card">
+          <div className="searching-modal-card" style={foundDriver ? { padding: '20px 24px', maxWidth: '380px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '4px' } : {}}>
             {!foundDriver ? (
               <>
                 <div className="searching-animation">
@@ -4505,49 +4585,108 @@ export default function PruebasWalletApp() {
 
                 <button 
                   className="searching-cancel-btn"
-                  onClick={async () => {
-                    const orderIdToCancel = pendingOrderId;
-                    setSearchingDriver(false);
-                    setPendingOrderId(null);
-                    localStorage.removeItem('pendingOrderDataPruebas');
-                    
-                    if (orderIdToCancel) {
-                      try {
-                        await Promise.all([
-                          api.supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderIdToCancel),
-                          api.supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderIdToCancel)
-                        ]);
-                        toast.success('Búsqueda cancelada');
-                      } catch (e) {
-                        console.error("Error cancelling order:", e);
-                      }
-                    }
-                  }}
+                  onClick={handleCancelPendingOrder}
                 >
                   Cancelar búsqueda
                 </button>
               </>
             ) : (
-              <div className="found-driver-animation">
-                <div className="success-check">
-                  <span className="check-icon">🚀</span>
+              <div className="found-driver-animation" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+                <div className="success-check" style={{ 
+                  background: 'none', 
+                  border: '3px solid var(--red-600)', 
+                  boxShadow: 'none',
+                  borderRadius: '50%',
+                  width: '70px',
+                  height: '70px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px',
+                  padding: '0'
+                }}>
+                  <img 
+                    src="https://i.postimg.cc/RV8VGysv/wepi-(10).png" 
+                    alt="Wepi" 
+                    className="check-icon" 
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} 
+                  />
                 </div>
-                <h2>¡Repartidor encontrado!</h2>
-                <p className="success-msg">Ya encontramos un repartidor para llevar tu pedido.</p>
+                <h2 style={{ fontSize: '1.3rem', margin: '6px 0 2px', fontWeight: '800', color: '#1e293b' }}>¡Repartidor encontrado!</h2>
+                <p className="success-msg" style={{ margin: '0 0 8px', fontSize: '0.8rem', color: '#64748b' }}>Ya encontramos un repartidor para llevar tu pedido.</p>
                 
-                <div className="found-driver-info">
-                  <img src={foundDriver.foto_url || 'https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png'} alt="Repartidor" className="driver-img" />
-                  <div className="driver-details">
-                    <span className="driver-name">{foundDriver.nombre}</span>
-                    <span className="estimated-tag">Llega en {estimatedTime}</span>
+                <div className="found-driver-info" style={{ margin: '8px 0', padding: '10px 14px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', textAlign: 'left' }}>
+                  <img src={foundDriver.foto_url || 'https://i.postimg.cc/1RWxRcKM/18611-(1)-(1).png'} alt="Repartidor" className="driver-img" style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'cover' }} />
+                  <div className="driver-details" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span className="driver-name" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>{foundDriver.nombre}</span>
+                    <span className="estimated-tag" style={{ fontSize: '0.7rem', color: '#64748b' }}>Llega en {estimatedTime}</span>
                   </div>
                 </div>
 
                 {!getIsCashOrder() && (
-                  <div className="opening-mp">
-                    <div className="spinner-small"></div>
-                    <span>Abriendo app de Mercado Pago...</span>
-                  </div>
+                  <>
+                    <div style={{ margin: '4px 0 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#9a3412', fontWeight: '700' }}>
+                        Tiempo para realizar el pago:
+                      </span>
+                      <CountdownTimer 
+                        startTime={acceptedOrder?.pago_pendiente_at || acceptedOrder?.created_at || new Date().toISOString()} 
+                        limitMinutes={8} 
+                        onTimeout={handleCancelPendingOrder} 
+                      />
+                    </div>
+
+                    <div className="mp-warning-box" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', background: 'rgba(0,158,227,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,158,227,0.2)' }}>
+                      <img 
+                        src="https://i.postimg.cc/Z5K8N29n/download.png" 
+                        alt="Mercado Pago" 
+                        style={{ height: '30px', objectFit: 'contain' }} 
+                      />
+                      <p style={{ fontSize: '0.8rem', color: '#555', margin: 0, fontWeight: '600', lineHeight: '1.3' }}>
+                        Se abrirá la app de Mercado Pago para realizar el pago.
+                      </p>
+                      <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '2px' }}>
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ 
+                            flex: 1, 
+                            background: '#009ee3', 
+                            borderColor: '#009ee3', 
+                            color: 'white', 
+                            fontSize: '0.75rem', 
+                            fontWeight: '700', 
+                            padding: '6px 12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
+                          }}
+                          disabled={!mpRedirectUrl}
+                          onClick={() => {
+                            window.location.href = mpRedirectUrl;
+                          }}
+                        >
+                          {!mpRedirectUrl && <div className="spinner-small" style={{ margin: 0, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', width: '12px', height: '12px' }}></div>}
+                          {mpRedirectUrl ? 'Aceptar' : 'Generando pago...'}
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ 
+                            flex: 1, 
+                            fontSize: '0.75rem', 
+                            fontWeight: '700', 
+                            padding: '6px 12px', 
+                            background: '#f3f4f6', 
+                            border: 'none', 
+                            color: '#4b5563' 
+                          }}
+                          onClick={handleCancelPendingOrder}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
