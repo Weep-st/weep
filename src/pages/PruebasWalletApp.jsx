@@ -19,9 +19,14 @@ const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 const getCityFromSlug = (str) => {
   if (!str) return null;
-  const norm = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  if (norm === 'obera') return 'Oberá';
-  if (norm === 'santo tome' || norm === 'santo-tome') return 'Santo Tomé';
+  try {
+    const decoded = decodeURIComponent(str);
+    const norm = decoded.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (norm === 'obera') return 'Oberá';
+    if (norm === 'santo tome' || norm === 'santo-tome') return 'Santo Tomé';
+  } catch (e) {
+    console.error(e);
+  }
   return null;
 };
 
@@ -51,32 +56,42 @@ export default function PruebasWalletApp() {
   const navigate = useNavigate();
 
   const [activeCity, setActiveCity] = React.useState(() => {
-    const path = window.location.pathname.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const segments = path.split('/').filter(Boolean);
-    if (segments.length >= 2) {
-      const maybeCitySegment = segments[1];
-      const matchedCity = getCityFromSlug(maybeCitySegment);
-      if (matchedCity) {
-        sessionStorage.setItem('sessionCity', matchedCity);
-        localStorage.setItem('guestCiudad', matchedCity);
-        return matchedCity;
+    try {
+      const decodedPath = decodeURIComponent(window.location.pathname);
+      const path = decodedPath.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const segments = path.split('/').filter(Boolean);
+      if (segments.length >= 2) {
+        const maybeCitySegment = segments[1];
+        const matchedCity = getCityFromSlug(maybeCitySegment);
+        if (matchedCity) {
+          sessionStorage.setItem('sessionCity', matchedCity);
+          localStorage.setItem('guestCiudad', matchedCity);
+          return matchedCity;
+        }
       }
+    } catch (e) {
+      console.error(e);
     }
     const sessionCity = sessionStorage.getItem('sessionCity');
     return sessionCity || null;
   });
 
   React.useEffect(() => {
-    const path = window.location.pathname.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const segments = path.split('/').filter(Boolean);
-    if (segments.length >= 2) {
-      const maybeCitySegment = segments[1];
-      const matchedCity = getCityFromSlug(maybeCitySegment);
-      if (matchedCity && activeCity !== matchedCity) {
-        setActiveCity(matchedCity);
-        sessionStorage.setItem('sessionCity', matchedCity);
-        localStorage.setItem('guestCiudad', matchedCity);
+    try {
+      const decodedPath = decodeURIComponent(window.location.pathname);
+      const path = decodedPath.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const segments = path.split('/').filter(Boolean);
+      if (segments.length >= 2) {
+        const maybeCitySegment = segments[1];
+        const matchedCity = getCityFromSlug(maybeCitySegment);
+        if (matchedCity && activeCity !== matchedCity) {
+          setActiveCity(matchedCity);
+          sessionStorage.setItem('sessionCity', matchedCity);
+          localStorage.setItem('guestCiudad', matchedCity);
+        }
       }
+    } catch (e) {
+      console.error(e);
     }
   }, [location.pathname, activeCity]);
 
@@ -1424,6 +1439,10 @@ export default function PruebasWalletApp() {
   // Carga automática por slug (Landing Page de Local)
   React.useEffect(() => {
     if (slug) {
+      // Si el slug es en realidad el nombre de una ciudad, no intentar cargarlo como local
+      if (getCityFromSlug(slug)) {
+        return;
+      }
       console.log("🔗 PruebasWalletApp: Slug detectado en URL:", slug);
       api.getLocalBySlug(slug).then(local => {
         if (local && local.admin_status === 'Aceptado') {
