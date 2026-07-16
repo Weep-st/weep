@@ -852,10 +852,11 @@ export default function PruebasWalletApp() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
-    // Red de seguridad: si es un item de menú (tiene local_id) pero no tiene config_horarios,
-    // intentar buscar el local completo en la lista de locales cargados.
     const localId = local.local_id || local.id;
-    const realLocal = (locals.find(l => l.id === localId)) || local;
+    // Si el objeto recibido ya cuenta con información de horarios, lo usamos directamente.
+    // De lo contrario (ej: ítem de menú), buscamos el local en la lista de locales del estado.
+    const hasHours = local.config_horarios || local.horario_apertura;
+    const realLocal = hasHours ? local : ((locals.find(l => l.id === localId)) || local);
     
     // Mapeo de compatibilidad para items que vienen de api.getPromos() u otros joins
     const localToPass = {
