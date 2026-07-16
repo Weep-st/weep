@@ -17,6 +17,14 @@ import './PruebasWalletApp.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
+const getCityFromSlug = (str) => {
+  if (!str) return null;
+  const norm = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (norm === 'obera') return 'Oberá';
+  if (norm === 'santo tome' || norm === 'santo-tome') return 'Santo Tomé';
+  return null;
+};
+
 export default function PruebasWalletApp() {
   const { ciudad, slug } = useParams();
   const location = useLocation();
@@ -43,9 +51,34 @@ export default function PruebasWalletApp() {
   const navigate = useNavigate();
 
   const [activeCity, setActiveCity] = React.useState(() => {
+    const path = window.location.pathname.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length >= 2) {
+      const maybeCitySegment = segments[1];
+      const matchedCity = getCityFromSlug(maybeCitySegment);
+      if (matchedCity) {
+        sessionStorage.setItem('sessionCity', matchedCity);
+        localStorage.setItem('guestCiudad', matchedCity);
+        return matchedCity;
+      }
+    }
     const sessionCity = sessionStorage.getItem('sessionCity');
     return sessionCity || null;
   });
+
+  React.useEffect(() => {
+    const path = window.location.pathname.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length >= 2) {
+      const maybeCitySegment = segments[1];
+      const matchedCity = getCityFromSlug(maybeCitySegment);
+      if (matchedCity && activeCity !== matchedCity) {
+        setActiveCity(matchedCity);
+        sessionStorage.setItem('sessionCity', matchedCity);
+        localStorage.setItem('guestCiudad', matchedCity);
+      }
+    }
+  }, [location.pathname, activeCity]);
 
   const selectCity = React.useCallback((city) => {
     setActiveCity(city);
@@ -72,6 +105,7 @@ export default function PruebasWalletApp() {
   const handleBadgeClick = () => {
     sessionStorage.removeItem('sessionCity');
     setActiveCity(null);
+    navigate('/pedir');
   };
 
   // PWA states and deferred prompt
