@@ -503,28 +503,28 @@ export default function PruebasWalletApp() {
     // 00 a 06 hs (antojo nocturno)
     if (hour >= 0 && hour < 6) return { 
         title: "Antojo nocturno... ¿Sale algo?", 
-        banner: "https://i.postimg.cc/PxVCPtBd/Gemini-Generated-Image-gf1rg2gf1rg2gf1r.png",
+        banner: "https://i.postimg.cc/q7vSVXZn/Gemini-Generated-Image-n0aom0n0aom0n0ao.png",
         rubros: ['Restaurante', 'Heladería', 'Market', 'Bebidas'],
         marketCats: ['Golosinas', 'Snacks', 'Bebidas']
     };
     // 06 a 11 hs (desayuno)
     if (hour >= 6 && hour < 11) return { 
         title: "¡Buenos días! Un rico desayuno", 
-        banner: "https://i.postimg.cc/HnhC4bjV/Gemini-Generated-Image-pl34hbpl34hbpl34.png",
+        banner: "https://i.postimg.cc/LsDCxY9K/Gemini-Generated-Image-muhz58muhz58muhz.png",
         rubros: ['Cafetería', 'Market', 'Bebidas'],
         marketCats: ['Snacks', 'Bebidas']
     };
     // 11 hs a 13 hs (almuerzo)
     if (hour >= 11 && hour < 13) return { 
         title: "Hora del almuerzo: Pedí algo rico", 
-        banner: "https://i.postimg.cc/wMPSsHbc/Gemini-Generated-Image-chrryrchrryrchrr.png",
+        banner: "https://i.postimg.cc/d1Dbdm8W/Gemini-Generated-Image-py0z0lpy0z0lpy0z.png",
         rubros: ['Restaurante', 'Market', 'Bebidas'],
         marketCats: ['Bebidas']
     };
     // 13 hs a 16 hs (helado y postre)
     if (hour >= 13 && hour < 16) return { 
         title: "Postres y Tentaciones", 
-        banner: "https://i.postimg.cc/9QHk3x3q/Gemini-Generated-Image-fzn3nyfzn3nyfzn3.png",
+        banner: "https://i.postimg.cc/853qbJ4k/Gemini-Generated-Image-wcc6vbwcc6vbwcc6.png",
         rubros: ['Heladería', 'Market', 'Bebidas'],
         marketCats: ['Golosinas']
     };
@@ -538,7 +538,7 @@ export default function PruebasWalletApp() {
     // 20 a 00 hs (cena)
     if (hour >= 20 || hour < 0) return { 
         title: "¿Qué pedimos para cenar?", 
-        banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
+        banner: "https://i.postimg.cc/d1Dbdm8W/Gemini-Generated-Image-py0z0lpy0z0lpy0z.png",
         rubros: ['Restaurante', 'Market', 'Bebidas'],
         marketCats: ['Bebidas']
     };
@@ -546,7 +546,7 @@ export default function PruebasWalletApp() {
     // Default
     return { 
         title: "¿Qué se te antoja hoy?", 
-        banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
+        banner: "https://i.postimg.cc/d1Dbdm8W/Gemini-Generated-Image-py0z0lpy0z0lpy0z.png",
         rubros: ['Restaurante', 'Bebidas'],
         marketCats: []
     };
