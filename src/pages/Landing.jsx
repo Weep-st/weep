@@ -409,6 +409,21 @@ export default function Landing() {
                 <span>Helados Ideal</span>
                 <span className="brand-city">Santo Tomé</span>
               </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/ry1g8ZRV/images-(2).png" alt="Cremolatti" className="brand-logo-img" />
+                </div>
+                <span>Cremolatti</span>
+                <span className="brand-city">Oberá</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/MKtDBcDW/Logo-AXION-energy.jpg" alt="Axion Energy" className="brand-logo-img" />
+                </div>
+                <span>Axion Energy</span>
+                <span className="brand-city">Oberá</span>
+              </div>
+              
               {/* Segundo set duplicado para scroll infinito y suave */}
               <div className="brand-logo-card">
                 <div className="brand-img-container">
@@ -431,6 +446,21 @@ export default function Landing() {
                 <span>Helados Ideal</span>
                 <span className="brand-city">Santo Tomé</span>
               </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/ry1g8ZRV/images-(2).png" alt="Cremolatti" className="brand-logo-img" />
+                </div>
+                <span>Cremolatti</span>
+                <span className="brand-city">Oberá</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/MKtDBcDW/Logo-AXION-energy.jpg" alt="Axion Energy" className="brand-logo-img" />
+                </div>
+                <span>Axion Energy</span>
+                <span className="brand-city">Oberá</span>
+              </div>
+              
               {/* Tercer set duplicado para pantallas extra anchas */}
               <div className="brand-logo-card">
                 <div className="brand-img-container">
@@ -452,6 +482,20 @@ export default function Landing() {
                 </div>
                 <span>Helados Ideal</span>
                 <span className="brand-city">Santo Tomé</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/ry1g8ZRV/images-(2).png" alt="Cremolatti" className="brand-logo-img" />
+                </div>
+                <span>Cremolatti</span>
+                <span className="brand-city">Oberá</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/MKtDBcDW/Logo-AXION-energy.jpg" alt="Axion Energy" className="brand-logo-img" />
+                </div>
+                <span>Axion Energy</span>
+                <span className="brand-city">Oberá</span>
               </div>
             </div>
           </div>
