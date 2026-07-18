@@ -148,12 +148,12 @@ export async function updateDireccion(userId, nuevaDireccion, lat, lng) {
 // ═══════════════════════════════════════════════════
 // AUTH — Locales (Restaurants)
 // ═══════════════════════════════════════════════════
-export async function loginLocal(email, password) {
-  // 1. Buscar en la tabla principal de locales (Admins)
+export async function loginLocal(identifier, password) {
+  // 1. Buscar en la tabla principal de locales (Admins) por email
   const { data: localData, error: localError } = await supabase
     .from('locales')
     .select('*')
-    .eq('email', email)
+    .eq('email', identifier.trim().toLowerCase())
     .eq('password', password)
     .single();
     
@@ -161,11 +161,11 @@ export async function loginLocal(email, password) {
     return { success: true, localId: localData.id, emailConfirmado: localData.email_confirmado, role: 'Admin' };
   }
 
-  // 2. Buscar en la tabla de usuarios secundarios (Cajeros)
+  // 2. Buscar en la tabla de usuarios secundarios (Cajeros) por username
   const { data: userData, error: userError } = await supabase
     .from('locales_usuarios')
     .select('*')
-    .eq('email', email)
+    .eq('username', identifier.trim().toLowerCase())
     .eq('password', password)
     .single();
 
@@ -256,17 +256,45 @@ export async function verifyLocalPassword(localId, password) {
     .eq('password', password)
     .maybeSingle();
     
-  if (localData) return true;
+  return !!localData;
+}
 
-  // Check if it's a Cajero (locales_usuarios table)
-  const { data: userData } = await supabase
+export async function getLocalUsuarios(localId) {
+  const { data, error } = await supabase
     .from('locales_usuarios')
-    .select('id')
+    .select('*')
     .eq('local_id', localId)
-    .eq('password', password)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
+    
+  if (error) throw new Error(error.message);
+  return data || [];
+}
 
-  return !!userData;
+export async function addLocalUsuario({ localId, nombre, username, password, rol = 'Cajero' }) {
+  const { data, error } = await supabase
+    .from('locales_usuarios')
+    .insert({
+      local_id: localId,
+      nombre,
+      username: username.trim().toLowerCase(),
+      password,
+      rol
+    })
+    .select()
+    .single();
+    
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function deleteLocalUsuario(usuarioId) {
+  const { error } = await supabase
+    .from('locales_usuarios')
+    .delete()
+    .eq('id', usuarioId);
+    
+  if (error) throw new Error(error.message);
+  return true;
 }
 
 // ═══════════════════════════════════════════════════

@@ -59,6 +59,12 @@ export default function RestaurantDashboard() {
   const { restaurant, loginAsRestaurant, logoutRestaurant } = useAuth();
 
   const [view, setView] = React.useState('orders'); // 'menu','addItem','orders','profile'
+
+  React.useEffect(() => {
+    if (restaurant?.role === 'Cajero' && view !== 'orders' && view !== 'cierre') {
+      setView('orders');
+    }
+  }, [view, restaurant]);
   const [authView, setAuthView] = React.useState('login');
   const [authEmail, setAuthEmail] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -103,6 +109,8 @@ export default function RestaurantDashboard() {
   const [deleting, setDeleting] = React.useState(false);
   const [hasRepartidores, setHasRepartidores] = React.useState(false);
   const [loadingRepartidores, setLoadingRepartidores] = React.useState(false);
+  const [cajeros, setCajeros] = React.useState([]);
+  const [cajerosLoading, setCajerosLoading] = React.useState(false);
   const [planInfo, setPlanInfo] = React.useState(null);
   const [availablePlans, setAvailablePlans] = React.useState([]);
 
@@ -317,6 +325,64 @@ export default function RestaurantDashboard() {
       console.error("Error checking drivers:", err);
     }
   }, []);
+
+  const loadCajeros = React.useCallback(async () => {
+    if (!restaurant?.id) return;
+    setCajerosLoading(true);
+    try {
+      const data = await api.getLocalUsuarios(restaurant.id);
+      setCajeros(data);
+    } catch (err) {
+      toast.error('Error al cargar cajas');
+    } finally {
+      setCajerosLoading(false);
+    }
+  }, [restaurant]);
+
+  const handleAddCajero = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const nombre = fd.get('nombre')?.trim();
+    const username = fd.get('username')?.trim();
+    const password = fd.get('password')?.trim();
+
+    if (!nombre || !username || !password) {
+      toast.error('Completá todos los campos');
+      return;
+    }
+
+    try {
+      await api.addLocalUsuario({
+        localId: restaurant.id,
+        nombre,
+        username,
+        password,
+        rol: 'Cajero'
+      });
+      toast.success('Caja agregada con éxito');
+      e.target.reset();
+      loadCajeros();
+    } catch (err) {
+      toast.error(err.message || 'Error al agregar caja');
+    }
+  };
+
+  const handleDeleteCajero = async (id) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta caja?')) return;
+    try {
+      await api.deleteLocalUsuario(id);
+      toast.success('Caja eliminada');
+      loadCajeros();
+    } catch (err) {
+      toast.error('Error al eliminar caja');
+    }
+  };
+
+  React.useEffect(() => {
+    if (view === 'settings' && profileSubView === 'cajas' && restaurant?.id) {
+      loadCajeros();
+    }
+  }, [view, profileSubView, restaurant?.id, loadCajeros]);
 
   const loadEstado = React.useCallback(async () => {
     if (!restaurant) return;
@@ -879,7 +945,7 @@ export default function RestaurantDashboard() {
     setAuthLoading(true);
     try {
       const d = await api.loginLocal(fd.get('email'), fd.get('password'));
-      if (d.success && d.localId) { loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado }); toast.success('¡Bienvenido!'); }
+      if (d.success && d.localId) { loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado, role: d.role }); toast.success('¡Bienvenido!'); }
       else toast.error('Credenciales incorrectas');
     } catch { toast.error('Error de conexión'); }
     setAuthLoading(false);
@@ -1777,7 +1843,7 @@ export default function RestaurantDashboard() {
             </div>
             {authView === 'login' ? (
               <form onSubmit={handleLogin} className="rd-auth-form">
-                <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={authEmail} required autoComplete="username" />
+                <input name="email" type="text" className="form-input" placeholder="Email o Usuario" defaultValue={authEmail} required autoComplete="username" />
                 <div className="password-container">
                   <input 
                     name="password" 
@@ -2630,50 +2696,54 @@ export default function RestaurantDashboard() {
             
             {profileMenuOpen && (
               <div className="rd-dropdown-menu animate-fade-in" style={{ right: 0, left: 'auto' }}>
-                <button className="rd-dropdown-item" onClick={() => { 
-                  if (isUnlocked) {
-                    setView('profile'); setProfileSubView('ventas'); loadOrders(); setProfileMenuOpen(false); 
-                  } else {
-                    setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('ventas'); loadOrders(); });
-                    setSecurityModalOpen(true);
-                    setProfileMenuOpen(false);
-                  }
-                }}>
-                  💰 Mis Ventas
-                </button>
-                <button className="rd-dropdown-item" onClick={() => { 
-                  if (isUnlocked) {
-                    setView('profile'); setProfileSubView('cobros'); loadCobros(); setProfileMenuOpen(false); 
-                  } else {
-                    setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('cobros'); loadCobros(); });
-                    setSecurityModalOpen(true);
-                    setProfileMenuOpen(false);
-                  }
-                }}>
-                  🏦 Gestión de Pagos
-                </button>
-                <button className="rd-dropdown-item" onClick={() => { 
-                  if (isUnlocked) {
-                    setView('profile'); setProfileSubView('edit'); loadProfile(); setProfileMenuOpen(false); 
-                  } else {
-                    setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('edit'); loadProfile(); });
-                    setSecurityModalOpen(true);
-                    setProfileMenuOpen(false);
-                  }
-                }}>
-                  👤 Editar Perfil
-                </button>
-                <button className="rd-dropdown-item" onClick={() => { 
-                  if (isUnlocked) {
-                    setView('settings'); setProfileSubView('edit'); setProfileMenuOpen(false); 
-                  } else {
-                    setOnSecuritySuccess(() => () => { setView('settings'); setProfileSubView('edit'); });
-                    setSecurityModalOpen(true);
-                    setProfileMenuOpen(false);
-                  }
-                }}>
-                  ⚙️ Configuración
-                </button>
+                {restaurant?.role !== 'Cajero' && (
+                  <>
+                    <button className="rd-dropdown-item" onClick={() => { 
+                      if (isUnlocked) {
+                        setView('profile'); setProfileSubView('ventas'); loadOrders(); setProfileMenuOpen(false); 
+                      } else {
+                        setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('ventas'); loadOrders(); });
+                        setSecurityModalOpen(true);
+                        setProfileMenuOpen(false);
+                      }
+                    }}>
+                      💰 Mis Ventas
+                    </button>
+                    <button className="rd-dropdown-item" onClick={() => { 
+                      if (isUnlocked) {
+                        setView('profile'); setProfileSubView('cobros'); loadCobros(); setProfileMenuOpen(false); 
+                      } else {
+                        setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('cobros'); loadCobros(); });
+                        setSecurityModalOpen(true);
+                        setProfileMenuOpen(false);
+                      }
+                    }}>
+                      🏦 Gestión de Pagos
+                    </button>
+                    <button className="rd-dropdown-item" onClick={() => { 
+                      if (isUnlocked) {
+                        setView('profile'); setProfileSubView('edit'); loadProfile(); setProfileMenuOpen(false); 
+                      } else {
+                        setOnSecuritySuccess(() => () => { setView('profile'); setProfileSubView('edit'); loadProfile(); });
+                        setSecurityModalOpen(true);
+                        setProfileMenuOpen(false);
+                      }
+                    }}>
+                      👤 Editar Perfil
+                    </button>
+                    <button className="rd-dropdown-item" onClick={() => { 
+                      if (isUnlocked) {
+                        setView('settings'); setProfileSubView('edit'); setProfileMenuOpen(false); 
+                      } else {
+                        setOnSecuritySuccess(() => () => { setView('settings'); setProfileSubView('edit'); });
+                        setSecurityModalOpen(true);
+                        setProfileMenuOpen(false);
+                      }
+                    }}>
+                      ⚙️ Configuración
+                    </button>
+                  </>
+                )}
                 <button className="rd-dropdown-item" onClick={() => { setShowTutorial(true); setTutorialStep(1); setView('orders'); setProfileMenuOpen(false); }}>
                   📖 Ver tutorial
                 </button>
@@ -2943,18 +3013,20 @@ export default function RestaurantDashboard() {
               </span>
             )}
           </button>
-          <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} 
-            onClick={() => { 
-              if (isUnlocked) {
-                setView('menu'); loadMenu(); 
-              } else {
-                setOnSecuritySuccess(() => () => { setView('menu'); loadMenu(); });
-                setSecurityModalOpen(true);
-              }
-            }}
-          >
-            📖 Catálogo
-          </button>
+          {restaurant?.role !== 'Cajero' && (
+            <button className={`rd-nav-btn ${view === 'menu' ? 'active' : ''}`} 
+              onClick={() => { 
+                if (isUnlocked) {
+                  setView('menu'); loadMenu(); 
+                } else {
+                  setOnSecuritySuccess(() => () => { setView('menu'); loadMenu(); });
+                  setSecurityModalOpen(true);
+                }
+              }}
+            >
+              📖 Catálogo
+            </button>
+          )}
           
         </nav>
 
@@ -4195,6 +4267,9 @@ export default function RestaurantDashboard() {
               <button className={profileSubView === 'notifications' ? 'active' : ''} onClick={() => setProfileSubView('notifications')}>
                 📳 Notificaciones
               </button>
+              <button className={profileSubView === 'cajas' ? 'active' : ''} onClick={() => setProfileSubView('cajas')}>
+                🔑 Cajas / Dispositivos
+              </button>
             </div>
 
             {profileSubView === 'edit' && (
@@ -4657,6 +4732,73 @@ export default function RestaurantDashboard() {
                     >
                       Limpiar y Restablecer
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {profileSubView === 'cajas' && (
+              <div className="card card-body animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 8, textAlign: 'center' }}>🔑 Gestión de Cajas / Dispositivos</h2>
+                <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: 24, textAlign: 'center' }}>
+                  Creá usuarios secundarios con nombre de usuario y contraseña para que tus sucursales o cajas inicien sesión de forma segura con permisos limitados.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                  {/* Formulario */}
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20 }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 16 }}>Nueva Caja</h3>
+                    <form onSubmit={handleAddCajero} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Nombre de la Caja</label>
+                        <input name="nombre" type="text" className="form-input" placeholder="Ej: Caja Central / Caja Sucursal" required style={{ marginBottom: 0 }} />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Nombre de Usuario (Login)</label>
+                        <input name="username" type="text" className="form-input" placeholder="Ej: caja_central" required style={{ marginBottom: 0 }} />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Contraseña</label>
+                        <input name="password" type="text" className="form-input" placeholder="••••••••" required style={{ marginBottom: 0 }} />
+                      </div>
+                      <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px', background: 'var(--red-600)', borderColor: 'var(--red-600)' }}>
+                        Agregar Caja
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Listado */}
+                  <div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 16 }}>Cajas Activas ({cajeros.length})</h3>
+                    {cajerosLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                        <span className="spinner" />
+                      </div>
+                    ) : cajeros.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-500)', fontSize: '0.9rem', border: '1px dashed var(--gray-300)', borderRadius: 12 }}>
+                        No hay cajas registradas todavía.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {cajeros.map(c => (
+                          <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: '12px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{c.nombre}</div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Usuario: <strong>{c.username}</strong></div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Contraseña: <strong>{c.password}</strong></div>
+                            </div>
+                            <button 
+                              type="button" 
+                              className="btn btn-sm btn-ghost" 
+                              style={{ color: '#ef4444', background: '#fee2e2', border: 'none', padding: '6px 12px' }}
+                              onClick={() => handleDeleteCajero(c.id)}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

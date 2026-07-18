@@ -32,7 +32,8 @@ export function AuthProvider({ children }) {
     if (localToken) {
       setRestaurant({ 
         id: localToken,
-        emailConfirmado: localStorage.getItem('localEmailConfirmado') === 'true'
+        emailConfirmado: localStorage.getItem('localEmailConfirmado') === 'true',
+        role: localStorage.getItem('localRole') || 'Admin'
       });
     }
     const repartidorId = localStorage.getItem('repartidorId');
@@ -116,14 +117,16 @@ export function AuthProvider({ children }) {
   const loginAsRestaurant = (data) => {
     const localId = typeof data === 'string' ? data : data.localId;
     const confirmed = typeof data === 'object' ? !!data.emailConfirmado : (localStorage.getItem('localEmailConfirmado') === 'true');
+    const role = typeof data === 'object' ? (data.role || 'Admin') : (localStorage.getItem('localRole') || 'Admin');
     
     localStorage.setItem('localToken', localId);
     localStorage.setItem('localEmailConfirmado', String(confirmed));
-    setRestaurant({ id: localId, emailConfirmado: confirmed });
+    localStorage.setItem('localRole', role);
+    setRestaurant({ id: localId, emailConfirmado: confirmed, role: role });
   };
 
   const logoutRestaurant = () => {
-    ['localToken', 'localEmailConfirmado'].forEach(k => localStorage.removeItem(k));
+    ['localToken', 'localEmailConfirmado', 'localRole'].forEach(k => localStorage.removeItem(k));
     setRestaurant(null);
   };
 
