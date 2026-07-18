@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 /**
  * CountdownTimer
  * @param {string} startTime - ISO string or Date object when the timer started
- * @param {number} limitMinutes - Total duration in minutes (default 8)
+ * @param {number} limitMinutes - Total duration in minutes (default 5)
  * @param {function} onTimeout - Callback when timer reaches zero
  */
-const CountdownTimer = ({ startTime, limitMinutes = 8, onTimeout }) => {
+const CountdownTimer = ({ startTime, limitMinutes = 5, onTimeout }) => {
   const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {

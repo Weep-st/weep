@@ -1397,7 +1397,7 @@ export default function DriverDashboard() {
                         <p style={{ margin: '0 0 8px 0', color: '#9a3412' }}><strong>Pendiente de pago del cliente</strong></p>
                         <CountdownTimer 
                           startTime={enViaje.pago_pendiente_at || enViaje.created_at} 
-                          limitMinutes={8} 
+                          limitMinutes={5} 
                           onTimeout={() => fetchPedidos()} 
                         />
                       </div>

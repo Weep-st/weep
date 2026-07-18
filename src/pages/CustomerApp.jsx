@@ -1267,7 +1267,7 @@ export default function CustomerApp() {
             )}
              {!loadingLocals && (filteredLocals || locals).map(local => {
                const open = isLocalOpen(local);
-               const isYPF = local.nombre?.toUpperCase().includes('YPF') || local.nombre?.toUpperCase().includes('AXION') || local.id === 'LOC-1774905718292';
+               const isYPF = local.disponible_desde === '2030-12-31';
                
                // Verificar si es una apertura futura
                let isFutureOpening = false;

@@ -883,10 +883,6 @@ export default function PruebasWalletApp() {
 
   const checkIsComingSoon = React.useCallback((local) => {
     if (!local) return false;
-    const name = local.nombre || '';
-    if (name.toUpperCase().includes('AXION') || name.toUpperCase().includes('YPF')) {
-      return true;
-    }
     const disp = local.disponible_desde || local.local_disponible_desde;
     if (disp) {
       const today = new Date();
@@ -4676,7 +4672,7 @@ export default function PruebasWalletApp() {
                       </span>
                       <CountdownTimer 
                         startTime={acceptedOrder?.pago_pendiente_at || acceptedOrder?.created_at || new Date().toISOString()} 
-                        limitMinutes={8} 
+                        limitMinutes={5} 
                         onTimeout={handleCancelPendingOrder} 
                       />
                     </div>

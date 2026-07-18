@@ -216,6 +216,15 @@ const AdminLocales = () => {
         return diffDays < 14;
     };
 
+    const checkIsLocalComingSoon = (l) => {
+        if (!l.disponible_desde) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const parts = l.disponible_desde.split('-');
+        const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        return today < availableDate;
+    };
+
     const handleUploadProductImage = async (itemId, file) => {
         if (!file || file.size === 0) return;
         const toastId = toast.loading('Subiendo imagen de producto...');
@@ -291,7 +300,7 @@ const AdminLocales = () => {
                                 <th>Nombre</th>
                                 <th>Email</th>
                                 <th>Dirección</th>
-                                <th>Disponible desde</th>
+                                <th>Tipo de Estado</th>
                                 <th>Notif.</th>
                                 <th>Disponibilidad</th>
                                 <th>Estado Admin</th>
@@ -329,18 +338,36 @@ const AdminLocales = () => {
                                         <td>{local.email}</td>
                                         <td>{local.direccion}</td>
                                         <td>
-                                            <input 
-                                                type="date" 
-                                                className="admin-date-input"
-                                                value={local.disponible_desde || ''}
-                                                onChange={(e) => handleUpdateAvailability(local.id, e.target.value)}
-                                                style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid #e2e8f0',
-                                                    fontSize: '0.875rem'
+                                            <select
+                                                value={checkIsLocalComingSoon(local) ? 'proximamente' : 'normal'}
+                                                onChange={async (e) => {
+                                                    const val = e.target.value;
+                                                    if (val === 'proximamente') {
+                                                        await handleUpdateAvailability(local.id, '2030-12-31');
+                                                        if (local.estado === 'Activo') {
+                                                            await handleToggleEstado(local.id, 'Activo');
+                                                        }
+                                                    } else {
+                                                        await handleUpdateAvailability(local.id, null);
+                                                    }
                                                 }}
-                                            />
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #e2e8f0',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: '600',
+                                                    background: checkIsLocalComingSoon(local) ? '#fef3c7' : '#f0fdf4',
+                                                    color: checkIsLocalComingSoon(local) ? '#d97706' : '#15803d',
+                                                    cursor: 'pointer',
+                                                    outline: 'none',
+                                                    width: '100%',
+                                                    minWidth: '130px'
+                                                }}
+                                            >
+                                                <option value="normal">🟢 Normal</option>
+                                                <option value="proximamente">🟡 Próximamente</option>
+                                            </select>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <span 
@@ -352,13 +379,24 @@ const AdminLocales = () => {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                                <span className={`badge ${local.estado === 'Activo' ? 'badge-success' : 'badge-danger'}`} style={{ color: local.estado === 'Activo' ? '#4caf50' : '#d32f2f' }}>
-                                                    {local.estado === 'Activo' ? 'Abierto' : 'Cerrado'}
+                                                <span 
+                                                    className={`badge ${checkIsLocalComingSoon(local) ? 'badge-warning' : (local.estado === 'Activo' ? 'badge-success' : 'badge-danger')}`} 
+                                                    style={{ 
+                                                        color: checkIsLocalComingSoon(local) ? '#d97706' : (local.estado === 'Activo' ? '#4caf50' : '#d32f2f'),
+                                                        background: checkIsLocalComingSoon(local) ? '#fef3c7' : 'none',
+                                                        padding: checkIsLocalComingSoon(local) ? '4px 8px' : '0',
+                                                        borderRadius: '6px',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    {checkIsLocalComingSoon(local) ? 'Próximamente' : (local.estado === 'Activo' ? 'Abierto' : 'Cerrado')}
                                                 </span>
                                                 <button 
                                                     className={`btn btn-sm ${local.estado === 'Activo' ? 'btn-danger' : 'btn-success'}`}
                                                     onClick={() => handleToggleEstado(local.id, local.estado || 'Inactivo')}
                                                     style={{ width: '100%' }}
+                                                    disabled={checkIsLocalComingSoon(local)}
+                                                    title={checkIsLocalComingSoon(local) ? 'No se puede abrir un comercio en estado Próximamente' : ''}
                                                 >
                                                     {local.estado === 'Activo' ? 'Cerrar Local' : 'Abrir Local'}
                                                 </button>

@@ -361,7 +361,7 @@ export default function MisPedidos() {
                       <small style={{ color: '#c2410c', display: 'block', marginBottom: '4px' }}>Tu pedido se cancelará en:</small>
                       <CountdownTimer 
                         startTime={p.pago_pendiente_at || p.created_at} 
-                        limitMinutes={8} 
+                        limitMinutes={5} 
                         onTimeout={() => loadPedidos()} 
                       />
                       <button 
@@ -494,7 +494,7 @@ export default function MisPedidos() {
                       <small style={{ color: '#c2410c', display: 'block', marginBottom: '8px' }}>Tu pedido se cancelará automáticamente si no recibimos el pago en:</small>
                       <CountdownTimer 
                         startTime={seguimiento.pago_pendiente_at || seguimiento.created_at} 
-                        limitMinutes={8} 
+                        limitMinutes={5} 
                         onTimeout={() => loadPedidos()} 
                       />
                     </div>
