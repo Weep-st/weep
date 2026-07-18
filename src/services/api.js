@@ -802,7 +802,7 @@ async function enrichLocalesWithMinPrices(locales, idKey = 'id') {
 export async function getLocalBySlug(slug) {
   const { data, error } = await supabase
     .from('locales')
-    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, tipo_servicio')
+    .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, ciudad, tipo_servicio')
     .eq('slug', slug)
     .maybeSingle();
   
@@ -826,6 +826,7 @@ export async function getLocalBySlug(slug) {
     admin_status: data.admin_status,
     slug: data.slug,
     config_horarios: data.config_horarios || {},
+    ciudad: data.ciudad,
     tipo_servicio: data.tipo_servicio || 'delivery'
   };
 }
