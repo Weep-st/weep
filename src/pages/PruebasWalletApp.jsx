@@ -640,9 +640,10 @@ export default function PruebasWalletApp() {
       if (item.descuento > 0) {
         finalPrice = basePrice * (1 - Number(item.descuento) / 100);
       } else {
-        const discountDays = item.local_dias_descuento || item.dias_descuento || [];
-        const generalDiscount = Number(item.local_descuento_general || item.descuento_general || 0);
-        const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || '';
+        const loc = locals.find(l => l.id === item.local_id);
+        const discountDays = item.local_dias_descuento || item.dias_descuento || loc?.dias_descuento || [];
+        const generalDiscount = Number(item.local_descuento_general || item.descuento_general || loc?.descuento_general || 0);
+        const categoryDiscount = item.local_categoria_descuento || item.categoria_descuento || loc?.categoria_descuento || '';
         
         if (generalDiscount > 0 && discountDays.length > 0) {
           const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
@@ -660,7 +661,7 @@ export default function PruebasWalletApp() {
     }
     
     return Math.round(finalPrice);
-  }, [allPromotions, user, userPromoUsage]);
+  }, [allPromotions, user, userPromoUsage, locals, metodoPago]);
 
   const renderCreditBadge = React.useCallback((item, isPremium = false) => {
     if (!item) return null;
@@ -731,11 +732,38 @@ export default function PruebasWalletApp() {
     // 1. Evaluar Promociones Unificadas
     const localId = cart.items.length > 0 ? cart.items[0].local_id : null;
     
-    // IMPORTANTE: Crear una versión del carrito con precios ORIGINALES para el motor
-    const grossItems = cart.items.map(i => ({
-      ...i,
-      precio: Number(i.precioOriginal || i.precio)
-    }));
+    // IMPORTANTE: Crear una versión del carrito con precios ORIGINALES (pero incluyendo el descuento del comercio) para el motor
+    const grossItems = cart.items.map(i => {
+      const basePrice = Number(i.precioOriginal || i.precio);
+      let merchantPrice = basePrice;
+      
+      if (i.descuento > 0) {
+        merchantPrice = basePrice * (1 - Number(i.descuento) / 100);
+      } else {
+        const loc = locals.find(l => l.id === i.local_id);
+        const discountDays = i.local_dias_descuento || i.dias_descuento || loc?.dias_descuento || [];
+        const generalDiscount = Number(i.local_descuento_general || i.descuento_general || loc?.descuento_general || 0);
+        const categoryDiscount = i.local_categoria_descuento || i.categoria_descuento || loc?.categoria_descuento || '';
+        
+        if (generalDiscount > 0 && discountDays.length > 0) {
+          const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+          const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const todayNorm = normalize(today);
+          
+          const isCorrectDay = discountDays.some(d => normalize(d) === todayNorm);
+          const isCorrectCategory = !categoryDiscount || categoryDiscount === i.categoria;
+
+          if (isCorrectDay && isCorrectCategory) {
+            merchantPrice = basePrice * (1 - generalDiscount / 100);
+          }
+        }
+      }
+      
+      return {
+        ...i,
+        precio: Math.round(merchantPrice)
+      };
+    });
     
     const grossP = grossItems.reduce((sum, i) => sum + (i.precio * i.qty), 0);
 
@@ -878,7 +906,7 @@ export default function PruebasWalletApp() {
     }
     
     return result;
-  }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission, appliedCoupon]);
+  }, [walletBalance, walletBreakdown, walletConfig, allWalletConfigs, useWallet, cart.items, allPromotions, user, userPromoUsage, localCommission, appliedCoupon, locals]);
 
 
   const checkIsComingSoon = React.useCallback((local) => {
