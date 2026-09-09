@@ -1582,7 +1582,8 @@ const AdminCRM = () => {
             body: cfg.body || '',
             url: cfg.url || '',
             subject: cfg.subject || '',
-            logo_url: cfg.logo_url || ''
+            logo_url: cfg.logo_url || '',
+            variants: cfg.variants || []
         });
     };
 
@@ -3377,14 +3378,60 @@ const AdminCRM = () => {
                                 <tbody>
                                     {(habitsConfig.moments || []).map(moment => (
                                         <tr key={moment.id} className={moment.enabled ? '' : 'row-disabled'}>
-                                            <td style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem' }}>{moment.nombre}</td>
-                                            <td>
+                                            <td style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.95rem' }}>
+                                                <input 
+                                                    type="text" 
+                                                    value={moment.nombre} 
+                                                    onChange={(e) => {
+                                                        const newVal = e.target.value;
+                                                        setHabitsConfig(prev => ({
+                                                            ...prev,
+                                                            moments: prev.moments.map(m => m.id === moment.id ? { ...m, nombre: newVal } : m)
+                                                        }));
+                                                    }}
+                                                    style={{ border: 'none', background: 'transparent', fontWeight: 'bold', color: 'inherit', width: '100%', outline: 'none', borderBottom: '1px dashed #cbd5e1' }}
+                                                    placeholder="Ej: Media Tarde"
+                                                />
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
                                                 <input 
                                                     type="text" 
                                                     value={moment.hora} 
                                                     onChange={(e) => handleHabitMomentTimeChange(moment.id, e.target.value)}
-                                                    style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', textAlign: 'center' }}
+                                                    style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', textAlign: 'center', marginBottom: '8px' }}
                                                 />
+                                                <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
+                                                    {[{num:1, l:'L'}, {num:2, l:'M'}, {num:3, l:'X'}, {num:4, l:'J'}, {num:5, l:'V'}, {num:6, l:'S'}, {num:7, l:'D'}].map(d => {
+                                                        const isSelected = moment.dias ? moment.dias.includes(d.num) : true;
+                                                        return (
+                                                            <button
+                                                                key={d.num}
+                                                                onClick={() => {
+                                                                    setHabitsConfig(prev => ({
+                                                                        ...prev,
+                                                                        moments: prev.moments.map(m => {
+                                                                            if (m.id === moment.id) {
+                                                                                const currentDias = m.dias || [1,2,3,4,5,6,7];
+                                                                                const newDias = isSelected ? currentDias.filter(n => n !== d.num) : [...currentDias, d.num].sort();
+                                                                                return { ...m, dias: newDias };
+                                                                            }
+                                                                            return m;
+                                                                        })
+                                                                    }));
+                                                                }}
+                                                                style={{
+                                                                    width: '20px', height: '20px', fontSize: '0.65rem', padding: 0, borderRadius: '4px',
+                                                                    border: isSelected ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+                                                                    background: isSelected ? '#eff6ff' : '#f8fafc',
+                                                                    color: isSelected ? '#1d4ed8' : '#94a3b8',
+                                                                    cursor: 'pointer', fontWeight: 'bold'
+                                                                }}
+                                                            >
+                                                                {d.l}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
                                             </td>
 
                                             {/* CANALES 1°, 2°, 3° DE HÁBITOS */}
@@ -3421,19 +3468,64 @@ const AdminCRM = () => {
                                             })}
 
                                             <td style={{ textAlign: 'center' }}>
-                                                <label className="switch">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={moment.enabled} 
-                                                        onChange={() => handleToggleHabitMoment(moment.id)}
-                                                    />
-                                                    <span className="slider round"></span>
-                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                                                    <label className="switch">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={moment.enabled} 
+                                                            onChange={() => handleToggleHabitMoment(moment.id)}
+                                                        />
+                                                        <span className="slider round"></span>
+                                                    </label>
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (window.confirm('¿Seguro que deseas eliminar este momento de hábito?')) {
+                                                                setHabitsConfig(prev => ({
+                                                                    ...prev,
+                                                                    moments: prev.moments.filter(m => m.id !== moment.id)
+                                                                }));
+                                                            }
+                                                        }}
+                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '4px' }}
+                                                        title="Eliminar Hábito"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                            
+                            <div style={{ padding: '16px', textAlign: 'center', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                                <button 
+                                    className="btn btn-outline"
+                                    onClick={() => {
+                                        const newId = `habit_${Date.now()}`;
+                                        setHabitsConfig(prev => ({
+                                            ...prev,
+                                            moments: [
+                                                ...prev.moments,
+                                                {
+                                                    id: newId,
+                                                    nombre: 'Nuevo Momento',
+                                                    hora: '12:00',
+                                                    enabled: false,
+                                                    canales: ['push', 'whatsapp', 'email'],
+                                                    configs: {
+                                                        push: { enabled: true, title: '', body: '', url: '', variants: [] },
+                                                        whatsapp: { enabled: true, template_name: '', variants: [] },
+                                                        email: { enabled: true, subject: '', body: '', url: '', variants: [] }
+                                                    }
+                                                }
+                                            ]
+                                        }));
+                                    }}
+                                >
+                                    + Agregar Nuevo Momento de Hábito
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -3584,6 +3676,69 @@ const AdminCRM = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* SECCION DE VARIANTES A/B */}
+                                    <div style={{ marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <label style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                🔀 Variantes A/B (Opcional)
+                                            </label>
+                                            <button 
+                                                className="btn btn-outline" 
+                                                style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                                                onClick={() => {
+                                                    setChannelEditForm(prev => ({
+                                                        ...prev,
+                                                        variants: [...(prev.variants || []), { id: `v${(prev.variants?.length || 0) + 1}`, title: '', body: '', url: '', template_name: '', subject: '' }]
+                                                    }))
+                                                }}
+                                            >
+                                                + Agregar Variante
+                                            </button>
+                                        </div>
+                                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '-8px', marginBottom: '12px' }}>
+                                            Si agregas variantes, el sistema elegirá una al azar para cada usuario. La configuración principal (arriba) será ignorada.
+                                        </p>
+                                        
+                                        {(channelEditForm.variants || []).map((v, idx) => (
+                                            <div key={idx} style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '12px', position: 'relative' }}>
+                                                <button 
+                                                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                                                    onClick={() => setChannelEditForm(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== idx) }))}
+                                                >
+                                                    ×
+                                                </button>
+                                                <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '0.9rem', color: '#0f172a' }}>Variante {idx + 1} (ID: {v.id})</div>
+                                                
+                                                {selectedHabitChannelModal.channel === 'whatsapp' && (
+                                                    <div className="form-group" style={{ marginBottom: '8px' }}>
+                                                        <input 
+                                                            type="text" className="form-control" placeholder="Nombre plantilla (ej: promo_v1)"
+                                                            value={v.template_name || ''} onChange={(e) => {
+                                                                const newV = [...channelEditForm.variants];
+                                                                newV[idx].template_name = e.target.value;
+                                                                setChannelEditForm(p => ({ ...p, variants: newV }));
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {selectedHabitChannelModal.channel === 'push' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        <input type="text" className="form-control" placeholder="Título" value={v.title || ''} onChange={(e) => { const newV = [...channelEditForm.variants]; newV[idx].title = e.target.value; setChannelEditForm(p => ({ ...p, variants: newV })); }} />
+                                                        <input type="text" className="form-control" placeholder="Cuerpo" value={v.body || ''} onChange={(e) => { const newV = [...channelEditForm.variants]; newV[idx].body = e.target.value; setChannelEditForm(p => ({ ...p, variants: newV })); }} />
+                                                        <input type="text" className="form-control" placeholder="URL (/pedir)" value={v.url || ''} onChange={(e) => { const newV = [...channelEditForm.variants]; newV[idx].url = e.target.value; setChannelEditForm(p => ({ ...p, variants: newV })); }} />
+                                                    </div>
+                                                )}
+                                                {selectedHabitChannelModal.channel === 'email' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        <input type="text" className="form-control" placeholder="Asunto" value={v.subject || ''} onChange={(e) => { const newV = [...channelEditForm.variants]; newV[idx].subject = e.target.value; setChannelEditForm(p => ({ ...p, variants: newV })); }} />
+                                                        <input type="text" className="form-control" placeholder="Cuerpo" value={v.body || ''} onChange={(e) => { const newV = [...channelEditForm.variants]; newV[idx].body = e.target.value; setChannelEditForm(p => ({ ...p, variants: newV })); }} />
+                                                        <input type="text" className="form-control" placeholder="URL" value={v.url || ''} onChange={(e) => { const newV = [...channelEditForm.variants]; newV[idx].url = e.target.value; setChannelEditForm(p => ({ ...p, variants: newV })); }} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div className="matrix-modal-footer">
                                     <button className="btn btn-outline" onClick={() => setSelectedHabitChannelModal({ isOpen: false, momentId: null, channel: null, momentName: '' })}>
