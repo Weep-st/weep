@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Landing from './pages/Landing';
+import DownloadApp from './pages/DownloadApp';
 import Maintenance from './pages/Maintenance';
 import CustomerApp from './pages/CustomerApp';
 import PruebasApp from './pages/PruebasApp';
@@ -244,6 +245,8 @@ export default function App() {
           <Routes>
           <Route path="/" element={import.meta.env.VITE_APP_TYPE === 'driver' ? <Navigate to="/repartidores" replace /> : (isApp ? <Navigate to="/pedir" replace /> : <Landing />)} />
           <Route path="/landing" element={<Landing />} />
+          <Route path="/app" element={<DownloadApp />} />
+          <Route path="/descargar" element={<DownloadApp />} />
           <Route path="/mantenimiento" element={<Maintenance />} />
           <Route path="/pedir" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
