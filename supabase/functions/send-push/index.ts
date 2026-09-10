@@ -15,7 +15,23 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("📥 Payload recibido:", JSON.stringify(body, null, 2));
 
-    const { subscriptionIds, title, message, data, url, broadcastOrderId, localId, precioEnvio } = body;
+    let { subscriptionIds, title, message, data, url, broadcastOrderId, localId, precioEnvio } = body;
+
+    // --- SOPORTE PARA SUPABASE DATABASE WEBHOOKS ---
+    // Si el payload viene directo de un Webhook de base de datos en pedidos_general
+    if (body.type === 'INSERT' && body.table === 'pedidos_general' && body.record) {
+      console.log("🔔 Detectado Database Webhook de pedidos_general. Activando broadcast.");
+      
+      // Solo notificar a repartidores si es "Con Envío" y no está asignado
+      if (body.record.tipo_entrega !== 'Con Envío' || body.record.repartidor_id) {
+         console.log("⏭️ El pedido no requiere broadcast (No es Con Envío o ya tiene repartidor).");
+         return new Response(JSON.stringify({ success: true, message: 'No broadcast needed' }), { headers: corsHeaders });
+      }
+      
+      broadcastOrderId = body.record.id;
+      localId = body.record.local_id;
+      precioEnvio = body.record.precio_envio;
+    }
     const onesignalAppId = Deno.env.get("ONESIGNAL_APP_ID");
     const onesignalApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
 

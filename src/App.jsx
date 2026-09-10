@@ -243,6 +243,7 @@ export default function App() {
 
           <Routes>
           <Route path="/" element={import.meta.env.VITE_APP_TYPE === 'driver' ? <Navigate to="/repartidores" replace /> : (isApp ? <Navigate to="/pedir" replace /> : <Landing />)} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/mantenimiento" element={<Maintenance />} />
           <Route path="/pedir" element={
             <MaintenanceGuard configKey="mantenimiento_pedir">
