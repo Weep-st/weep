@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wepi.app",
+      "sha256_cert_fingerprints": [
+        "AQUI_PEGAS_TU_SHA256_DE_GOOGLE_PLAY"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wepi.logistic",
+      "sha256_cert_fingerprints": [
+        "AQUI_PEGAS_TU_SHA256_DE_GOOGLE_PLAY_REPARTIDORES"
+      ]
+    }
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TU_TEAM_ID.com.wepi.app",
+        "paths": [
+          "/app",
+          "/descargar"
+        ]
+      },
+      {
+        "appID": "TU_TEAM_ID.com.wepi.logistic",
+        "paths": [
+          "/repartidores",
+          "/repartidores/*"
+        ]
+      }
+    ]
+  }
+}
