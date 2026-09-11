@@ -249,8 +249,7 @@ export default function PruebasWalletApp() {
 
   const openInactiveCityModal = (cityName) => {
     setInactiveCityModal(cityName);
-    setLeadForm({ nombre: '', whatsapp: '', email: '' });
-    setLeadSubmitted(false);
+    setModal('register');
   };
 
   const handleLeadSubmit = async (e) => {
@@ -1953,9 +1952,15 @@ export default function PruebasWalletApp() {
           telefono: telefono,
           ciudad: ciudad
         });
-        setModal(null);
-        toast.success('¡Registro exitoso!');
-      } else toast.error('Error al registrar');
+            const isInactiveCity = !ciudad.includes('Santo Tomé') && !ciudad.includes('Oberá');
+            if (isInactiveCity) {
+              setInactiveCityModal(ciudad);
+              setModal('success_inactive');
+            } else {
+              setModal(null);
+              toast.success('¡Registro exitoso!');
+            }
+          } else toast.error('Error al registrar');
     } catch (err) { toast.error(err.message || 'Error de conexión'); }
     setAuthLoading(false);
   };
@@ -4038,7 +4043,7 @@ export default function PruebasWalletApp() {
 
       {/* ─── Modals ─── */}
       {modal && (
-        <div className="modal-overlay" onClick={() => { setModal(null); setShowPassword(false); }}>
+        <div className="modal-overlay" onClick={() => { setModal(null); setShowPassword(false); }} style={{ zIndex: 12000 }}>
           <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>✕</button>
 
@@ -4110,7 +4115,7 @@ export default function PruebasWalletApp() {
                 
                 <div className="city-input-group" style={{ marginBottom: '15px', textAlign: 'left' }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '600' }}>Ciudad</label>
-                  <select name="ciudad" className="form-input" required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: 'var(--slate-800, #1e293b)', color: '#f8fafc' }}>
+                  <select name="ciudad" className="form-input" required defaultValue={inactiveCityModal || "Santo Tomé"} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: 'var(--slate-800, #1e293b)', color: '#f8fafc' }}>
                     <option value="Santo Tomé">Santo Tomé (Corrientes)</option>
                     <option value="Oberá">Oberá (Misiones)</option>
                     <option value="Alem (Misiones)">Alem (Misiones)</option>
@@ -4153,6 +4158,33 @@ export default function PruebasWalletApp() {
               </form>
             )}
 
+            
+            {modal === 'success_inactive' && (
+              <div style={{ padding: '16px 8px', textAlign: 'center' }}>
+                <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.75rem', fontWeight: '800', padding: '5px 14px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-block', marginBottom: '16px' }}>
+                  Próximamente 🚀
+                </span>
+                
+                <h2 style={{ fontSize: '1.45rem', color: '#0f172a', marginBottom: '10px', fontWeight: '800' }}>¡Registro Exitoso!</h2>
+                
+                <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '24px' }}>
+                  Recibirás novedades exclusivas por email o WhatsApp apenas iniciemos el lanzamiento en tu ciudad.
+                </p>
+                
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '24px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Localidad seleccionada</span>
+                  <strong style={{ fontSize: '1.25rem', color: '#e63946', fontWeight: '800' }}>{inactiveCityModal || user?.ciudad}</strong>
+                </div>
+                
+                <button 
+                  onClick={() => setModal(null)} 
+                  className="btn-full"
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #e63946 0%, #b5179e 100%)', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '1rem', boxShadow: '0 4px 12px rgba(230,57,70,0.25)' }}
+                >
+                  Entendido, ¡gracias!
+                </button>
+              </div>
+            )}
             {modal === 'profile' && user && (
               <div>
                 <h2>Mi perfil</h2>
@@ -4439,7 +4471,7 @@ export default function PruebasWalletApp() {
       )}
 
       {/* ─── Modal Pop-up para Registrarse para Novedades (Ciudades Inactivas) ─── */}
-      {inactiveCityModal && (
+      {false && inactiveCityModal && (
         <div className="modal-overlay" style={{ zIndex: 10050, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, padding: '12px' }}>
           <div className="modal-box animate-fade-in" style={{ maxWidth: '370px', width: '100%', padding: '22px 20px', textAlign: 'center', borderRadius: '18px', boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.15)', background: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a', position: 'relative' }} onClick={e => e.stopPropagation()}>
             

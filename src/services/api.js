@@ -7524,15 +7524,9 @@ export function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
 
 export async function registrarInteresExpansion({ nombre, whatsapp, email, ciudad }) {
   try {
-    // 1. Guardar en tabla leads_expansion
-    await supabase
-      .from('leads_expansion')
-      .insert([{ nombre, whatsapp, email, ciudad }])
-      .catch(err => console.warn("Notice: leads_expansion insert warning:", err));
-
-    // 2. Registrar directamente en la tabla usuarios con su ciudad correspondiente
     const cleanPhone = whatsapp ? whatsapp.replace(/\D/g, '') : '';
-    const userEmail = (email && email.trim()) ? email.trim() : (cleanPhone ? `${cleanPhone}@lead.wepi.app` : `lead_${Date.now()}@wepi.app`);
+    const baseEmail = (email && email.trim()) ? email.trim() : (cleanPhone ? `${cleanPhone}@lead.wepi.app` : `lead_${Date.now()}@wepi.app`);
+    const userEmail = baseEmail;
     const userId = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
     const { error: userError } = await supabase.from('usuarios').insert({
@@ -7549,25 +7543,21 @@ export async function registrarInteresExpansion({ nombre, whatsapp, email, ciuda
     });
 
     if (userError) {
-      console.warn("User insert notice in registrarInteresExpansion:", userError);
-      // Si el usuario ya existía por teléfono o email, se le actualiza la ciudad correspondiente y el nombre
-      if (userError.code === '23505') {
-        if (whatsapp && whatsapp.trim()) {
-          await supabase.from('usuarios')
-            .update({ ciudad, nombre: nombre ? nombre.trim() : undefined })
-            .eq('telefono', whatsapp.trim());
-        } else if (email && email.trim()) {
-          await supabase.from('usuarios')
-            .update({ ciudad, nombre: nombre ? nombre.trim() : undefined })
-            .eq('email', email.trim());
-        }
-      }
+      console.error("Error al insertar lead en usuarios:", userError);
+      return { success: false, error: userError };
     }
+
+    // Disparar Evento CRM para que se sincronice con la hoja "usuarios" o envíe mensajes de bienvenida
+    adminLogCRMEvent(userId, 'USUARIO_REGISTRADO', { 
+      nombre: nombre ? nombre.trim() : 'Usuario Interesado', 
+      email: userEmail, 
+      ciudad: ciudad 
+    }).catch(err => console.error("Error registrando CRM USUARIO_REGISTRADO en registrarInteresExpansion:", err));
 
     return { success: true };
   } catch (err) {
     console.error("Error al registrar lead y usuario en Supabase:", err);
-    return { success: true, simulated: true };
+    return { success: false, error: err };
   }
 }
 
