@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { GoogleMap, Autocomplete, MarkerF, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api';
 import toast from 'react-hot-toast';
 import './AddressSelector.css';
 
@@ -30,18 +30,8 @@ const CITY_STRINGS_MAP = {
 };
 
 const BOUNDS_MAP = {
-  'Santo Tomé': { 
-    north: -28.4, 
-    south: -28.7, 
-    east: -55.9, 
-    west: -56.2 
-  },
-  'Oberá': { 
-    north: -27.4, 
-    south: -27.6, 
-    east: -55.0, 
-    west: -55.3 
-  }
+  'Santo Tomé': { north: -28.4, south: -28.7, east: -55.9, west: -56.2 },
+  'Oberá': { north: -27.4, south: -27.6, east: -55.0, west: -55.3 }
 };
 
 const AddressSelector = ({ 
@@ -72,16 +62,13 @@ const AddressSelector = ({
   const [reference, setReference] = useState('');
   const [isValidArea, setIsValidArea] = useState(true);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const autocompleteRef = useRef(null);
-  const inputRef = useRef(null);
   const lastResolvedAddress = useRef(initialAddress);
 
-  const autocompleteOptions = useMemo(() => ({
-    componentRestrictions: { country: 'AR' },
-    bounds: BOUNDS_MAP[ciudad] || BOUNDS_MAP['Santo Tomé'],
-    strictBounds: true,
-    fields: ['geometry', 'formatted_address']
-  }), [ciudad]);
+  const autocompleteService = useRef(null);
+  const searchTimeoutRef = useRef(null);
+  const [inputValue, setInputValue] = useState(initialAddress || '');
+  const [predictions, setPredictions] = useState([]);
+  const [showPredictions, setShowPredictions] = useState(false);
 
   // Validación de área dinámica
   const checkArea = useCallback((lat, lng) => {
@@ -95,29 +82,23 @@ const AddressSelector = ({
     setIsValidArea(checkArea(position.lat, position.lng));
   }, [position, checkArea]);
 
-  // Sincronizar input DOM
+  // Sincronizar DOM input si el address cambia por fuera (arrastrando pin)
   useEffect(() => {
-    if (inputRef.current && inputRef.current.value !== address) {
-      inputRef.current.value = address;
+    if (address && address !== inputValue) {
+      setInputValue(address);
     }
   }, [address]);
 
   // Geocodificación inicial si solo hay texto
   useEffect(() => {
     if (isLoaded && initialAddress && !initialCoords && !address) {
-      if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
-        console.error("❌ Google Maps Geocoder requested but not available yet.");
-        return;
-      }
+      if (!window.google || !window.google.maps || !window.google.maps.Geocoder) return;
       const geocoder = new window.google.maps.Geocoder();
       const cityFmt = ciudad === 'Oberá' ? 'Oberá, Misiones' : 'Santo Tomé, Corrientes';
       const fullAddress = `${initialAddress}, ${cityFmt}, Argentina`;
       geocoder.geocode({ address: fullAddress, componentRestrictions: { country: 'AR' } }, (results, status) => {
         if (status === 'OK' && results[0]) {
-          const newPos = { 
-            lat: results[0].geometry.location.lat(), 
-            lng: results[0].geometry.location.lng() 
-          };
+          const newPos = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
           setPosition(newPos);
           setAddress(results[0].formatted_address);
           lastResolvedAddress.current = results[0].formatted_address;
@@ -126,21 +107,70 @@ const AddressSelector = ({
     }
   }, [isLoaded, initialAddress, initialCoords, ciudad]);
 
-  const onPlaceChanged = () => {
-    if (autocompleteRef.current !== null) {
-      const place = autocompleteRef.current.getPlace();
-      if (place.geometry) {
-        const fmtAddr = place.formatted_address || '';
-        
+  // Manejar tipeo con debounce para AutocompleteService
+  useEffect(() => {
+    if (!window.google || !inputValue) {
+      setPredictions([]);
+      return;
+    }
+    if (inputValue === address) return; 
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (!autocompleteService.current) {
+        autocompleteService.current = new window.google.maps.places.AutocompleteService();
+      }
+      
+      // Forzar relevancia agregando la ciudad si el usuario no la escribió
+      const normalizedCityForQuery = ciudad.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const inputLower = inputValue.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const queryStr = inputLower.includes(normalizedCityForQuery) 
+        ? inputValue 
+        : `${inputValue}, ${ciudad}`;
+
+      autocompleteService.current.getPlacePredictions({
+        input: queryStr,
+        componentRestrictions: { country: 'AR' },
+        bounds: BOUNDS_MAP[ciudad] || BOUNDS_MAP['Santo Tomé'],
+        strictBounds: true
+      }, (preds, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && preds) {
+          // Filtrado estricto del lado del cliente para asegurar coherencia
+          const normalizedCity = ciudad.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const filteredPreds = preds.filter(p => {
+            const desc = p.description.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return desc.includes(normalizedCity);
+          });
+          setPredictions(filteredPreds);
+          setShowPredictions(filteredPreds.length > 0);
+        } else {
+          setPredictions([]);
+        }
+      });
+    }, 400);
+
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [inputValue, ciudad, address]);
+
+  // Geocoding Pivot: Convertir place_id a lat/lng usando Geocoder ($5/1000) en vez de Place Details ($17/1000)
+  const handlePredictionSelect = (placeId, description) => {
+    setShowPredictions(false);
+    setInputValue(description);
+    setPredictions([]);
+    
+    if (!window.google) return;
+    setIsGeocoding(true);
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ placeId: placeId }, (results, status) => {
+      setIsGeocoding(false);
+      if (status === 'OK' && results[0]) {
+        const fmtAddr = results[0].formatted_address;
         if (!allowJustCity && isJustCity(fmtAddr)) {
           toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
           return;
         }
-
-        const newPos = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        };
+        const newPos = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
         setPosition(newPos);
         setAddress(fmtAddr);
         lastResolvedAddress.current = fmtAddr;
@@ -149,23 +179,20 @@ const AddressSelector = ({
           map.setZoom(17);
         }
       }
-    }
+    });
   };
 
   const onMarkerDragEnd = (e) => {
-    const newPos = {
-      lat: e.latLng.lat(),
-      lng: e.latLng.lng()
-    };
+    const newPos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
     setPosition(newPos);
 
-    // Geocodificación inversa
     if (window.google && window.google.maps && window.google.maps.Geocoder) {
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ location: newPos }, (results, status) => {
         if (status === 'OK' && results[0]) {
           const fmtAddr = results[0].formatted_address;
           setAddress(fmtAddr);
+          setInputValue(fmtAddr);
           lastResolvedAddress.current = fmtAddr;
         }
       });
@@ -174,12 +201,11 @@ const AddressSelector = ({
 
   const handleManualGeocode = () => {
     return new Promise((resolve) => {
-      const currentText = inputRef.current?.value || address;
+      const currentText = inputValue || address;
       if (!currentText || !window.google || !window.google.maps || !window.google.maps.Geocoder) {
         resolve(null);
         return;
       }
-      
       if (currentText.length < 4) {
         toast.error('Por favor ingresá tu dirección completa con número.');
         resolve(null);
@@ -187,32 +213,24 @@ const AddressSelector = ({
       }
 
       setIsGeocoding(true);
+      setShowPredictions(false);
       const geocoder = new window.google.maps.Geocoder();
       const cityFmt = ciudad === 'Oberá' ? 'Oberá, Misiones' : 'Santo Tomé, Corrientes';
       const fullAddress = currentText.includes(ciudad) ? currentText : `${currentText}, ${cityFmt}, Argentina`;
       
-      geocoder.geocode({ 
-        address: fullAddress, 
-        componentRestrictions: { country: 'AR' } 
-      }, (results, status) => {
+      geocoder.geocode({ address: fullAddress, componentRestrictions: { country: 'AR' } }, (results, status) => {
         setIsGeocoding(false);
         if (status === 'OK' && results[0]) {
           const fmtAddr = results[0].formatted_address;
-
           if (!allowJustCity && isJustCity(fmtAddr)) {
             resolve(null);
             return;
           }
-
-          const newPos = { 
-            lat: results[0].geometry.location.lat(), 
-            lng: results[0].geometry.location.lng() 
-          };
-          
+          const newPos = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
           setPosition(newPos);
           setAddress(fmtAddr);
+          setInputValue(fmtAddr);
           lastResolvedAddress.current = fmtAddr;
-          
           if (map) map.panTo(newPos);
           resolve({ address: fmtAddr, lat: newPos.lat, lng: newPos.lng });
         } else {
@@ -229,8 +247,7 @@ const AddressSelector = ({
     let finalLat = position.lat;
     let finalLng = position.lng;
 
-    // Si el texto cambió y no fue geocodificado aún, forzar geocodificación
-    const currentText = inputRef.current?.value || address;
+    const currentText = inputValue || address;
     if (currentText !== lastResolvedAddress.current) {
       const result = await handleManualGeocode();
       if (result) {
@@ -243,18 +260,12 @@ const AddressSelector = ({
       }
     }
 
-    // Doble verificación: asegurarnos que tenemos calle y altura (o al menos no es solo el nombre de la ciudad)
     if (!allowJustCity && isJustCity(finalAddress)) {
       toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
       return;
     }
 
-    onConfirm({
-      address: finalAddress,
-      lat: finalLat,
-      lng: finalLng,
-      reference
-    });
+    onConfirm({ address: finalAddress, lat: finalLat, lng: finalLng, reference });
   };
 
   if (!isLoaded) return <div className="address-selector-loading">Cargando mapa...</div>;
@@ -268,41 +279,55 @@ const AddressSelector = ({
         </div>
 
         <div className="address-selector-body">
-          <div className="input-group">
+          <div className="input-group" style={{ position: 'relative' }}>
             <label>Dirección</label>
-            <Autocomplete
-              onLoad={(ref) => (autocompleteRef.current = ref)}
-              onPlaceChanged={onPlaceChanged}
-              options={autocompleteOptions}
-            >
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder={title.includes('Local') ? "Ubicación de tu negocio..." : "Escribí tu calle y número (Ej: Brasil 719)..."}
-                defaultValue={address}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleManualGeocode();
-                  }
-                }}
-                className="form-input"
-              />
-            </Autocomplete>
+            <input
+              type="text"
+              placeholder={title.includes('Local') ? "Ubicación de tu negocio..." : "Escribí tu calle y número (Ej: Brasil 719)..."}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onFocus={() => { if(predictions.length > 0) setShowPredictions(true); }}
+              onBlur={() => setTimeout(() => setShowPredictions(false), 200)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleManualGeocode();
+                }
+              }}
+              className="form-input"
+            />
+            {showPredictions && predictions.length > 0 && (
+              <ul style={{
+                position: 'absolute', top: '100%', left: 0, right: 0,
+                backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 1000,
+                maxHeight: '220px', overflowY: 'auto', listStyle: 'none', padding: 0, margin: '4px 0 0 0'
+              }}>
+                {predictions.map(p => (
+                  <li key={p.place_id} 
+                      onClick={() => handlePredictionSelect(p.place_id, p.description)}
+                      style={{
+                        padding: '12px 16px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer',
+                        fontSize: '14px', textAlign: 'left', color: '#333', background: '#fff'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f9f9f9'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#fff'}
+                  >
+                    <strong>{p.structured_formatting.main_text}</strong> 
+                    <small style={{color:'#666', marginLeft:'6px'}}>{p.structured_formatting.secondary_text}</small>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="map-wrapper">
+          <div className="map-wrapper" style={{ marginTop: '12px' }}>
             <GoogleMap
               mapContainerClassName="map-container"
               center={position}
               zoom={15}
               onLoad={(m) => setMap(m)}
-              options={{
-                streetViewControl: false,
-                mapTypeControl: false,
-                fullscreenControl: false,
-                clickableIcons: false
-              }}
+              options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false, clickableIcons: false }}
             >
               <MarkerF
                 position={position}
@@ -312,9 +337,7 @@ const AddressSelector = ({
               />
             </GoogleMap>
             {!isValidArea && (
-              <div className="map-error-overlay">
-                ⚠️ {activeErrorMsg}
-              </div>
+              <div className="map-error-overlay">⚠️ {activeErrorMsg}</div>
             )}
           </div>
 
