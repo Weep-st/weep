@@ -1962,6 +1962,7 @@ export default function DriverDashboard() {
           <div className="dd-profile-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button type="submit" className="dd-btn-rojo dd-btn-large">Guardar Cambios</button>
             <button type="button" className="dd-btn-outline dd-btn-large" onClick={() => setView('main')}>Cancelar</button>
+            <button type="button" className="dd-btn-outline dd-btn-large" style={{ color: 'var(--red-600)', borderColor: 'var(--red-600)', marginTop: '12px' }} onClick={() => setShowRegretModal(true)}>❌ Eliminar Cuenta</button>
           </div>
         </form>
       </div>

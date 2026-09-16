@@ -8,6 +8,9 @@ ios:
           entries:
             - UIBackgroundModes:
                 - remote-notification
+            - NSCameraUsageDescription: Necesitamos acceso a la camara para tomar fotos para tu perfil o comprobantes de entrega.
+            - NSPhotoLibraryUsageDescription: Necesitamos acceso a la galeria para que puedas elegir tu foto de perfil o comprobantes.
+            - NSPhotoLibraryAddUsageDescription: Necesitamos acceso para guardar fotos en tu galeria.
       entitlements:
         - path: App/App.entitlements
           entries:

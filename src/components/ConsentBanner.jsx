@@ -41,7 +41,10 @@ const ConsentBanner = () => {
     setIsVisible(false);
   };
 
-  if (!isVisible) return null;
+  // Do not show the banner in Capacitor native apps (iOS/Android) 
+  // to prevent Apple App Store Rejection (Guideline 5.1.2(i) App Tracking Transparency)
+  const isCapacitor = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform();
+  if (!isVisible || isCapacitor) return null;
 
   return (
     <div className="consent-banner">
