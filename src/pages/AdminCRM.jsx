@@ -443,6 +443,7 @@ const AdminCRM = () => {
     const [scoreConfig, setScoreConfig] = useState([]);
     const [eventsLog, setEventsLog] = useState([]);
     const [historyLog, setHistoryLog] = useState([]);
+    const [analyticsData, setAnalyticsData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // CRM Automation Matrix State
@@ -750,7 +751,7 @@ const AdminCRM = () => {
     const loadAllCRMData = async () => {
         setLoading(true);
         try {
-            const [usersRes, tagsRes, autoRes, campRes, scoreRes, eventsRes, historyRes, matrixRes, habitsRes, botFlowsRes, optinsRes, specialCampRes] = await Promise.all([
+            const [usersRes, tagsRes, autoRes, campRes, scoreRes, eventsRes, historyRes, matrixRes, habitsRes, botFlowsRes, optinsRes, specialCampRes, analyticsRes] = await Promise.all([
                 api.adminGetCRMUsers(),
                 api.adminGetCRMTags(),
                 api.adminGetCRMAutomations(),
@@ -762,7 +763,8 @@ const AdminCRM = () => {
                 api.adminGetWepiHabitsConfig().catch(() => null),
                 api.getWhatsappBotFlows().catch(() => null),
                 api.getWhatsappOptins().catch(() => []),
-                api.adminGetCRMSpecialCampaigns().catch(() => [])
+                api.adminGetCRMSpecialCampaigns().catch(() => []),
+                api.adminGetCRMAnalytics().catch(() => [])
             ]);
 
             setUsuarios(usersRes || []);
@@ -774,6 +776,7 @@ const AdminCRM = () => {
             setHistoryLog(historyRes || []);
             setOptins(optinsRes || []);
             setSpecialCampaigns(specialCampRes || []);
+            setAnalyticsData(analyticsRes || []);
             
             let finalMatrix = [...DEFAULT_CRM_AUTOMATION_MATRIX];
             if (matrixRes && Array.isArray(matrixRes) && matrixRes.length > 0) {
@@ -2146,6 +2149,9 @@ const AdminCRM = () => {
                 </button>
                 <button className={activeTab === 'retencion' ? 'active' : ''} onClick={() => setActiveTab('retencion')}>
                     🎯 Retención
+                </button>
+                <button className={activeTab === 'analiticas' ? 'active' : ''} onClick={() => setActiveTab('analiticas')}>
+                    📊 Analíticas
                 </button>
                 <button className={activeTab === 'configuracion' ? 'active' : ''} onClick={() => setActiveTab('configuracion')}>
                     🛠️ Configuración
@@ -4065,6 +4071,71 @@ const AdminCRM = () => {
             )}
 
             {/* TAB CONTENT: CONFIGURACION */}
+            {activeTab === 'analiticas' && (
+                <div className="tab-pane animate-fade-in" style={{ padding: '0 10px' }}>
+                    <div className="crm-header-section" style={{ marginBottom: '20px' }}>
+                        <div>
+                            <h2>📊 Analíticas y Rendimiento de Campañas</h2>
+                            <p style={{ color: '#64748b', margin: '5px 0 0 0', fontSize: '0.9rem' }}>
+                                Monitorea cómo tus mensajes (WhatsApp, Push, Email) se convierten en ventas y pedidos (Ventana de 24 hs de atribución).
+                            </p>
+                        </div>
+                        <button className="btn btn-secondary" onClick={loadAllCRMData}>🔄 Refrescar</button>
+                    </div>
+
+                    <div className="table-responsive">
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Campaña / Plantilla</th>
+                                    <th style={{ textAlign: 'center' }}>Mensajes Enviados</th>
+                                    <th style={{ textAlign: 'center' }}>Pedidos (Conv.)</th>
+                                    <th style={{ textAlign: 'center' }}>Tasa Conversión</th>
+                                    <th style={{ textAlign: 'right' }}>Ingresos Generados</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {analyticsData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                                            No hay datos suficientes de analíticas para mostrar. (Los datos pueden tardar en aparecer tras el envío de mensajes o registro de compras con UTM).
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    analyticsData.map((row, idx) => {
+                                        const convRate = row.sent > 0 ? ((row.orders / row.sent) * 100).toFixed(1) : 0;
+                                        return (
+                                            <tr key={idx}>
+                                                <td style={{ fontWeight: 600 }}>{row.campaign}</td>
+                                                <td style={{ textAlign: 'center', color: '#64748b' }}>{row.sent}</td>
+                                                <td style={{ textAlign: 'center', fontWeight: 'bold', color: row.orders > 0 ? '#10b981' : '#475569' }}>
+                                                    {row.orders}
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <span style={{
+                                                        background: convRate > 5 ? '#dcfce7' : convRate > 0 ? '#fef3c7' : '#f1f5f9',
+                                                        color: convRate > 5 ? '#15803d' : convRate > 0 ? '#b45309' : '#64748b',
+                                                        padding: '4px 8px',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        {convRate}%
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: 'right', fontWeight: 'bold', color: row.revenue > 0 ? '#047857' : '#475569' }}>
+                                                    ${row.revenue.toLocaleString('es-AR')}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             {activeTab === 'configuracion' && (
                 <div className="tab-pane">
                     <div className="config-grid">

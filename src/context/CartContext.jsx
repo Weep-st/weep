@@ -86,7 +86,7 @@ export function CartProvider({ children }) {
     // 1. Temporizador de inactividad (20 segundos tras modificar el carrito sin comprar)
     const timer = setTimeout(() => {
       checkAndLogAbandonment();
-    }, 20000);
+    }, 60000); // 1 minuto despues del ultimo cambio
 
     // 2. Escuchadores de salida / ocultamiento de la PWA o pestaña
     const handleVisibilityOrPageHide = () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
 import AdminPagos from './AdminPagos';
@@ -23,6 +24,7 @@ const AdminRepartidores = () => {
     const [pendingSettlementsForModal, setPendingSettlementsForModal] = useState([]);
     const [selectedOrderIdsInModal, setSelectedOrderIdsInModal] = useState([]);
     const [allScheduledOrderIds, setAllScheduledOrderIds] = useState([]);
+    const [driversPendingStats, setDriversPendingStats] = useState([]);
 
     // Priority Modal State
     const [showPriorityModal, setShowPriorityModal] = useState(false);
@@ -108,7 +110,31 @@ const AdminRepartidores = () => {
             setPendingSettlementsForModal([]);
             setSelectedOrderIdsInModal([]);
         }
+        
+        if (showPaymentModal) {
+            loadDriversPendingStats();
+        }
     }, [newPayment.repartidor_id, showPaymentModal]);
+
+    const loadDriversPendingStats = async () => {
+        try {
+            const stats = await api.adminGetDriversPendingStats();
+            setDriversPendingStats(stats);
+        } catch (err) {
+            console.error('Error loading driver stats', err);
+        }
+    };
+
+    const getDriverOptions = () => {
+        const validIds = driversPendingStats.map(s => s.id);
+        const options = repartidores.filter(r => (r.admin_status === 'Aceptado' || r.es_partner) && validIds.includes(r.id));
+        options.sort((a, b) => {
+            const aStat = driversPendingStats.find(s => s.id === a.id);
+            const bStat = driversPendingStats.find(s => s.id === b.id);
+            return new Date(aStat.oldest_date) - new Date(bStat.oldest_date);
+        });
+        return options;
+    };
 
     const loadPendingSettlementsForModal = async () => {
         try {
@@ -786,7 +812,28 @@ _Este es un mensaje de difusión. No responder_`;
                                     border: '1px solid #bfdbfe'
                                 }}>
                                     <div>
-                                        <span style={{ fontWeight: 600, color: '#1e40af' }}>{selectedSettleIds.length} pedidos seleccionados</span>
+                                        <div style={{ fontWeight: 600, color: '#1e40af', marginBottom: '4px' }}>{selectedSettleIds.length} pedidos seleccionados</div>
+                                        {(() => {
+                                            const firstSettle = settlements.find(s => s.id === selectedSettleIds[0]);
+                                            const driver = firstSettle ? repartidores.find(r => r.id === firstSettle.repartidor_id) : null;
+                                            if (driver && (driver.alias_cbu || driver.nombre_cuenta)) {
+                                                const textToCopy = `Alias/CBU: ${driver.alias_cbu || 'N/A'}\nCuenta: ${driver.nombre_cuenta || 'N/A'}`;
+                                                return (
+                                                    <div style={{ fontSize: '0.8rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span>🏦 <b>Alias/CBU:</b> {driver.alias_cbu || '-'} | <b>Cuenta:</b> {driver.nombre_cuenta || '-'}</span>
+                                                        <button 
+                                                            title="Copiar Datos Bancarios"
+                                                            style={{ border: 'none', background: 'none', color: '#10b981', cursor: 'pointer', padding: '0 2px', fontSize: '1rem' }}
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(textToCopy);
+                                                                toast.success('Datos bancarios copiados');
+                                                            }}
+                                                        >📋</button>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button className="btn btn-sm" style={{ background: '#3b82f6', color: 'white' }} onClick={handleGenerateMessage}>
@@ -1023,7 +1070,7 @@ _Este es un mensaje de difusión. No responder_`;
             ) : (
                 <AdminPagos tipo="Repartidor" />
             )}
-            {showInvoiceModal && (
+            {showInvoiceModal && createPortal(
                 <div style={{
                     position: 'fixed',
                     top: 0, left: 0, right: 0, bottom: 0,
@@ -1083,11 +1130,12 @@ _Este es un mensaje de difusión. No responder_`;
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Modal de Prioridad */}
-            {showPriorityModal && (
+            {showPriorityModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowPriorityModal(false)} style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
@@ -1150,10 +1198,11 @@ _Este es un mensaje de difusión. No responder_`;
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {/* Modal de Registro de Pago */}
-            {showPaymentModal && (
+            {showPaymentModal && createPortal(
                 <div className="modal-overlay" style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
@@ -1171,11 +1220,16 @@ _Este es un mensaje de difusión. No responder_`;
                                     onChange={(e) => setNewPayment({ ...newPayment, repartidor_id: e.target.value })}
                                 >
                                     <option value="">Seleccionar...</option>
-                                    {repartidores.filter(r => r.admin_status === 'Aceptado' || r.es_partner).map(r => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.nombre}{r.es_partner ? ' (Partner Logístico)' : ''}
-                                        </option>
-                                    ))}
+                                    {getDriverOptions().map(r => {
+                                        const stat = driversPendingStats.find(s => s.id === r.id);
+                                        const oldestDate = stat ? new Date(stat.oldest_date).toLocaleDateString() : '';
+                                        const totalOwed = stat ? `$${Number(stat.total_owed).toLocaleString('es-AR')}` : '';
+                                        return (
+                                            <option key={r.id} value={r.id}>
+                                                {r.nombre}{r.es_partner ? ' (Partner Logístico)' : ''} | Deuda: {totalOwed} | Antiguo: {oldestDate}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                             <div>
@@ -1190,7 +1244,27 @@ _Este es un mensaje de difusión. No responder_`;
                             </div>
                             {pendingSettlementsForModal.length > 0 && (
                                 <div style={{ marginTop: '0.5rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '8px', fontWeight: 700, color: '#000' }}>Seleccionar Pedidos Pendientes:</label>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#000', margin: 0 }}>Seleccionar Pedidos Pendientes:</label>
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-sm btn-light" 
+                                            style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                                            onClick={() => {
+                                                const allIds = pendingSettlementsForModal.map(s => s.id);
+                                                if (selectedOrderIdsInModal.length === allIds.length) {
+                                                    setSelectedOrderIdsInModal([]);
+                                                    setNewPayment(prev => ({ ...prev, monto: 0, pedido_ids: '' }));
+                                                } else {
+                                                    setSelectedOrderIdsInModal(allIds);
+                                                    const total = pendingSettlementsForModal.reduce((sum, s) => sum + Number(s.precio_envio || 0), 0);
+                                                    setNewPayment(prev => ({ ...prev, monto: total, pedido_ids: allIds.join(',') }));
+                                                }
+                                            }}
+                                        >
+                                            {selectedOrderIdsInModal.length === pendingSettlementsForModal.length ? 'Desmarcar Todos' : 'Seleccionar Todos'}
+                                        </button>
+                                    </div>
                                     <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px' }}>
                                         {pendingSettlementsForModal.map(s => (
                                             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '0.8rem', borderBottom: '1px solid #f1f5f9', color: '#000' }}>
@@ -1225,7 +1299,8 @@ _Este es un mensaje de difusión. No responder_`;
                             <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleCreatePayment}>Guardar</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

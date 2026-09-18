@@ -143,37 +143,30 @@ export default function PruebasWalletApp() {
   // ── DETECTOR CRM: VISITA_SIN_COMPRA ──
   React.useEffect(() => {
     if (!user?.id) return;
-    // Si el usuario ya realizó pedidos en la plataforma, no es una visita sin compra
-    if (user.ya_realizo_pedidos) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const lastVisitLogged = localStorage.getItem(`wepi_last_crm_visit_logged_${user.id}`);
-    if (lastVisitLogged === todayStr) return;
+    // Cooldown de 4 horas para no inundar el CRM
+    const lastVisitLogged = Number(localStorage.getItem(`wepi_last_crm_visit_logged_${user.id}`) || 0);
+    const now = Date.now();
+    if (now - lastVisitLogged < 4 * 60 * 60 * 1000) return;
 
+    // Se dispara tras 5 minutos de inactividad
     const timer = setTimeout(async () => {
       const hasCompletedOrder = sessionStorage.getItem('wepi_order_completed_time');
-      if (hasCompletedOrder) return;
-      if (cart.items && cart.items.length > 0) return;
+      const lastCompletedOrderTime = Number(hasCompletedOrder || 0);
+      
+      // Si hizo un pedido en los últimos 10 minutos, no lo contamos como visita sin compra
+      if (now - lastCompletedOrderTime < 10 * 60 * 1000) return;
 
       try {
-        // Verificar en la DB si el usuario tiene pedidos en su historial
-        const { data: userOrders } = await api.supabase
-          .from('pedidos_general')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .limit(1);
-
-        if (userOrders && userOrders.length > 0) return;
-
-        localStorage.setItem(`wepi_last_crm_visit_logged_${user.id}`, todayStr);
+        localStorage.setItem(`wepi_last_crm_visit_logged_${user.id}`, String(Date.now()));
         api.adminLogCRMEvent(user.id, 'VISITA_SIN_COMPRA', { path: location.pathname }).catch(e => console.error("Error CRM visita sin compra:", e));
       } catch (e) {
         console.warn("Visita sin compra check skipped:", e.message);
       }
-    }, 45000);
+    }, 300000); // 5 minutos (300,000 ms)
 
     return () => clearTimeout(timer);
-  }, [user?.id, user?.ya_realizo_pedidos, location.pathname, cart.items]);
+  }, [user?.id, location.pathname]);
 
   const selectCity = React.useCallback((city) => {
     setActiveCity(city);
@@ -398,6 +391,7 @@ export default function PruebasWalletApp() {
     dynamicLocales: [],
     promosOfDay: [],
     mostOrdered: [],
+    otherOptions: [],
     newLocales: [],
     allLocales: [],
     categories: isShopsMode ? [
@@ -436,10 +430,144 @@ export default function PruebasWalletApp() {
   const [userPromoUsage, setUserPromoUsage] = React.useState({});
   const [refreshingWallet, setRefreshingWallet] = React.useState(false);
   const [couponInput, setCouponInput] = React.useState('');
+  const [showCouponInput, setShowCouponInput] = React.useState(false);
   const [appliedCoupon, setAppliedCoupon] = React.useState('');
   const [citiesList, setCitiesList] = React.useState([]);
   const [mpRedirectUrl, setMpRedirectUrl] = React.useState(null);
   const [acceptedOrder, setAcceptedOrder] = React.useState(null);
+
+  // Upsell Logic State
+  const [upsellItems, setUpsellItems] = React.useState([]);
+  React.useEffect(() => {
+    if (cart.items.length === 0) {
+      setUpsellItems([]);
+      return;
+    }
+    
+    const fetchUpsells = async () => {
+      const currentLocalId = cart.items[0].local_id;
+      if (!currentLocalId) return;
+
+      let localMenu = menus;
+      if (!localMenu || localMenu.length === 0 || localMenu[0].local_id !== currentLocalId) {
+         try {
+           localMenu = await api.getMenuByLocalId(currentLocalId);
+         } catch (e) {
+           return;
+         }
+      }
+
+      if (!localMenu) return;
+
+      const hour = new Date().getHours();
+      const cartCategories = cart.items.map(i => i?.categoria?.toLowerCase() || '');
+      const cartNames = cart.items.map(i => i?.nombre?.toLowerCase() || '');
+      
+      let suggestedCategories = [];
+      
+      const isMorning = hour >= 6 && hour < 11;
+      const isAfternoon = hour >= 15 && hour < 19;
+      
+      const hasCoffeeOrTea = cartNames.some(n => n.includes('cafe') || n.includes('café') || n.includes('te') || n.includes('té') || n.includes('infusion'));
+      const hasBakery = cartNames.some(n => n.includes('chipa') || n.includes('medialuna') || n.includes('alfajor') || n.includes('factura') || n.includes('tostado'));
+      const hasMainDish = cartCategories.some(c => c.includes('hamburguesa') || c.includes('pizza') || c.includes('lomo') || c.includes('sándwich') || c.includes('empanada'));
+      const hasDrink = cartCategories.some(c => c.includes('bebida') || c.includes('gaseosa') || c.includes('cerveza'));
+
+      // Lógica Condicional Inteligente
+      if (hasCoffeeOrTea && !hasBakery) {
+        suggestedCategories.push('panadería', 'medialunas', 'alfajores', 'postres', 'tortas', 'chipa');
+      } else if (hasBakery && !hasCoffeeOrTea) {
+        suggestedCategories.push('café', 'cafe', 'cafetería', 'infusiones', 'bebida caliente', 'jugos');
+      } else if (hasMainDish) {
+        if (!hasDrink) suggestedCategories.push('bebidas', 'bebida', 'gaseosas', 'cervezas');
+        if (hasDrink) suggestedCategories.push('postres', 'helados', 'guarniciones', 'papas', 'adicionales');
+      } else {
+        // Por defecto basado en hora si no detectamos combinaciones claras
+        if (isMorning || isAfternoon) {
+          suggestedCategories.push('panadería', 'medialunas', 'alfajores', 'postres', 'cafetería');
+        } else {
+          if (!hasDrink) suggestedCategories.push('bebidas', 'bebida', 'cervezas');
+          suggestedCategories.push('postres', 'adicionales');
+        }
+      }
+
+      let suggestions = localMenu
+        .filter(item => item.disponibilidad !== false)
+        .filter(item => suggestedCategories.some(sc => (item.categoria || '').toLowerCase().includes(sc)))
+        .filter(item => !cart.items.some(cartItem => cartItem.id === item.id))
+        .slice(0, 3);
+
+      if (suggestions.length === 0) {
+         suggestions = localMenu
+           .filter(item => item.disponibilidad !== false)
+           .filter(item => !cart.items.some(cartItem => cartItem.id === item.id))
+           .slice(0, 3);
+      }
+
+      // Filtrar para no sugerir algo que ya se sugirió como Upgrade
+      const currentUpgrades = cart.items.map(i => getUpgradeOffer(i, localMenu)).filter(Boolean).map(u => u.id);
+      suggestions = suggestions.filter(item => !currentUpgrades.includes(item.id));
+
+      setUpsellItems(suggestions);
+    };
+    
+    fetchUpsells();
+  }, [cart.items, menus]);
+
+  // Upgrade Upsell Logic
+  const getUpgradeOffer = (cartItem, localMenu) => {
+    if (!localMenu || localMenu.length === 0) return null;
+    if (!cartItem.categoria) return null;
+    
+    const categoriaNormalizada = cartItem.categoria.trim().toLowerCase();
+    const currentPrice = Number(cartItem.precio);
+    const itemName = cartItem.nombre.toLowerCase();
+    
+    const isIceCream = categoriaNormalizada.includes('helado') || categoriaNormalizada.includes('heladeria');
+    
+    // Helados pueden duplicar su precio al subir de tamaño (1/4 -> 1/2 -> 1Kg), permitimos hasta 2.5x
+    const maxMultiplier = isIceCream ? 2.5 : 1.6;
+    
+    // Ignorar palabras genéricas o de peso para centrarse en el sustantivo real
+    const ignoreWords = ['de', 'con', 'y', 'la', 'el', 'en', 'x', 'sin', 'kg', 'lts', 'ml', '1/4', '1/2', '1', 'un', 'medio', 'cuarto', 'kilo', 'litro', 'lata', 'pinta'];
+    const words = itemName.split(/[\s,]+/).filter(w => w.length > 2 && !ignoreWords.includes(w));
+    
+    let candidates = localMenu.filter(m => {
+      if (m.local_id !== cartItem.local_id || m.disponibilidad === false) return false;
+      if (cart.items.some(ci => ci.id === m.id)) return false;
+      
+      const mPrice = Number(m.precio);
+      if (mPrice <= currentPrice || mPrice > currentPrice * maxMultiplier) return false;
+      
+      if (!m.categoria || m.categoria.trim().toLowerCase() !== categoriaNormalizada) return false;
+      
+      const mName = m.nombre.toLowerCase();
+      
+      // Regla Especial para Helados: Cualquier helado más caro en la misma categoría es un upgrade válido (tamaño)
+      if (isIceCream) return true;
+      
+      // Regla General: Debe compartir alguna palabra significativa (ej. "Hamburguesa", "Lomo", "Pizza")
+      const sharesSignificantWord = words.some(w => mName.includes(w));
+      if (sharesSignificantWord) return true;
+      
+      // Fallback a primera palabra por si acaso
+      const firstWord = itemName.split(' ')[0];
+      if (firstWord.length > 2 && mName.includes(firstWord)) return true;
+
+      return false;
+    });
+    
+    if (candidates.length === 0) return null;
+    
+    // Sugerir siempre el escalón siguiente (el más barato dentro de los más caros)
+    candidates.sort((a, b) => Number(a.precio) - Number(b.precio));
+    return candidates[0];
+  };
+
+  const handleUpgradeItem = (oldItem, upgradeOffer) => {
+    cart.removeItem(oldItem.id);
+    handleAddToCart(upgradeOffer);
+  };
   
   const refreshWallet = async () => {
     if (user?.id) {
@@ -677,7 +805,7 @@ export default function PruebasWalletApp() {
     // 16 a 20 hs (merienda)
     if (hour >= 16 && hour < 20) return { 
         title: "Merienda: Un break para vos", 
-        banner: "https://i.postimg.cc/JzgG4Bqb/Gemini-Generated-Image-nut1r8nut1r8nut1.png",
+        banner: "https://i.postimg.cc/LsDCxY9K/Gemini-Generated-Image-muhz58muhz58muhz.png",
         rubros: ['Cafetería', 'Heladería', 'Market', 'Bebidas'],
         marketCats: ['Snacks', 'Bebidas']
     };
@@ -1346,6 +1474,29 @@ export default function PruebasWalletApp() {
             dynamicLocales: boosted.filter(l => timeInfo.rubros.some(r => l.rubros?.includes(r) || l.rubro === r)).slice(0, 15),
             promosOfDay: formatCarouselItems(rawPromos).slice(0, 40),
             mostOrdered: formatCarouselItems(rawMostOrdered),
+            otherOptions: (() => { 
+                const all = [...(expl||[]), ...(most||[]), ...(prms||[])]; 
+                const hour = new Date().getHours(); 
+                const isDay = hour >= 6 && hour < 19; 
+                const cats = isDay ? ['panadería', 'cafetería', 'desayuno', 'merienda', 'medialunas', 'alfajores', 'tostado', 'chipa', 'infusiones', 'torta', 'helado', 'postre'] : ['hamburguesa', 'pizza', 'sándwich', 'empanada', 'lomo', 'restaurante', 'cena', 'almuerzo', 'bebidas', 'cerveza', 'helado', 'postre']; 
+                let openItems = all.filter(item => { 
+                    const loc = allLocs.find(l => l.id === item.local_id); 
+                    return loc && isLocalOpen(loc); 
+                }); 
+                let scheduleFiltered = openItems.filter(item => { 
+                    const cat = (item.categoria || '').toLowerCase(); 
+                    const loc = allLocs.find(l => l.id === item.local_id); 
+                    const locCat = (loc?.rubros || []).join(' ').toLowerCase() + ' ' + (loc?.rubro || '').toLowerCase(); 
+                    return cats.some(c => cat.includes(c) || locCat.includes(c)); 
+                }); 
+                const baseItems = scheduleFiltered.length > 5 ? scheduleFiltered : openItems; 
+                const uniqueBase = Array.from(new Map(baseItems.map(item => [item.id, item])).values()); 
+                for (let i = uniqueBase.length - 1; i > 0; i--) { 
+                    const j = Math.floor(Math.random() * (i + 1)); 
+                    [uniqueBase[i], uniqueBase[j]] = [uniqueBase[j], uniqueBase[i]]; 
+                } 
+                return uniqueBase.slice(0, 10); 
+            })(),
             newLocales: [...allLocs].filter(l => l.admin_status === 'Aceptado').sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10),
             exploreItems: (expl || []).filter(item => {
               const l = allLocs.find(loc => loc.id === item.local_id);
@@ -3288,40 +3439,92 @@ export default function PruebasWalletApp() {
                                 }
                                 return null;
                               })()}
-
-                              
-                           </div>
-                           <div className="promo-vertical-info">
+                            </div>
+                            <div className="promo-vertical-info">
                               <span className="promo-item-name">{item.nombre}</span>
                               {renderCreditBadge(item)}
                               <div className="promo-price-row">
-                                 <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
-                                  {calculateDiscountedPrice(item) < Number(item.precio) && (
-                                    <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)', marginLeft: '8px' }}>
-                                      ${Number(item.precio).toLocaleString()}
-                                    </span>
-                                  )}
+                                <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
+                                {calculateDiscountedPrice(item) < Number(item.precio) && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                 <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                   {item.local_nombre}
-                                   {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
-                                 </span>
-                                 {open ? (
-                                   <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
-                                 ) : (
-                                   <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
-                                     Cerrado
-                                   </span>
-                                 )}
+                                <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {item.local_nombre || (loc ? loc.nombre : 'Local')}
+                                  {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
+                                </span>
+                                {open ? (
+                                  <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
+                                ) : (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
+                                    Cerrado
+                                  </span>
+                                )}
                               </div>
-                           </div>
+                            </div>
                         </div>
                       );
                     })}
                   </div>
                </section>
              )}
+
+             {/* 5.6 OTRAS OPCIONES */}
+             {homeLayout.otherOptions && homeLayout.otherOptions.length > 0 && (
+               <section className="home-section other-options">
+                  <div className="section-header-simple">
+                    <h2>DESCUBRÍ</h2>
+                  </div>
+                  <div className="horizontal-scroll-items" style={{ gap: '12px', padding: '10px 4px' }}>
+                    {homeLayout.otherOptions.map((item) => {
+                      const loc = locals.find(l => l.id === item.local_id);
+                      const open = isLocalOpen(loc);
+                      const isPremium = loc?.plan_id === '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
+
+                      return (
+                        <div 
+                          key={`other-${item.id}`} 
+                          className={`item-promo-card-vertical animate-fade-in ${open ? '' : 'is-closed'} ${isPremium ? 'is-premium' : ''}`} 
+                          onClick={() => open && handleAddToCart(item)}
+                        >
+                           <div className="promo-vertical-img">
+                              <img src={item.imagen_url} alt={item.nombre} />
+                              {(() => {
+                                const discountedPrice = calculateDiscountedPrice(item);
+                                if (discountedPrice < Number(item.precio)) {
+                                  const percent = Math.round((1 - discountedPrice / Number(item.precio)) * 100);
+                                  return <div className="menu-discount-badge">{percent}% OFF</div>;
+                                }
+                                return null;
+                              })()}
+                            </div>
+                            <div className="promo-vertical-info">
+                              <span className="promo-item-name">{item.nombre}</span>
+                              {renderCreditBadge(item)}
+                              <div className="promo-price-row">
+                                <span className="price-now">${calculateDiscountedPrice(item).toLocaleString()}</span>
+                                {calculateDiscountedPrice(item) < Number(item.precio) && <span className="price-was">${Number(item.precio).toLocaleString()}</span>}
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span className="promo-local-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {item.local_nombre || (loc ? loc.nombre : 'Local')}
+                                  {isPremium && <img src="https://i.postimg.cc/50W06p4z/descarga-(31).png" alt="Featured" style={{ height: '12px', width: 'auto' }} />}
+                                </span>
+                                {open ? (
+                                  <button className="promo-mini-add-btn" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>+</button>
+                                ) : (
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--red-600)', fontWeight: '700' }}>
+                                    Cerrado
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+               </section>
+             )}
+
 {/* 6. NUEVOS LOCALES (FREEMIUM) */}
              {homeLayout.newFreemiumLocales.length > 0 && (
                <section className="home-section new-locales-home">
@@ -3745,9 +3948,9 @@ export default function PruebasWalletApp() {
           ) : (
             <>
               {cart.items.map(item => (
-                <div key={item.id} className="cart-item-row">
+                <div key={item.id} className="cart-item-row" style={{ flexWrap: 'wrap' }}>
                   <div className="cart-item-info">
-                    <span className="cart-item-name">{item.nombre}</span>
+                    <span className="cart-item-name" style={{ fontSize: '0.8rem', lineHeight: '1.1' }}>{item.nombre}</span>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {item.precioOriginal > item.precio && (
                         <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--gray-400)' }}>
@@ -3760,14 +3963,53 @@ export default function PruebasWalletApp() {
                     </div>
                   </div>
 
-                  <div className="cart-item-controls">
+                  <div className="cart-item-controls" style={{ transform: 'scale(0.9)', transformOrigin: 'left center', marginTop: '6px' }}>
                     <button className="qty-btn" onClick={() => cart.updateQty(item.id, -1)}>−</button>
-                    <span className="qty-display">{item.qty}</span>
+                    <span className="qty-display" style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.9rem' }}>{item.qty} unid</span>
                     <button className="qty-btn" onClick={() => cart.updateQty(item.id, 1)}>+</button>
-                    <button className="remove-btn-small" onClick={() => cart.removeItem(item.id)}>🗑️</button>
+                    <button className="remove-btn-small" style={{ marginLeft: '12px' }} onClick={() => cart.removeItem(item.id)}>🗑️</button>
                   </div>
+                  {(() => {
+                    const upgradeOffer = getUpgradeOffer(item, menus);
+                    if (!upgradeOffer) return null;
+                    const diff = Number(upgradeOffer.precio) - Number(item.precio);
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '10px' }}>
+                        <button type="button" className="btn btn-success btn-sm animate-fade-in" style={{ borderRadius: '6px', fontWeight: 'bold', fontSize: '0.65rem', padding: '4px 10px', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.3)', whiteSpace: 'normal', textAlign: 'center', lineHeight: '1.2', maxWidth: '95%' }} onClick={() => handleUpgradeItem(item, upgradeOffer)}>
+                          ⚡ Mejorá a {upgradeOffer.nombre.length > 26 ? upgradeOffer.nombre.substring(0, 26) + '...' : upgradeOffer.nombre} por SOLO ${(diff).toLocaleString('es-AR')}
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
+
+              {upsellItems.length > 0 && (
+                <div className="upsell-carousel animate-fade-in" style={{ marginTop: `15px`, marginBottom: `15px`, padding: `12px`, background: `#f8fafc`, borderRadius: `12px`, border: `1px dashed #cbd5e1` }}>
+                  <h4 style={{ fontSize: `0.85rem`, margin: `0 0 10px 0`, color: `#334155`, fontWeight: `700` }}>¿Completamos tu pedido?</h4>
+                  <div style={{ display: `flex`, gap: `10px`, overflowX: `auto`, paddingBottom: `5px` }}>
+                    {upsellItems.map(item => (
+                      <div key={item.id} style={{ minWidth: `140px`, background: `white`, padding: `8px`, borderRadius: `8px`, border: `1px solid #e2e8f0`, boxShadow: `0 1px 3px rgba(0,0,0,0.05)`, display: `flex`, flexDirection: `column`, justifyContent: `space-between` }}>
+                        <div>
+                          {item.imagen_url && (
+                            <img src={item.imagen_url} alt={item.nombre} style={{ width: `100%`, height: `70px`, objectFit: `cover`, borderRadius: `6px`, marginBottom: `6px` }} />
+                          )}
+                          <p style={{ fontSize: `0.75rem`, fontWeight: `600`, color: `#0f172a`, margin: `0 0 4px 0`, display: `-webkit-box`, WebkitLineClamp: 2, WebkitBoxOrient: `vertical`, overflow: `hidden` }}>{item.nombre}</p>
+                          <p style={{ fontSize: `0.75rem`, color: `var(--red-600)`, margin: 0, fontWeight: `700` }}>${(Number(item.precio)).toLocaleString(`es-AR`)}</p>
+                        </div>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          type="button"
+                          style={{ marginTop: `8px`, padding: `4px 8px`, fontSize: `0.7rem`, width: `100%` }}
+                          onClick={() => handleAddToCart(item)}
+                        >
+                          + Agregar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="payment-method-selector" style={{ marginTop: '20px', marginBottom: '10px' }}>
                 <label className="form-label">Seleccionar método de pago</label>
@@ -3846,33 +4088,43 @@ export default function PruebasWalletApp() {
                 )}
               </div>
 
-              <div className="coupon-section" style={{ marginTop: '15px', marginBottom: '20px' }}>
-                <label className="form-label">¿Tenés un cupón?</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="Ingresá tu código" 
-                    value={couponInput}
-                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
-                    style={{ textTransform: 'uppercase' }}
-                  />
+              <div className="coupon-section" style={{ marginTop: '15px', marginBottom: '15px' }}>
+                {!showCouponInput ? (
                   <button 
-                    type="button"
-                    className="btn btn-secondary" 
-                    onClick={() => {
-                      setAppliedCoupon(couponInput);
-                      if(couponInput) toast.success("Cupón validado");
-                    }}
+                    type="button" 
+                    onClick={() => setShowCouponInput(true)}
+                    style={{ background: 'none', border: 'none', color: 'var(--red-600)', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    Aplicar
+                    🎟️ Usar cupón de descuento
                   </button>
-                </div>
-                {appliedCoupon && checkoutTotals?.appliedCuponId && (
-                  <small style={{ color: 'var(--green-600)', fontWeight: 'bold' }}>¡Cupón "{appliedCoupon}" aceptado!</small>
+                ) : (
+                  <div className="animate-fade-in">
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Ingresá tu código</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="Código" 
+                        value={couponInput}
+                        onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                        style={{ textTransform: 'uppercase', padding: '8px 12px', minHeight: '38px' }}
+                      />
+                      <button 
+                        type="button"
+                        className="btn btn-secondary btn-sm" 
+                        onClick={() => {
+                          setAppliedCoupon(couponInput);
+                          if(couponInput) toast.success("Cupón validado");
+                        }}
+                        disabled={!couponInput}
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </div>
                 )}
-                {appliedCoupon && !checkoutTotals?.appliedCuponId && (
-                  <small style={{ color: 'var(--red-600)', fontWeight: 'bold' }}>El cupón no es válido o no aplica a este pedido.</small>
+                {appliedCoupon && checkoutTotals?.appliedCuponId && (
+                  <small style={{ color: 'var(--green-600)', fontWeight: 'bold', display: 'block', marginTop: '6px' }}>¡Cupón "{appliedCoupon}" aceptado!</small>
                 )}
               </div>
 
@@ -4016,20 +4268,6 @@ export default function PruebasWalletApp() {
                     textAlign: 'center'
                   }}>
                     Esta dirección está fuera del área de cobertura por el momento.
-                  </div>
-                )}
-                {!optInRegistered && (
-                  <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#f0fdf4', padding: '12px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-                    <input 
-                      type="checkbox" 
-                      id="wa-optin-checkout"
-                      checked={whatsappCheckoutOptIn}
-                      onChange={e => setWhatsappCheckoutOptIn(e.target.checked)}
-                      style={{ marginTop: '3px', width: '18px', height: '18px', accentColor: '#25D366' }}
-                    />
-                    <label htmlFor="wa-optin-checkout" style={{ fontSize: '0.85rem', color: '#166534', lineHeight: '1.4', cursor: 'pointer', margin: 0, marginTop: '2px', fontWeight: '500' }}>
-                      Recibir avisos sobre el estado de mi pedido en WhatsApp
-                    </label>
                   </div>
                 )}
                 <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading || isOutofCoverage}>

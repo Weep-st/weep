@@ -3050,102 +3050,6 @@ export async function deleteAdminTask(id) {
 }
 
 // ═══════════════════════════════════════════════════
-// ADMIN — Emails & Marketing Segmentation
-// ═══════════════════════════════════════════════════
-export async function getSegmentedRecipients({ 
-  target, 
-  manualEmails, 
-  ciudad, 
-  segmentType = 'none', 
-  numSegments = 2, 
-  segmentIndex = 0, 
-  activityType = 'all', 
-  samplePercentage = 50 
-}) {
-  if (target === 'manual' && manualEmails) {
-    return Array.isArray(manualEmails) ? manualEmails : manualEmails.split(/[\s,]+/).filter(e => e && e.includes('@'));
-  }
-
-  let table = 'usuarios';
-  if (target === 'locales') table = 'locales';
-  if (target === 'repartidores') table = 'repartidores';
-  if (target === 'lanzamiento') table = 'lanzamiento';
-  if (target === 'usuarios_ciudad' || target === 'usuarios_segmento') table = 'usuarios';
-
-  let selectFields = 'email';
-  if (table === 'usuarios') selectFields = 'id, email, ciudad, ya_realizo_pedidos';
-
-  let query = supabase.from(table).select(selectFields);
-  if (table !== 'lanzamiento' && ciudad) {
-    query = query.eq('ciudad', ciudad);
-  }
-
-  const { data: recipients } = await query;
-  if (!recipients || recipients.length === 0) return [];
-
-  let list = recipients.filter(r => r.email && r.email.includes('@'));
-
-  // Segmentación por actividad de pedidos
-  if (table === 'usuarios' && segmentType === 'activity') {
-    if (activityType === 'new') {
-      list = list.filter(r => !r.ya_realizo_pedidos);
-    } else if (activityType === 'active') {
-      list = list.filter(r => r.ya_realizo_pedidos);
-    }
-  }
-
-  // Segmentación por división A/B o muestra aleatoria
-  if (segmentType === 'split' && list.length > 0) {
-    list.sort((a, b) => (a.id || a.email).localeCompare(b.id || b.email));
-    const total = list.length;
-    const chunkSize = Math.ceil(total / numSegments);
-    const start = segmentIndex * chunkSize;
-    const end = Math.min(start + chunkSize, total);
-    list = list.slice(start, end);
-  } else if (segmentType === 'sample' && list.length > 0) {
-    list.sort((a, b) => (a.id || a.email).localeCompare(b.id || b.email));
-    const count = Math.max(1, Math.ceil(list.length * (samplePercentage / 100)));
-    list = list.slice(0, count);
-  }
-
-  return [...new Set(list.map(r => r.email.trim()))];
-}
-
-export async function adminSendBulkEmail({ 
-  target, 
-  manualEmails, 
-  subject, 
-  htmlBody, 
-  ciudad,
-  segmentType = 'none',
-  numSegments = 2,
-  segmentIndex = 0,
-  activityType = 'all',
-  samplePercentage = 50
-}) {
-  const emails = await getSegmentedRecipients({ 
-    target, 
-    manualEmails, 
-    ciudad, 
-    segmentType, 
-    numSegments, 
-    segmentIndex, 
-    activityType, 
-    samplePercentage 
-  });
-  
-  if (emails.length === 0) return { success: false, error: 'No se encontraron destinatarios para el segmento seleccionado.' };
-  
-  const results = await Promise.all(emails.map(email => 
-    supabase.functions.invoke('send-email', {
-      body: { to: email.trim(), subject, htmlBody }
-    })
-  ));
-  
-  return { success: true, count: results.length };
-}
-
-// ═══════════════════════════════════════════════════
 // COBROS — Financial Dashboard
 // ═══════════════════════════════════════════════════
 export async function getCobrosByLocal(localId) {
@@ -5546,6 +5450,47 @@ export async function adminGetDriverPendingSettlements(driverId) {
   return data || [];
 }
 
+export async function adminGetDriversPendingStats() {
+  const { data: scheduledPayments, error: scheduledError } = await supabase
+    .from('repartidores_pagos_calendario')
+    .select('pedido_ids')
+    .not('pedido_ids', 'is', null);
+
+  if (scheduledError) throw scheduledError;
+
+  const allScheduledIds = scheduledPayments
+    .flatMap(p => p.pedido_ids ? p.pedido_ids.split(',') : [])
+    .map(id => id.trim())
+    .filter(Boolean);
+
+  const { data: pendingOrders, error } = await supabase
+    .from('pedidos_general')
+    .select('id, repartidor_id, created_at, precio_envio')
+    .eq('estado', 'Entregado')
+    .eq('cobro_repartidor_procesado', false);
+
+  if (error) throw error;
+
+  const validPendingOrders = pendingOrders.filter(o => !allScheduledIds.includes(o.id));
+
+  const driverStats = {};
+  validPendingOrders.forEach(o => {
+    const amount = Number(o.precio_envio || 0);
+    if (!driverStats[o.repartidor_id]) {
+      driverStats[o.repartidor_id] = { oldest_date: o.created_at, total_owed: amount };
+    } else {
+      driverStats[o.repartidor_id].total_owed += amount;
+      if (new Date(o.created_at) < new Date(driverStats[o.repartidor_id].oldest_date)) {
+        driverStats[o.repartidor_id].oldest_date = o.created_at;
+      }
+    }
+  });
+
+  return Object.entries(driverStats)
+    .map(([id, stats]) => ({ id, oldest_date: stats.oldest_date, total_owed: stats.total_owed }))
+    .sort((a, b) => new Date(a.oldest_date) - new Date(b.oldest_date));
+}
+
 export async function repartidorGetScheduledPayments(driverId) {
   const { data, error } = await supabase
     .from('repartidores_pagos_calendario')
@@ -5583,7 +5528,7 @@ export async function updateRubroConfig(id, updates) {
 
 export async function adminGetRepartidoresDetallado() {
   const { data } = await supabase.from('repartidores')
-    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor, foto_url, onesignal_id, horario_apertura, horario_cierre, dias_apertura, ultima_actividad, locales_prioridad, es_partner, partner_id')
+    .select('id, nombre, email, telefono, patente, marca_modelo, estado, admin_status, created_at, tipo_vehiculo, nivel_repartidor, foto_url, onesignal_id, horario_apertura, horario_cierre, dias_apertura, ultima_actividad, locales_prioridad, es_partner, partner_id, alias_cbu, nombre_cuenta')
     .order('created_at', { ascending: false });
   return data || [];
 }
@@ -6280,6 +6225,89 @@ export async function adminRemoveTagFromUser(userId, tagId) {
     .eq('tag_id', tagId);
   if (error) throw error;
   return { success: true };
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN — CRM Analytics (Conversión y Envíos)
+// ═══════════════════════════════════════════════════
+export async function adminGetCRMAnalytics() {
+  // 1. Fetch CRM History to count sent messages
+  const { data: history, error: hError } = await supabase
+    .from('crm_history')
+    .select('metadata, tipo, descripcion')
+    .in('tipo', ['automatizacion_ejecutada', 'mensaje_enviado', 'campana_enviada', 'notificacion_push']);
+  if (hError) console.error("Error al obtener crm_history:", hError);
+
+  // 2. Fetch Orders with origen_campana
+  const { data: orders, error: oError } = await supabase
+    .from('pedidos_general')
+    .select('id, precio_envio, precio_productos, origen_campana')
+    .not('origen_campana', 'is', null)
+    .in('estado_cliente', ['Entregado', 'Aceptado', 'Retirado', 'En Camino']);
+  if (oError) console.error("Error al obtener pedidos para analytics:", oError);
+
+  const analytics = {};
+
+  const processCampaignStr = (str) => {
+    if (!str) return null;
+    return str.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 30);
+  };
+
+  // Process history for sends
+  if (history) {
+    for (const h of history) {
+      let campaign = null;
+      
+      // Try to extract from metadata
+      if (h.metadata?.template_name) campaign = h.metadata.template_name;
+      else if (h.metadata?.campaign) campaign = h.metadata.campaign;
+      else if (h.metadata?.campana) campaign = h.metadata.campana;
+      
+      // Try to extract from URLs inside metadata strings
+      if (!campaign && h.metadata?.message?.includes('utm_campaign=')) {
+        const match = h.metadata.message.match(/utm_campaign=([^&\s"]+)/);
+        if (match) campaign = match[1];
+      }
+      if (!campaign && h.metadata?.logDetail?.includes('utm_campaign=')) {
+        const match = h.metadata.logDetail.match(/utm_campaign=([^&\s"]+)/);
+        if (match) campaign = match[1];
+      }
+      
+      // Try to extract from URL if present
+      if (!campaign && h.metadata?.url?.includes('utm_campaign=')) {
+        const match = h.metadata.url.match(/utm_campaign=([^&\s"]+)/);
+        if (match) campaign = match[1];
+      }
+
+      // Try to extract from description "Campaña Especial: xyz"
+      if (!campaign && h.descripcion && h.descripcion.includes('Campaña Especial:')) {
+         campaign = h.descripcion.split('Campaña Especial:')[1].trim();
+      }
+
+      campaign = processCampaignStr(campaign) || 'Desconocida';
+
+      if (!analytics[campaign]) {
+        analytics[campaign] = { campaign, sent: 0, orders: 0, revenue: 0 };
+      }
+      analytics[campaign].sent += 1;
+    }
+  }
+
+  // Process orders
+  if (orders) {
+    for (const o of orders) {
+      let campaign = processCampaignStr(o.origen_campana) || 'Desconocida';
+      
+      if (!analytics[campaign]) {
+        analytics[campaign] = { campaign, sent: 0, orders: 0, revenue: 0 };
+      }
+      analytics[campaign].orders += 1;
+      const amount = (Number(o.precio_productos) || 0) + (Number(o.precio_envio) || 0);
+      analytics[campaign].revenue += amount;
+    }
+  }
+
+  return Object.values(analytics).sort((a, b) => b.revenue - a.revenue);
 }
 
 export async function adminGetCRMEvents(userId) {

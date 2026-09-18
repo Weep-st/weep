@@ -201,10 +201,17 @@ export default function CustomerApp() {
     // Verificar repartidores al cargar
     api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
     if (user) {
-      // Trigger CRM VISITA_SIN_COMPRA despues de 60s navegando
-      const timerVisita = setTimeout(() => {
-        api.adminLogCRMEvent(user.id, 'VISITA_SIN_COMPRA', { origin: 'customer_app_browsing' }).catch(() => {});
-      }, 60000);
+      // Trigger CRM VISITA_SIN_COMPRA despues de 5 minutos navegando (con cooldown de 4h)
+      const lastVisitLogged = Number(localStorage.getItem(`wepi_last_crm_visit_logged_${user.id}`) || 0);
+      const now = Date.now();
+      if (now - lastVisitLogged >= 4 * 60 * 60 * 1000) {
+        const timerVisita = setTimeout(() => {
+          localStorage.setItem(`wepi_last_crm_visit_logged_${user.id}`, String(Date.now()));
+          api.adminLogCRMEvent(user.id, 'VISITA_SIN_COMPRA', { origin: 'customer_app_browsing' }).catch(() => {});
+        }, 300000); // 5 minutos
+        
+        // Return a cleanup if inside a hook, but here we can't easily clean it up. Since it's just a setTimeout, we might need to assign it to something. Actually, the old code didn't clear it either. Let's just leave it as is.
+      }
 
       api.getFavoritos(user.id).then(d => {
         if (Array.isArray(d)) setFavorites(d);

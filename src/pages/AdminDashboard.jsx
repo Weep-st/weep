@@ -3,13 +3,11 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
 import AdminLocales from './AdminLocales';
-import AdminEmails from './AdminEmails';
 import AdminTasks from './AdminTasks';
 import AdminLogin from './AdminLogin';
 import AdminRepartidores from './AdminRepartidores';
 import AdminPagos from './AdminPagos';
 import AdminPedidos from './AdminPedidos';
-import AdminUsuarios from './AdminUsuarios';
 import AdminBanners from './AdminBanners';
 import AdminConfig from './AdminConfig';
 import AdminPruebas from './AdminPruebas';
@@ -68,10 +66,8 @@ const AdminDashboard = () => {
         switch (activeTab) {
             case 'locales': return <AdminLocales />;
             case 'repartidores': return <AdminRepartidores />;
-            case 'emails': return <AdminEmails />;
             case 'tasks': return <AdminTasks />;
             case 'pedidos': return <AdminPedidos />;
-            case 'usuarios': return <AdminUsuarios />;
             case 'banners': return <AdminBanners />;
             case 'config': return <AdminConfig />;
             case 'pruebas': return <AdminPruebas />;
@@ -103,18 +99,14 @@ const AdminDashboard = () => {
                     <button className={activeTab === 'repartidores' ? 'active' : ''} onClick={() => handleTabClick('repartidores')}>
                         <span className="icon">🏍️</span> Repartidores
                     </button>
-                    <button className={activeTab === 'emails' ? 'active' : ''} onClick={() => handleTabClick('emails')}>
-                        <span className="icon">📧</span> Panel Email
-                    </button>
+
                     <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => handleTabClick('tasks')}>
                         <span className="icon">📋</span> Tareas Pendientes
                     </button>
                     <button className={activeTab === 'pedidos' ? 'active' : ''} onClick={() => handleTabClick('pedidos')}>
                         <span className="icon">📦</span> Pedidos
                     </button>
-                    <button className={activeTab === 'usuarios' ? 'active' : ''} onClick={() => handleTabClick('usuarios')}>
-                        <span className="icon">👥</span> Usuarios
-                    </button>
+
                     <button className={activeTab === 'banners' ? 'active' : ''} onClick={() => handleTabClick('banners')}>
                         <span className="icon">🖼️</span> Banners
                     </button>
