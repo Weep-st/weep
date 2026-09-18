@@ -22,13 +22,29 @@ export default function AppRedirectHandler() {
     if (hasUTM || isPedir) {
       setShowAppBanner(true);
 
-      // En Android Chrome podemos intentar abrir la app mediante Intent
       const hasTriedOpen = sessionStorage.getItem('wepi_auto_app_redirect_tried');
-      if (!hasTriedOpen && isAndroid) {
+      if (!hasTriedOpen) {
         sessionStorage.setItem('wepi_auto_app_redirect_tried', 'true');
         const cleanPath = location.pathname.replace(/^\//, '');
-        const intentUrl = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${encodeURIComponent(window.location.href + '?tried=1')};end;`;
-        window.location.href = intentUrl;
+
+        if (isAndroid) {
+          // Intent para Android: si no está instalada, fallback a la Google Play Store
+          const fallbackUrl = encodeURIComponent('https://play.google.com/store/apps/details?id=com.wepi.app');
+          const intentUrl = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
+          window.location.href = intentUrl;
+        } else if (isIOS) {
+          // Esquema nativo para iOS
+          const appUrl = `wepi://${cleanPath}${location.search}`;
+          const start = Date.now();
+          window.location.href = appUrl;
+
+          // Fallback para iOS a la App Store tras 1.5s
+          setTimeout(() => {
+            if (Date.now() - start < 2000) {
+              window.location.href = 'https://apps.apple.com/app/wepi/id6742398436';
+            }
+          }, 1500);
+        }
       }
     }
   }, [location]);
@@ -40,7 +56,8 @@ export default function AppRedirectHandler() {
     const cleanPath = location.pathname.replace(/^\//, '');
 
     if (isAndroid) {
-      window.location.href = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;end;`;
+      const fallbackUrl = encodeURIComponent('https://play.google.com/store/apps/details?id=com.wepi.app');
+      window.location.href = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
     } else if (isIOS) {
       // Usar esquema limpio wepi:// para iOS evitando bloqueos y errores de dirección no válida
       const appUrl = `wepi://${cleanPath}${location.search}`;
