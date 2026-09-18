@@ -6,7 +6,9 @@
         "appID": "JHVX9U858F.com.wepi.app",
         "paths": [
           "/app",
-          "/descargar"
+          "/descargar",
+          "/pedir",
+          "/pedir/*"
         ]
       },
       {
