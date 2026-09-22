@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider } from '../services/firebase';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import * as api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -96,6 +98,9 @@ export function AuthProvider({ children }) {
     }
 
     try {
+      if (Capacitor.isNativePlatform()) {
+         await FirebaseAuthentication.signOut();
+      }
       await signOut(auth);
     } catch (e) {
       console.error("Firebase logout error:", e);
@@ -104,8 +109,17 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
+      let firebaseUser;
+      
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const credential = GoogleAuthProvider.credential(result.credential?.idToken);
+        const authResult = await signInWithCredential(auth, credential);
+        firebaseUser = authResult.user;
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        firebaseUser = result.user;
+      }
       
       // Sincronizar con Supabase
       const dbUser = await api.syncFirebaseUser(firebaseUser);
@@ -132,6 +146,49 @@ export function AuthProvider({ children }) {
         errMsg = `Dominio no autorizado en Firebase. Debes registrar el dominio actual ('${window.location.hostname}') en tu consola de Firebase -> Authentication -> Settings (Configuración) -> Authorized Domains (Dominios Autorizados).`;
       }
       return { success: false, error: errMsg };
+    }
+  };
+
+  const loginWithApple = async () => {
+    try {
+      let firebaseUser;
+      
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithApple();
+        const provider = new OAuthProvider('apple.com');
+        const credential = provider.credential({
+          idToken: result.credential?.idToken,
+          rawNonce: result.credential?.nonce
+        });
+        const authResult = await signInWithCredential(auth, credential);
+        firebaseUser = authResult.user;
+      } else {
+        const provider = new OAuthProvider('apple.com');
+        const result = await signInWithPopup(auth, provider);
+        firebaseUser = result.user;
+      }
+      
+      // Sincronizar con Supabase
+      const dbUser = await api.syncFirebaseUser(firebaseUser);
+      
+      if (dbUser.success) {
+        loginAsUser({
+          userId: dbUser.userId,
+          name: dbUser.nombre,
+          email: dbUser.email,
+          address: dbUser.direccion,
+          telefono: dbUser.telefono,
+          emailConfirmado: dbUser.emailConfirmado,
+          role: dbUser.role,
+          ya_realizo_pedidos: dbUser.ya_realizo_pedidos,
+          ciudad: dbUser.ciudad || 'Santo Tomé'
+        });
+        return { success: true, isNew: dbUser.isNew };
+      }
+      return { success: false, error: 'Error al sincronizar con la base de datos' };
+    } catch (error) {
+      console.error("Error en login con Apple:", error);
+      return { success: false, error: error.message };
     }
   };
 
@@ -181,7 +238,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, restaurant, driver,
-      loginAsUser, logoutUser, loginWithGoogle,
+      loginAsUser, logoutUser, loginWithGoogle, loginWithApple,
       loginAsRestaurant, logoutRestaurant,
       loginAsDriver, logoutDriver,
       updateUserAddress,

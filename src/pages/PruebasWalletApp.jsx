@@ -70,7 +70,7 @@ export default function PruebasWalletApp() {
     console.error("❌ Error loading Google Maps in CustomerApp:", loadError);
   }
   
-  const { user, loginAsUser, loginWithGoogle, logoutUser: doLogout, updateUserAddress } = useAuth();
+  const { user, loginAsUser, loginWithGoogle, loginWithApple, logoutUser: doLogout, updateUserAddress } = useAuth();
   const cart = useCart();
   const navigate = useNavigate();
 
@@ -2057,6 +2057,23 @@ export default function PruebasWalletApp() {
     setAuthLoading(false);
   };
 
+
+  const handleAppleLogin = async () => {
+    setAuthLoading(true);
+    const res = await loginWithApple();
+    if (res.success) {
+      setModal(null);
+      if (res.isNew) {
+        toast.success("¡Bienvenido! Recordá completar tu teléfono en el perfil para pedir.");
+      } else {
+        toast.success("¡Bienvenido!");
+      }
+    } else {
+      toast.error(res.error || "Error al iniciar sesión con Apple");
+    }
+    setAuthLoading(false);
+  };
+
   const handleResendConfirmation = async () => {
     if (!user?.email) return;
     const loading = toast.loading('Reenviando email...');
@@ -3199,58 +3216,58 @@ export default function PruebasWalletApp() {
           <div className="home-screen animate-fade-in">
                           {/* Banners Grid Container */}
              <div className="home-banners-grid">
-               {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
-             <section className="home-section dynamic-banner-section">
-               <div 
-                 className="dynamic-banner animate-fade-in" 
-                 onClick={handleBannerClick}
-               >
-                 <img src={homeLayout.dynamicBanner} alt={homeLayout.dynamicTitle} />
-                 <div className="banner-overlay">
-                   <h2>{homeLayout.dynamicTitle}</h2>
-                   <button className="banner-btn">Ver locales ➔</button>
-                 </div>
-               </div>
+               {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
+             <section className="home-section dynamic-banner-section">
+               <div 
+                 className="dynamic-banner animate-fade-in" 
+                 onClick={handleBannerClick}
+               >
+                 <img src={homeLayout.dynamicBanner} alt={homeLayout.dynamicTitle} />
+                 <div className="banner-overlay">
+                   <h2>{homeLayout.dynamicTitle}</h2>
+                   <button className="banner-btn">Ver locales ➔</button>
+                 </div>
+               </div>
              </section>
 
-               {/* ——— Banners Carousel ——— */}
-        {!bannersLoading && banners.length > 0 && (
-          <div className="wallet-banners-carousel-wrapper animate-fade-in">
-            <div 
-              className="wallet-banners-carousel-container"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-            >
-              <div 
-                className="wallet-banners-carousel"
-                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
-              >
-                {banners.map(b => (
-                  <div 
-                    key={b.id} 
-                    className={`wallet-banner-slide ${b.link ? 'clickable' : ''}`}
-                    onClick={() => b.link && window.open(b.link, '_blank')}
-                  >
-                    <img 
-                      src={b.imagen_url} 
-                      alt="Promo" 
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-            {banners.length > 1 && (
-              <div className="wallet-carousel-dots">
-                {banners.map((_, idx) => (
-                  <span 
-                    key={idx} 
-                    className={`wallet-carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentBannerIndex(idx)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+               {/* ——— Banners Carousel ——— */}
+        {!bannersLoading && banners.length > 0 && (
+          <div className="wallet-banners-carousel-wrapper animate-fade-in">
+            <div 
+              className="wallet-banners-carousel-container"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              <div 
+                className="wallet-banners-carousel"
+                style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
+              >
+                {banners.map(b => (
+                  <div 
+                    key={b.id} 
+                    className={`wallet-banner-slide ${b.link ? 'clickable' : ''}`}
+                    onClick={() => b.link && window.open(b.link, '_blank')}
+                  >
+                    <img 
+                      src={b.imagen_url} 
+                      alt="Promo" 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {banners.length > 1 && (
+              <div className="wallet-carousel-dots">
+                {banners.map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`wallet-carousel-dot ${idx === currentBannerIndex ? 'active' : ''}`}
+                    onClick={() => setCurrentBannerIndex(idx)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
              </div>
               <div className="home-brand-message-box" style={{ padding: '0 20px', margin: '24px 0 12px', textAlign: 'center' }}>
@@ -4317,6 +4334,12 @@ export default function PruebasWalletApp() {
                   <img src="https://i.postimg.cc/4yg7FY6B/channels4-profile.jpg" alt="Google" className="google-icon" />
                   Continuar con Google
                 </button>
+                {Capacitor.getPlatform() !== 'android' && (
+                  <button type="button" className="btn btn-full" style={{backgroundColor: '#000', color: '#fff', marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'}} onClick={handleAppleLogin} disabled={authLoading}>
+                    <svg viewBox="0 0 384 512" width="20" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+                    Continuar con Apple
+                  </button>
+                )}
 
                 <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
               </form>
@@ -4391,6 +4414,12 @@ export default function PruebasWalletApp() {
                   <img src="https://i.postimg.cc/4yg7FY6B/channels4-profile.jpg" alt="Google" className="google-icon" />
                   Registrarme con Google
                 </button>
+                {Capacitor.getPlatform() !== 'android' && (
+                  <button type="button" className="btn btn-full" style={{backgroundColor: '#000', color: '#fff', marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'}} onClick={handleAppleLogin} disabled={authLoading}>
+                    <svg viewBox="0 0 384 512" width="20" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+                    Registrarme con Apple
+                  </button>
+                )}
 
                 <p className="modal-switch">¿Ya tenés cuenta? <button type="button" onClick={() => { setModal('login'); setShowPassword(false); }}>Iniciar sesión</button></p>
               </form>

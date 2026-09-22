@@ -1,54 +1,21 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/services/api.js', 'utf8');
 
-const targetStr = `      const { data: pg } = await supabase
-        .from('pedidos_general')
-        .select('usuario_id, telefono_cliente')
-        .eq('id', orderId)
-        .maybeSingle();
+function fix() {
+    let content = fs.readFileSync('src/services/api.js', 'utf8');
 
-      if (pg) {
-        targetUserId = pg.usuario_id;
-      }
-
-      await Promise.all([
-        supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderId),
-        supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderId)
-      ]);`;
-
-const targetIdx = content.indexOf(`      const { data: pg } = await supabase
-        .from('pedidos_general')
-        .select('usuario_id, telefono_cliente')
-        .eq('id', orderId)
-        .maybeSingle();`);
-
-if (targetIdx !== -1) {
-    const endIdx = content.indexOf(']);', targetIdx);
+    // Revert userEmail
+    content = content.replace(/const baseEmail = [^;]+;\s*const userEmail = [^;]+;/, 'const userEmail = (email && email.trim()) ? email.trim() : (cleanPhone ? `${cleanPhone}@lead.wepi.app` : `lead_${Date.now()}@wepi.app`);');
     
-    const newFunc = `      const { data: pg } = await supabase
-        .from('pedidos_general')
-        .select('usuario_id, telefono_cliente, estado')
-        .eq('id', orderId)
-        .maybeSingle();
-
-      if (pg) {
-        if (['Confirmado', 'Aceptado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Entregado'].includes(pg.estado)) {
-            console.log("Abortando auto-rechazo, el pedido ya esto en progreso:", pg.estado);
-            return { success: false, error: 'Pedido ya confirmado/en proceso' };
+    // Remove the update block
+    const updateBlockStart = content.indexOf('// Si el usuario ya existía por teléfono o email, se le actualiza la ciudad correspondiente y el nombre');
+    if (updateBlockStart !== -1) {
+        const elseBlockStart = content.indexOf('} else {', updateBlockStart);
+        if (elseBlockStart !== -1) {
+            content = content.slice(0, updateBlockStart) + '// Si el usuario ya existe, simplemente lo ignoramos (no se actualiza)\n    ' + content.slice(elseBlockStart);
         }
-        targetUserId = pg.usuario_id;
-      }
+    }
 
-      await Promise.all([
-        supabase.from('pedidos_general').update({ estado: 'Rechazado' }).eq('id', orderId),
-        supabase.from('pedidos_locales').update({ estado: 'Rechazado' }).eq('pedido_id', orderId)
-      ]);`;
-
-    content = content.substring(0, targetIdx) + newFunc + content.substring(endIdx + 3);
-    
     fs.writeFileSync('src/services/api.js', content);
-    fs.writeFileSync('C:\\Users\\Axel\\OneDrive\\Desktop\\Wepi Repartidores\\src\\services\\api.js', content);
-    console.log("Success api.js");
-} else {
-    console.log("Not found in api.js");
+    console.log("Fixed.");
 }
+fix();

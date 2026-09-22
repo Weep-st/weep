@@ -1,27 +1,43 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/services/api.js', 'utf8');
 
-const oldFunc = `      const { data: pg } = await supabase
-        .from('pedidos_general')
-        .select('usuario_id, telefono_cliente')
-        .eq('id', orderId)
-        .maybeSingle();`;
+function applyFix() {
+    let content = fs.readFileSync('src/services/api.js', 'utf8');
 
-const newFunc = `      const { data: pg } = await supabase
-        .from('pedidos_general')
-        .select('usuario_id, telefono_cliente, estado')
-        .eq('id', orderId)
-        .maybeSingle();
+    // 1. Remove leads_expansion
+    const leadsCode = `    // 1. Guardar en tabla leads_expansion
+    await supabase
+      .from('leads_expansion')
+      .insert([{ nombre, whatsapp, email, ciudad }])
+      .catch(err => console.warn("Notice: leads_expansion insert warning:", err));`;
+    
+    if (content.includes(leadsCode)) {
+        content = content.replace(leadsCode, '');
+    }
 
-      if (pg && ['Confirmado', 'Aceptado', 'Preparando', 'Listo', 'Retirado', 'En camino', 'Entregado'].includes(pg.estado)) {
-        return { success: false, error: 'Pedido ya confirmado/en proceso' };
-      }`;
+    // 2. Make userEmail strictly unique so it NEVER hits 23505
+    const oldEmailLogic = 'const userEmail = (email && email.trim()) ? email.trim() : (cleanPhone ? `${cleanPhone}@lead.wepi.app` : `lead_${Date.now()}@wepi.app`);';
+    const newEmailLogic = 'const baseEmail = (email && email.trim()) ? email.trim() : (cleanPhone ? `${cleanPhone}@lead.wepi.app` : `lead_${Date.now()}@wepi.app`);\n    const userEmail = baseEmail.includes("@") ? baseEmail.replace("@", `+lead_${Date.now()}@`) : `${baseEmail}_lead_${Date.now()}`;';
+    
+    if (content.includes(oldEmailLogic)) {
+        content = content.replace(oldEmailLogic, newEmailLogic);
+    }
 
-if (content.includes(oldFunc)) {
-  content = content.replace(oldFunc, newFunc);
-  fs.writeFileSync('src/services/api.js', content);
-  fs.writeFileSync('C:\\Users\\Axel\\OneDrive\\Desktop\\Wepi Repartidores\\src\\services\\api.js', content);
-  console.log("Success api.js");
-} else {
-  console.log("Failed api.js");
+    // 3. Make the API throw an error if insert into usuarios fails! So the user actually sees the error instead of fake "Success".
+    const errorBlock = `    if (userError) {
+      console.warn("User insert notice in registrarInteresExpansion:", userError);
+      // Si el usuario ya existe, simplemente lo ignoramos (no se actualiza)
+    } else {`;
+    
+    const newErrorBlock = `    if (userError) {
+      console.error("Error al insertar lead en usuarios:", userError);
+      return { success: false, error: userError };
+    } else {`;
+    
+    if (content.includes(errorBlock)) {
+        content = content.replace(errorBlock, newErrorBlock);
+    }
+
+    fs.writeFileSync('src/services/api.js', content);
+    console.log("api.js fixed");
 }
+applyFix();

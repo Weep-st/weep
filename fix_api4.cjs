@@ -1,7 +1,9 @@
 const fs = require('fs');
 
 function applyFix() {
-    let content = fs.readFileSync('src/services/api.js', 'utf8');
+    const lines = fs.readFileSync('src/services/api.js', 'utf8').split('\n');
+    const start = 7524; // 0-indexed is 7524, line 7525
+    const end = 7569;   // line 7570
 
     const newFunction = `export async function registrarInteresExpansion({ nombre, whatsapp, email, ciudad }) {
   try {
@@ -42,15 +44,10 @@ function applyFix() {
   }
 }`;
 
-    // Regex to match the entire function
-    const regex = /export async function registrarInteresExpansion\(\{\s*nombre,\s*whatsapp,\s*email,\s*ciudad\s*\}\) \{[\s\S]*?return \{ success: false, error: err \};\s*\n  \}\n\}/;
+    // Splice array
+    lines.splice(start, end - start, newFunction);
     
-    if (regex.test(content)) {
-        content = content.replace(regex, newFunction);
-        fs.writeFileSync('src/services/api.js', content);
-        console.log("Replaced function completely!");
-    } else {
-        console.log("Could not match the function.");
-    }
+    fs.writeFileSync('src/services/api.js', lines.join('\n'));
+    console.log("Fixed!");
 }
 applyFix();
