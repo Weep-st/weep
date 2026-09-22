@@ -80,7 +80,8 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.wepi.app</string>
-				<string>wepi</string>\n\t\t\t\t<string>com.googleusercontent.apps.626257239107-c7ouv1qbpvm0c69pelncpj5f6qlnp1n8</string>
+				<string>wepi</string>
+				<string>com.googleusercontent.apps.626257239107-c7ouv1qbpvm0c69pelncpj5f6qlnp1n8</string>
 			</array>
 		</dict>
 	</array>
