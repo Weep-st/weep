@@ -10,12 +10,15 @@
       "sha256_cert_fingerprints": [
         "D6:14:46:0D:F3:9A:40:B4:5D:D1:B8:3E:34:6F:84:8F:E6:97:CA:8F:F0:33:78:ED:DC:55:11:37:3C:6D:FB:03",
         "28:6E:FF:B5:05:8C:67:C5:C2:A2:88:35:4F:7C:2A:C5:DF:4B:4F:89:D3:5C:FA:B4:84:63:64:B4:AA:18:65:7F",
-        "87:C5:D4:F0:27:F4:CE:C9:D2:56:60:10:E5:AF:D8:93:D5:89:57:33:58:50:8C:58:62:C7:CC:55:36:63:A9:58"
+        "87:C5:D4:F0:27:F4:CE:C9:D2:56:60:10:E5:AF:D8:93:D5:89:57:33:58:50:8C:58:62:C7:CC:55:36:63:A9:58",
+        "52:46:22:16:6D:71:84:EE:9F:57:97:9E:A9:B6:16:DE:92:DE:37:20:CD:BC:44:11:3D:45:F2:D2:80:CC:78:13"
       ]
     }
   },
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.wepi.logistic",
