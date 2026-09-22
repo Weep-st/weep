@@ -6,9 +6,12 @@
     "OtaKit": {
       "appId": "36bb893d-ac6e-4780-bc81-87bbeb0837f6"
     },
-
     "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     },
     "StatusBar": {
       "overlaysWebView": false,
@@ -20,6 +23,13 @@
       "launchAutoHide": true,
       "backgroundColor": "#ffffffff",
       "showSpinner": true
+    },
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": [
+        "apple.com",
+        "google.com"
+      ]
     }
   }
 }
