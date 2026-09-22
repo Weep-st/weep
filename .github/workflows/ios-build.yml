@@ -25,6 +25,9 @@ jobs:
       - name: Install CocoaPods
         run: sudo gem install cocoapods
 
+      - name: Patch FCM for Firebase 12
+        run: node patch_fcm.cjs
+
       - name: Sync Capacitor iOS
         run: npx cap sync ios
         
