@@ -32,7 +32,8 @@ export async function loginUsuario(email, password) {
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')
-    .eq('email', email)
+    .ilike('email', email)
+    .limit(1)
     .eq('password', password)
     .single();
   if (error || !data) return { success: false };
@@ -88,10 +89,12 @@ export async function registerUsuario(nombre, email, password, direccion, telefo
 }
 
 export async function getUsuarioByEmail(email) {
+  if (!email) return null;
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')
-    .eq('email', email)
+    .ilike('email', email)
+    .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data;
@@ -308,7 +311,8 @@ export async function repartidorLogin(email, password) {
   const { data, error } = await supabase
     .from('repartidores')
     .select('*')
-    .eq('email', email)
+    .ilike('email', email)
+    .limit(1)
     .eq('password', password)
     .single();
   if (error || !data) return { success: false, error: 'Credenciales incorrectas' };
@@ -434,7 +438,8 @@ export async function reenviarEmailConfirmacion(email, tipo) {
   const { data, error } = await supabase
     .from(table)
     .update({ token_confirmacion: code })
-    .eq('email', email)
+    .ilike('email', email)
+    .limit(1)
     .select('nombre')
     .single();
     
