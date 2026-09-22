@@ -113,9 +113,7 @@ export function AuthProvider({ children }) {
       
       if (Capacitor.isNativePlatform()) {
         const result = await FirebaseAuthentication.signInWithGoogle();
-        const credential = GoogleAuthProvider.credential(result.credential?.idToken);
-        const authResult = await signInWithCredential(auth, credential);
-        firebaseUser = authResult.user;
+        firebaseUser = result.user;
       } else {
         const result = await signInWithPopup(auth, googleProvider);
         firebaseUser = result.user;
@@ -155,13 +153,7 @@ export function AuthProvider({ children }) {
       
       if (Capacitor.isNativePlatform()) {
         const result = await FirebaseAuthentication.signInWithApple();
-        const provider = new OAuthProvider('apple.com');
-        const credential = provider.credential({
-          idToken: result.credential?.idToken,
-          rawNonce: result.credential?.nonce
-        });
-        const authResult = await signInWithCredential(auth, credential);
-        firebaseUser = authResult.user;
+        firebaseUser = result.user;
       } else {
         const provider = new OAuthProvider('apple.com');
         const result = await signInWithPopup(auth, provider);
