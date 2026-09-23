@@ -32,18 +32,6 @@ export default function AppRedirectHandler() {
           const fallbackUrl = encodeURIComponent(window.location.href + (window.location.search ? '&' : '?') + 'tried=1');
           const intentUrl = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
           window.location.href = intentUrl;
-        } else if (isIOS) {
-          // Esquema nativo para iOS
-          const appUrl = `wepi://${cleanPath}${location.search}`;
-          const start = Date.now();
-          window.location.href = appUrl;
-
-          // Fallback para iOS a la App Store tras 1.5s
-          setTimeout(() => {
-            if (Date.now() - start < 2000) {
-              window.location.href = 'https://apps.apple.com/ar/app/wepi-app/id6801576564';
-            }
-          }, 1500);
         }
       }
     }
