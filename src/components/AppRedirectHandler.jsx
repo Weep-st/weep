@@ -28,8 +28,8 @@ export default function AppRedirectHandler() {
         const cleanPath = location.pathname.replace(/^\//, '');
 
         if (isAndroid) {
-          // Intent para Android: si no está instalada, fallback a la Google Play Store
-          const fallbackUrl = encodeURIComponent('https://play.google.com/store/apps/details?id=com.wepi.app');
+          // Intent para Android: si no está instalada, fallback al Formulario de Google
+          const fallbackUrl = encodeURIComponent('https://forms.gle/V4tdT3WJd4vLjMra9');
           const intentUrl = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
           window.location.href = intentUrl;
         } else if (isIOS) {
@@ -56,7 +56,7 @@ export default function AppRedirectHandler() {
     const cleanPath = location.pathname.replace(/^\//, '');
 
     if (isAndroid) {
-      const fallbackUrl = encodeURIComponent('https://play.google.com/store/apps/details?id=com.wepi.app');
+      const fallbackUrl = encodeURIComponent('https://forms.gle/V4tdT3WJd4vLjMra9');
       window.location.href = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
     } else if (isIOS) {
       // Usar esquema limpio wepi:// para iOS evitando bloqueos y errores de dirección no válida

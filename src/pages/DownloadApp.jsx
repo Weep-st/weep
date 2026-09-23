@@ -12,7 +12,7 @@ export default function DownloadApp() {
 
     // Detectar Android
     if (/android/i.test(userAgent)) {
-      window.location.replace("https://play.google.com/store/apps/details?id=com.wepi.app");
+      window.location.replace("https://forms.gle/V4tdT3WJd4vLjMra9");
       return;
     }
 
