@@ -14,6 +14,8 @@ import { isLocalOpen as isLocalOpenFlexible, getNextStatusChange } from '../util
 import { evaluatePromotions } from '../utils/promoEngine';
 import { getCitySlug, citiesMatch } from '../utils/city';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+
 import './PruebasWalletApp.css';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
@@ -94,6 +96,55 @@ export default function PruebasWalletApp() {
     const sessionCity = sessionStorage.getItem('sessionCity');
     return sessionCity || null;
   });
+
+  
+  // --- Check Minimum Version ---
+  React.useEffect(() => {
+    const checkVersion = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+        const configData = await api.getConfiguracion();
+        if (!configData) return;
+
+        const info = await CapacitorApp.getInfo();
+        const currentVersion = info.version;
+        const platform = Capacitor.getPlatform(); // 'ios' or 'android'
+
+        let minVersion = null;
+        let storeUrl = null;
+
+        if (platform === 'ios') {
+          minVersion = configData.min_version_ios;
+          storeUrl = configData.url_ios;
+        } else if (platform === 'android') {
+          minVersion = configData.min_version_android;
+          storeUrl = configData.url_android;
+        }
+
+        if (minVersion && currentVersion) {
+          // Compare versions (e.g. 1.2.1 vs 1.3.0)
+          const isOlder = (v1, v2) => {
+            const parts1 = v1.split('.').map(Number);
+            const parts2 = v2.split('.').map(Number);
+            for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+              const p1 = parts1[i] || 0;
+              const p2 = parts2[i] || 0;
+              if (p1 < p2) return true;
+              if (p1 > p2) return false;
+            }
+            return false;
+          };
+
+          if (isOlder(currentVersion, minVersion)) {
+            setForcedUpdate({ url: storeUrl || 'https://wepi.app' });
+          }
+        }
+      } catch (e) {
+        console.error('Error checking min version:', e);
+      }
+    };
+    checkVersion();
+  }, []);
 
   React.useEffect(() => {
     const getOtaVersion = async () => {

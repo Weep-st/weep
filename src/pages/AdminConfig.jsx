@@ -592,6 +592,57 @@ const AdminConfig = () => {
                     </div>
                 </div>
 
+                
+                <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginTop: '24px' }}>
+                    <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '12px' }}>Versiones de la App (Forzar Actualización)</h3>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Versión mínima iOS (App Store)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.min_version_ios || ''}
+                                onChange={(e) => setConfig({ ...config, min_version_ios: e.target.value })}
+                                placeholder="Ej: 1.2.1"
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Versión mínima Android (Google Play)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.min_version_android || ''}
+                                onChange={(e) => setConfig({ ...config, min_version_android: e.target.value })}
+                                placeholder="Ej: 1.2.1"
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>URL App Store (iOS)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.url_ios || ''}
+                                onChange={(e) => setConfig({ ...config, url_ios: e.target.value })}
+                                placeholder="https://apps.apple.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>URL Google Play (Android)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.url_android || ''}
+                                onChange={(e) => setConfig({ ...config, url_android: e.target.value })}
+                                placeholder="https://play.google.com/..."
+                            />
+                        </div>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '12px' }}>
+                        * Si la versión de la app instalada es MENOR a la versión mínima aquí configurada, se bloqueará la app y se obligará al usuario a actualizar.
+                    </p>
+                </div>
+
                 <div style={{ marginTop: '3rem' }}>
                     <button 
                         type="submit" 
