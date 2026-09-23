@@ -28,8 +28,8 @@ export default function AppRedirectHandler() {
         const cleanPath = location.pathname.replace(/^\//, '');
 
         if (isAndroid) {
-          // Intent para Android: si no está instalada, fallback al Formulario de Google
-          const fallbackUrl = encodeURIComponent('https://forms.gle/V4tdT3WJd4vLjMra9');
+          // Intent para Android: si no está instalada, fallback a la misma web para no sacarlo
+          const fallbackUrl = encodeURIComponent(window.location.href + (window.location.search ? '&' : '?') + 'tried=1');
           const intentUrl = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
           window.location.href = intentUrl;
         } else if (isIOS) {
