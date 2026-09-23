@@ -41,7 +41,7 @@ export default function AppRedirectHandler() {
           // Fallback para iOS a la App Store tras 1.5s
           setTimeout(() => {
             if (Date.now() - start < 2000) {
-              window.location.href = 'https://apps.apple.com/app/wepi/id6742398436';
+              window.location.href = 'https://apps.apple.com/ar/app/wepi-app/id6801576564';
             }
           }, 1500);
         }
@@ -68,13 +68,16 @@ export default function AppRedirectHandler() {
       setTimeout(() => {
         if (Date.now() - start < 2000) {
           // Redirigir a App Store de Wepi
-          window.location.href = `https://apps.apple.com/app/wepi/id6742398436`;
+          window.location.href = `https://apps.apple.com/ar/app/wepi-app/id6801576564`;
         }
       }, 1500);
     }
   };
 
-  if (!showAppBanner || Capacitor.isNativePlatform()) return null;
+  const userAgent = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+
+  if (!showAppBanner || Capacitor.isNativePlatform() || isIOS) return null;
 
   return (
     <div style={{
