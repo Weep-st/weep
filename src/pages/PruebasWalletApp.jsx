@@ -3094,6 +3094,30 @@ export default function PruebasWalletApp() {
   // Show drinks carousel when no drink in cart and delivery is envio
   const showDrinks = cart.items.length > 0 && cart.deliveryType === 'envio' && !cart.hasDrink && drinks.length > 0;
 
+  // --- Forced Update Early Return ---
+  if (forcedUpdate) {
+    return (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: '#000000FA', zIndex: 9999999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '24px', textAlign: 'center', color: 'white'
+        }}>
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#ff4757' }}>Actualización Obligatoria</h2>
+          <p style={{ fontSize: '16px', marginBottom: '32px', color: '#ddd', maxWidth: '300px' }}>
+            Hemos lanzado una versión nueva con mejoras importantes. Para continuar usando la aplicación, por favor actualízala.
+          </p>
+          <button 
+            className="btn btn-primary"
+            style={{ padding: '16px 32px', fontSize: '18px', width: '100%', maxWidth: '300px' }}
+            onClick={() => window.open(forcedUpdate.url, '_system')}
+          >
+            Actualizar Ahora
+          </button>
+        </div>
+    );
+  }
+
   return (
     <div className="customer-app">
       <header className="app-header">
