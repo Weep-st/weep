@@ -60,7 +60,11 @@ const AdminConfig = () => {
                 mantenimiento_pedir: config.mantenimiento_pedir,
                 mantenimiento_locales: config.mantenimiento_locales,
                 mantenimiento_repartidores: config.mantenimiento_repartidores,
-                codigo_acceso: config.codigo_acceso
+                codigo_acceso: config.codigo_acceso,
+                min_version_ios: config.min_version_ios,
+                min_version_android: config.min_version_android,
+                url_ios: config.url_ios,
+                url_android: config.url_android
             });
             for (const c of ciudades) {
                 await api.updateCityLogisticsConfig(c.ciudad, {
