@@ -5517,7 +5517,7 @@ export default function PruebasWalletApp() {
                 className="btn btn-primary" 
                 style={{ background: '#009ee3', borderColor: '#009ee3', flex: 1, fontWeight: '700' }}
                 onClick={() => {
-                  window.open(mpRedirectUrl, '_blank');
+                  window.location.href = mpRedirectUrl;
                 }}
               >
                 Aceptar
@@ -5668,7 +5668,7 @@ export default function PruebasWalletApp() {
                           }}
                           disabled={!mpRedirectUrl}
                           onClick={() => {
-                            window.open(mpRedirectUrl, '_blank');
+                            window.location.href = mpRedirectUrl;
                           }}
                         >
                           {!mpRedirectUrl && <div className="spinner-small" style={{ margin: 0, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', width: '12px', height: '12px' }}></div>}
