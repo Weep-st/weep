@@ -51,6 +51,7 @@ const getInactiveCityFromSlug = (str) => {
 };
 
 export default function PruebasWalletApp() {
+  const [forcedUpdate, setForcedUpdate] = React.useState(null);
   const [otaVersion, setOtaVersion] = React.useState('v1.1.2');
   const { ciudad, slug } = useParams();
   const location = useLocation();
