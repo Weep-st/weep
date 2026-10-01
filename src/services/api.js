@@ -5,6 +5,11 @@ import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 import { isLocalOpen } from '../utils/businessHours';
 export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY };
 
+export let wasPasswordRecovery = false;
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') wasPasswordRecovery = true;
+});
+
 // Cloudflare R2 Storage (vía Supabase Edge Function)
 const R2_PUBLIC_URL = 'https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev';
 
