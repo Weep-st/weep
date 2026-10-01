@@ -1,14 +1,14 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   WEEP API â€” Supabase Backend
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   WEEP API — Supabase Backend
+   ═══════════════════════════════════════════════════ */
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 import { isLocalOpen } from '../utils/businessHours';
 export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY };
 
-// Cloudflare R2 Storage (vÃ­a Supabase Edge Function)
+// Cloudflare R2 Storage (vía Supabase Edge Function)
 const R2_PUBLIC_URL = 'https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev';
 
-// â”€â”€â”€ Image Upload â”€â”€â”€
+// ─── Image Upload ───
 export async function uploadImage(file) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/cloudflare-r2-upload`, {
     method: 'POST',
@@ -25,9 +25,9 @@ export async function uploadImage(file) {
   return data.url;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// AUTH â€” Usuarios
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// AUTH — Usuarios
+// ═══════════════════════════════════════════════════
 export async function loginUsuario(email, password) {
   const { data, error } = await supabase
     .from('usuarios')
@@ -52,11 +52,11 @@ export async function loginUsuario(email, password) {
     emailConfirmado: data.email_confirmado,
     role: data.role || 'user',
     ya_realizo_pedidos: data.ya_realizo_pedidos || false,
-    ciudad: data.ciudad || 'Santo TomÃ©'
+    ciudad: data.ciudad || 'Santo Tomé'
   };
 }
 
-export async function registerUsuario(nombre, email, password, direccion, telefono, termsAccepted = true, privacyAccepted = true, ciudad = 'Santo TomÃ©') {
+export async function registerUsuario(nombre, email, password, direccion, telefono, termsAccepted = true, privacyAccepted = true, ciudad = 'Santo Tomé') {
   const id = 'USR-' + Math.random().toString(36).substring(2, 10).toUpperCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('usuarios').insert({ 
@@ -72,17 +72,17 @@ export async function registerUsuario(nombre, email, password, direccion, telefo
   if (error) {
     if (error.code === '23505') {
       const msg = error.message.toLowerCase();
-      if (msg.includes('email')) throw new Error('Este email ya estÃ¡ registrado. Por favor, inicia sesiÃ³n.');
-      if (msg.includes('telefono')) throw new Error('Este nÃºmero de telÃ©fono ya estÃ¡ en uso.');
-      throw new Error('El email o telÃ©fono ya estÃ¡ registrado.');
+      if (msg.includes('email')) throw new Error('Este email ya está registrado. Por favor, inicia sesión.');
+      if (msg.includes('telefono')) throw new Error('Este número de teléfono ya está en uso.');
+      throw new Error('El email o teléfono ya está registrado.');
     }
     throw new Error(error.message);
   }
 
-  // Disparar Evento CRM "USUARIO_REGISTRADO" (Mensaje de Bienvenida / AdquisiciÃ³n)
+  // Disparar Evento CRM "USUARIO_REGISTRADO" (Mensaje de Bienvenida / Adquisición)
   adminLogCRMEvent(id, 'USUARIO_REGISTRADO', { nombre, email, ciudad }).catch(err => console.error("Error registrando CRM USUARIO_REGISTRADO:", err));
   
-  // Enviar email de confirmaciÃ³n
+  // Enviar email de confirmación
   sendConfirmationEmail(email, code, 'usuario', nombre).catch(console.error);
   
   return { success: true, userId: id };
@@ -113,7 +113,7 @@ export async function syncFirebaseUser(firebaseUser) {
       emailConfirmado: existing.email_confirmado || firebaseUser.emailVerified,
       role: existing.role || 'user',
       ya_realizo_pedidos: existing.ya_realizo_pedidos || false,
-      ciudad: existing.ciudad || 'Santo TomÃ©'
+      ciudad: existing.ciudad || 'Santo Tomé'
     };
   }
   
@@ -152,9 +152,9 @@ export async function updateDireccion(userId, nuevaDireccion, lat, lng) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// AUTH â€” Locales (Restaurants)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// AUTH — Locales (Restaurants)
+// ═══════════════════════════════════════════════════
 export async function loginLocal(identifier, password) {
   // 1. Buscar en la tabla principal de locales (Admins) por email
   const { data: localData, error: localError } = await supabase
@@ -183,7 +183,7 @@ export async function loginLocal(identifier, password) {
   return { success: false };
 }
 
-export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null, ciudad = 'Santo TomÃ©', tipo_servicio = 'delivery', rubros = []) {
+export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null, ciudad = 'Santo Tomé', tipo_servicio = 'delivery', rubros = []) {
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
@@ -205,7 +205,7 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
   });
   if (error) throw new Error(error.message);
   
-  // Enviar email de confirmaciÃ³n
+  // Enviar email de confirmación
   sendConfirmationEmail(email, code, 'local', nombre).catch(console.error);
   
   return { success: true };
@@ -304,9 +304,9 @@ export async function deleteLocalUsuario(usuarioId) {
   return true;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// AUTH â€” Repartidores (Drivers)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// AUTH — Repartidores (Drivers)
+// ═══════════════════════════════════════════════════
 export async function repartidorLogin(email, password) {
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError || !authData.user) return { success: false, error: 'El email no existe, no ha sido verificado o la contraseña es incorrecta' };
@@ -355,7 +355,7 @@ export async function repartidorRegister(params) {
     terms_version: 'v1',
     email_confirmado: false,
     token_confirmacion: code,
-    ciudad: params.ciudad || 'Santo TomÃ©'
+    ciudad: params.ciudad || 'Santo Tomé'
   });
   if (error) return { success: false, error: error.message };
   
@@ -372,22 +372,22 @@ export async function partnerRegister(params) {
     terms_accepted: params.termsAccepted ?? true,
     privacy_accepted: params.privacyAccepted ?? true,
     terms_accepted_at: new Date().toISOString(),
-    terms_version: params.termsVersion || 'TÃ©rminos v1.0',
+    terms_version: params.termsVersion || 'Términos v1.0',
     email_confirmado: false,
     token_confirmacion: code,
-    ciudad: params.ciudad || 'Santo TomÃ©',
+    ciudad: params.ciudad || 'Santo Tomé',
     es_partner: true,
     admin_status: 'Pendiente'
   });
   if (error) return { success: false, error: error.message };
   
-  // Enviar email de confirmaciÃ³n
+  // Enviar email de confirmación
   sendConfirmationEmail(params.email, code, 'repartidor', params.nombre).catch(console.error);
   
   return { success: true };
 }
 
-// â”€â”€â”€ Email Confirmation Logic â”€â”€â”€
+// ─── Email Confirmation Logic ───
 async function sendConfirmationEmail(email, code, tipo, nombre) {
   const isProd = window.location.hostname !== 'localhost';
   const baseUrl = isProd ? 'https://wepi.com.ar' : window.location.origin;
@@ -395,23 +395,23 @@ async function sendConfirmationEmail(email, code, tipo, nombre) {
   
   const htmlBody = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; borderRadius: 10px; background-color: #ffffff;">
-      <h2 style="color: #e63946; text-align: center;">Â¡Hola ${nombre}!</h2>
-      <p style="font-size: 16px; color: #333; text-align: center;">Gracias por registrarte en <strong>WEPI</strong>. Para completar tu registro, ingresÃ¡ el siguiente cÃ³digo de confirmaciÃ³n:</p>
+      <h2 style="color: #e63946; text-align: center;">¡Hola ${nombre}!</h2>
+      <p style="font-size: 16px; color: #333; text-align: center;">Gracias por registrarte en <strong>WEPI</strong>. Para completar tu registro, ingresá el siguiente código de confirmación:</p>
       <div style="text-align: center; margin: 30px 0;">
         <span style="font-size: 42px; font-weight: bold; color: #e63946; letter-spacing: 10px; border: 2px dashed #e63946; padding: 10px 20px; border-radius: 10px;">${code}</span>
       </div>
-      <p style="font-size: 14px; color: #666; text-align: center;">TambiÃ©n podÃ©s confirmar haciendo clic en el siguiente botÃ³n:</p>
+      <p style="font-size: 14px; color: #666; text-align: center;">También podés confirmar haciendo clic en el siguiente botón:</p>
       <div style="text-align: center; margin: 20px 0;">
         <a href="${link}" style="background-color: #e63946; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirmar mi email</a>
       </div>
-      <p style="font-size: 12px; color: #999; text-align: center;">El cÃ³digo expirarÃ¡ pronto. Si no creaste esta cuenta, ignorÃ¡ este correo.</p>
+      <p style="font-size: 12px; color: #999; text-align: center;">El código expirará pronto. Si no creaste esta cuenta, ignorá este correo.</p>
     </div>
   `;
 
   return supabase.functions.invoke('send-email', {
     body: {
       to: email,
-      subject: `CÃ³digo de confirmaciÃ³n WEEP: ${code}`,
+      subject: `Código de confirmación WEEP: ${code}`,
       htmlBody: htmlBody
     }
   });
@@ -426,17 +426,17 @@ export async function confirmarEmail(code, tipo, email) {
     
   if (error) {
     console.error('Error in confirmation RPC:', error);
-    return { success: false, error: 'OcurriÃ³ un error en el servidor' };
+    return { success: false, error: 'Ocurrió un error en el servidor' };
   }
   
-  if (!data) return { success: false, error: 'CÃ³digo invÃ¡lido o expirado' };
+  if (!data) return { success: false, error: 'Código inválido o expirado' };
   return { success: true };
 }
 
 export async function reenviarEmailConfirmacion(email, tipo) {
   const table = tipo === 'usuario' ? 'usuarios' : tipo === 'local' ? 'locales' : 'repartidores';
   
-  // Buscar usuario y generar nuevo cÃ³digo
+  // Buscar usuario y generar nuevo código
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { data, error } = await supabase
     .from(table)
@@ -446,7 +446,7 @@ export async function reenviarEmailConfirmacion(email, tipo) {
     .select('nombre')
     .single();
     
-  if (error || !data) return { success: false, error: 'No se encontrÃ³ el usuario' };
+  if (error || !data) return { success: false, error: 'No se encontró el usuario' };
   
   await sendConfirmationEmail(email, code, tipo, data.nombre);
   return { success: true };
@@ -462,7 +462,7 @@ export async function repartidorGetDatos(driverId) {
     partnerPin = Math.floor(100000 + Math.random() * 900000).toString();
     const { error: updateErr } = await supabase.from('repartidores').update({ partner_pin: partnerPin }).eq('id', driverId);
     if (updateErr) {
-      console.warn("âš ï¸ Failed to update partner_pin, database column probably missing. Run supabase_partner_linking.sql.", updateErr);
+      console.warn("⚠️ Failed to update partner_pin, database column probably missing. Run supabase_partner_linking.sql.", updateErr);
       partnerPin = '------';
     }
   }
@@ -652,7 +652,7 @@ export async function repartidorRenovarSesion(driverId, mins = 30) {
 
 export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
   if (!onesignalId || typeof onesignalId !== 'string') return { success: false };
-  console.log(`ðŸš€ DB: Actualizando OneSignal para Driver ${driverId}:`, onesignalId);
+  console.log(`🚀 DB: Actualizando OneSignal para Driver ${driverId}:`, onesignalId);
   
   // Update in database
   const { error } = await supabase.from('repartidores')
@@ -660,16 +660,16 @@ export async function repartidorUpdateOneSignalId(driverId, onesignalId) {
     .eq('id', driverId);
     
   if (error) {
-    console.error("âŒ Error actualizando OneSignal ID en DB:", error);
+    console.error("❌ Error actualizando OneSignal ID en DB:", error);
     throw new Error(error.message);
   }
-  console.log("âœ… DB: OneSignal ID actualizado exitosamente.");
+  console.log("✅ DB: OneSignal ID actualizado exitosamente.");
   return { success: true };
 }
 
 export async function repartidorUpdateFcmToken(driverId, fcmToken) {
   if (!fcmToken || typeof fcmToken !== 'string') return { success: false };
-  console.log(`ðŸš€ DB: Actualizando FCM Token para Driver ${driverId}:`, fcmToken);
+  console.log(`🚀 DB: Actualizando FCM Token para Driver ${driverId}:`, fcmToken);
   
   // Update in database
   const { error } = await supabase.from('repartidores')
@@ -677,10 +677,10 @@ export async function repartidorUpdateFcmToken(driverId, fcmToken) {
     .eq('id', driverId);
     
   if (error) {
-    console.error("âŒ Error actualizando FCM Token en DB:", error);
+    console.error("❌ Error actualizando FCM Token en DB:", error);
     throw new Error(error.message);
   }
-  console.log("âœ… DB: FCM Token actualizado exitosamente.");
+  console.log("✅ DB: FCM Token actualizado exitosamente.");
   return { success: true };
 }
 
@@ -777,9 +777,9 @@ export async function usuarioUpdateOneSignalId(userId, onesignalId) {
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// LOCALES â€” Get all
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// LOCALES — Get all
+// ═══════════════════════════════════════════════════
 export async function getLocales() {
   let query = supabase.from('locales')
     .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, ciudad, tipo_servicio')
@@ -789,7 +789,7 @@ export async function getLocales() {
   
   // Fallback si la columna ciudad no existe en la base de datos de locales
   if (error && error.message && error.message.includes('ciudad')) {
-    console.warn("âš ï¸ La columna 'ciudad' no existe en 'locales'. Reintentando sin esa columna.");
+    console.warn("⚠️ La columna 'ciudad' no existe en 'locales'. Reintentando sin esa columna.");
     const fallbackQuery = supabase.from('locales')
       .select('id, nombre, foto_url, estado, direccion, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, plan_id, rubro, rubros, admin_status, slug, config_horarios, tipo_servicio')
       .eq('admin_status', 'Aceptado');
@@ -816,7 +816,7 @@ export async function getLocales() {
     admin_status: l.admin_status,
     slug: l.slug,
     config_horarios: l.config_horarios || {},
-    ciudad: l.ciudad || 'Santo TomÃ©',
+    ciudad: l.ciudad || 'Santo Tomé',
     tipo_servicio: l.tipo_servicio || 'delivery'
   }));
 
@@ -890,9 +890,9 @@ export async function getLocalBySlug(slug) {
   };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // MENU
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getMenuCompleto() {
   const { data } = await supabase
     .from('menu')
@@ -1195,7 +1195,7 @@ export async function updateDisponibilidad(itemId, disponibilidad) {
   return { success: true };
 }
 
-// Actualizar configuraciÃ³n de sincronizaciÃ³n de un local (Wepi Sync V1)
+// Actualizar configuración de sincronización de un local (Wepi Sync V1)
 export async function updateLocalSyncConfig(localId, syncConfigData) {
   const { error } = await supabase
     .from('locales')
@@ -1205,9 +1205,9 @@ export async function updateLocalSyncConfig(localId, syncConfigData) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // HELADOS - SABORES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function getSaboresByLocal(localId) {
   const { data, error } = await supabase
@@ -1246,9 +1246,9 @@ export async function deleteSabor(id) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // HELADOS - ADICIONALES (Cucuruchos, etc)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function getAdicionalesByLocal(localId) {
   const { data, error } = await supabase
@@ -1286,9 +1286,9 @@ export async function deleteAdicional(id) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // FAVORITOS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getFavoritos(userId) {
   const { data } = await supabase.from('favoritos').select('item_id').eq('usuario_id', userId);
   return (data || []).map(f => f.item_id);
@@ -1310,10 +1310,10 @@ export async function toggleFavorito(userId, menuItemId) {
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// VALIDACIÃ“N DE DISPONIBILIDAD (NUEVO)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// VALIDACIÓN DE DISPONIBILIDAD (NUEVO)
+// ═══════════════════════════════════════════════════
 export async function validateOrderAvailability(localIds, itemIds) {
   // Consulta locales y platos en paralelo
   const [localsRes, itemsRes] = await Promise.all([
@@ -1334,14 +1334,14 @@ export async function validateOrderAvailability(localIds, itemIds) {
   };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // PEDIDOS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function crearPedido({ userId, pedidoId, direccion, metodoPago, observaciones, tipoEntrega, items, emailCliente, nombreCliente, estadoInicial, totalCalculado, lat, lng, precioEnvio, cuponId = null, descuentoCupon = 0, creditoWallet = 0, promociones_aplicadas = [], ganancia_credito = 0, origen_pedido = 'enlace_local', feeEnvio = 0 }) {
   const total = totalCalculado !== undefined ? totalCalculado : items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
   const estado = estadoInicial || 'Pendiente';
 
-  // --- VERIFICACIÃ“N DE SEGURIDAD: COMPROBAR QUE LOS LOCALES ESTÃ‰N ABIERTOS AL CREAR EL PEDIDO ---
+  // --- VERIFICACIÓN DE SEGURIDAD: COMPROBAR QUE LOS LOCALES ESTÉN ABIERTOS AL CREAR EL PEDIDO ---
   const uniqueLocalIds = [...new Set((items || []).map(i => i.local_id).filter(Boolean))];
   if (uniqueLocalIds.length > 0) {
     const { data: freshLocales, error: locErr } = await supabase
@@ -1383,12 +1383,12 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
   });
 
   if (error) {
-    console.error("ðŸš¨ RPC ERROR DETALLADO:", error);
+    console.error("🚨 RPC ERROR DETALLADO:", error);
     throw new Error(error.message + " | Detalles: " + (error.details || ''));
   }
 
   if (data && data.success === false) {
-    console.error("ðŸš¨ RPC LOGIC ERROR:", data.error);
+    console.error("🚨 RPC LOGIC ERROR:", data.error);
     throw new Error(data.error);
   }
 
@@ -1400,7 +1400,7 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
         p_amount: creditoWallet,
         p_order_id: data.pedido_id
       });
-      if (spendErr) console.error("ðŸš¨ Error deducing wallet credit:", spendErr);
+      if (spendErr) console.error("🚨 Error deducing wallet credit:", spendErr);
       
       // Also update the tracking column in pedidos_general
       await supabase.from('pedidos_general')
@@ -1429,7 +1429,7 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
     console.error("Error actualizando totales en pedidos_locales:", err);
   }
 
-  // AtribuciÃ³n de CampaÃ±a CRM y Motor de HÃ¡bitos (Ventana de 24 hs)
+  // Atribución de Campaña CRM y Motor de Hábitos (Ventana de 24 hs)
   try {
     const rawAttribution = localStorage.getItem('wepi_crm_attribution');
     if (rawAttribution) {
@@ -1445,14 +1445,14 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
           })
           .eq('id', data.pedido_id);
 
-        console.log(`ðŸŽ¯ AtribuciÃ³n CRM registrada para pedido ${data.pedido_id}:`, attr.campaign);
+        console.log(`🎯 Atribución CRM registrada para pedido ${data.pedido_id}:`, attr.campaign);
       }
     }
   } catch (errAttr) {
-    console.warn("Error asociando atribuciÃ³n CRM al pedido:", errAttr);
+    console.warn("Error asociando atribución CRM al pedido:", errAttr);
   }
 
-  // Otorgar puntos de campaÃ±a mundialista (try-catch para no romper el flujo de pedidos)
+  // Otorgar puntos de campaña mundialista (try-catch para no romper el flujo de pedidos)
   if (userId) {
     try {
       const todayDate = new Date();
@@ -1489,7 +1489,7 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
         const tieneCombo = (menuRes?.data || []).length > 0;
         const conf = configRes || {};
 
-        // 1. Determinar puntos y sobres base segÃºn Sponsor y Combo
+        // 1. Determinar puntos y sobres base según Sponsor y Combo
         let ptsBase = 250;
         let sobresBase = 0;
 
@@ -1528,7 +1528,7 @@ export async function crearPedido({ userId, pedidoId, direccion, metodoPago, obs
           updates.ultimo_triplete_semana = weekId;
         }
 
-        // 3. Guardar estadÃ­sticas actualizadas
+        // 3. Guardar estadísticas actualizadas
         updates.puntos_totales = nuevosPuntos;
         updates.sobres_disponibles = nuevosSobres;
 
@@ -1701,14 +1701,14 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
   try {
     const { data: pl } = await supabase.from('pedidos_locales').select('pedido_id').eq('id', pedidoLocalId).maybeSingle();
     if (pl?.pedido_id) {
-      // 2a. Obtener datos del pedido general para decidir el estado de sincronizaciÃ³n
+      // 2a. Obtener datos del pedido general para decidir el estado de sincronización
       const { data: pg } = await supabase.from('pedidos_general')
         .select('tipo_entrega, usuario_id, repartidor_id')
         .eq('id', pl.pedido_id)
         .maybeSingle();
 
       let targetGeneralEstado = estado;
-      // Si el local marca como 'Entregado' pero el pedido es con envÃ­o, lo pasamos a 'Retirado'
+      // Si el local marca como 'Entregado' pero el pedido es con envío, lo pasamos a 'Retirado'
       // para que el repartidor lo siga viendo en su dashboard y pueda marcar la entrega final.
       if (estado === 'Entregado' && pg?.tipo_entrega?.toLowerCase().includes('env')) {
         targetGeneralEstado = 'Retirado';
@@ -1716,7 +1716,7 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
 
       await supabase.from('pedidos_general').update({ estado: targetGeneralEstado }).eq('id', pl.pedido_id);
 
-      // 2b. Efectos secundarios segÃºn el estado
+      // 2b. Efectos secundarios según el estado
       if (estado === 'Rechazado' || estado === 'Cancelado') {
         if (pg?.repartidor_id && pg.repartidor_id.length > 20) {
           await supabase.from('repartidores').update({ estado: 'Activo' }).eq('id', pg.repartidor_id);
@@ -1726,26 +1726,26 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
       if (estado === 'Entregado') {
         if (pg?.usuario_id && pg.usuario_id.length > 20) {
           await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
-          // Acreditar crÃ©dito en Wallet si la orden generÃ³ ganancia por promo
+          // Acreditar crédito en Wallet si la orden generó ganancia por promo
           try {
             await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pl.pedido_id });
           } catch (e) {
-            console.error("Error acreditando crÃ©dito Wallet (Local):", e);
+            console.error("Error acreditando crédito Wallet (Local):", e);
           }
         }
       }
     }
   } catch (e) {
-    console.warn("Error en sincronizaciÃ³n general desde local:", e.message);
+    console.warn("Error en sincronización general desde local:", e.message);
   }
   
   return { success: true };
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // LANZAMIENTO
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function registrarEmailLanzamiento(email) {
   const now = new Date();
   const options = { timeZone: 'America/Argentina/Buenos_Aires' };
@@ -1758,9 +1758,9 @@ export async function registrarEmailLanzamiento(email) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // SEARCH
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function buscarMenu(query) {
   const { data } = await supabase
     .from('menu')
@@ -1821,9 +1821,9 @@ export async function getUserPromoUsage(userId) {
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // MIS PEDIDOS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getMisPedidos(userId) {
   const { data: pedidos, error } = await supabase
     .from('pedidos_general')
@@ -2107,9 +2107,9 @@ export async function getOrderDetail(userId, pedidoId) {
   };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // CALIFICACIONES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function rateOrder(userId, pedidoId, calificacion, comentario) {
   // Update the order in pedidos_general with the stars rating
   const { error: errorUpdate } = await supabase.from('pedidos_general').update({
@@ -2126,9 +2126,9 @@ export async function rateOrder(userId, pedidoId, calificacion, comentario) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // REORDER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function reOrderItems(userId, pedidoId) {
   const { data: items } = await supabase
     .from('pedidos_items')
@@ -2148,7 +2148,7 @@ export async function reOrderItems(userId, pedidoId) {
       // Determinar el precio actual de este producto
       let currentPrice = menu.precio;
 
-      // Parsear la configuraciÃ³n de variantes si existe
+      // Parsear la configuración de variantes si existe
       let cfg = null;
       if (menu.variantes) {
         try {
@@ -2161,7 +2161,7 @@ export async function reOrderItems(userId, pedidoId) {
 
       if (cfg) {
         if (cfg.es_helado || menu.categoria === 'Helados') {
-          // LÃ³gica de Helados
+          // Lógica de Helados
           if (cfg.precios && typeof cfg.precios === 'object') {
             const sizes = Object.keys(cfg.precios);
             const matchedSize = sizes.find(size => item.nombre.toLowerCase().includes(size.toLowerCase()));
@@ -2186,14 +2186,14 @@ export async function reOrderItems(userId, pedidoId) {
                 console.error("Error al obtener helado_adicionales para el reorder:", err);
               }
             } else {
-              // Si no coincide ningÃºn tamaÃ±o, usamos el precio histÃ³rico de la orden como fallback seguro
+              // Si no coincide ningún tamaño, usamos el precio histórico de la orden como fallback seguro
               currentPrice = item.precio_unitario;
             }
           } else {
             currentPrice = item.precio_unitario;
           }
         } else if (cfg.es_hamburguesa || cfg.es_combo || cfg.es_pancho || cfg.con_papas || (cfg.variants?.length > 0) || (cfg.extras?.length > 0)) {
-          // LÃ³gica de Hamburguesas/Combos y productos con variantes generales
+          // Lógica de Hamburguesas/Combos y productos con variantes generales
           let baseVariantPrice = 0;
           let variantMatched = false;
 
@@ -2228,7 +2228,7 @@ export async function reOrderItems(userId, pedidoId) {
         }
       }
 
-      // CaÃ­da segura (Fallback): Si el precio calculado es 0 o invÃ¡lido, usar el precio cobrado histÃ³ricamente
+      // Caída segura (Fallback): Si el precio calculado es 0 o inválido, usar el precio cobrado históricamente
       if (!currentPrice || isNaN(currentPrice) || currentPrice <= 0) {
         currentPrice = item.precio_unitario || menu.precio || 0;
       }
@@ -2254,9 +2254,9 @@ export async function reOrderItems(userId, pedidoId) {
   return { success: true, items: menuItems };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // CANCEL ORDER BY USER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function cancelarPedidoUsuario(userId, pedidoId) {
   // Update general
   const { error: e1 } = await supabase.from('pedidos_general')
@@ -2274,9 +2274,9 @@ export async function cancelarPedidoUsuario(userId, pedidoId) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // PROFILE UPDATE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function updateProfile(userId, nombre, email, telefono, newPassword) {
   const updates = { nombre, email, telefono };
   if (newPassword) updates.password = newPassword;
@@ -2285,9 +2285,9 @@ export async function updateProfile(userId, nombre, email, telefono, newPassword
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // BEBIDAS (drinks)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getBebidas() {
   const { data } = await supabase
     .from('menu')
@@ -2304,9 +2304,9 @@ export async function getBebidas() {
   }));
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// REPARTIDORES â€” Availability check
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// REPARTIDORES — Availability check
+// ═══════════════════════════════════════════════════
 export async function checkActiveRepartidores() {
   const { count, error } = await supabase
     .from('repartidores')
@@ -2413,9 +2413,9 @@ export async function getLocalesByCategoria(categoria) {
   return enrichLocalesWithMinPrices(Object.values(groupedMap), 'local_id');
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” Locales
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Locales
+// ═══════════════════════════════════════════════════
 export async function adminGetLocales() {
   const { data } = await supabase.from('locales')
     .select('id, nombre, email, password, direccion, estado, admin_status, created_at, foto_url, disponible_desde, onesignal_id, plan_id, slug, comision_personalizada_habilitada, comision_personalizada_valor, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, tipo_servicio, ciudad')
@@ -2499,9 +2499,9 @@ export async function adminUpdateDriverPaymentStatus(pedidoId, status) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” Repartidores
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Repartidores
+// ═══════════════════════════════════════════════════
 export async function adminGetRepartidores() {
   const { data } = await supabase.from('repartidores')
     .select('id, nombre, email, telefono, patente, marca_modelo, admin_status, created_at, foto_url, horario_apertura, horario_cierre, dias_apertura, estado, ultima_actividad, onesignal_id, locales_prioridad')
@@ -2536,9 +2536,9 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” Pedidos General
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Pedidos General
+// ═══════════════════════════════════════════════════
 export async function adminGetPedidosGeneral(dateStart = '', dateEnd = '', limitCount = 10) {
   let query = supabase.from('pedidos_general')
     .select('*, locales(nombre, tipo_servicio, ciudad), repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
@@ -2591,20 +2591,20 @@ export async function adminGetPedidoDetalle(pedidoId) {
   };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” Update Pedido Status (Global + Local)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Update Pedido Status (Global + Local)
+// ═══════════════════════════════════════════════════
 export async function adminUpdatePedidoStatus(pedidoId, status) {
   // 0. Seguridad: Si intentamos volver a 'Confirmado' pero el pedido ya es final o fue rechazado por expirar el periodo de gracia, abortar.
   if (status === 'Confirmado') {
     const { data: current } = await supabase.from('pedidos_general').select('estado').eq('id', pedidoId).single();
     if (current && ['Entregado', 'Cancelado', 'Rechazado', 'En camino', 'Retirado', 'Listo'].includes(current.estado)) {
-      console.log(`[Seguro] Abortando cambio a Confirmado para ${pedidoId} porque ya estÃ¡ en ${current.estado}`);
+      console.log(`[Seguro] Abortando cambio a Confirmado para ${pedidoId} porque ya está en ${current.estado}`);
       return { success: true, skipped: true };
     }
   }
 
-  // 1. Actualizar locales PRIMERO (prioridad para impresiÃ³n Electron)
+  // 1. Actualizar locales PRIMERO (prioridad para impresión Electron)
   await supabase.from('pedidos_locales').update({ estado: status }).eq('pedido_id', pedidoId);
 
   // 2. Actualizar estado general
@@ -2612,7 +2612,7 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
   if (errGen) throw errGen;
 
 
-  // 3. Disparar Eventos CRM correspondientes segÃºn el cambio de estado
+  // 3. Disparar Eventos CRM correspondientes según el cambio de estado
   try {
     const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).maybeSingle();
     if (pg?.usuario_id) {
@@ -2644,14 +2644,14 @@ export async function adminUpdatePedidoStatus(pedidoId, status) {
       const { data: pg } = await supabase.from('pedidos_general').select('usuario_id').eq('id', pedidoId).maybeSingle();
       if (pg?.usuario_id) {
         await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', pg.usuario_id);
-        // Acreditar crÃ©dito en Wallet si la orden generÃ³ ganancia por promo
+        // Acreditar crédito en Wallet si la orden generó ganancia por promo
         try {
           await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId });
         } catch (e) {
-          console.error("Error acreditando crÃ©dito Wallet:", e);
+          console.error("Error acreditando crédito Wallet:", e);
         }
       } else {
-        console.warn(`[Wallet] El pedido ${pedidoId} no tiene usuario_id asignado. No se puede acreditar crÃ©dito.`);
+        console.warn(`[Wallet] El pedido ${pedidoId} no tiene usuario_id asignado. No se puede acreditar crédito.`);
       }
     }
   } catch (e) { console.warn("Post-delivery tasks skipped:", e.message); }
@@ -2696,7 +2696,7 @@ export async function adminForceUpdatePedidoStatus(pedidoId, status) {
         try {
           await supabase.rpc('earn_wallet_credit_from_order', { p_order_id: pedidoId });
         } catch (e) {
-          console.error("Error acreditando crÃ©dito Wallet:", e);
+          console.error("Error acreditando crédito Wallet:", e);
         }
       }
     }
@@ -2742,9 +2742,9 @@ export async function adminDeleteRepartidor(repId) {
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” GestiÃ³n de Usuarios
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Gestión de Usuarios
+// ═══════════════════════════════════════════════════
 export async function adminGetUsuarios() {
   const { data, error } = await supabase
     .from('usuarios')
@@ -2781,9 +2781,9 @@ export async function deleteUsuarioAccount(userId) {
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 export async function adminGetMenuCompleto() {
   const { data } = await supabase
@@ -2803,9 +2803,9 @@ export async function adminGetMenuCompleto() {
   }));
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” GestiÃ³n de Cobros (Locales y Repartidores)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Gestión de Cobros (Locales y Repartidores)
+// ═══════════════════════════════════════════════════
 export async function adminGetGestionCobros(tipo = 'Local') {
   let query = supabase.from('gestion_cobros')
     .select('*, locales(nombre), repartidores(nombre)')
@@ -2847,9 +2847,9 @@ export async function adminUpdateCobroStatus(id, estado, comprobanteUrl = null) 
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” Tareas
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — Tareas
+// ═══════════════════════════════════════════════════
 export async function getAdminTasks() {
   const { data } = await supabase.from('admin_tasks').select('*').order('created_at', { ascending: false });
   return data || [];
@@ -2858,7 +2858,7 @@ export async function getAdminTasks() {
 export async function getLocalCierreReport(localId, options = {}) {
   const { fecha, inicio, fin, pendientes } = options;
   
-  // 1. Configurar query base en pedidos_locales (excluyendo lo que ya estÃ© cerrado)
+  // 1. Configurar query base en pedidos_locales (excluyendo lo que ya esté cerrado)
   let query = supabase
     .from('pedidos_locales')
     .select('*')
@@ -2866,9 +2866,9 @@ export async function getLocalCierreReport(localId, options = {}) {
     .eq('estado', 'Entregado')
     .neq('cierre_caja', true);
 
-  // 2. Aplicar filtros segÃºn el modo
+  // 2. Aplicar filtros según el modo
   if (pendientes) {
-    // Sin filtro de fecha, trae todo lo que no estÃ© cerrado
+    // Sin filtro de fecha, trae todo lo que no esté cerrado
   } else if (fecha) {
     const startOfDay = `${fecha}T00:00:00Z`;
     const endOfDay = `${fecha}T23:59:59Z`;
@@ -2906,7 +2906,7 @@ export async function getLocalCierreReport(localId, options = {}) {
     });
   }
 
-  // Filtrar pedidos que no estÃ©n en cierres anteriores
+  // Filtrar pedidos que no estén en cierres anteriores
   const pedidosLocales = rawPedidosLocales.filter(p => !pastClosedOrderIds.has(String(p.pedido_id)));
 
   if (pedidosLocales.length === 0) {
@@ -2925,7 +2925,7 @@ export async function getLocalCierreReport(localId, options = {}) {
   // Crear mapa para cruce de datos
   const pgMap = new Map(pedidosGeneral?.map(pg => [pg.id, pg]) || []);
 
-  // 2.5 Obtener metadatos de cupones para saber la financiaciÃ³n
+  // 2.5 Obtener metadatos de cupones para saber la financiación
   const uniqueCuponIds = [...new Set(pedidosGeneral?.map(pg => pg.cupon_id).filter(Boolean))];
   let promocionesMap = new Map();
   if (uniqueCuponIds.length > 0) {
@@ -2968,14 +2968,14 @@ export async function getLocalCierreReport(localId, options = {}) {
       cuponDescuentoLocal = descuentoCupon * (porcLocal / 100);
     }
 
-    // Si el local financia una parte del cupÃ³n, el total bruto del pedido se reduce
+    // Si el local financia una parte del cupón, el total bruto del pedido se reduce
     if (cuponDescuentoLocal > 0) {
       totalPedido -= cuponDescuentoLocal;
     }
 
     subtotal += totalPedido;
     
-    // Usar comisiÃ³n persistente si existe, si no, usar la actual como fallback
+    // Usar comisión persistente si existe, si no, usar la actual como fallback
     const montoComision = Number(p.comision_monto) || (totalPedido * (comisionPct / 100));
     
     const creditoWalletBase = Number(pg.credito_wallet) || 0;
@@ -3057,9 +3057,9 @@ export async function deleteAdminTask(id) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// COBROS â€” Financial Dashboard
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// COBROS — Financial Dashboard
+// ═══════════════════════════════════════════════════
 export async function getCobrosByLocal(localId) {
   const { data: pedidosLocales } = await supabase
     .from('pedidos_locales')
@@ -3223,7 +3223,7 @@ export async function saveLocalCierre(data) {
       .in('pedido_id', nuevosPedidoIds)
       .eq('local_id', data.localId);
 
-    // 2. Marcar como cerrado en pedidos_general para sincronizaciÃ³n global
+    // 2. Marcar como cerrado en pedidos_general para sincronización global
     await supabase.from('pedidos_general')
       .update({ cierre_caja: true })
       .in('id', nuevosPedidoIds);
@@ -3502,7 +3502,7 @@ export async function adminGetLocalesDebt() {
 
 
 export async function adminForceDeleteOrders({ status, startDate, endDate } = {}) {
-  // 1. Obtener IDs candidatos segÃºn estado y fecha
+  // 1. Obtener IDs candidatos según estado y fecha
   let query = supabase.from('pedidos_general').select('id, cierre_caja, cobro_repartidor_procesado');
   
   if (status) {
@@ -3520,8 +3520,8 @@ export async function adminForceDeleteOrders({ status, startDate, endDate } = {}
 
   const candidateIds = candidates.map(c => c.id);
 
-  // 2. Si es 'Entregado', verificar que REALMENTE estÃ©n cerrados en los locales
-  // Esto soluciona el problema de desincronizaciÃ³n
+  // 2. Si es 'Entregado', verificar que REALMENTE estén cerrados en los locales
+  // Esto soluciona el problema de desincronización
   let idsToDelete = candidateIds;
   
   if (!status || status === 'Entregado') {
@@ -3532,8 +3532,8 @@ export async function adminForceDeleteOrders({ status, startDate, endDate } = {}
       .in('pedido_id', candidateIds);
     
     // Un pedido es borrable si:
-    // (EstÃ¡ marcado como cerrado en General) O (Todos sus locales asociados estÃ¡n cerrados)
-    // Y (El cobro al repartidor estÃ¡ procesado)
+    // (Está marcado como cerrado en General) O (Todos sus locales asociados están cerrados)
+    // Y (El cobro al repartidor está procesado)
     idsToDelete = candidates.filter(c => {
       const orderLocales = localesStatus?.filter(l => l.pedido_id === c.id) || [];
       const allLocalesClosed = orderLocales.length > 0 && orderLocales.every(l => l.cierre_caja === true);
@@ -3547,7 +3547,7 @@ export async function adminForceDeleteOrders({ status, startDate, endDate } = {}
 
   if (idsToDelete.length === 0) return { success: true, count: 0 };
 
-  // 3. EliminaciÃ³n en cascada
+  // 3. Eliminación en cascada
   await supabase.from('pedidos_items').delete().in('pedido_id', idsToDelete);
   await supabase.from('pedidos_locales').delete().in('pedido_id', idsToDelete);
   const { error: errDel } = await supabase.from('pedidos_general').delete().in('id', idsToDelete);
@@ -3580,11 +3580,11 @@ export async function adminGetUsoMetricas() {
   return data || [];
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// MÃ‰TRICAS DE CLIC EN EMAILS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// MÉTRICAS DE CLIC EN EMAILS
+// ═══════════════════════════════════════════════════
 
-export async function logEmailClickMetric({ campaign = 'CampaÃ±a General', ciudad = null, path = '/pedir' }) {
+export async function logEmailClickMetric({ campaign = 'Campaña General', ciudad = null, path = '/pedir' }) {
   const newRecord = {
     campaign,
     ciudad,
@@ -3644,9 +3644,9 @@ export async function adminGetEmailClickMetrics() {
 
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ANALYTICS â€” Basados en Cierre de Caja (Inmunes a borrados)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ANALYTICS — Basados en Cierre de Caja (Inmunes a borrados)
+// ═══════════════════════════════════════════════════
 
 export async function getLocalAnalytics(localId, startDate, endDate) {
   const { data, error } = await supabase
@@ -3695,9 +3695,9 @@ export async function getAdminAnalytics(startDate, endDate) {
 
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// REPARTIDORES â€” Advanced
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// REPARTIDORES — Advanced
+// ═══════════════════════════════════════════════════
 export async function assignRepartidor(pedidoId) {
   const { data: activos } = await supabase.from('repartidores')
     .select('id, nombre, email, telefono').eq('estado', 'Activo').eq('admin_status', 'Aceptado');
@@ -3756,7 +3756,7 @@ export async function getPedidosDisponibles(repartidorId) {
   // 4. Obtener Pedidos (Asignados o Disponibles para Broadcast)
   const { data, error } = await supabase.from('pedidos_general')
     .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, repartidor_propuesto_id, usuarios(telefono), locales(ciudad)')
-    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con EnvÃ­o")`)
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
 
@@ -3765,16 +3765,16 @@ export async function getPedidosDisponibles(repartidorId) {
     return { success: false, error: error.message };
   }
 
-  // 5. Obtener configuraciÃ³n de rubros para tiempos de stacking
+  // 5. Obtener configuración de rubros para tiempos de stacking
   const { data: rubrosConfig } = await supabase.from('rubros_config').select('*');
   const { data: ciudadesConfig } = await supabase.from('ciudades_config').select('*');
 
-  // 6. Filtrar dinÃ¡micamente
+  // 6. Filtrar dinámicamente
   const ahora = Date.now();
   const delayMs = 10000;
 
   const filtered = (data || []).filter(p => {
-    // Si el pedido ya es mÃ­o, lo muestro siempre
+    // Si el pedido ya es mío, lo muestro siempre
     if (p.repartidor_id === repartidorId) return true;
 
     // --- FILTRADO POR CIUDAD ---
@@ -3792,37 +3792,37 @@ export async function getPedidosDisponibles(repartidorId) {
         return false;
       }
     } else {
-      // En ciudades de logÃ­stica Local, solo lo ven repartidores independientes (no vinculados)
+      // En ciudades de logística Local, solo lo ven repartidores independientes (no vinculados)
       if (repData?.partner_id) {
         return false;
       }
       if (p.repartidor_propuesto_id) return false;
     }
 
-    // --- LÃ“GICA DE CAPACIDAD ---
-    // Si soy Bici (Nivel 2) y ya tengo un pedido, no puedo tomar mÃ¡s (a menos que sea del mismo local)
+    // --- LÓGICA DE CAPACIDAD ---
+    // Si soy Bici (Nivel 2) y ya tengo un pedido, no puedo tomar más (a menos que sea del mismo local)
     if (nivelRepartidor === 2 && pedidosActivosCount >= 1 && !localesEnCurso.includes(p.local_id)) return false;
     
-    // Si soy Moto (Nivel 1) y ya tengo 2 pedidos, no puedo tomar mÃ¡s (a menos que sea del mismo local)
+    // Si soy Moto (Nivel 1) y ya tengo 2 pedidos, no puedo tomar más (a menos que sea del mismo local)
     if (nivelRepartidor === 1 && pedidosActivosCount >= 2 && !localesEnCurso.includes(p.local_id)) return false;
 
-    // Si tengo un pedido lento (Restaurante), solo puedo tomar rÃ¡pidos (Nivel 1) adicionales
+    // Si tengo un pedido lento (Restaurante), solo puedo tomar rápidos (Nivel 1) adicionales
     if (tienePedidoLento && p.nivel_rapidez_pedido === 2 && !localesEnCurso.includes(p.local_id)) return false;
 
-    // --- LÃ“GICA DE STACKING (Mismo Local) ---
+    // --- LÓGICA DE STACKING (Mismo Local) ---
     if (localesEnCurso.includes(p.local_id)) {
         const config = rubrosConfig?.find(r => r.nivel_rapidez === p.nivel_rapidez_pedido);
         const ventanaMin = config?.ventana_stacking_minutos || 5;
         
-        // Buscar el primer pedido que tomÃ© de ese local
+        // Buscar el primer pedido que tomé de ese local
         const miPedidoEnLocal = misPedidosActuales.find(mp => mp.local_id === p.local_id);
         if (miPedidoEnLocal) {
             const timeDiffMin = (ahora - new Date(p.created_at).getTime()) / 60000;
-            if (timeDiffMin <= ventanaMin) return true; // Permitir stacking inmediato si estÃ¡ en ventana
+            if (timeDiffMin <= ventanaMin) return true; // Permitir stacking inmediato si está en ventana
         }
     }
 
-    // --- LÃ“GICA DE PRIORIDADES EXISTENTE ---
+    // --- LÓGICA DE PRIORIDADES EXISTENTE ---
     if (misPrioridades.includes(p.local_id)) return true;
     if (!localesConPrioridad.has(p.local_id)) return true;
     const createdTime = new Date(p.created_at).getTime();
@@ -3849,7 +3849,7 @@ export async function getPedidosDisponibles(repartidorId) {
       cliente: p.usuario_id, 
       nombre_cliente: p.nombre_cliente || 'Cliente', 
       telefono_cliente: p.usuarios?.telefono || '',
-      direccion: p.direccion || 'Sin direcciÃ³n',
+      direccion: p.direccion || 'Sin dirección',
       monto: +p.total || 0,
       precio_envio: +p.precio_envio || 0,
       pago: p.metodo_pago || 'Efectivo',
@@ -3925,21 +3925,21 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     
     if (pedError || !ped) {
       console.error("Error buscando pedido en updateEstadoPedido:", pedError);
-      return { success: false, error: 'Pedido no encontrado o ya no estÃ¡ asignado a ti' };
+      return { success: false, error: 'Pedido no encontrado o ya no está asignado a ti' };
     }
 
     if ((nuevoEstado === 'Entregado' || nuevoEstado === 'Retirado') && ped.num_confirmacion && ped.num_confirmacion !== pinConfirmacion) {
       return { success: false, error: 'PIN incorrecto' };
     }
 
-    // LÃ³gica de transiciÃ³n de estado inteligente
+    // Lógica de transición de estado inteligente
     let targetEstado = nuevoEstado;
     if (targetEstado === 'Confirmado') {
       const isCash = (ped.metodo_pago || '').toLowerCase().includes('efectivo');
       const alreadyPaid = !!ped.payment_id;
       const needsPayment = !isCash && !alreadyPaid;
       
-      // Si el repartidor acepta un pedido que requiere pago previo y NO fue pagado aÃºn, lo pasamos a 'Pendiente de Pago'
+      // Si el repartidor acepta un pedido que requiere pago previo y NO fue pagado aún, lo pasamos a 'Pendiente de Pago'
       if (needsPayment && (ped.estado === 'Buscando Repartidor' || ped.estado === 'Pendiente')) {
         targetEstado = 'Pendiente de Pago';
       }
@@ -4018,7 +4018,7 @@ export async function updateEstadoPedido(pedidoId, nuevoEstado, repartidorId, pi
     }
 
     if (nuevoEstado === 'Entregado') {
-      // Liberar repartidor si no tiene mÃ¡s pedidos
+      // Liberar repartidor si no tiene más pedidos
       const { data: activeCountRem } = await supabase.from('pedidos_general')
           .select('id', { count: 'exact', head: true })
           .eq('repartidor_id', repartidorId)
@@ -4059,7 +4059,7 @@ export async function repartidorGetCobros(repartidorId) {
 
   if (pedidos) {
     pedidos.forEach(p => {
-      // El repartidor gana lo que se cobrÃ³ de envÃ­o en ese pedido
+      // El repartidor gana lo que se cobró de envío en ese pedido
       totalDisponible += Number(p.precio_envio) || 0;
       idsIncluidos.push(p.id);
     });
@@ -4118,7 +4118,7 @@ export async function repartidorSolicitarCobro(repartidorId, monto) {
 
 export async function repartidorRechazarPedido(pedidoId, currentDriverId) {
   try {
-    // 1. Ejecutar RPC de reasignaciÃ³n
+    // 1. Ejecutar RPC de reasignación
     const { data, error } = await supabase.rpc('reasignar_pedido_repartidor', {
       p_pedido_id: pedidoId,
       p_repartidor_actual_id: currentDriverId
@@ -4152,9 +4152,9 @@ export async function sendChatMessage(pedidoId, senderId, message) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // AUXILIARY
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getUserName(userId) {
   const { data } = await supabase.from('usuarios').select('nombre').eq('id', userId).single();
   return { success: true, nombre: data?.nombre || 'Cliente' };
@@ -4163,7 +4163,7 @@ export async function getUserName(userId) {
 export async function getLocalInfoForDelivery(localId) {
   const { data } = await supabase.from('locales').select('nombre, direccion, email').eq('id', localId).single();
   if (!data) return { success: false, error: 'Local no encontrado' };
-  return { success: true, direccion: data.direccion || 'â€”', nombreLocal: data.nombre || 'Local', email: data.email || '' };
+  return { success: true, direccion: data.direccion || '—', nombreLocal: data.nombre || 'Local', email: data.email || '' };
 }
 
 export async function getMenuItemById(itemId) {
@@ -4172,11 +4172,11 @@ export async function getMenuItemById(itemId) {
   return { success: true, ...data };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// MERCADO PAGO â€” Client helpers
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// MERCADO PAGO — Client helpers
+// ═══════════════════════════════════════════════════
 export async function createPendingMercadoPagoOrder({ userId, direccion, total, observaciones, cart, emailCliente, nombreCliente }) {
-  // Al intentar pagar con MP, ya marcamos al usuario (si el pago falla no importa, ya tuvo intenciÃ³n de pagar seguro)
+  // Al intentar pagar con MP, ya marcamos al usuario (si el pago falla no importa, ya tuvo intención de pagar seguro)
   await supabase.from('usuarios').update({ ya_realizo_pedidos: true }).eq('id', userId);
 
   const pedidoId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
@@ -4230,7 +4230,7 @@ export async function markOrderAsPaid(pedidoId, paymentId, preferenceId, externa
   });
   if (error) return { success: false, error: error.message };
 
-  // Asegurar transiciÃ³n a 'Confirmado' en ambas tablas si el pago se realizÃ³ dentro del periodo de gracia
+  // Asegurar transición a 'Confirmado' en ambas tablas si el pago se realizó dentro del periodo de gracia
   try {
     await adminUpdatePedidoStatus(pedidoId, 'Confirmado');
   } catch (e) {
@@ -4240,9 +4240,9 @@ export async function markOrderAsPaid(pedidoId, paymentId, preferenceId, externa
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // NOTIFICACIONES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoEntrega, observaciones, metodoPago) {
   try {
     const byLocal = {};
@@ -4274,13 +4274,13 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
             <div style="text-align: center; margin: 20px 0;">
               <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" width="120" style="border-radius:12px;">
             </div>
-            <h2 style="color: #9b1913;">Â¡Nuevo Pedido para ${localData.nombre}!</h2>
+            <h2 style="color: #9b1913;">¡Nuevo Pedido para ${localData.nombre}!</h2>
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-              <p style="margin: 5px 0;"><strong>ðŸ“¦ Nro de Pedido:</strong> ${pedidoId}</p>
-              <p style="margin: 5px 0;"><strong>ðŸ’³ MÃ©todo de Pago:</strong> ${metodoPago.toUpperCase()}</p>
-              <p style="margin: 5px 0;"><strong>ðŸšš Entrega:</strong> ${tipoEntrega}</p>
-              <p style="margin: 5px 0;"><strong>ðŸ“ DirecciÃ³n:</strong> ${direccion || 'Retiro en Local'}</p>
-              ${observaciones ? `<p style="margin: 5px 0;"><strong>ðŸ“ Observaciones:</strong> ${observaciones}</p>` : ''}
+              <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
+              <p style="margin: 5px 0;"><strong>💳 Método de Pago:</strong> ${metodoPago.toUpperCase()}</p>
+              <p style="margin: 5px 0;"><strong>🚚 Entrega:</strong> ${tipoEntrega}</p>
+              <p style="margin: 5px 0;"><strong>📍 Dirección:</strong> ${direccion || 'Retiro en Local'}</p>
+              ${observaciones ? `<p style="margin: 5px 0;"><strong>📝 Observaciones:</strong> ${observaciones}</p>` : ''}
             </div>
             
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
@@ -4301,29 +4301,29 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="https://wepi.com.ar/locales" style="background-color: #9b1913; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                Ir a mis pedidos de locales ðŸ–¥ï¸
+                Ir a mis pedidos de locales 🖥️
               </a>
             </div>
 
             <p style="margin-top: 30px; font-size: 16px; color: #d32f2f; text-align: center; font-weight: bold;">
-              âš ï¸ IMPORTANTE: Debes ingresar al panel para ACEPTAR o RECHAZAR este pedido.
+              ⚠️ IMPORTANTE: Debes ingresar al panel para ACEPTAR o RECHAZAR este pedido.
             </p>
 
             <p style="margin-top: 15px; font-size: 14px; color: #666; text-align: center;">
-              Por favor, revisa el panel de administraciÃ³n de Wepi para preparar el pedido.<br>
+              Por favor, revisa el panel de administración de Wepi para preparar el pedido.<br>
               <strong>Wepi Delivery</strong>
             </p>
           </div>
         `;
 
-        // NotificaciÃ³n OneSignal
+        // Notificación OneSignal
         if (localData.onesignal_id) {
           const subscriptionIds = localData.onesignal_id.split(',').map(id => id.trim()).filter(Boolean);
           if (subscriptionIds.length > 0) {
             sendPushNotification({
               subscriptionIds: subscriptionIds,
-              title: 'Â¡Nuevo Pedido! ðŸ›µ',
-              message: `Has recibido el pedido #${pedidoId}. Â¡Entra al panel para aceptarlo!`,
+              title: '¡Nuevo Pedido! 🛵',
+              message: `Has recibido el pedido #${pedidoId}. ¡Entra al panel para aceptarlo!`,
               url: 'https://wepi.com.ar/locales',
               data: { type: 'new_order', pedidoId }
             }).catch(err => console.error("Error enviando push a local:", err));
@@ -4333,7 +4333,7 @@ export async function notifyLocalsAboutNewOrder(pedidoId, cart, direccion, tipoE
         await supabase.functions.invoke('send-email', {
           body: {
             to: localData.email,
-            subject: `Â¡Nuevo Pedido #${pedidoId} en Wepi! ðŸ›µ`,
+            subject: `¡Nuevo Pedido #${pedidoId} en Wepi! 🛵`,
             htmlBody
           }
         });
@@ -4369,7 +4369,7 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
         <div style="text-align: center; margin: 20px 0;">
           <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" width="120" style="border-radius:12px;">
         </div>
-        <h2 style="color: #9b1913;">Â¡Pedido Confirmado! #${pedidoId}</h2>
+        <h2 style="color: #9b1913;">¡Pedido Confirmado! #${pedidoId}</h2>
         <p>Hola <strong>${nombreCliente}</strong>, hemos recibido tu pedido correctamente.</p>
         
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
@@ -4387,8 +4387,8 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
         </table>
 
         <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
-          PodÃ©s seguir el estado de tu pedido desde la secciÃ³n "Mis Pedidos" en la app.<br>
-          <strong>Â¡Gracias por elegir Wepi Delivery!</strong>
+          Podés seguir el estado de tu pedido desde la sección "Mis Pedidos" en la app.<br>
+          <strong>¡Gracias por elegir Wepi Delivery!</strong>
         </p>
       </div>
     `;
@@ -4396,7 +4396,7 @@ export async function notifyCustomerAboutNewOrder(pedidoId, cart, direccion, tip
     await supabase.functions.invoke('send-email', {
       body: {
         to: emailCliente,
-        subject: `ConfirmaciÃ³n de Pedido #${pedidoId} - Wepi ðŸ›µ`,
+        subject: `Confirmación de Pedido #${pedidoId} - Wepi 🛵`,
         htmlBody
       }
     });
@@ -4416,8 +4416,8 @@ export async function notifyDriverAboutPaymentInProgress(pedidoId, repartidorId)
     if (rep?.OneSignalId) {
       await sendPushNotification({
         subscriptionIds: [rep.OneSignalId],
-        title: 'Â¡Pago en curso! ðŸ’³',
-        message: `El cliente del pedido #${pedidoId} estÃ¡ completando el pago. Por favor, aguarda un momento.`,
+        title: '¡Pago en curso! 💳',
+        message: `El cliente del pedido #${pedidoId} está completando el pago. Por favor, aguarda un momento.`,
         url: 'https://wepi.com.ar/repartidores',
         data: { type: 'payment_in_progress', pedidoId }
       });
@@ -4509,23 +4509,23 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
           <img src="https://pub-9ccf233ac6f348aebf32f1c18a6e9622.r2.dev/wepi-logo.png" alt="Wepi" width="120" style="border-radius:12px;">
         </div>
         <hr style="border:0; border-top:2px solid #d32f2f; margin:20px 0;">
-        <h2 style="color: #9b1913; text-align: center;">Â¡Nuevo pedido asignado! ðŸ›µ</h2>
+        <h2 style="color: #9b1913; text-align: center;">¡Nuevo pedido asignado! 🛵</h2>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 5px 0;"><strong>ðŸ“¦ Nro de Pedido:</strong> ${pedidoId}</p>
+          <p style="margin: 5px 0;"><strong>📦 Nro de Pedido:</strong> ${pedidoId}</p>
         </div>
         
-        <h3 style="color: #2e7d32; margin-top: 20px;">ðŸ“ RETIRO</h3>
-        <p style="margin: 5px 0;"><strong>DirecciÃ³n de retiro:</strong> ${direccionRetiro}</p>
+        <h3 style="color: #2e7d32; margin-top: 20px;">📍 RETIRO</h3>
+        <p style="margin: 5px 0;"><strong>Dirección de retiro:</strong> ${direccionRetiro}</p>
         <p style="margin: 5px 0;"><strong>Total a pagar al local:</strong> ${montoPagarLocal}</p>
         
-        <h3 style="color: #2e7d32; margin-top: 20px;">ðŸ“ ENTREGA</h3>
-        <p style="margin: 5px 0;"><strong>DirecciÃ³n de entrega:</strong> ${direccion || 'Retiro en Local'}</p>
+        <h3 style="color: #2e7d32; margin-top: 20px;">📍 ENTREGA</h3>
+        <p style="margin: 5px 0;"><strong>Dirección de entrega:</strong> ${direccion || 'Retiro en Local'}</p>
         <p style="margin: 5px 0;"><strong>Observaciones:</strong> ${observaciones || 'Ninguna'}</p>
         <p style="margin: 5px 0;"><strong>Total a cobrar al cliente:</strong> ${montoCobrar}</p>
         
         <p style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
-          Por favor, dirÃ­gete a la direcciÃ³n lo antes posible.<br>
-          <strong>Â¡Gracias por ser parte de Wepi!</strong>
+          Por favor, dirígete a la dirección lo antes posible.<br>
+          <strong>¡Gracias por ser parte de Wepi!</strong>
         </p>
       </div>
     `;
@@ -4533,7 +4533,7 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     await supabase.functions.invoke('send-email', {
       body: {
         to: repartidorEmail,
-        subject: `ðŸšš PEDIDO ASIGNADO #${pedidoId} - Wepi`,
+        subject: `🚚 PEDIDO ASIGNADO #${pedidoId} - Wepi`,
         htmlBody
       }
     });
@@ -4542,12 +4542,12 @@ export async function notifyDriverAboutNewOrder(pedidoId, cart, direccion, obser
     console.error("Error enviando email al repartidor:", error);
   }
 }
-// FunciÃ³n deprecada de limpieza. Ahora la desconexiÃ³n por inactividad ocurre 
-// nativamente en la Base de Datos a travÃ©s del CRON job `check_inactive_drivers_job`.
+// Función deprecada de limpieza. Ahora la desconexión por inactividad ocurre 
+// nativamente en la Base de Datos a través del CRON job `check_inactive_drivers_job`.
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // NOTIFICACIONES DE ESTADO (Panel Locales)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 const LOGO_HTML = `
   <div style="text-align: center; margin: 20px 0 30px 0;">
@@ -4573,7 +4573,7 @@ export async function reavisarRepartidorOrder(pedidoLocalId) {
 
 export async function notifyOrderListo(pedido, direccionLocal) {
   try {
-    const isEnvio = String(pedido.tipoEntrega).toLowerCase().includes('env') || String(pedido.tipoEntrega).toLowerCase() === 'con envÃ­o';
+    const isEnvio = String(pedido.tipoEntrega).toLowerCase().includes('env') || String(pedido.tipoEntrega).toLowerCase() === 'con envío';
     
     let to = '';
     let subject = '';
@@ -4583,12 +4583,12 @@ export async function notifyOrderListo(pedido, direccionLocal) {
 
     if (isEnvio) {
       to = 'bajoneando.st@gmail.com'; // Email del motomandado
-      subject = `Â¡Pedido listo para envÃ­o! #${pedido.idPedido}`;
+      subject = `¡Pedido listo para envío! #${pedido.idPedido}`;
       htmlBody = `
         ${LOGO_HTML}
         <h2 style="color:#d32f2f; text-align:center;">Pedido listo para retiro</h2>
         <p><strong>Cliente:</strong> ${pedido.nombreCliente}</p>
-        <p><strong>DirecciÃ³n Entrega:</strong> ${pedido.direccion}</p>
+        <p><strong>Dirección Entrega:</strong> ${pedido.direccion}</p>
         <p><strong>Observaciones:</strong> ${pedido.observaciones || 'Ninguna'}</p>
         <p><strong>Local:</strong> ${direccionLocal}</p>
         <p style="font-weight:bold; color:#d32f2f;">
@@ -4599,13 +4599,13 @@ export async function notifyOrderListo(pedido, direccionLocal) {
       console.log("notifyOrderListo: send-email invocado.");
     }
 
-    // NotificaciÃ³n Push al Usuario (SOLO PARA RETIRO)
+    // Notificación Push al Usuario (SOLO PARA RETIRO)
     if (!isEnvio && pedido.usuario_id) {
       const { data: user, error: userErr } = await supabase.from('usuarios').select('onesignal_id').eq('id', pedido.usuario_id).single();
       console.log("notifyOrderListo: db user fetched:", { user, error: userErr });
       if (user?.onesignal_id) {
-        const title = 'Â¡Tu pedido estÃ¡ listo para retirar!';
-        const message = `Ya podÃ©s pasar a retirarlo en ${direccionLocal}.`;
+        const title = '¡Tu pedido está listo para retirar!';
+        const message = `Ya podés pasar a retirarlo en ${direccionLocal}.`;
         
         console.log("notifyOrderListo: invoking send-firebase-push with token:", user.onesignal_id);
         const res = await sendFirebasePushNotification({
@@ -4617,10 +4617,10 @@ export async function notifyOrderListo(pedido, direccionLocal) {
         });
         console.log("notifyOrderListo: sendFirebasePushNotification result:", res);
       } else {
-        console.log("notifyOrderListo: El usuario no tiene un onesignal_id (token push) vÃ¡lido en la DB.");
+        console.log("notifyOrderListo: El usuario no tiene un onesignal_id (token push) válido en la DB.");
       }
     } else {
-      console.log("notifyOrderListo: El pedido es con envÃ­o o no tiene usuario_id asignado. No se manda Push de Listo.");
+      console.log("notifyOrderListo: El pedido es con envío o no tiene usuario_id asignado. No se manda Push de Listo.");
     }
 
     return { success: true };
@@ -4637,8 +4637,8 @@ export async function notifyOrderRetirado(pedido) {
       if (user?.onesignal_id) {
         await sendFirebasePushNotification({
           tokens: [user.onesignal_id],
-          title: 'Â¡Tu pedido estÃ¡ en camino!',
-          message: 'Nuestro repartidor ya retirÃ³ tu pedido, en minutos llega a tu direcciÃ³n.',
+          title: '¡Tu pedido está en camino!',
+          message: 'Nuestro repartidor ya retiró tu pedido, en minutos llega a tu dirección.',
           url: 'https://wepi.com.ar/mis-pedidos',
           data: { type: 'order_retirado', pedidoId: pedido.idPedido || pedido.id }
         });
@@ -4658,8 +4658,8 @@ export async function notifyOrderEntregado(pedido) {
       if (user?.onesignal_id) {
         await sendFirebasePushNotification({
           tokens: [user.onesignal_id],
-          title: 'Â¡Pedido Entregado! ðŸŽ‰',
-          message: `Esperamos que disfrutes tu pedido. Â¡No olvides calificar tu experiencia! Gracias por elegirnos`,
+          title: '¡Pedido Entregado! 🎉',
+          message: `Esperamos que disfrutes tu pedido. ¡No olvides calificar tu experiencia! Gracias por elegirnos`,
           url: 'https://wepi.com.ar/mis-pedidos',
           data: { type: 'order_entregado', pedidoId: pedido.idPedido }
         });
@@ -4678,9 +4678,9 @@ export async function notifyOrderRechazado(pedido, reason = '') {
       const { data: user } = await supabase.from('usuarios').select('onesignal_id').eq('id', pedido.usuario_id).single();
       if (user?.onesignal_id) {
         const isNoDriver = reason && reason.toLowerCase().includes('repartidor');
-        const title = isNoDriver ? 'No encontramos repartidor para tu pedido ðŸ›µ' : 'Pedido Cancelado âŒ';
+        const title = isNoDriver ? 'No encontramos repartidor para tu pedido 🛵' : 'Pedido Cancelado ❌';
         const message = isNoDriver 
-          ? `PodÃ©s intentar en unos minutos con un solo clic desde el menÃº Mis Pedidos. TOCÃ PARA REPETIR`
+          ? `Podés intentar en unos minutos con un solo clic desde el menú Mis Pedidos. TOCÁ PARA REPETIR`
           : `Lamentablemente tu pedido fue rechazado por el local. Motivo: ${reason}`;
         
         await sendFirebasePushNotification({
@@ -4758,9 +4758,9 @@ export async function getMontoLocalPedido(pedidoId, localId) {
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// BOTÃ“N DE ARREPENTIMIENTO (Account Deletion)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// BOTÓN DE ARREPENTIMIENTO (Account Deletion)
+// ═══════════════════════════════════════════════════
 
 export async function deleteLocalAccount(localId) {
 
@@ -4776,13 +4776,13 @@ export async function deleteRepartidorAccount(driverId) {
 }
 
 export async function adminCleanupInactiveDrivers() {
-  // FunciÃ³n desactivada. El sistema ahora usa el CRON nativo de Supabase.
+  // Función desactivada. El sistema ahora usa el CRON nativo de Supabase.
   return { success: true, count: 0 };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // BANNERS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getBanners() {
   const { data } = await supabase.from('banners').select('*').eq('activo', true).order('posicion');
   return data || [];
@@ -4822,9 +4822,9 @@ export async function updateMenuItemDiscount(id, descuento) {
   if (error) throw new Error(error.message);
   return { success: true };
 }
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// CONFIGURATION â€” Global Settings
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// CONFIGURATION — Global Settings
+// ═══════════════════════════════════════════════════
 export async function getConfiguracion() {
   const { data, error } = await supabase
     .from('configuracion')
@@ -4855,9 +4855,9 @@ export async function updateConfiguracion(updates) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ACTIVACIÃ“N POR DEMANDA (NUEVO)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ACTIVACIÓN POR DEMANDA (NUEVO)
+// ═══════════════════════════════════════════════════
 export async function getSystemActivation() {
   const { data } = await supabase
     .from('system_activation_status')
@@ -4885,9 +4885,9 @@ export async function trackDemandSignal(eventType, sessionId) {
   });
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// GAMIFICACIÃ“N (NUEVO)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// GAMIFICACIÓN (NUEVO)
+// ═══════════════════════════════════════════════════
 export async function getDriverGamificationStats(driverId) {
   const { data, error } = await supabase
     .from('driver_gamification_stats')
@@ -4917,9 +4917,9 @@ export async function getDriverPointsHistory(driverId) {
   return { success: true, data };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // PLANES Y COMISIONES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function getPlanInfo(localId) {
     const { data, error } = await supabase.rpc('get_current_commission_info', { p_local_id: localId });
@@ -4944,7 +4944,7 @@ export async function suscribirAPlan(localId, planId) {
 
 export async function broadcastOrderToDrivers(pedidoId, total, localId = null, precioEnvio = null) {
   try {
-    console.log(`âš¡ Requesting server-side broadcast for order: ${pedidoId}`);
+    console.log(`⚡ Requesting server-side broadcast for order: ${pedidoId}`);
     
     const { data, error } = await supabase.functions.invoke('send-push', {
       body: {
@@ -4975,8 +4975,8 @@ export async function notifyDriverAboutPaymentApproved(pedidoId, driverId) {
     if (driver?.onesignal_id) {
       await sendPushNotification({
         subscriptionIds: [driver.onesignal_id],
-        title: 'âœ… Â¡Pago Confirmado! ðŸš€',
-        message: `El cliente ya pagÃ³ el pedido #${pedidoId.split('-').pop()}. Ya puedes ver los datos y retirar el pedido.`,
+        title: '✅ ¡Pago Confirmado! 🚀',
+        message: `El cliente ya pagó el pedido #${pedidoId.split('-').pop()}. Ya puedes ver los datos y retirar el pedido.`,
         url: 'https://wepi.com.ar/repartidores',
         data: { pedidoId, type: 'payment_confirmed' }
       });
@@ -4994,9 +4994,9 @@ export async function subscribeToDriverAvailability(onesignalId, userId = null) 
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // CUPONES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function adminGetCupones() {
   const { data, error } = await supabase.from('cupones').select('*').order('created_at', { ascending: false });
   if (error) throw error;
@@ -5022,13 +5022,13 @@ export async function adminDeleteCupon(id) {
 }
 
 /**
- * Valida un cupÃ³n y retorna sus datos si es vÃ¡lido.
+ * Valida un cupón y retorna sus datos si es válido.
  * @param {string} codigo 
  * @param {number} subtotal - Subtotal del pedido 
  * @param {string} localId - ID del local (opcional)
  */
 export async function validateCupon(codigo, subtotal, localId = null) {
-  if (!codigo) return { success: false, error: 'IngresÃ¡ un cÃ³digo' };
+  if (!codigo) return { success: false, error: 'Ingresá un código' };
   
   const { data, error } = await supabase
     .from('cupones')
@@ -5038,34 +5038,34 @@ export async function validateCupon(codigo, subtotal, localId = null) {
     .maybeSingle();
 
   if (error) throw error;
-  if (!data) return { success: false, error: 'CupÃ³n invÃ¡lido o inexistente' };
+  if (!data) return { success: false, error: 'Cupón inválido o inexistente' };
 
-  // Validar expiraciÃ³n
+  // Validar expiración
   if (data.fecha_expiracion && new Date(data.fecha_expiracion) < new Date()) {
-    return { success: false, error: 'Este cupÃ³n ha expirado' };
+    return { success: false, error: 'Este cupón ha expirado' };
   }
 
-  // Validar monto mÃ­nimo
+  // Validar monto mínimo
   if (subtotal < (data.minimo_compra || 0)) {
-    return { success: false, error: `El monto mÃ­nimo para este cupÃ³n es $${data.minimo_compra}` };
+    return { success: false, error: `El monto mínimo para este cupón es $${data.minimo_compra}` };
   }
 
-  // Validar local (si el cupÃ³n es especÃ­fico)
+  // Validar local (si el cupón es específico)
   if (data.local_id && data.local_id !== localId) {
-    return { success: false, error: 'Este cupÃ³n no es vÃ¡lido para este restaurante' };
+    return { success: false, error: 'Este cupón no es válido para este restaurante' };
   }
 
-  // Validar lÃ­mite de usos
+  // Validar límite de usos
   if (data.limite_usos !== null && data.usos_actuales >= data.limite_usos) {
-    return { success: false, error: 'Este cupÃ³n ya ha alcanzado su lÃ­mite de usos' };
+    return { success: false, error: 'Este cupón ya ha alcanzado su límite de usos' };
   }
 
   return { success: true, cupon: data };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // WALLET SYSTEM - API
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function getUserWalletBalance(userId) {
   if (!userId) return 0;
@@ -5210,9 +5210,9 @@ export async function adminGetWalletCampaigns() {
   return data || [];
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // PROMOCIONES Y DESCUENTOS UNIFICADOS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function adminGetPromociones() {
   const { data, error } = await supabase
@@ -5304,9 +5304,9 @@ export async function adminDeleteWalletCampaign(id) {
   return { success: true };
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────
 // ADVANCED WALLET CONFIG (PER-LOCAL)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────
 
 export async function adminGetWalletConfigs() {
   const { data, error } = await supabase
@@ -5337,7 +5337,7 @@ export async function adminDeleteWalletConfig(id) {
 }
 
 /**
- * Obtiene la configuraciÃ³n de crÃ©ditos aplicable a un local especÃ­fico.
+ * Obtiene la configuración de créditos aplicable a un local específico.
  * Prioriza la del local, de lo contrario la global (null).
  */
 export async function getWalletConfigForLocal(localId) {
@@ -5358,7 +5358,7 @@ export async function getWalletConfigForLocal(localId) {
 }
 
 /**
- * Obtiene todas las configuraciones de crÃ©dito activas para todos los locales.
+ * Obtiene todas las configuraciones de crédito activas para todos los locales.
  */
 export async function getAllWalletConfigs() {
   const { data, error } = await supabase
@@ -5374,9 +5374,9 @@ export async function getAllWalletConfigs() {
 }
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// REPARTIDORES â€” CALENDARIO DE PAGOS
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────
+// REPARTIDORES — CALENDARIO DE PAGOS
+// ──────────────────────────────────────────────────
 
 export async function adminGetDriverPayments(month, year) {
   // Start and end of the month
@@ -5426,7 +5426,7 @@ export async function adminDeleteDriverPayment(id) {
 }
 
 export async function adminGetDriverPendingSettlements(driverId) {
-  // 1. Obtener todos los IDs de pedidos que ya estÃ¡n en el calendario
+  // 1. Obtener todos los IDs de pedidos que ya están en el calendario
   const { data: scheduledPayments, error: scheduledError } = await supabase
     .from('repartidores_pagos_calendario')
     .select('pedido_ids')
@@ -5440,7 +5440,7 @@ export async function adminGetDriverPendingSettlements(driverId) {
     .map(id => id.trim())
     .filter(Boolean);
 
-  // 2. Obtener pedidos que NO estÃ©n en esa lista
+  // 2. Obtener pedidos que NO estén en esa lista
   let query = supabase
     .from('pedidos_general')
     .select('id, created_at, precio_envio, metodo_pago')
@@ -5520,9 +5520,9 @@ export async function repartidorGetScheduledPayments(driverId) {
   return dateMap;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // RUBROS CONFIG
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getRubrosConfig() {
   const { data } = await supabase.from('rubros_config').select('*').order('nombre');
   return data || [];
@@ -5564,13 +5564,13 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
   // 3. Obtener Pedidos
   const { data, error } = await supabase.from('pedidos_general')
     .select('id, total, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, pago_pendiente_at, precio_envio, repartidor_id, usuario_id, usuarios(telefono), locales(ciudad)')
-    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con EnvÃ­o")`)
+    .or(`repartidor_id.eq.${repartidorId},and(repartidor_id.is.null,estado.in.("Pendiente","Buscando Repartidor","Listo","Preparando","Aceptado"),tipo_entrega.eq."Con Envío")`)
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Pendiente de Pago', 'Confirmado', 'Retirado', 'En camino', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
 
   if (error) return { success: false, error: error.message };
 
-  // 4. Filtrar con LÃ“GICA /PROBANDO
+  // 4. Filtrar con LÓGICA /PROBANDO
   const filtered = (data || []).filter(p => {
     if (p.repartidor_id === repartidorId) return true;
 
@@ -5579,12 +5579,12 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
     if (!pedidoCiudad || pedidoCiudad !== repData?.ciudad) return false;
 
     // --- REGLAS PROBANDO ---
-    // BICICLETA: Solo 1 pedido mÃ¡ximo
+    // BICICLETA: Solo 1 pedido máximo
     if (nivelRepartidor === 2 && pedidosActivosCount >= 1) return false;
 
     // MOTO:
     if (nivelRepartidor === 1) {
-        // LÃ­mite absoluto de 3
+        // Límite absoluto de 3
         if (pedidosActivosCount >= 3) return false;
 
         const esMismoLocal = localesEnCurso.includes(p.local_id);
@@ -5592,11 +5592,11 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
         // Si tiene uno lento de otro local o quiere tomar uno lento de otro local -> No
         if (tienePedidoLento && p.nivel_rapidez_pedido === 2 && !esMismoLocal) return false;
 
-        // Si es mismo local, permitimos hasta 3 (incluyendo 1 lento + 2 rÃ¡pidos o 3 rÃ¡pidos)
+        // Si es mismo local, permitimos hasta 3 (incluyendo 1 lento + 2 rápidos o 3 rápidos)
         if (esMismoLocal) {
             return true; 
         } else {
-            // Si es local diferente, mantenemos lÃ­mite de 1 activo para poder tomar otro (total 2)
+            // Si es local diferente, mantenemos límite de 1 activo para poder tomar otro (total 2)
             if (pedidosActivosCount >= 2) return false;
         }
     }
@@ -5611,7 +5611,7 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
       cliente: p.usuario_id, 
       nombre_cliente: p.nombre_cliente || 'Cliente', 
       telefono_cliente: p.usuarios?.telefono || '',
-      direccion: p.direccion || 'Sin direcciÃ³n',
+      direccion: p.direccion || 'Sin dirección',
       monto: +p.total || 0,
       precio_envio: +p.precio_envio || 0,
       pago: p.metodo_pago || 'Efectivo',
@@ -5630,9 +5630,9 @@ export async function getPedidosDisponiblesProbando(repartidorId) {
   };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// CAMPAÃ‘A MUNDIALISTA - FRONTEND & ADMIN
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// CAMPAÑA MUNDIALISTA - FRONTEND & ADMIN
+// ═══════════════════════════════════════════════════
 
 export async function getMundialConfig() {
   const { data, error } = await supabase
@@ -5729,7 +5729,7 @@ export async function getMundialUsuarioStats(userId) {
     return null;
   }
   
-  // Si no existen stats, crearlas automÃ¡ticamente inyectando los premios iniciales de bienvenida
+  // Si no existen stats, crearlas automáticamente inyectando los premios iniciales de bienvenida
   if (!data) {
     const { data: newStats, error: createError } = await supabase
       .from('mundial_usuario_stats')
@@ -5940,7 +5940,7 @@ export async function getMundialUserRank(userId) {
   return {
     posicion: rank,
     usuario_id: userId,
-    nombre: userStats.usuarios?.nombre || userStats.usuarios?.email?.split('@')[0] || 'TÃº',
+    nombre: userStats.usuarios?.nombre || userStats.usuarios?.email?.split('@')[0] || 'Tú',
     puntos: userStats.puntos_totales || 0,
     racha: userStats.racha_actual || 0
   };
@@ -5977,7 +5977,7 @@ export async function completarMisionCliente(userId, misionId, puntosPremio, sob
     
   if (insErr) {
     console.error("Error inserting completed mission:", insErr);
-    return { success: false, message: 'Ya has completado esta misiÃ³n o hubo un error.' };
+    return { success: false, message: 'Ya has completado esta misión o hubo un error.' };
   }
 
   const { data: st } = await supabase
@@ -6001,7 +6001,7 @@ export async function completarMisionCliente(userId, misionId, puntosPremio, sob
     console.error("Error updating user stats:", updErr);
   }
 
-  let msg = `Â¡MisiÃ³n completada con Ã©xito!`;
+  let msg = `¡Misión completada con éxito!`;
   if (puntosPremio > 0 && sobresPremio > 0) {
     msg += ` +${puntosPremio} puntos y +${sobresPremio} sobres.`;
   } else if (puntosPremio > 0) {
@@ -6104,7 +6104,7 @@ export async function verificarMisionUsuario(submissionId) {
     .eq('id', submissionId)
     .single();
     
-  if (fetchErr || !sub) throw new Error("No se encontrÃ³ la entrega");
+  if (fetchErr || !sub) throw new Error("No se encontró la entrega");
   
   const { error: updErr } = await supabase
     .from('mundial_misiones_usuarios')
@@ -6176,9 +6176,9 @@ export async function rechazarMisionUsuario(submissionId) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // CRM & AUTOMATIONS SYSTEM SERVICES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function adminGetCRMUsers() {
   const { data, error } = await supabase
@@ -6235,9 +6235,9 @@ export async function adminRemoveTagFromUser(userId, tagId) {
   return { success: true };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// ADMIN â€” CRM Analytics (ConversiÃ³n y EnvÃ­os)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// ADMIN — CRM Analytics (Conversión y Envíos)
+// ═══════════════════════════════════════════════════
 export async function adminGetCRMAnalytics() {
   // 1. Fetch CRM History to count sent messages
   const { data: history, error: hError } = await supabase
@@ -6287,9 +6287,9 @@ export async function adminGetCRMAnalytics() {
         if (match) campaign = match[1];
       }
 
-      // Try to extract from description "CampaÃ±a Especial: xyz"
-      if (!campaign && h.descripcion && h.descripcion.includes('CampaÃ±a Especial:')) {
-         campaign = h.descripcion.split('CampaÃ±a Especial:')[1].trim();
+      // Try to extract from description "Campaña Especial: xyz"
+      if (!campaign && h.descripcion && h.descripcion.includes('Campaña Especial:')) {
+         campaign = h.descripcion.split('Campaña Especial:')[1].trim();
       }
 
       campaign = processCampaignStr(campaign) || 'Desconocida';
@@ -6428,7 +6428,7 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
           (r.id === 'pedido_entregado' && eventType === 'PEDIDO_ENTREGADO')
         );
 
-        // Si se dispara el aviso inicial de sin repartidores, programar comprobaciÃ³n de refuerzo a los 5 min
+        // Si se dispara el aviso inicial de sin repartidores, programar comprobación de refuerzo a los 5 min
         if (eventType === 'sin_repartidores' || eventType === 'PEDIDO_RECHAZADO_SIN_REPARTIDOR_1') {
           setTimeout(async () => {
             try {
@@ -6440,10 +6440,10 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
                 .gte('created_at', fiveMinAgo);
 
               if (!newOrders || newOrders.length === 0) {
-                console.log(`â±ï¸ 5 min transcurridos sin repetir pedido para usuario ${userId}. Disparando PEDIDO_RECHAZADO_SIN_REPARTIDOR_2...`);
+                console.log(`⏱️ 5 min transcurridos sin repetir pedido para usuario ${userId}. Disparando PEDIDO_RECHAZADO_SIN_REPARTIDOR_2...`);
                 await adminLogCRMEvent(userId, 'PEDIDO_RECHAZADO_SIN_REPARTIDOR_2', { ...metadata, origin: 'auto_refuerzo_5m' });
               } else {
-                console.log(`âœ… Usuario ${userId} ya repitiÃ³ pedido dentro de los 5 min. Se cancela el refuerzo.`);
+                console.log(`✅ Usuario ${userId} ya repitió pedido dentro de los 5 min. Se cancela el refuerzo.`);
               }
             } catch (eRef) {
               console.error("Error comprobando refuerzo 5 min sin repartidor:", eRef);
@@ -6462,7 +6462,7 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
               }) || (rule.configs?.whatsapp?.enabled ? 'whatsapp' : rule.configs?.push?.enabled ? 'push' : null));
 
           if (!selectedChannel) {
-            console.log(`[CRM] NingÃºn canal habilitado para la regla ${rule.id}. Omite envÃ­o.`);
+            console.log(`[CRM] Ningún canal habilitado para la regla ${rule.id}. Omite envío.`);
             return;
           }
 
@@ -6485,7 +6485,7 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
 
           let dispatchResult = null;
 
-          // Disparar segÃºn el Canal Seleccionado
+          // Disparar según el Canal Seleccionado
           if (selectedChannel === 'whatsapp') {
             const userPhone = metadata?.simulated 
               ? (metadata?.override_phone || metadata?.phone || userObj?.telefono || '5493764275443')
@@ -6518,12 +6518,12 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
 
               dispatchResult = { success, logDetail };
             } else {
-              dispatchResult = { success: false, reason: 'Usuario sin telÃ©fono registrado' };
+              dispatchResult = { success: false, reason: 'Usuario sin teléfono registrado' };
             }
           } else if (selectedChannel === 'push') {
             const pConfig = rule.configs?.push || {};
-            const pTitle = pConfig.title || (rule.evento ? `Wepi: ${rule.evento}` : 'Alerta Wepi ðŸ›µ');
-            const pBody = pConfig.body || 'Tienes una nueva actualizaciÃ³n de tu pedido.';
+            const pTitle = pConfig.title || (rule.evento ? `Wepi: ${rule.evento}` : 'Alerta Wepi 🛵');
+            const pBody = pConfig.body || 'Tienes una nueva actualización de tu pedido.';
             const pUrl = pConfig.url || '/mis-pedidos';
 
             const targetPushToken = metadata?.simulated 
@@ -6551,7 +6551,7 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
               ? (metadata?.override_email || userObj?.email || 'axel.martinezz665@gmail.com')
               : (metadata?.override_email || userObj?.email);
             const eConfig = rule.configs?.email || {};
-            dispatchResult = { success: true, logDetail: `Email despachado a ${targetEmail} (${eConfig.subject || 'NotificaciÃ³n Wepi'})` };
+            dispatchResult = { success: true, logDetail: `Email despachado a ${targetEmail} (${eConfig.subject || 'Notificación Wepi'})` };
           }
 
           // Registrar en crm_history
@@ -6559,7 +6559,7 @@ export async function adminLogCRMEvent(userId, eventType, metadata = {}) {
             usuario_id: userId,
             tipo: 'automatizacion_ejecutada',
             canal: selectedChannel,
-            descripcion: `Disparo automÃ¡tico ${rule.evento || eventType} vÃ­a ${selectedChannel.toUpperCase()} (${templateName})`,
+            descripcion: `Disparo automático ${rule.evento || eventType} vía ${selectedChannel.toUpperCase()} (${templateName})`,
             metadata: {
               template_name: templateName,
               channel: selectedChannel,
@@ -6815,7 +6815,7 @@ export async function adminRunCRMInactivityCheck() {
       }
 
       // Log & Dispatch the SINGLE matched rule
-      console.log(`ðŸŽ¯ Disparando regla de inactividad Ãºnica ${matchedRule.id} para usuario ${u.nombre || u.id} (DÃ­as inactivo: ${daysInactive})`);
+      console.log(`🎯 Disparando regla de inactividad única ${matchedRule.id} para usuario ${u.nombre || u.id} (Días inactivo: ${daysInactive})`);
       await adminLogCRMEvent(u.id, matchedRule.id, {
         days_inactive: daysInactive,
         origin: 'inactivity_daily_scan'
@@ -6863,7 +6863,7 @@ export async function adminSendCRMMessage(userId, channel, message, title = "Wep
         success = true;
         logDetail = 'Enviado por Push Notification (Firebase FCM)';
       } catch (e) {
-        logDetail = `Fallo de envÃ­o por Push: ${e.message}. Intentando fallback a WhatsApp...`;
+        logDetail = `Fallo de envío por Push: ${e.message}. Intentando fallback a WhatsApp...`;
       }
     } else {
       logDetail = 'Sin OneSignal ID. Intentando fallback a WhatsApp...';
@@ -6880,19 +6880,19 @@ export async function adminSendCRMMessage(userId, channel, message, title = "Wep
     let rawPhone = user.telefono || '';
     let cleanPhone = rawPhone.replace(/[\s-]/g, '');
     
-    // Asegurar cÃ³digo de paÃ­s para Argentina si tiene formato local
+    // Asegurar código de país para Argentina si tiene formato local
     if (cleanPhone.length >= 10 && !cleanPhone.startsWith('+') && !cleanPhone.startsWith('5')) {
       cleanPhone = '549' + cleanPhone;
     } else if (cleanPhone.startsWith('+')) {
       cleanPhone = cleanPhone.substring(1);
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────────
     // SOPORTE WHATSAPP API (META DEVELOPERS)
-    // Para activar la integraciÃ³n automÃ¡tica con la API de Meta en el futuro:
+    // Para activar la integración automática con la API de Meta en el futuro:
     // 1. Cambia USE_META_API a true.
     // 2. Coloca tu token y tu Phone Number ID de Meta.
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────────
     const USE_META_API = false; 
     const META_PHONE_NUMBER_ID = 'YOUR_META_PHONE_NUMBER_ID';
     const META_ACCESS_TOKEN = 'YOUR_META_ACCESS_TOKEN';
@@ -6915,7 +6915,7 @@ export async function adminSendCRMMessage(userId, channel, message, title = "Wep
         const resData = await response.json();
         if (response.ok) {
           success = true;
-          logDetail = 'Enviado automÃ¡ticamente por WhatsApp Cloud API';
+          logDetail = 'Enviado automáticamente por WhatsApp Cloud API';
         } else {
           throw new Error(resData.error?.message || 'Meta API Error');
         }
@@ -6932,7 +6932,7 @@ export async function adminSendCRMMessage(userId, channel, message, title = "Wep
       success = true;
       logDetail = 'Enlace manual wa.me generado';
       
-      // Abrir enlace en pestaÃ±a nueva si estamos en navegador
+      // Abrir enlace en pestaña nueva si estamos en navegador
       if (typeof window !== 'undefined') {
         window.open(link, '_blank');
       }
@@ -6997,11 +6997,11 @@ export async function adminTriggerEventAutomations(userId, eventType, metadata =
       }
 
       if (matches) {
-        // Registrar ejecuciÃ³n de la automatizaciÃ³n
+        // Registrar ejecución de la automatización
         await supabase.from('crm_history').insert({
           usuario_id: userId,
           tipo: 'automatizacion_ejecutada',
-          descripcion: `AutomatizaciÃ³n ejecutada: "${aut.nombre}"`,
+          descripcion: `Automatización ejecutada: "${aut.nombre}"`,
           automation_id: aut.id,
           metadata: { automation_name: aut.nombre, event_type: eventType, channel: aut.canal }
         });
@@ -7019,9 +7019,9 @@ export async function adminTriggerEventAutomations(userId, eventType, metadata =
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // WEPI ADS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 export async function getAds() {
   const { data, error } = await supabase
     .from('wepi_ads')
@@ -7073,9 +7073,9 @@ export async function adminDeleteAd(id) {
   return true;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// LOGÃSTICA DE PARTNERS Y CIUDADES (NUEVO)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
+// LOGÍSTICA DE PARTNERS Y CIUDADES (NUEVO)
+// ═══════════════════════════════════════════════════
 
 export async function getCiudadesConfig() {
   const { data, error } = await supabase
@@ -7284,7 +7284,7 @@ export async function getPartnerPedidos(partnerId, ciudad) {
     .from('pedidos_general')
     .select('id, total, precio_envio, metodo_pago, estado, direccion, observaciones, tipo_entrega, local_id, lat, lng, nombre_cliente, created_at, precio_envio, repartidor_id, repartidor_propuesto_id, locales(nombre, ciudad)')
     .is('repartidor_id', null)
-    .eq('tipo_entrega', 'Con EnvÃ­o')
+    .eq('tipo_entrega', 'Con Envío')
     .in('estado', ['Pendiente', 'Buscando Repartidor', 'Listo', 'Preparando', 'Aceptado'])
     .order('created_at', { ascending: false });
     
@@ -7376,13 +7376,13 @@ export async function solicitarVinculacionPartner(driverId, pin) {
 
     if (error) {
       if (error.message?.includes('partner_pin') || error.code === 'PGRST100') {
-        return { success: false, error: 'Error: La columna partner_pin no existe en la base de datos. Por favor, ejecuta la migraciÃ³n SQL supabase_partner_linking.sql.' };
+        return { success: false, error: 'Error: La columna partner_pin no existe en la base de datos. Por favor, ejecuta la migración SQL supabase_partner_linking.sql.' };
       }
-      return { success: false, error: 'CÃ³digo PIN invÃ¡lido o partner no encontrado' };
+      return { success: false, error: 'Código PIN inválido o partner no encontrado' };
     }
 
     if (!partner) {
-      return { success: false, error: 'CÃ³digo PIN invÃ¡lido o partner no encontrado' };
+      return { success: false, error: 'Código PIN inválido o partner no encontrado' };
     }
 
     const { error: updateError } = await supabase
@@ -7395,13 +7395,13 @@ export async function solicitarVinculacionPartner(driverId, pin) {
 
     if (updateError) {
       if (updateError.message?.includes('partner_vinculo_status')) {
-        return { success: false, error: 'Error: Faltan las columnas de vinculaciÃ³n en la base de datos. Por favor, ejecuta la migraciÃ³n SQL supabase_partner_linking.sql.' };
+        return { success: false, error: 'Error: Faltan las columnas de vinculación en la base de datos. Por favor, ejecuta la migración SQL supabase_partner_linking.sql.' };
       }
       return { success: false, error: updateError.message };
     }
     return { success: true, partnerNombre: partner.nombre };
   } catch (err) {
-    return { success: false, error: 'Error de conexiÃ³n: ' + err.message };
+    return { success: false, error: 'Error de conexión: ' + err.message };
   }
 }
 
@@ -7432,12 +7432,12 @@ export async function getPartnerPendingRequests(partnerId) {
       .order('nombre', { ascending: true });
 
     if (error) {
-      console.warn("âš ï¸ getPartnerPendingRequests error (probably missing columns):", error);
+      console.warn("⚠️ getPartnerPendingRequests error (probably missing columns):", error);
       return [];
     }
     return data || [];
   } catch (err) {
-    console.warn("âš ï¸ getPartnerPendingRequests caught exception:", err);
+    console.warn("⚠️ getPartnerPendingRequests caught exception:", err);
     return [];
   }
 }
@@ -7584,7 +7584,7 @@ export async function registrarInteresExpansion({ nombre, whatsapp, email, ciuda
       return { success: false, error: userError };
     }
 
-    // Disparar Evento CRM para que se sincronice con la hoja "usuarios" o envÃ­e mensajes de bienvenida
+    // Disparar Evento CRM para que se sincronice con la hoja "usuarios" o envíe mensajes de bienvenida
     adminLogCRMEvent(userId, 'USUARIO_REGISTRADO', { 
       nombre: nombre ? nombre.trim() : 'Usuario Interesado', 
       email: userEmail, 
@@ -7722,7 +7722,7 @@ export async function calculateDeliveryFeeByCity(citySlug, destination) {
     };
   }
 
-  // DirecciÃ³n textual
+  // Dirección textual
   const rawAddress = String(destination || '').trim();
   if (!rawAddress) {
     return {
@@ -7823,9 +7823,9 @@ export async function vincularWhatsAppMeta({ localId, wabaId, phoneNumberId, acc
     .select()
     .single();
 
-  // Si arrojÃ³ error de columna no encontrada (PGRST204), reintentar con las columnas bÃ¡sicas
+  // Si arrojó error de columna no encontrada (PGRST204), reintentar con las columnas básicas
   if (error && error.code === 'PGRST204') {
-    console.warn("Columna no encontrada en Supabase. Reintentando actualizaciÃ³n bÃ¡sica...");
+    console.warn("Columna no encontrada en Supabase. Reintentando actualización básica...");
     const basicPayload = {
       whatsapp_assistant_enabled: true,
       whatsapp_phone_id: phoneNumberId
@@ -7869,9 +7869,9 @@ export async function desvincularWhatsAppMeta(localId) {
   return data;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 // CHATBOT GLOBAL (3756543670) Y OPT-INS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════
 
 export async function getWhatsappBotFlows() {
   try {
@@ -7928,7 +7928,7 @@ export async function updateWhatsappBotFlows(flowData) {
 
     // Si la tabla no existe en el schema cache (PGRST204 / 42P01 / Could not find table)
     if (error && (error.message.includes('Could not find the table') || error.code === 'PGRST204' || error.code === '42P01')) {
-      console.warn("La tabla whatsapp_bot_flows no existe aÃºn en Supabase. Guardando en tabla 'configuracion' como fallback...");
+      console.warn("La tabla whatsapp_bot_flows no existe aún en Supabase. Guardando en tabla 'configuracion' como fallback...");
       const { error: fallbackError } = await supabase
         .from('configuracion')
         .update({
@@ -7977,8 +7977,8 @@ export async function updateWhatsappBotFlows(flowData) {
 export async function registerWhatsappOptin({ phoneNumber, ciudad, pedidoId, userId, tipo = 'driver_available' }) {
   const cleanPhone = phoneNumber ? String(phoneNumber).replace(/\D/g, '') : '';
   if (!cleanPhone) {
-    console.warn('registerWhatsappOptin: NÃºmero de telÃ©fono requerido');
-    return { success: false, error: 'NÃºmero no vÃ¡lido' };
+    console.warn('registerWhatsappOptin: Número de teléfono requerido');
+    return { success: false, error: 'Número no válido' };
   }
   
   try {
@@ -7986,7 +7986,7 @@ export async function registerWhatsappOptin({ phoneNumber, ciudad, pedidoId, use
       .from('whatsapp_optins')
       .insert({
         phone_number: cleanPhone,
-        ciudad: ciudad || 'Santo TomÃ©',
+        ciudad: ciudad || 'Santo Tomé',
         pedido_id: pedidoId || null,
         user_id: userId || null,
         tipo,
@@ -8068,7 +8068,7 @@ export async function deleteWhatsappTemplate(id) {
 
 // Enviar plantilla de WhatsApp Meta API (HSM) como sin_repartidores
 export async function sendWhatsappTemplateMessage({ to, templateName = 'sin_repartidores', languageCode = 'es_AR', phoneId, components }) {
-  if (!to) return { success: false, error: 'Sin telÃ©fono de destino' };
+  if (!to) return { success: false, error: 'Sin teléfono de destino' };
 
   try {
     const { data, error } = await supabase.functions.invoke('whatsapp-webhook', {
@@ -8133,7 +8133,7 @@ export async function handleCancelOrderSinRepartidores({ orderId, phone, city, o
       await adminLogCRMEvent(targetUserId, 'sin_repartidores', {
         order_id: orderId,
         phone: phone,
-        city: city || 'Santo TomÃ©',
+        city: city || 'Santo Tomé',
         origin: 'cancel_sin_repartidores_timeout'
       }).catch(console.error);
     }
@@ -8142,7 +8142,7 @@ export async function handleCancelOrderSinRepartidores({ orderId, phone, city, o
     if (optIn && phone) {
       await registerWhatsappOptin({
         phoneNumber: phone,
-        ciudad: city || 'Santo TomÃ©',
+        ciudad: city || 'Santo Tomé',
         pedidoId: orderId,
         userId: null,
         tipo: 'esperando_repartidor'
@@ -8160,7 +8160,7 @@ export async function handleCancelOrderSinRepartidores({ orderId, phone, city, o
       const { data: drivers } = await supabase
         .from('repartidores')
         .select('whatsapp')
-        .eq('ciudad', city || 'Santo TomÃ©')
+        .eq('ciudad', city || 'Santo Tomé')
         .eq('verificado', true)
         .neq('estado', 'Activo');
 
@@ -8307,10 +8307,10 @@ export async function sendCRMActionEmail(email, subject, htmlContent) {
 ${htmlContent}
           </div>
           <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-              <h3 style="color: #d32f2f; margin-bottom: 10px; font-size: 18px;">WEPI â€” Plataforma de pedidos y delivery</h3>
+              <h3 style="color: #d32f2f; margin-bottom: 10px; font-size: 18px;">WEPI — Plataforma de pedidos y delivery</h3>
           </div>
           <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
-              <p>Â© ${currentYear} WEPI. Todos los derechos reservados.</p>
+              <p>© ${currentYear} WEPI. Todos los derechos reservados.</p>
               <p>Este es un mensaje institucional enviado desde la plataforma oficial de Wepi.</p>
           </div>
       </div>
@@ -8360,5 +8360,3 @@ export async function extenderEsperaRepartidor(pedidoId, whatsappOptin, userPhon
     return { success: false, error };
   }
 }
-
-
