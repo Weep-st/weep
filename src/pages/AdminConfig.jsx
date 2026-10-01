@@ -24,7 +24,8 @@ const AdminConfig = () => {
     const [config, setConfig] = useState({
         valor_envio: 2000,
         valor_envio_shops: 2000,
-        codigo_acceso: ''
+        codigo_acceso: '',
+        codigo_acceso_repartidores: ''
     });
     const [ciudades, setCiudades] = useState([]);
     const [partners, setPartners] = useState([]);
@@ -55,10 +56,17 @@ const AdminConfig = () => {
             await api.updateConfiguracion({ 
                 valor_envio: Number(config.valor_envio),
                 valor_envio_shops: Number(config.valor_envio_shops),
+                fee_envio: Number(config.fee_envio !== undefined ? config.fee_envio : 250),
+                fee_envio_activo: config.fee_envio_activo !== undefined ? config.fee_envio_activo : true,
                 mantenimiento_pedir: config.mantenimiento_pedir,
                 mantenimiento_locales: config.mantenimiento_locales,
                 mantenimiento_repartidores: config.mantenimiento_repartidores,
-                codigo_acceso: config.codigo_acceso
+                codigo_acceso: config.codigo_acceso,
+                codigo_acceso_repartidores: config.codigo_acceso_repartidores,
+                min_version_ios: config.min_version_ios,
+                min_version_android: config.min_version_android,
+                url_ios: config.url_ios,
+                url_android: config.url_android
             });
             for (const c of ciudades) {
                 await api.updateCityLogisticsConfig(c.ciudad, {
@@ -76,7 +84,8 @@ const AdminConfig = () => {
                     min_delivery_fee: c.min_delivery_fee,
                     extra_fee_per_km: c.extra_fee_per_km,
                     max_delivery_distance_km: c.max_delivery_distance_km,
-                    rubros_habilitados: c.rubros_habilitados || []
+                    rubros_habilitados: c.rubros_habilitados || [],
+                    funcional: c.funcional !== undefined ? c.funcional : true
                 });
             }
             toast.success('Configuración guardada correctamente');
@@ -151,6 +160,44 @@ const AdminConfig = () => {
                     </div>
                 </div>
 
+                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+                    <div className="form-group" style={{ flex: '1', minWidth: '280px', maxWidth: '400px', marginBottom: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                            Fee de Envío (Mercado Pago) ($)
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <input
+                                type="number"
+                                value={config.fee_envio !== undefined ? config.fee_envio : 250}
+                                onChange={(e) => setConfig({ ...config, fee_envio: e.target.value })}
+                                className="admin-input"
+                                style={{
+                                    flex: 1,
+                                    padding: '0.75rem',
+                                    background: 'rgba(0,0,0,0.2)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '0.5rem',
+                                    color: 'white',
+                                    fontSize: '1rem'
+                                }}
+                                required
+                            />
+                            <label className="toggle" style={{ transform: 'scale(0.8)', margin: 0 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={config.fee_envio_activo !== undefined ? config.fee_envio_activo : true}
+                                    onChange={(e) => setConfig({ ...config, fee_envio_activo: e.target.checked })}
+                                />
+                                <span className="toggle-track" />
+                                <span className="toggle-thumb" />
+                            </label>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+                            Este fee se sumará al valor del envío pagado por el cliente cuando use Mercado Pago, y quedará para Wepi. El switch lo activa o desactiva.
+                        </p>
+                    </div>
+                </div>
+
                 <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
                         Código de Acceso para Registro de Locales
@@ -173,6 +220,31 @@ const AdminConfig = () => {
                     />
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                         Este código será requerido a los nuevos locales para poder completar el registro.
+                    </p>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                        C&oacute;digo de Acceso para Registro de Repartidores
+                    </label>
+                    <input
+                        type="text"
+                        value={config.codigo_acceso_repartidores || ''}
+                        onChange={(e) => setConfig({ ...config, codigo_acceso_repartidores: e.target.value })}
+                        className="admin-input"
+                        placeholder="Ej: DRIVER123"
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '0.5rem',
+                            color: 'white',
+                            fontSize: '1rem'
+                        }}
+                    />
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                        Este c&oacute;digo ser&aacute; requerido a los nuevos repartidores para poder completar el registro.
                     </p>
                 </div>
 
@@ -551,6 +623,57 @@ const AdminConfig = () => {
                     </div>
                 </div>
 
+                
+                <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginTop: '24px' }}>
+                    <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '12px' }}>Versiones de la App (Forzar Actualización)</h3>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Versión mínima iOS (App Store)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.min_version_ios || ''}
+                                onChange={(e) => setConfig({ ...config, min_version_ios: e.target.value })}
+                                placeholder="Ej: 1.2.1"
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Versión mínima Android (Google Play)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.min_version_android || ''}
+                                onChange={(e) => setConfig({ ...config, min_version_android: e.target.value })}
+                                placeholder="Ej: 1.2.1"
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>URL App Store (iOS)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.url_ios || ''}
+                                onChange={(e) => setConfig({ ...config, url_ios: e.target.value })}
+                                placeholder="https://apps.apple.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>URL Google Play (Android)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={config.url_android || ''}
+                                onChange={(e) => setConfig({ ...config, url_android: e.target.value })}
+                                placeholder="https://play.google.com/..."
+                            />
+                        </div>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '12px' }}>
+                        * Si la versión de la app instalada es MENOR a la versión mínima aquí configurada, se bloqueará la app y se obligará al usuario a actualizar.
+                    </p>
+                </div>
+
                 <div style={{ marginTop: '3rem' }}>
                     <button 
                         type="submit" 
@@ -652,3 +775,12 @@ const AdminConfig = () => {
 };
 
 export default AdminConfig;
+
+
+
+
+
+
+
+
+
