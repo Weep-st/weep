@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
@@ -29,7 +29,7 @@ export default function DriverDashboard() {
 
   const [resetEmail, setResetEmail] = React.useState('');
   React.useEffect(() => {
-    if (window.location.hash.includes('type=recovery')) {
+    if (api.wasPasswordRecovery || window.location.hash.includes('type=recovery')) {
       setAuthView('reset');
     } else if (api.supabase) {
       const { data: authListener } = api.supabase.auth.onAuthStateChange((event, session) => {
@@ -44,14 +44,14 @@ export default function DriverDashboard() {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
-      toast.error('Por favor ingresa tu email arriba para recuperar la contraseÃ±a');
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
       return;
     }
     setAuthLoading(true);
     const redirectUrl = window.location.origin + window.location.pathname;
     const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
     if (res.success) {
-      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseÃ±a', { duration: 6000 });
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
       setAuthView('login');
     } else {
       toast.error(res.error || 'Error al enviar el correo');
@@ -64,17 +64,17 @@ export default function DriverDashboard() {
     const fd = new FormData(e.target);
     const newPassword = fd.get('password');
     if (newPassword.length < 6) {
-      toast.error('La contraseÃ±a debe tener al menos 6 caracteres');
+      toast.error('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     setAuthLoading(true);
     const res = await api.updateUserPassword(newPassword);
     if (res.success) {
-      toast.success('ContraseÃ±a actualizada correctamente. Inicia sesiÃ³n.');
+      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
       window.location.hash = ''; // clear hash
       setAuthView('login');
     } else {
-      toast.error(res.error || 'Error al actualizar contraseÃ±a');
+      toast.error(res.error || 'Error al actualizar contraseña');
     }
     setAuthLoading(false);
   };
@@ -83,7 +83,7 @@ export default function DriverDashboard() {
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
-    console.error("âŒ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
   }
 
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
@@ -93,7 +93,7 @@ export default function DriverDashboard() {
   });
 
   if (loadError) {
-    console.error("âŒ Error loading Google Maps in DriverDashboard:", loadError);
+    console.error("❌ Error loading Google Maps in DriverDashboard:", loadError);
   }
 
   const [authView, setAuthView] = React.useState('login');
@@ -178,11 +178,11 @@ export default function DriverDashboard() {
     }));
   };
 
-  // â”€â”€â”€ LÃ“GICA DE NAVEGACIÃ“N (DIRECTIONS) â”€â”€â”€
+  // ─── LÓGICA DE NAVEGACIÓN (DIRECTIONS) ───
   React.useEffect(() => {
     if (!isMapLoaded || !driverLocation.lat || !driverLocation.lng) return;
 
-    // 1. Recolectar todos los puntos de interÃ©s (Retiros y Entregas)
+    // 1. Recolectar todos los puntos de interés (Retiros y Entregas)
     const pedidosEnCurso = pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
     const pointsMap = new Map(); // Usar Map para evitar duplicados en la misma coordenada
     
@@ -229,14 +229,14 @@ export default function DriverDashboard() {
     }
 
     if (!shouldRequest) {
-      console.log("â„¹ï¸ Saltando llamada a Directions API (sin cambios significativos en ruta u origen)");
+      console.log("ℹ️ Saltando llamada a Directions API (sin cambios significativos en ruta u origen)");
       return;
     }
 
-    // Throttling para evitar sobreconsulta (mÃ¡ximo una llamada cada 30 segundos)
+    // Throttling para evitar sobreconsulta (máximo una llamada cada 30 segundos)
     const nowTime = Date.now();
     if (nowTime - lastRouteRequestTimeRef.current < 30000) {
-      console.log("â„¹ï¸ Throttling route request to prevent Google API key overuse.");
+      console.log("ℹ️ Throttling route request to prevent Google API key overuse.");
       return;
     }
     lastRouteRequestTimeRef.current = nowTime;
@@ -246,7 +246,7 @@ export default function DriverDashboard() {
     lastPointsSignatureRef.current = currentPointsSignature;
 
     // 2. Configurar la ruta con Waypoints
-    // El Ãºltimo punto serÃ¡ el destino, los intermedios serÃ¡n waypoints
+    // El último punto será el destino, los intermedios serán waypoints
     const destination = uniquePoints[uniquePoints.length - 1];
     const waypoints = uniquePoints.slice(0, -1).map(p => ({
       location: p,
@@ -254,7 +254,7 @@ export default function DriverDashboard() {
     }));
 
     const directionsService = new window.google.maps.DirectionsService();
-    console.log("ðŸ›£ï¸ Solicitando ruta multi-punto optimizada...");
+    console.log("🛣️ Solicitando ruta multi-punto optimizada...");
     
     directionsService.route(
       {
@@ -266,7 +266,7 @@ export default function DriverDashboard() {
       },
       (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
-          console.log("âœ… Ruta multi-punto optimizada con Ã©xito");
+          console.log("✅ Ruta multi-punto optimizada con éxito");
           setDirections(result);
           
           // Extraer la secuencia optimizada para mostrar en la UI
@@ -288,13 +288,13 @@ export default function DriverDashboard() {
           }
           setRouteSequence(sequence);
         } else {
-          console.error(`âŒ Error calculando ruta multi-punto: ${status}`);
+          console.error(`❌ Error calculando ruta multi-punto: ${status}`);
           if (status === 'ZERO_RESULTS') {
-            toast.error("No se encontrÃ³ una ruta por calle.");
+            toast.error("No se encontró una ruta por calle.");
           }
-          // IMPORTANTE: NO limpiar las referencias a null/vacÃ­o ante un error.
-          // Al mantener lastOriginRef, evitamos entrar en un bucle inmediato de reintentos rÃ¡pidos
-          // en la siguiente actualizaciÃ³n del GPS del repartidor.
+          // IMPORTANTE: NO limpiar las referencias a null/vacío ante un error.
+          // Al mantener lastOriginRef, evitamos entrar en un bucle inmediato de reintentos rápidos
+          // en la siguiente actualización del GPS del repartidor.
         }
       }
     );
@@ -324,12 +324,12 @@ export default function DriverDashboard() {
     if (isActive && navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
-          console.log("ðŸ“ UbicaciÃ³n actualizada:", position.coords.latitude, position.coords.longitude, "PrecisiÃ³n:", position.coords.accuracy);
+          console.log("📍 Ubicación actualizada:", position.coords.latitude, position.coords.longitude, "Precisión:", position.coords.accuracy);
           setDriverLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          // Sincronizar con DB para seguimiento en tiempo real del cliente (Throttle: 20 segundos para evitar saturaciÃ³n de base de datos)
+          // Sincronizar con DB para seguimiento en tiempo real del cliente (Throttle: 20 segundos para evitar saturación de base de datos)
           if (driver?.id) {
             const nowTime = Date.now();
             if (nowTime - lastLocationSyncRef.current >= 20000) {
@@ -341,7 +341,7 @@ export default function DriverDashboard() {
 
         },
         (error) => {
-          console.error("âŒ Error en GPS Watcher:", error);
+          console.error("❌ Error en GPS Watcher:", error);
         },
         {
           enableHighAccuracy: true,
@@ -362,12 +362,12 @@ export default function DriverDashboard() {
       return;
     }
     
-    toast.loading('Obteniendo ubicaciÃ³n exacta...', { id: 'gps-load' });
+    toast.loading('Obteniendo ubicación exacta...', { id: 'gps-load' });
     
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         toast.success('GPS Calibrado', { id: 'gps-load' });
-        console.log("ðŸŽ¯ GPS Manual:", pos.coords.latitude, pos.coords.longitude, "Acc:", pos.coords.accuracy);
+        console.log("🎯 GPS Manual:", pos.coords.latitude, pos.coords.longitude, "Acc:", pos.coords.accuracy);
         setDriverLocation({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude
@@ -383,7 +383,7 @@ export default function DriverDashboard() {
   const isLocalOpen = React.useCallback((local) => {
     if (!local) return false;
 
-    // Verificar si ya pasÃ³ la fecha de disponibilidad
+    // Verificar si ya pasó la fecha de disponibilidad
     if (local.disponible_desde) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -392,18 +392,18 @@ export default function DriverDashboard() {
       if (today < availableDate) return false;
     }
     
-    // Si no tiene modo automÃ¡tico, dependemos del estado manual
+    // Si no tiene modo automático, dependemos del estado manual
     if (!local.modo_automatico) {
       return local.estado?.toLowerCase() === 'activo';
     }
 
-    // Si tiene modo automÃ¡tico, verificamos horario y dÃ­as
+    // Si tiene modo automático, verificamos horario y días
     const { horario_apertura, horario_cierre, dias_apertura } = local;
     if (!horario_apertura || !horario_cierre) return local.estado?.toLowerCase() === 'activo';
 
-    // Verificar dÃ­as
+    // Verificar días
     if (dias_apertura && Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-      const daysMap = ['Domingo', 'Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado'];
+      const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
       const currentDayName = daysMap[new Date().getDay()];
       const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const normalizedDays = dias_apertura.map(normalize);
@@ -588,7 +588,7 @@ export default function DriverDashboard() {
       // Filtrar pedidos en curso (ya aceptados o asignados)
       const enCurso = (res.data || []).filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
       
-      // Si ya tiene 3 o mÃ¡s, solo mostramos los suyos y ocultamos el aviso de nuevos pedidos
+      // Si ya tiene 3 o más, solo mostramos los suyos y ocultamos el aviso de nuevos pedidos
       if (enCurso.length >= 3) {
         setPedidos(enCurso.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
       } else if (res.success) {
@@ -643,7 +643,7 @@ export default function DriverDashboard() {
         });
       }
     } catch (err) {
-      console.error("âŒ Error en fetchPedidos:", err);
+      console.error("❌ Error en fetchPedidos:", err);
     }
   }, [driver]);
 
@@ -661,7 +661,7 @@ export default function DriverDashboard() {
   React.useEffect(() => {
     if (!driver) return;
 
-    console.log("ðŸ“¡ Subscribing to realtime updates for pedidos_general...");
+    console.log("📡 Subscribing to realtime updates for pedidos_general...");
 
     const channel = api.supabase
       .channel('public:pedidos_general_changes')
@@ -670,7 +670,7 @@ export default function DriverDashboard() {
         schema: 'public', 
         table: 'pedidos_general'
       }, (payload) => {
-        console.log("ðŸ”” Realtime update on pedidos_general received:", payload);
+        console.log("🔔 Realtime update on pedidos_general received:", payload);
         fetchPedidos(true);
 
         // Si es un nuevo pedido broadcast no asignado en un estado activo de reparto,
@@ -679,7 +679,7 @@ export default function DriverDashboard() {
         if (
           newOrder &&
           !newOrder.repartidor_id &&
-          newOrder.tipo_entrega === 'Con EnvÃ­o' &&
+          newOrder.tipo_entrega === 'Con Envío' &&
           ['Pendiente', 'Buscando Repartidor', 'Confirmado'].includes(newOrder.estado)
         ) {
           const createdTime = new Date(newOrder.created_at).getTime();
@@ -690,9 +690,9 @@ export default function DriverDashboard() {
               clearTimeout(timeoutsRef.current[newOrder.id]);
             }
             
-            console.log(`â³ Scheduling delayed fetchPedidos in ${delayRemaining}ms for order ${newOrder.id}`);
+            console.log(`⏳ Scheduling delayed fetchPedidos in ${delayRemaining}ms for order ${newOrder.id}`);
             timeoutsRef.current[newOrder.id] = setTimeout(() => {
-              console.log(`â° Executing delayed fetchPedidos for order ${newOrder.id}`);
+              console.log(`⏰ Executing delayed fetchPedidos for order ${newOrder.id}`);
               fetchPedidos(true);
               delete timeoutsRef.current[newOrder.id];
             }, delayRemaining + 500);
@@ -717,17 +717,17 @@ export default function DriverDashboard() {
         setPartnerPinInput('');
         loadData();
       } else {
-        toast.error(res.error || "CÃ³digo PIN invÃ¡lido o partner no encontrado");
+        toast.error(res.error || "Código PIN inválido o partner no encontrado");
       }
     } catch (err) {
-      toast.error("Error al solicitar vinculaciÃ³n: " + err.message);
+      toast.error("Error al solicitar vinculación: " + err.message);
     } finally {
       setLinking(false);
     }
   };
 
   const handleCancelarSolicitud = async () => {
-    if (!window.confirm("Â¿Seguro que deseas cancelar tu solicitud de vinculaciÃ³n?")) return;
+    if (!window.confirm("¿Seguro que deseas cancelar tu solicitud de vinculación?")) return;
     try {
       const res = await api.cancelarSolicitudVinculacion(driver.id);
       if (res.success) {
@@ -742,11 +742,11 @@ export default function DriverDashboard() {
   };
 
   const handleDesvincularPropio = async () => {
-    if (!window.confirm("Â¿Seguro que deseas desvincularte de la empresa partner? DejarÃ¡s de recibir sus pedidos asignados.")) return;
+    if (!window.confirm("¿Seguro que deseas desvincularte de la empresa partner? Dejarás de recibir sus pedidos asignados.")) return;
     try {
       const res = await api.desvincularDriver(driver.id);
       if (res.success) {
-        toast.success("Te has desvinculado con Ã©xito");
+        toast.success("Te has desvinculado con éxito");
         loadData();
       } else {
         toast.error("Error al desvincularte");
@@ -765,7 +765,7 @@ export default function DriverDashboard() {
       }
       loadData();
       
-      // ðŸš€ðŸš€ðŸš€ Sync Push Notifications (Hybrid Native/Web) ðŸš€ðŸš€ðŸš€
+      // 🚀🚀🚀 Sync Push Notifications (Hybrid Native/Web) 🚀🚀🚀
       // Push notifications are now handled globally by PushNotificationManager.jsx
       // We only read the permission state for the UI
       const platform = Capacitor.getPlatform();
@@ -788,7 +788,7 @@ export default function DriverDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driver]);
 
-  // IntercepciÃ³n Deep Link para rescate de demanda (whatsapp)
+  // Intercepción Deep Link para rescate de demanda (whatsapp)
   React.useEffect(() => {
     if (driver && driver.ciudad) {
       const searchParams = new URLSearchParams(window.location.search);
@@ -796,9 +796,9 @@ export default function DriverDashboard() {
       if (conectar === 'true') {
         api.notifyWaitingClients(driver.ciudad).then(res => {
           if (res.success && res.count > 0) {
-            toast.success(`Â¡Acabamos de avisar a ${res.count} clientes en espera que estÃ¡s disponible!`);
+            toast.success(`¡Acabamos de avisar a ${res.count} clientes en espera que estás disponible!`);
           } else if (res.success) {
-            toast.success("Â¡EstÃ¡s activo para recibir pedidos!");
+            toast.success("¡Estás activo para recibir pedidos!");
           }
         }).catch(err => console.error("Error notifyWaitingClients:", err));
         
@@ -832,13 +832,13 @@ export default function DriverDashboard() {
         fetchActiveLocales();
       }, 20000);
 
-      // 3. LÃ³gica solo si estÃ¡ ACTIVO (InteracciÃ³n y Heartbeat)
+      // 3. Lógica solo si está ACTIVO (Interacción y Heartbeat)
       if (isActive) {
         window.addEventListener('mousemove', handleInteraction);
         window.addEventListener('touchstart', handleInteraction);
         window.addEventListener('scroll', handleInteraction);
 
-        // Heartbeat cada 60s para mantener sesiÃ³n activa
+        // Heartbeat cada 60s para mantener sesión activa
         heartbeatInterval = setInterval(async () => {
           api.repartidorUpdateHeartbeat(driver.id, hadInteraction);
           hadInteraction = false;
@@ -847,7 +847,7 @@ export default function DriverDashboard() {
             const d = await api.repartidorGetDatos(driver.id);
             if (d?.success && d.data) {
               if (d.data.Estado === 'Inactivo') {
-                toast.error('SesiÃ³n terminada por inactividad.');
+                toast.error('Sesión terminada por inactividad.');
                 setIsActive(false);
                 setDriverData(d.data);
               }
@@ -870,7 +870,7 @@ export default function DriverDashboard() {
 
   // React.useEffect(() => {
   //   const handleUnload = () => { ... } 
-  //   Evitamos desconectar al refrescar. El CRON de inactividad se encarga si cierran la pÃ¡gina.
+  //   Evitamos desconectar al refrescar. El CRON de inactividad se encarga si cierran la página.
   // }, [driver, isActive]);
 
   // Sincronizar localInfo con el pedido en viaje principal para retrocompatibilidad
@@ -932,14 +932,14 @@ export default function DriverDashboard() {
   const geocodeAndSave = (address, type, id) => {
     if (!address || !window.google) return;
 
-    // Evitar reintentos infinitos si ya se intentÃ³ en la sesiÃ³n actual
+    // Evitar reintentos infinitos si ya se intentó en la sesión actual
     const attemptKey = `${type}_${id}`;
     if (geocodeAttemptsRef.current.has(attemptKey)) return;
     geocodeAttemptsRef.current.add(attemptKey);
     
     const lowerAddr = address.toLowerCase();
-    const isOberaAddr = lowerAddr.includes('obera') || lowerAddr.includes('oberÃ¡');
-    const citySuffix = isOberaAddr ? 'OberÃ¡, Misiones, Argentina' : 'Santo TomÃ©, Corrientes, Argentina';
+    const isOberaAddr = lowerAddr.includes('obera') || lowerAddr.includes('oberá');
+    const citySuffix = isOberaAddr ? 'Oberá, Misiones, Argentina' : 'Santo Tomé, Corrientes, Argentina';
     const fullAddress = address.includes('Argentina') ? address : `${address}, ${citySuffix}`;
     
     if (!geocoderRef.current) {
@@ -954,7 +954,7 @@ export default function DriverDashboard() {
         const latVal = results[0].geometry.location.lat();
         const lngVal = results[0].geometry.location.lng();
 
-        // VALIDACIÃ“N: Soportar Santo TomÃ© u OberÃ¡
+        // VALIDACIÓN: Soportar Santo Tomé u Oberá
         const isSantoTome = latVal <= -28.1 && latVal >= -28.9 && lngVal <= -55.7 && lngVal >= -56.4;
         const isObera = latVal <= -27.3 && latVal >= -27.7 && lngVal <= -54.9 && lngVal >= -55.4;
         const isSafe = isSantoTome || isObera;
@@ -974,7 +974,7 @@ export default function DriverDashboard() {
     });
   };
 
-  // â”€â”€â”€ AUTH ACTIONS â”€â”€â”€
+  // ─── AUTH ACTIONS ───
   const handleLogin = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -983,9 +983,9 @@ export default function DriverDashboard() {
       const d = await api.repartidorLogin(fd.get('email'), fd.get('password'));
       if (d?.success && d.data) {
         loginAsDriver(d.data);
-        toast.success('Â¡Bienvenido!');
+        toast.success('¡Bienvenido!');
       } else toast.error(d?.error || 'Credenciales incorrectas');
-    } catch { toast.error('Error de conexiÃ³n'); }
+    } catch { toast.error('Error de conexión'); }
     setAuthLoading(false);
   };
 
@@ -994,14 +994,14 @@ export default function DriverDashboard() {
     const loading = toast.loading('Reenviando email...');
     try {
       const res = await api.reenviarEmailConfirmacion(driverData.Email, 'repartidor');
-      if (res.success) toast.success('Â¡Email reenviado!', { id: loading });
+      if (res.success) toast.success('¡Email reenviado!', { id: loading });
       else toast.error(res.error || 'Error al reenviar', { id: loading });
-    } catch { toast.error('Error de conexiÃ³n', { id: loading }); }
+    } catch { toast.error('Error de conexión', { id: loading }); }
   };
 
   const handleSaveEmailInBanner = async () => {
     if (!isValidEmail(tempEmail)) {
-      toast.error('IngresÃ¡ un email vÃ¡lido');
+      toast.error('Ingresá un email válido');
       return;
     }
     const loading = toast.loading('Actualizando email...');
@@ -1021,11 +1021,11 @@ export default function DriverDashboard() {
   const handleRegister = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    if (!isValidEmail(fd.get('email'))) { toast.error('IngresÃ¡ un email vÃ¡lido'); return; }
+    if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
     const prefix = fd.get('prefix');
     const localNumber = fd.get('telefono');
     const telefono = `${prefix}${localNumber}`;
-    if (!localNumber) { toast.error('El telÃ©fono es obligatorio'); return; }
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     setAuthLoading(true);
     try {
       const d = await api.repartidorRegister({
@@ -1034,13 +1034,13 @@ export default function DriverDashboard() {
         patente: fd.get('patente').toUpperCase(), marcaModelo: fd.get('marcaModelo'),
         termsAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
         privacyAccepted: fd.get('terms_accepted') === 'on' || !!fd.get('terms_accepted'),
-        ciudad: fd.get('ciudad') || 'Santo TomÃ©'
+        ciudad: fd.get('ciudad') || 'Santo Tomé'
       });
       if (d?.success) {
-        toast.success('Usuario Registrado. RecibirÃ¡s la verificaciÃ³n en tu email.', { duration: 6000 });
+        toast.success('Usuario Registrado. Recibirás la verificación en tu email.', { duration: 6000 });
         setAuthView('login');
       } else toast.error(d?.error || 'Error al registrar');
-    } catch { toast.error('Error de conexiÃ³n'); }
+    } catch { toast.error('Error de conexión'); }
     setAuthLoading(false);
   };
 
@@ -1071,11 +1071,11 @@ export default function DriverDashboard() {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    if (!isValidEmail(fd.get('email'))) { toast.error('IngresÃ¡ un email vÃ¡lido'); return; }
+    if (!isValidEmail(fd.get('email'))) { toast.error('Ingresá un email válido'); return; }
     const prefix = fd.get('prefix');
     const localNumber = fd.get('telefono');
     const telefono = `${prefix}${localNumber}`;
-    if (!localNumber) { toast.error('El telÃ©fono es obligatorio'); return; }
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     
     const file = fd.get('foto');
 
@@ -1111,12 +1111,12 @@ export default function DriverDashboard() {
   const handleLogout = () => {
     logoutDriver();
     setDriverData(null);
-    toast.success('SesiÃ³n cerrada');
+    toast.success('Sesión cerrada');
   };
 
 
 
-  // â”€â”€â”€ PEDIDO ACTIONS â”€â”€â”€
+  // ─── PEDIDO ACTIONS ───
   const aceptarPedido = async (pedido) => {
     const pedidoId = typeof pedido === 'string' ? pedido : pedido.id;
     const isBroadcast = typeof pedido === 'object' ? pedido.esBroadcast : false;
@@ -1135,16 +1135,16 @@ export default function DriverDashboard() {
         : await api.updateEstadoPedido(pedidoId, 'Confirmado', driver.id);
         
       if (res.success) {
-        toast.success('Â¡Pedido aceptado!', { id: 'ac' });
+        toast.success('¡Pedido aceptado!', { id: 'ac' });
         fetchPedidos();
       } else {
         toast.error(res.error || 'Error al aceptar', { id: 'ac' });
       }
-    } catch { toast.error('Error de conexiÃ³n', { id: 'ac' }); }
+    } catch { toast.error('Error de conexión', { id: 'ac' }); }
   };
 
   const finalizarRetiro = async (pedido, pin) => {
-    if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dÃ­gitos brindado por el local');
+    if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el local');
     const tid = toast.loading('Actualizando...', { id: 'ret' });
     try {
       const res = await api.updateEstadoPedido(pedido.id, 'Retirado', driver.id, pin);
@@ -1158,7 +1158,7 @@ export default function DriverDashboard() {
       }
     } catch (err) { 
       console.error("Error en finalizarRetiro:", err);
-      toast.error('Error de conexiÃ³n al marcar retiro', { id: tid }); 
+      toast.error('Error de conexión al marcar retiro', { id: tid }); 
     }
   };
 
@@ -1176,25 +1176,25 @@ export default function DriverDashboard() {
 
   const finalizarEntrega = async (pedido) => {
     const pin = pinInput; // Capturar PIN actual
-    if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dÃ­gitos brindado por el cliente');
+    if (!pin || pin.length !== 4) return toast.error('Ingresa el PIN de 4 dígitos brindado por el cliente');
     
     const tid = toast.loading('Confirmando entrega...', { id: 'ent' });
-    console.log("ðŸš€ Iniciando finalizarEntrega para pedido:", pedido.id, "con PIN:", pin);
+    console.log("🚀 Iniciando finalizarEntrega para pedido:", pedido.id, "con PIN:", pin);
     
     try {
       const res = await api.updateEstadoPedido(pedido.id, 'Entregado', driver.id, pin);
-      console.log("âœ… Respuesta de api.updateEstadoPedido:", res);
+      console.log("✅ Respuesta de api.updateEstadoPedido:", res);
       
       if (res.success) {
-        toast.success('Â¡Entrega confirmada!', { id: tid });
+        toast.success('¡Entrega confirmada!', { id: tid });
         
         try {
-          console.log("ðŸ”„ Refrescando datos post-entrega...");
+          console.log("🔄 Refrescando datos post-entrega...");
           if (typeof loadCobros === 'function') await loadCobros();
           if (typeof fetchHistorial === 'function') await fetchHistorial();
           await loadRealStats();
         } catch (e) { 
-          console.warn("âš ï¸ Error no crÃ­tico refrescando stats:", e); 
+          console.warn("⚠️ Error no crítico refrescando stats:", e); 
         }
 
         setDriverData(prev => ({ ...prev, PedidosHoy: (prev?.PedidosHoy || 0) + 1 }));
@@ -1203,17 +1203,17 @@ export default function DriverDashboard() {
         setActiveTab('historial');
         await fetchPedidos(true);
       } else {
-        console.warn("âŒ Error reportado por el servidor:", res.error);
+        console.warn("❌ Error reportado por el servidor:", res.error);
         toast.error(res.error || 'Error', { id: tid });
       }
     } catch (err) { 
-      console.error("ðŸ”¥ Error CRÃTICO en finalizarEntrega:", err);
-      toast.error('Error de conexiÃ³n al finalizar entrega', { id: tid }); 
+      console.error("🔥 Error CRÍTICO en finalizarEntrega:", err);
+      toast.error('Error de conexión al finalizar entrega', { id: tid }); 
     }
   };
 
   const rechazarPedido = async (pedidoId) => {
-    if (!window.confirm('Â¿EstÃ¡s seguro de que quieres RECHAZAR este pedido? Se buscarÃ¡ otro repartidor disponible.')) return;
+    if (!window.confirm('¿Estás seguro de que quieres RECHAZAR este pedido? Se buscará otro repartidor disponible.')) return;
     
     const tid = toast.loading('Reasignando pedido...');
     try {
@@ -1226,7 +1226,7 @@ export default function DriverDashboard() {
         toast.error(res.error || 'No se pudo rechazar el pedido', { id: tid });
       }
     } catch (err) {
-      toast.error('Error de conexiÃ³n', { id: tid });
+      toast.error('Error de conexión', { id: tid });
     }
   };
 
@@ -1254,25 +1254,25 @@ export default function DriverDashboard() {
 
 
 
-  // â”€â”€â”€ RENDERS â”€â”€â”€
+  // ─── RENDERS ───
   const renderAuth = () => (
     <div className="dd-auth-card card animate-fade-in">
       <div className="card-body">
         <h2>Acceso Repartidor</h2>
         <div className="rd-auth-tabs">
-          <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar SesiÃ³n</button>
+          <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar Sesión</button>
           <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrarme</button>
         </div>
         
         {authView === 'reset' ? (
           <form onSubmit={handleResetPassword} className="dd-form" key="reset" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', textAlign: 'center' }}>Ingresa tu nueva contraseÃ±a</h3>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', textAlign: 'center' }}>Ingresa tu nueva contraseña</h3>
             <div className="password-container">
               <input 
                 name="password" 
                 type={showPassword ? "text" : "password"} 
                 className="form-input" 
-                placeholder="Nueva ContraseÃ±a" 
+                placeholder="Nueva Contraseña" 
                 required 
                 autoComplete="new-password" 
               />
@@ -1301,7 +1301,7 @@ export default function DriverDashboard() {
                 name="password" 
                 type={showPassword ? "text" : "password"} 
                 className="form-input" 
-                placeholder="ContraseÃ±a" 
+                placeholder="Contraseña" 
                 required 
                 autoComplete="current-password" 
               />
@@ -1313,32 +1313,32 @@ export default function DriverDashboard() {
               </button>
             </div>
             <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
-              {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar SesiÃ³n'}
+              {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
             </button>
           
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Â¿Olvidaste tu contraseÃ±a? Ingresa tu email arriba y haz clic aquÃ­
+                  ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
                 </button>
               </div>
             </form>
         ) : (
           <form onSubmit={handleRegister} className="dd-form" key="register">
-            <input name="email" type="email" className="form-input" placeholder="Email (Este serÃ¡ tu usuario)" required autoComplete="username" />
+            <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
             <input name="nombre" className="form-input" placeholder="Nombre completo" required autoComplete="name" />
             <div className="phone-input-group">
               <select name="prefix" className="phone-prefix-select">
-                <option value="+549">ðŸ‡¦ðŸ‡· +549</option>
-                <option value="+55">ðŸ‡§ðŸ‡· +55</option>
+                <option value="+549">🇦🇷 +549</option>
+                <option value="+55">🇧🇷 +55</option>
               </select>
-              <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="TelÃ©fono (ej: 1123456789)" required autoComplete="tel-national" />
+              <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Teléfono (ej: 1123456789)" required autoComplete="tel-national" />
             </div>
             <div className="password-container">
               <input 
                 name="password" 
                 type={showPassword ? "text" : "password"} 
                 className="form-input" 
-                placeholder="ContraseÃ±a" 
+                placeholder="Contraseña" 
                 required 
                 autoComplete="new-password" 
               />
@@ -1349,7 +1349,7 @@ export default function DriverDashboard() {
                 />
               </button>
             </div>
-            <input name="codigo_acceso" className="form-input" placeholder="CÃ³digo de Acceso" required />
+            <input name="codigo_acceso" className="form-input" placeholder="Código de Acceso" required />
             <input name="patente" className="form-input" placeholder="Patente de la moto" required />
             <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
 
@@ -1358,18 +1358,18 @@ export default function DriverDashboard() {
                 name="ciudad" 
                 className="form-input" 
                 required
-                defaultValue="Santo TomÃ©"
+                defaultValue="Santo Tomé"
                 style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
               >
-                <option value="" disabled>SeleccionÃ¡ tu Ciudad</option>
-                <option value="Santo TomÃ©">Santo TomÃ©</option>
-                <option value="OberÃ¡">OberÃ¡</option>
+                <option value="" disabled>Seleccioná tu Ciudad</option>
+                <option value="Santo Tomé">Santo Tomé</option>
+                <option value="Oberá">Oberá</option>
                 <option value="Alem (Misiones)">Alem (Misiones)</option>
-                <option value="ApÃ³stoles (Misiones)">ApÃ³stoles (Misiones)</option>
-                <option value="Villaguay (Entre RÃ­os)">Villaguay (Entre RÃ­os)</option>
+                <option value="Apóstoles (Misiones)">Apóstoles (Misiones)</option>
+                <option value="Villaguay (Entre Ríos)">Villaguay (Entre Ríos)</option>
                 <option value="Paso de los Libres (Corrientes)">Paso de los Libres (Corrientes)</option>
                 <option value="San Vicente (Misiones)">San Vicente (Misiones)</option>
-                <option value="Colon (Entre RÃ­os)">Colon (Entre RÃ­os)</option>
+                <option value="Colon (Entre Ríos)">Colon (Entre Ríos)</option>
               </select>
             </div>
 
@@ -1380,10 +1380,10 @@ export default function DriverDashboard() {
               <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
                 {authView === 'register' ? (
                   <>
-                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad</button> para Repartidores.
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>Términos y Condiciones y Política de Privacidad</button> para Repartidores.
                   </>
                 ) : (
-                  <span>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad para Repartidores.</span>
+                  <span>Términos y Condiciones y Política de Privacidad para Repartidores.</span>
                 )}
               </label>
             </div>
@@ -1398,7 +1398,7 @@ export default function DriverDashboard() {
   );
 
   const renderDisponibles = () => {
-    // Buscar TODOS los pedidos asignados a mÃ­ que estÃ©n activos
+    // Buscar TODOS los pedidos asignados a mí que estén activos
     const pedidosEnCurso = pedidos.filter(p => !p.esBroadcast && ['Confirmado', 'Retirado', 'Pendiente de Pago', 'Pendiente', 'Aceptado', 'Listo', 'Preparando'].includes(p.estado));
     
     // Si no hay pedidos en curso reales
@@ -1412,8 +1412,8 @@ export default function DriverDashboard() {
 
 
           {todosEnCurso.map(enViaje => {
-            console.log("ðŸ“¦ Pedido en curso:", enViaje);
-            console.log("ðŸ“¦ Pedido en curso:", enViaje);
+            console.log("📦 Pedido en curso:", enViaje);
+            console.log("📦 Pedido en curso:", enViaje);
             const isRetirado = enViaje.estado === 'Retirado';
             const isLento = enViaje.nivel_rapidez === 2;
             
@@ -1444,10 +1444,10 @@ export default function DriverDashboard() {
                     <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Pedido #{enViaje.id.split('-').pop()}</h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                       <span className={`dd-time-counter-badge ${isUrgent ? 'urgent' : ''}`}>
-                        â±ï¸ {timeStr}
+                        ⏱️ {timeStr}
                       </span>
                       <span style={{ fontSize: '0.6rem', color: '#999', fontWeight: 'bold' }}>
-                        {isLento ? 'ðŸ³ LENTO' : 'âš¡ RÃPIDO'}
+                        {isLento ? '🍳 LENTO' : '⚡ RÁPIDO'}
                       </span>
                     </div>
                   </div>
@@ -1455,7 +1455,7 @@ export default function DriverDashboard() {
                     <div className={`dd-status-badge ${enViaje.estado === 'Pendiente de Pago' ? 'pulse-orange' : ''}`} style={{ fontSize: '0.7rem' }}>
                       {enViaje.estado === 'Pendiente de Pago' ? 'Pago' : enViaje.estado}
                     </div>
-                    <span style={{ fontSize: '1.2rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>â–¾</span>
+                    <span style={{ fontSize: '1.2rem', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
                   </div>
                 </div>
                 
@@ -1472,29 +1472,29 @@ export default function DriverDashboard() {
                       </div>
                     ) : !isRetirado ? (
                       <>
-                        <div className="dd-section-title">ðŸ“ Punto de Retiro</div>
+                        <div className="dd-section-title">📍 Punto de Retiro</div>
                         <div className="dd-info-block">
                           <div className="dd-info-row">
                             <span className="dd-info-label">Local</span>
                             <span className="dd-info-value">{localNombre}</span>
                           </div>
                           <div className="dd-info-row">
-                            <span className="dd-info-label">DirecciÃ³n</span>
+                            <span className="dd-info-label">Dirección</span>
                             <span className="dd-info-value">{localDir}</span>
                           </div>
 
                           <div className="dd-info-row">
                             <span className="dd-info-value monto">
                               {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
-                                ? `DebÃ©s pagar: $${Number(montoMostrar).toLocaleString('es-AR')}` 
-                                : 'Ya Pago (RetirÃ¡ sin pagar)'}
+                                ? `Debés pagar: $${Number(montoMostrar).toLocaleString('es-AR')}` 
+                                : 'Ya Pago (Retirá sin pagar)'}
                             </span>
                           </div>
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="dd-section-title">ðŸ Punto de Entrega</div>
+                        <div className="dd-section-title">🏁 Punto de Entrega</div>
                         <div className="dd-info-block">
                           <div className="dd-info-row">
                             <span className="dd-info-label">Cliente</span>
@@ -1506,20 +1506,20 @@ export default function DriverDashboard() {
                                   onClick={() => window.open(`https://wa.me/${enViaje.telefono_cliente.replace(/\D/g, '')}`, '_blank')}
                                   style={{ padding: '4px 8px', fontSize: '0.75rem', background: '#25D366', border: 'none', color: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
                                 >
-                                  ðŸ’¬ WhatsApp
+                                  💬 WhatsApp
                                 </button>
                               )}
                             </span>
                           </div>
                           <div className="dd-info-row">
-                            <span className="dd-info-label">DirecciÃ³n</span>
+                            <span className="dd-info-label">Dirección</span>
                             <span className="dd-info-value">{enViaje.direccion}</span>
                           </div>
 
                           <div className="dd-info-row">
                             <span className="dd-info-value monto cobrar">
                               {(enViaje.metodo_pago || enViaje.pago)?.toLowerCase() === 'efectivo' 
-                                ? `DebÃ©s cobrar: $${Number(enViaje.total || enViaje.monto || 0).toLocaleString('es-AR')}` 
+                                ? `Debés cobrar: $${Number(enViaje.total || enViaje.monto || 0).toLocaleString('es-AR')}` 
                                 : 'Ya Pago (No cobrar)'}
                             </span>
                           </div>
@@ -1532,11 +1532,11 @@ export default function DriverDashboard() {
                         <div className="dd-btn-row">
                           {!isRetirado ? (
                             <button className="dd-btn-rojo" onClick={() => confirmarRetiroClick(enViaje)}>
-                              ðŸï¸ RETIRAR
+                              🏍️ RETIRAR
                             </button>
                           ) : (
                             <button className="dd-btn-verde" onClick={() => confirmarEntregaClick(enViaje)}>
-                              ðŸš€ ENTREGAR
+                              🚀 ENTREGAR
                             </button>
                           )}
                         </div>
@@ -1548,7 +1548,7 @@ export default function DriverDashboard() {
             );
           })}
 
-          {/* No mostrar renderPendientes aquÃ­, ahora es un pop-up */}
+          {/* No mostrar renderPendientes aquí, ahora es un pop-up */}
         </div>
       );
     }
@@ -1567,7 +1567,7 @@ export default function DriverDashboard() {
 
     if (todosDisponibles.length === 0) return null;
 
-    // Mostrar solo el mÃ¡s reciente (o el primero de la lista)
+    // Mostrar solo el más reciente (o el primero de la lista)
     const p = todosDisponibles[0];
     const isLento = p.nivel_rapidez === 2;
     const isStacking = p.esStacking;
@@ -1577,27 +1577,27 @@ export default function DriverDashboard() {
         <div className={`dd-broadcast-popup animate-pop-in ${isLento ? 'lento' : ''} ${isStacking ? 'stacking' : ''}`}>
           <div className="popup-header">
             <div className="popup-badge">NUEVO PEDIDO DISPONIBLE</div>
-            {isStacking && <div className="stacking-tag">ðŸ“ MISMO LOCAL</div>}
+            {isStacking && <div className="stacking-tag">📍 MISMO LOCAL</div>}
           </div>
           
           <div className="popup-body">
             <div className="popup-amount">
-              <span className="amount-label">Ganancia EnvÃ­o</span>
+              <span className="amount-label">Ganancia Envío</span>
               <span className="amount-value">${Number(p.precio_envio || 0).toLocaleString('es-AR')}</span>
             </div>
             
             <div className="popup-details">
               <div className="detail-item">
-                <span className="detail-icon">ðŸ‘¤</span>
+                <span className="detail-icon">👤</span>
                 <span className="detail-text"><strong>{p.nombre_cliente}</strong></span>
               </div>
               <div className="detail-item">
-                <span className="detail-icon">ðŸ“</span>
+                <span className="detail-icon">📍</span>
                 <span className="detail-text">{p.direccion}</span>
               </div>
               <div className="detail-item">
-                <span className="detail-icon">ðŸ’³</span>
-                <span className="detail-text"><strong>MÃ©todo de pago:</strong> {p.pago || 'Efectivo'}</span>
+                <span className="detail-icon">💳</span>
+                <span className="detail-text"><strong>Método de pago:</strong> {p.pago || 'Efectivo'}</span>
               </div>
             </div>
           </div>
@@ -1613,7 +1613,7 @@ export default function DriverDashboard() {
               className="btn-accept" 
               onClick={() => aceptarPedido(p)}
             >
-              Tomar Pedido â†’
+              Tomar Pedido →
             </button>
           </div>
         </div>
@@ -1634,7 +1634,7 @@ export default function DriverDashboard() {
     return (
       <div className="dd-available-section">
         <h3 style={{ fontSize: '1.2rem', color: 'var(--gray-800)', marginBottom: '1rem', marginTop: actuales.length > 0 ? '2rem' : 0 }}>
-          {actuales.length > 0 ? 'âž• Otros pedidos disponibles' : 'Pedidos Disponibles'}
+          {actuales.length > 0 ? '➕ Otros pedidos disponibles' : 'Pedidos Disponibles'}
         </h3>
         <div className="dd-orders-grid animate-fade-in">
           {pendientes.map(p => {
@@ -1646,26 +1646,26 @@ export default function DriverDashboard() {
                 <div className="dd-order-head">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <h5>Pedido #{p.id.split('-').pop()}</h5>
-                    {isStacking && <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 'bold' }}>ðŸ“ Â¡MISMO LOCAL!</span>}
+                    {isStacking && <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 'bold' }}>📍 ¡MISMO LOCAL!</span>}
                   </div>
                   <span className={`dd-badge ${isLento ? 'bg-lento' : 'bg-broadcast'}`}>
-                    {isLento ? 'LENTO ðŸ³' : 'RÃPIDO âš¡'}
+                    {isLento ? 'LENTO 🍳' : 'RÁPIDO ⚡'}
                   </span>
                 </div>
                 <div className="dd-order-amount">
-                  <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)' }}>Ganancia EnvÃ­o</small>
+                  <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--gray-400)' }}>Ganancia Envío</small>
                   ${Number(p.precio_envio || 0).toLocaleString('es-AR')}
                 </div>
                 <div className="dd-order-info">
-                  <p>ðŸ‘¤ <strong>Cliente:</strong> {p.nombre_cliente}</p>
-                  <p>ðŸ“ <strong>Destino:</strong> {p.direccion}</p>
+                  <p>👤 <strong>Cliente:</strong> {p.nombre_cliente}</p>
+                  <p>📍 <strong>Destino:</strong> {p.direccion}</p>
                 </div>
                 <div className="dd-order-actions">
                   <button 
                     className={isStacking ? "dd-btn-stacking" : (isLento ? "dd-btn-lento" : "dd-btn-broadcast")}
                     onClick={() => aceptarPedido(p)}
                   >
-                    {isStacking ? 'Tomar para este local' : 'Tomar Viaje â†’'}
+                    {isStacking ? 'Tomar para este local' : 'Tomar Viaje →'}
                   </button>
                 </div>
               </div>
@@ -1747,7 +1747,7 @@ export default function DriverDashboard() {
       return (
         <div className="empty-state">
           <h3>No hay historial de entregas</h3>
-          <p>Tus pedidos entregados aparecerÃ¡n aquÃ­.</p>
+          <p>Tus pedidos entregados aparecerán aquí.</p>
         </div>
       );
     }
@@ -1761,11 +1761,11 @@ export default function DriverDashboard() {
               </small>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                 <span className={`dd-badge ${h.cobro_repartidor_procesado ? 'bg-success' : (h.metodo_pago === 'Efectivo' ? 'bg-info' : 'bg-warning')}`} style={{ fontSize: '0.7rem' }}>
-                  {h.cobro_repartidor_procesado ? 'âœ“ Cobrado' : (h.metodo_pago === 'Efectivo' ? 'Cash Recibido' : 'Pendiente de cobro')}
+                  {h.cobro_repartidor_procesado ? '✓ Cobrado' : (h.metodo_pago === 'Efectivo' ? 'Cash Recibido' : 'Pendiente de cobro')}
                 </span>
                 {scheduledDates[h.id] && !h.cobro_repartidor_procesado && (
                   <span className="dd-badge" style={{ fontSize: '0.65rem', background: '#6366f1', color: 'white' }}>
-                    ðŸ“… Pago: {scheduledDates[h.id].split('-').reverse().join('-')}
+                    📅 Pago: {scheduledDates[h.id].split('-').reverse().join('-')}
                   </span>
                 )}
               </div>
@@ -1789,7 +1789,7 @@ export default function DriverDashboard() {
       return (
         <div className="empty-state">
           <h3>No hay liquidaciones archivadas</h3>
-          <p>Tus cierres de caja finalizados aparecerÃ¡n aquÃ­.</p>
+          <p>Tus cierres de caja finalizados aparecerán aquí.</p>
         </div>
       );
     }
@@ -1804,7 +1804,7 @@ export default function DriverDashboard() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <small style={{ color: 'var(--gray-500)', fontWeight: 600 }}>LIQUIDACIÃ“N #{c.id.slice(-6).toUpperCase()}</small>
+                  <small style={{ color: 'var(--gray-500)', fontWeight: 600 }}>LIQUIDACIÓN #{c.id.slice(-6).toUpperCase()}</small>
                   <p style={{ margin: '4px 0', fontWeight: 'bold' }}>{new Date(c.fecha).toLocaleDateString('es-AR')}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -1813,7 +1813,7 @@ export default function DriverDashboard() {
                 </div>
               </div>
               <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '0.75rem', color: 'var(--red-500)', fontWeight: 600 }}>
-                {expandedCierre === c.id ? 'ðŸ”¼ Ocultar detalles' : 'ðŸ”½ Ver detalle de viajes'}
+                {expandedCierre === c.id ? '🔼 Ocultar detalles' : '🔽 Ver detalle de viajes'}
               </div>
             </div>
 
@@ -1824,7 +1824,7 @@ export default function DriverDashboard() {
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px dashed #e2e8f0' }}>
                       <div style={{ maxWidth: '70%' }}>
                         <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{p.direccion}</div>
-                        <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem' }}>#{p.id.slice(0,8)} â€¢ {p.metodo_pago}</small>
+                        <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem' }}>#{p.id.slice(0,8)} • {p.metodo_pago}</small>
                       </div>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>${Number(p.precio_envio).toLocaleString('es-AR')}</div>
                     </div>
@@ -1844,8 +1844,8 @@ export default function DriverDashboard() {
     return (
       <div className="dd-cobros-view animate-fade-in">
         <div className="dd-card-header" style={{ marginBottom: '24px' }}>
-          <h3>GestiÃ³n de Cobros</h3>
-          <p style={{ color: 'var(--gray-600)' }}>RetirÃ¡ tus ganancias acumuladas por pagos con transferencia o tarjeta.</p>
+          <h3>Gestión de Cobros</h3>
+          <p style={{ color: 'var(--gray-600)' }}>Retirá tus ganancias acumuladas por pagos con transferencia o tarjeta.</p>
         </div>
 
         <div className="dd-stats-grid" style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -1926,19 +1926,19 @@ export default function DriverDashboard() {
   };
 
   const renderPerfil = () => {
-    const diasSemana = ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'];
+    const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     const currentDays = driverData?.DiasApertura || [];
 
     return (
       <div className="dd-perfil-view animate-fade-in" style={{ paddingBottom: '40px' }}>
         {/* Vincular Partner Section */}
         <div className="dd-form-section" style={{ marginBottom: '32px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px', fontSize: '0.95rem', fontWeight: 'bold' }}>VinculaciÃ³n con Empresa Partner</h4>
+          <h4 style={{ margin: '0 0 12px 0', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px', fontSize: '0.95rem', fontWeight: 'bold' }}>Vinculación con Empresa Partner</h4>
           
           {driverData?.partner_id ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>
-                Vinculado a: <strong style={{ color: '#10b981' }}>ðŸ›µ {driverData?.partner_nombre || 'Partner LogÃ­stico'}</strong>
+                Vinculado a: <strong style={{ color: '#10b981' }}>🛵 {driverData?.partner_nombre || 'Partner Logístico'}</strong>
               </span>
               <button 
                 type="button" 
@@ -1952,7 +1952,7 @@ export default function DriverDashboard() {
           ) : driverData?.partner_vinculo_status === 'Pendiente' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <span style={{ fontSize: '0.9rem', color: '#b45309', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7' }}>
-                â³ Solicitud enviada a: <strong>{driverData?.partner_solicitado_nombre || 'Partner'}</strong> (Esperando aprobaciÃ³n)
+                ⏳ Solicitud enviada a: <strong>{driverData?.partner_solicitado_nombre || 'Partner'}</strong> (Esperando aprobación)
               </span>
               <button 
                 type="button" 
@@ -1966,12 +1966,12 @@ export default function DriverDashboard() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#64748b' }}>
-                Si trabajas para una empresa de logÃ­stica, ingresa su PIN de vinculaciÃ³n para asociar tu cuenta:
+                Si trabajas para una empresa de logística, ingresa su PIN de vinculación para asociar tu cuenta:
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input 
                   type="text" 
-                  placeholder="PIN de 6 dÃ­gitos" 
+                  placeholder="PIN de 6 dígitos" 
                   className="form-input" 
                   value={partnerPinInput}
                   onChange={e => setPartnerPinInput(e.target.value)}
@@ -1994,13 +1994,13 @@ export default function DriverDashboard() {
 
         <form onSubmit={handleSaveProfile} className="dd-profile-form">
           <div className="dd-form-section" style={{ marginBottom: '32px' }}>
-            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>InformaciÃ³n Personal</h4>
+            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Información Personal</h4>
             
             <div className="dd-photo-upload" style={{ textAlign: 'center', marginBottom: 24 }}>
               <div className="dd-avatar-preview" style={{ position: 'relative', display: 'inline-block' }}>
                 <img src={driverData?.FotoUrl || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} alt="Perfil" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                 <label className="dd-photo-edit-badge" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--red-500)', color: 'white', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-                  ðŸ“·
+                  📷
                   <input name="foto" type="file" accept="image/*" style={{ display: 'none' }} />
                 </label>
               </div>
@@ -2015,30 +2015,30 @@ export default function DriverDashboard() {
               <input name="email" type="email" className="form-input" defaultValue={driverData?.Email} required />
             </div>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>TelÃ©fono</label>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Teléfono</label>
               <div className="phone-input-group">
                 <select name="prefix" className="phone-prefix-select" defaultValue={driverData?.Telefono?.startsWith('+55') ? '+55' : '+549'}>
-                  <option value="+549">ðŸ‡¦ðŸ‡· +549</option>
-                  <option value="+55">ðŸ‡§ðŸ‡· +55</option>
+                  <option value="+549">🇦🇷 +549</option>
+                  <option value="+55">🇧🇷 +55</option>
                 </select>
                 <input 
                   name="telefono" 
                   type="tel" 
                   className="form-input phone-number-input" 
                   defaultValue={driverData?.Telefono ? driverData.Telefono.replace(/^\+549|^\+54|^\+55/, '') : ''} 
-                  placeholder="NÃºmero (ej: 1123456789)" 
+                  placeholder="Número (ej: 1123456789)" 
                   required 
                 />
               </div>
             </div>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Nueva ContraseÃ±a (opcional)</label>
-              <input name="password" type="password" className="form-input" placeholder="Dejar vacÃ­o para no cambiar" />
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Nueva Contraseña (opcional)</label>
+              <input name="password" type="password" className="form-input" placeholder="Dejar vacío para no cambiar" />
             </div>
           </div>
 
           <div className="dd-form-section" style={{ marginBottom: '32px' }}>
-            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>VehÃ­culo</h4>
+            <h4 style={{ marginBottom: '20px', color: 'var(--gray-800)', borderLeft: '4px solid var(--red-500)', paddingLeft: '12px' }}>Vehículo</h4>
             <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', fontWeight: '500' }}>Patente</label>
               <input name="patente" className="form-input" defaultValue={driverData?.Patente} required />
@@ -2065,23 +2065,23 @@ export default function DriverDashboard() {
         <div className="dd-modal-content animate-slide-down" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
           <div className="dd-modal-header" style={{ background: 'var(--red-600)' }}>
             <h5 style={{ color: 'white', margin: 0 }}>
-              {isIOS ? 'ðŸ“± Instrucciones para iPhone' : 'ðŸ“² Instalar en Android'}
+              {isIOS ? '📱 Instrucciones para iPhone' : '📲 Instalar en Android'}
             </h5>
-            <button className="dd-modal-close" onClick={() => setShowPWAInstructions(false)}>Ã—</button>
+            <button className="dd-modal-close" onClick={() => setShowPWAInstructions(false)}>×</button>
           </div>
           <div className="dd-modal-body" style={{ textAlign: 'center', padding: '24px' }}>
             {isIOS ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <p style={{ fontSize: '1rem', color: 'var(--gray-700)', lineHeight: '1.5' }}>
-                  Para recibir <strong>ubicaciÃ³n y notificaciones</strong> correctamente en iOS, debes aÃ±adir Wepi a tu inicio:
+                  Para recibir <strong>ubicación y notificaciones</strong> correctamente en iOS, debes añadir Wepi a tu inicio:
                 </p>
                 <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '12px', textAlign: 'left', border: '1px solid #eee' }}>
-                  <p style={{ margin: '0 0 8px 0' }}>1. Presiona el botÃ³n <strong>Compartir</strong> <img src="https://i.postimg.cc/85zPzCH7/ios-share.png" alt="share" style={{ height: '20px', verticalAlign: 'middle' }} /> abajo en Safari.</p>
-                  <p style={{ margin: '0 0 8px 0' }}>2. Desliza hacia abajo y selecciona <strong>"AÃ±adir a la pantalla de inicio"</strong>.</p>
-                  <p style={{ margin: 0 }}>3. Abre la aplicaciÃ³n desde el nuevo icono en tu pantalla.</p>
+                  <p style={{ margin: '0 0 8px 0' }}>1. Presiona el botón <strong>Compartir</strong> <img src="https://i.postimg.cc/85zPzCH7/ios-share.png" alt="share" style={{ height: '20px', verticalAlign: 'middle' }} /> abajo en Safari.</p>
+                  <p style={{ margin: '0 0 8px 0' }}>2. Desliza hacia abajo y selecciona <strong>"Añadir a la pantalla de inicio"</strong>.</p>
+                  <p style={{ margin: 0 }}>3. Abre la aplicación desde el nuevo icono en tu pantalla.</p>
                 </div>
                 <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
-                  * Esto habilitarÃ¡ los permisos nativos requeridos por el sistema.
+                  * Esto habilitará los permisos nativos requeridos por el sistema.
                 </p>
               </div>
             ) : (
@@ -2100,17 +2100,17 @@ export default function DriverDashboard() {
                       setShowPWAInstructions(false);
                     }}
                   >
-                    ðŸš€ Descargar / Instalar Ahora
+                    🚀 Descargar / Instalar Ahora
                   </button>
                 ) : (
                   <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '12px', textAlign: 'left', border: '1px solid #eee' }}>
-                    <p style={{ fontWeight: 'bold', marginBottom: '8px', color: 'var(--red-600)' }}>Si no ves el botÃ³n de instalar:</p>
-                    <p style={{ margin: '0 0 8px 0' }}>1. Toca los <strong>tres puntos</strong> (â‹®) arriba a la derecha en Chrome.</p>
-                    <p style={{ margin: 0 }}>2. Selecciona <strong>"Instalar aplicaciÃ³n"</strong> o "AÃ±adir a pantalla de inicio".</p>
+                    <p style={{ fontWeight: 'bold', marginBottom: '8px', color: 'var(--red-600)' }}>Si no ves el botón de instalar:</p>
+                    <p style={{ margin: '0 0 8px 0' }}>1. Toca los <strong>tres puntos</strong> (⋮) arriba a la derecha en Chrome.</p>
+                    <p style={{ margin: 0 }}>2. Selecciona <strong>"Instalar aplicación"</strong> o "Añadir a pantalla de inicio".</p>
                   </div>
                 )}
                 <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
-                  Al usar la App dedicada, Android prioriza la ubicaciÃ³n y evita que el sistema cierre la aplicaciÃ³n.
+                  Al usar la App dedicada, Android prioriza la ubicación y evita que el sistema cierre la aplicación.
                 </p>
               </div>
             )}
@@ -2123,7 +2123,7 @@ export default function DriverDashboard() {
     );
   };
 
-  // â”€â”€â”€ MAIN RENDER â”€â”€â”€
+  // ─── MAIN RENDER ───
   return (
     <div className="dd-page">
       <header className="dd-header">
@@ -2132,7 +2132,7 @@ export default function DriverDashboard() {
             <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="dd-logo" />
           </Link>
           {driver && (
-            <button className="dd-header-menu-btn" onClick={() => setProfileMenuOpen(true)}>â˜° MenÃº</button>
+            <button className="dd-header-menu-btn" onClick={() => setProfileMenuOpen(true)}>☰ Menú</button>
           )}
         </div>
         
@@ -2140,14 +2140,14 @@ export default function DriverDashboard() {
 
       <main className={`dd-main ${driver ? 'map-active' : ''}`}>
 
-        {/* â”€â”€â”€ Banner de Notificaciones â”€â”€â”€ */}
+        {/* ─── Banner de Notificaciones ─── */}
         {driver && notificationStatus !== 'granted' && (
           <div className={`notification-status-banner ${notificationStatus === 'denied' ? 'denied' : 'pending'}`}>
             <span className="banner-text">
               {notificationStatus === 'denied' ? (
-                <>ðŸš« <strong>Bloqueadas:</strong> No recibirÃ¡s alertas de pedidos. Revisa los permisos.</>
+                <>🚫 <strong>Bloqueadas:</strong> No recibirás alertas de pedidos. Revisa los permisos.</>
               ) : (
-                <>ðŸ”” <strong>Activa alertas:</strong> Presiona el botÃ³n para recibir pedidos al instante.</>
+                <>🔔 <strong>Activa alertas:</strong> Presiona el botón para recibir pedidos al instante.</>
               )}
             </span>
             <div className="banner-actions">
@@ -2160,7 +2160,7 @@ export default function DriverDashboard() {
                     }
                   }}
                 >
-                  Activar ðŸ””
+                  Activar 🔔
                 </button>
               )}
             </div>
@@ -2168,7 +2168,7 @@ export default function DriverDashboard() {
         )}
 
 
-        {!driver || authView === 'reset' ? renderAuth() : (
+        {!driver ? renderAuth() : (
           driverData === null ? (
             <div className="loading-state" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', fontSize: '1.2rem', color: 'var(--gray-600)' }}>
               <div className="spinner" style={{ marginRight: '12px' }}></div> Cargando panel de repartidor...
@@ -2209,15 +2209,15 @@ export default function DriverDashboard() {
                   fontSize: '2.5rem',
                   marginBottom: '24px'
                 }}>
-                  â³
+                  ⏳
                 </div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--gray-900)', marginBottom: '16px' }}>
-                  Cuenta pendiente de activaciÃ³n
+                  Cuenta pendiente de activación
                 </h2>
                 <p style={{ color: 'var(--gray-600)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '28px' }}>
-                  Hola <strong>{driverData.Nombre || driver.nombre}</strong>. Tu cuenta de repartidor aÃºn no ha sido dada de alta por la administraciÃ³n de Wepi.
+                  Hola <strong>{driverData.Nombre || driver.nombre}</strong>. Tu cuenta de repartidor aún no ha sido dada de alta por la administración de Wepi.
                   <br /><br />
-                  Para comenzar a recibir pedidos y realizar entregas, debÃ©s solicitar tu activaciÃ³n.
+                  Para comenzar a recibir pedidos y realizar entregas, debés solicitar tu activación.
                 </p>
 
                 <div style={{
@@ -2252,7 +2252,7 @@ export default function DriverDashboard() {
                     textDecoration: 'none'
                   }}
                 >
-                  ðŸ’¬ Pedir alta por WhatsApp
+                  💬 Pedir alta por WhatsApp
                 </a>
 
                 <button 
@@ -2260,7 +2260,7 @@ export default function DriverDashboard() {
                   className="btn btn-ghost btn-full"
                   style={{ marginTop: '12px', color: 'var(--red-600)', borderColor: 'var(--red-200)' }}
                 >
-                  Cerrar sesiÃ³n
+                  Cerrar sesión
                 </button>
               </div>
             </div>
@@ -2274,17 +2274,17 @@ export default function DriverDashboard() {
               overflow: 'hidden',
               background: '#f8f9fa'
             }}>
-            {/* â”€â”€â”€ PANEL LATERAL (Side Panel para Subvistas) â”€â”€â”€ */}
+            {/* ─── PANEL LATERAL (Side Panel para Subvistas) ─── */}
             {view !== 'main' && (
               <div className="dd-side-panel animate-slide-right">
                 <div style={{ padding: '20px', borderBottom: '1px solid #edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: 'var(--gray-900)' }}>
-                    {view === 'historial' && 'ðŸ“œ Historial de Entregas'}
-                    {view === 'archivados' && 'ðŸ“ Liquidaciones Archivadas'}
-                    {view === 'cobros' && 'ðŸ’° GestiÃ³n Cobros'}
-                    {view === 'perfil' && 'ðŸ‘¤ ConfiguraciÃ³n'}
+                    {view === 'historial' && '📜 Historial de Entregas'}
+                    {view === 'archivados' && '📁 Liquidaciones Archivadas'}
+                    {view === 'cobros' && '💰 Gestión Cobros'}
+                    {view === 'perfil' && '👤 Configuración'}
                   </h3>
-                  <button className="btn btn-outline btn-sm" style={{ padding: '4px 8px', minWidth: 'auto', border: '1px solid #cbd5e1' }} onClick={() => setView('main')}>âœ• Cerrar</button>
+                  <button className="btn btn-outline btn-sm" style={{ padding: '4px 8px', minWidth: 'auto', border: '1px solid #cbd5e1' }} onClick={() => setView('main')}>✕ Cerrar</button>
                 </div>
                 <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
                   {view === 'historial' && renderHistorial()}
@@ -2295,7 +2295,7 @@ export default function DriverDashboard() {
               </div>
             )}
 
-            {/* â”€â”€â”€ MAPA DE FONDO â”€â”€â”€ */}
+            {/* ─── MAPA DE FONDO ─── */}
             <div style={{ position: 'relative', flex: 1, height: '100%', zIndex: 0 }}>
               <MapProbandoComponent 
                 localLat={localInfo.lat} 
@@ -2310,7 +2310,7 @@ export default function DriverDashboard() {
                 ciudad={driverData?.ciudad}
               />
 
-              {/* â”€â”€â”€ CAPA SUPERIOR (EstadÃ­sticas y Locales) â”€â”€â”€ */}
+              {/* ─── CAPA SUPERIOR (Estadísticas y Locales) ─── */}
               {view === 'main' && (
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, padding: '12px 16px', pointerEvents: 'none' }}>
                   <div className="dd-stats-box animate-slide-down" style={{ 
@@ -2326,29 +2326,29 @@ export default function DriverDashboard() {
                     <div className="dd-next-stop-container" style={{ position: 'relative', top: 0, left: 0, transform: 'none', width: '100%', maxWidth: 'none', zIndex: 1, marginBottom: showStats ? 12 : 0 }}>
                       {routeSequence.length > 0 ? (
                         <div className="dd-next-stop-banner" style={{ background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 }}>
-                          <div className="next-stop-icon">ðŸŽ¯</div>
+                          <div className="next-stop-icon">🎯</div>
                           <div className="next-stop-info">
                             <span className="next-stop-label">Siguiente Parada</span>
                             <span className="next-stop-address">{routeSequence[0].address}</span>
                             <div className="next-stop-meta">
                               <span>{routeSequence[0].distance}</span>
-                              <span className="dot">â€¢</span>
+                              <span className="dot">•</span>
                               <span>{routeSequence[0].duration} aprox.</span>
                             </div>
                           </div>
                           <button onClick={() => setShowStats(!showStats)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--red-600)', display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-                            {showStats ? 'â–´' : 'â–¾'}
+                            {showStats ? '▴' : '▾'}
                           </button>
                         </div>
                       ) : (
                         <div className="dd-next-stop-banner" style={{ background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 }}>
-                          <div className="next-stop-icon" style={{ background: '#94a3b8' }}>ðŸ</div>
+                          <div className="next-stop-icon" style={{ background: '#94a3b8' }}>🏁</div>
                           <div className="next-stop-info">
                             <span className="next-stop-label" style={{ color: '#64748b' }}>Estado</span>
                             <span className="next-stop-address">Buscando pedidos para entregar...</span>
                           </div>
                           <button onClick={() => setShowStats(!showStats)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--red-600)', display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-                            {showStats ? 'â–´' : 'â–¾'}
+                            {showStats ? '▴' : '▾'}
                           </button>
                         </div>
                       )}
@@ -2357,24 +2357,24 @@ export default function DriverDashboard() {
                     {showStats && (
                       <div className="dd-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
                         <div className="dd-stat-item" onClick={() => setShowRankingModal(true)} style={{ padding: '6px 4px', border: 'none', background: '#fff9f0' }}>
-                          <small style={{ fontSize: '0.55rem' }}>ðŸ† Rank</small>
-                          <strong style={{ fontSize: '0.9rem' }}>#{gamificationStats?.rank_posicion || 'â€”'}</strong>
+                          <small style={{ fontSize: '0.55rem' }}>🏆 Rank</small>
+                          <strong style={{ fontSize: '0.9rem' }}>#{gamificationStats?.rank_posicion || '—'}</strong>
                         </div>
                         <div className="dd-stat-item" onClick={loadPointsHistory} style={{ padding: '6px 4px', border: 'none', background: '#f1f8ff' }}>
-                          <small style={{ fontSize: '0.55rem' }}>ðŸ’Ž Pts</small>
+                          <small style={{ fontSize: '0.55rem' }}>💎 Pts</small>
                           <strong style={{ fontSize: '0.9rem' }}>{gamificationStats?.puntos_totales || 0}</strong>
                         </div>
                         <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none', background: '#f0fdf4' }}>
-                          <small style={{ fontSize: '0.55rem' }}>ðŸ“¦ Env</small>
+                          <small style={{ fontSize: '0.55rem' }}>📦 Env</small>
                           <strong style={{ fontSize: '0.9rem' }}>{realStats.viajesHoy || 0}</strong>
                         </div>
                         <div className="dd-stat-item" onClick={() => setView('cobros')} style={{ padding: '6px 4px', border: 'none', background: '#fef2f2' }}>
-                          <small style={{ fontSize: '0.55rem' }}>ðŸ’° Gan</small>
+                          <small style={{ fontSize: '0.55rem' }}>💰 Gan</small>
                           <strong style={{ fontSize: '0.9rem' }}>${realStats.gananciasTotalesHoy || 0}</strong>
                         </div>
                         <div className="dd-stat-item" style={{ padding: '6px 4px', border: 'none', background: '#f5f3ff' }}>
-                          <small style={{ fontSize: '0.55rem' }}>â±ï¸ Retiro</small>
-                          <strong style={{ fontSize: '0.9rem' }}>{realStats.promedioRetiro !== undefined && realStats.promedioRetiro !== null ? `${realStats.promedioRetiro}m` : 'â€”'}</strong>
+                          <small style={{ fontSize: '0.55rem' }}>⏱️ Retiro</small>
+                          <strong style={{ fontSize: '0.9rem' }}>{realStats.promedioRetiro !== undefined && realStats.promedioRetiro !== null ? `${realStats.promedioRetiro}m` : '—'}</strong>
                         </div>
                       </div>
                     )}
@@ -2382,7 +2382,7 @@ export default function DriverDashboard() {
                 </div>
               )}
 
-              {/* â”€â”€â”€ CAPA INFERIOR (Pedidos Flotantes) â”€â”€â”€ */}
+              {/* ─── CAPA INFERIOR (Pedidos Flotantes) ─── */}
               <div style={{ 
                 position: 'absolute', 
                 bottom: '0', 
@@ -2424,34 +2424,34 @@ export default function DriverDashboard() {
               <button className={`dd-nav-item ${view === 'main' ? 'active' : ''}`} style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'main' ? 'var(--red-50)' : 'transparent', color: view === 'main' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'main' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={() => { setView('main'); setProfileMenuOpen(false); }}>
-                ðŸ Mis Entregas
+                🏁 Mis Entregas
               </button>
               <button className={`dd-nav-item ${view === 'historial' ? 'active' : ''}`} style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'historial' ? 'var(--red-50)' : 'transparent', color: view === 'historial' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'historial' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={() => { setView('historial'); setProfileMenuOpen(false); }}>
-                ðŸ“œ Historial de Entregas
+                📜 Historial de Entregas
               </button>
               <button className={`dd-nav-item ${view === 'archivados' ? 'active' : ''}`} style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'archivados' ? 'var(--red-50)' : 'transparent', color: view === 'archivados' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'archivados' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={() => { setView('archivados'); fetchArchivados(); setProfileMenuOpen(false); }}>
-                ðŸ“ Liquidaciones Archivadas
+                📁 Liquidaciones Archivadas
               </button>
               <button className={`dd-nav-item ${view === 'cobros' ? 'active' : ''}`} style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'cobros' ? 'var(--red-50)' : 'transparent', color: view === 'cobros' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'cobros' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={() => { setView('cobros'); loadCobros(); setProfileMenuOpen(false); }}>
-                ðŸ’° GestiÃ³n Cobros
+                💰 Gestión Cobros
               </button>
               <button className={`dd-nav-item ${view === 'perfil' ? 'active' : ''}`} style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: view === 'perfil' ? 'var(--red-50)' : 'transparent', color: view === 'perfil' ? 'var(--red-600)' : 'var(--gray-700)', fontWeight: view === 'perfil' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={() => { setView('perfil'); setProfileMenuOpen(false); }}>
-                ðŸ‘¤ ConfiguraciÃ³n
+                👤 Configuración
               </button>
 
               <div style={{ margin: '20px 0', height: '1px', background: '#eee' }}></div>
               <button className="dd-nav-item text-red" style={{ 
                 width: '100%', padding: '15px 20px', textAlign: 'left', border: 'none', background: 'transparent', color: 'var(--red-600)', display: 'flex', alignItems: 'center', gap: '12px' 
               }} onClick={handleLogout}>
-                ðŸšª Cerrar SesiÃ³n
+                🚪 Cerrar Sesión
               </button>
             </nav>
           </div>
@@ -2464,11 +2464,11 @@ export default function DriverDashboard() {
           <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()} style={{ height: '500px' }}>
             <div className="dd-modal-header">
               <h5>Chat con Cliente</h5>
-              <button className="dd-modal-close" onClick={() => { setShowChatModal(false); setActiveChatPedidoId(null); }}>Ã—</button>
+              <button className="dd-modal-close" onClick={() => { setShowChatModal(false); setActiveChatPedidoId(null); }}>×</button>
             </div>
             <div className="dd-modal-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
               {chatMessages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--gray-400)', margin: 'auto' }}>Inicia la conversaciÃ³n con el cliente</div>
+                <div style={{ textAlign: 'center', color: 'var(--gray-400)', margin: 'auto' }}>Inicia la conversación con el cliente</div>
               ) : (
                 chatMessages.map((msg, i) => (
                   <div key={i} style={{ 
@@ -2498,7 +2498,7 @@ export default function DriverDashboard() {
               <input
                 type="text"
                 className="dd-chat-input"
-                placeholder="Escribe aquÃ­..."
+                placeholder="Escribe aquí..."
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
               />
@@ -2514,12 +2514,12 @@ export default function DriverDashboard() {
           <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
             <div className="dd-modal-header">
               <h5>Confirmar Retiro</h5>
-              <button className="dd-modal-close" onClick={() => { setShowRetiroModal(false); setActivePedido(null); }}>Ã—</button>
+              <button className="dd-modal-close" onClick={() => { setShowRetiroModal(false); setActivePedido(null); }}>×</button>
             </div>
             <div className="dd-modal-body" style={{ textAlign: 'center', padding: '30px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>ðŸï¸</div>
+              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🏍️</div>
               <p style={{ color: 'var(--gray-600)', marginBottom: '20px' }}>
-                Ingresa el <strong>PIN de 4 dÃ­gitos</strong> proporcionado por el local para confirmar el retiro del pedido.
+                Ingresa el <strong>PIN de 4 dígitos</strong> proporcionado por el local para confirmar el retiro del pedido.
               </p>
               <input
                 type="number"
@@ -2550,12 +2550,12 @@ export default function DriverDashboard() {
           <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
             <div className="dd-modal-header">
               <h5>Confirmar Entrega</h5>
-              <button className="dd-modal-close" onClick={() => { setShowEntregaModal(false); setActivePedido(null); }}>Ã—</button>
+              <button className="dd-modal-close" onClick={() => { setShowEntregaModal(false); setActivePedido(null); }}>×</button>
             </div>
             <div className="dd-modal-body" style={{ textAlign: 'center', padding: '30px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>ðŸš€</div>
+              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🚀</div>
               <p style={{ color: 'var(--gray-600)', marginBottom: '20px' }}>
-                Ingresa el <strong>PIN de 4 dÃ­gitos</strong> proporcionado por el cliente para finalizar la entrega.
+                Ingresa el <strong>PIN de 4 dígitos</strong> proporcionado por el cliente para finalizar la entrega.
               </p>
               <input
                 type="number"
@@ -2586,14 +2586,14 @@ export default function DriverDashboard() {
           <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
             <div className="dd-modal-header" style={{ borderBottom: '1px solid #fee2e2', background: '#fef2f2' }}>
               <h5 style={{ color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                âš ï¸ ConfirmaciÃ³n de Efectivo
+                ⚠️ Confirmación de Efectivo
               </h5>
-              <button className="dd-modal-close" onClick={() => setCashConfirmPedido(null)}>Ã—</button>
+              <button className="dd-modal-close" onClick={() => setCashConfirmPedido(null)}>×</button>
             </div>
             <div className="dd-modal-body" style={{ textAlign: 'center', padding: '24px' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>ðŸ’¸</div>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>💸</div>
               <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--gray-800)', margin: '0 0 12px 0', lineHeight: '1.4' }}>
-                Â¿TenÃ©s el efectivo necesario para abonar el pedido al local?
+                ¿Tenés el efectivo necesario para abonar el pedido al local?
               </p>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', display: 'block', fontWeight: '600' }}>
@@ -2604,7 +2604,7 @@ export default function DriverDashboard() {
                 </span>
               </div>
               <p style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic', margin: 0, lineHeight: '1.4', background: '#f1f5f9', padding: '10px', borderRadius: '6px' }}>
-                ðŸ’¡ <strong>AclaraciÃ³n:</strong> Wepi no abonarÃ¡ doble viaje en caso de no tener el efectivo necesario para retirar el pedido.
+                💡 <strong>Aclaración:</strong> Wepi no abonará doble viaje en caso de no tener el efectivo necesario para retirar el pedido.
               </p>
             </div>
             <div className="dd-modal-footer" style={{ display: 'flex', gap: '12px', padding: '16px' }}>
@@ -2623,7 +2623,7 @@ export default function DriverDashboard() {
                   setCashConfirmPedido(null);
                 }}
               >
-                SÃ­
+                Sí
               </button>
             </div>
           </div>
@@ -2632,30 +2632,30 @@ export default function DriverDashboard() {
 
       <footer className="footer" style={{ background: 'var(--red-800)', color: 'white', borderTop: 'none', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
         <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
-        <p style={{ margin: 0 }}>Â© 2026 Wepi - Todos los derechos reservados</p>
+        <p style={{ margin: 0 }}>© 2026 Wepi - Todos los derechos reservados</p>
         <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold' }}>v. 1.1.7</p>
-        <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>PWA optimizada para uso en moto ðŸ›µ GPS en tiempo real</p>
+        <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>PWA optimizada para uso en moto 🛵 GPS en tiempo real</p>
         <button 
           onClick={() => setShowTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem', opacity: 0.9 }}
         >
-          Ver TÃ©rminos y Condiciones
+          Ver Términos y Condiciones
         </button>
         <button 
           onClick={() => setShowRegretModal(true)} 
           style={{ background: 'none', border: 'none', color: '#ffb3b3', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
         >
-          BotÃ³n de Arrepentimiento
+          Botón de Arrepentimiento
         </button>
       </footer>
 
       {showRegretModal && (
         <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowRegretModal(false)}>
           <div className="dd-modal-content animate-slide-down" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '90%', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-            <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>BotÃ³n de Arrepentimiento</h4>
+            <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Botón de Arrepentimiento</h4>
             <p style={{ fontSize: '0.92rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', maxHeight: '400px', marginBottom: '20px' }}>
-              Â¿Deseas arrepentirte de tu registro y eliminar tu cuenta de repartidor permanentemente de Wepi? <br/>
-              <strong>Esta acciÃ³n no se puede deshacer.</strong>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de repartidor permanentemente de Wepi? <br/>
+              <strong>Esta acción no se puede deshacer.</strong>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button 
@@ -2664,7 +2664,7 @@ export default function DriverDashboard() {
                 disabled={deleting}
                 onClick={async () => {
                   if (!driver?.id) {
-                    toast.error("Debes iniciar sesiÃ³n para eliminar tu cuenta.");
+                    toast.error("Debes iniciar sesión para eliminar tu cuenta.");
                     setShowRegretModal(false);
                     return;
                   }
@@ -2682,7 +2682,7 @@ export default function DriverDashboard() {
                   }
                 }}
               >
-                {deleting ? 'Eliminando...' : 'SÃ­, eliminar mi registro'}
+                {deleting ? 'Eliminando...' : 'Sí, eliminar mi registro'}
               </button>
               <button className="btn btn-secondary dd-btn-large" style={{ width: '100%', border: '1px solid #ddd' }} onClick={() => setShowRegretModal(false)}>
                 Cancelar
@@ -2695,40 +2695,40 @@ export default function DriverDashboard() {
       {showTerms && (
         <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowTerms(false)}>
           <div className="dd-modal-content animate-slide-down" style={{ background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad</h4>
+            <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Términos y Condiciones y Política de Privacidad</h4>
             <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
-              <h5 style={{ color: 'red', marginTop: 0 }}>ðŸ“„ 3. REPARTIDORES â€“ TÃ‰RMINOS Y CONDICIONES</h5>
+              <h5 style={{ color: 'red', marginTop: 0 }}>📄 3. REPARTIDORES – TÉRMINOS Y CONDICIONES</h5>
               <p><strong>1. Naturaleza</strong></p>
-              <p>El repartidor es un trabajador independiente, no tiene relaciÃ³n laboral con Wepi y opera bajo su propio riesgo.</p>
-              <p><strong>2. AutonomÃ­a</strong></p>
+              <p>El repartidor es un trabajador independiente, no tiene relación laboral con Wepi y opera bajo su propio riesgo.</p>
+              <p><strong>2. Autonomía</strong></p>
               <p>Puede aceptar/rechazar pedidos libremente, define sus propios horarios y no existe exclusividad.</p>
-              <p><strong>3. LogÃ­stica</strong></p>
-              <p>Wepi solo facilita la asignaciÃ³n de pedidos. No dirige la actividad como empleador.</p>
+              <p><strong>3. Logística</strong></p>
+              <p>Wepi solo facilita la asignación de pedidos. No dirige la actividad como empleador.</p>
               <p><strong>4. Responsabilidad total</strong></p>
-              <p>El repartidor es responsable de accidentes, daÃ±os, estado del vehÃ­culo y cumplimiento de normas viales.</p>
+              <p>El repartidor es responsable de accidentes, daños, estado del vehículo y cumplimiento de normas viales.</p>
               <p><strong>5. Seguro</strong></p>
-              <p>Debe contar con seguro propio y cobertura mÃ©dica. Wepi no provee seguros.</p>
-              <p><strong>6. ExenciÃ³n de responsabilidad</strong></p>
-              <p>Wepi no serÃ¡ responsable por accidentes, lesiones o daÃ±os a terceros durante la actividad.</p>
+              <p>Debe contar con seguro propio y cobertura médica. Wepi no provee seguros.</p>
+              <p><strong>6. Exención de responsabilidad</strong></p>
+              <p>Wepi no será responsable por accidentes, lesiones o daños a terceros durante la actividad.</p>
               <p><strong>7. Indemnidad</strong></p>
               <p>El repartidor mantiene indemne a Wepi ante cualquier reclamo de terceros.</p>
               <p><strong>8. Conducta</strong></p>
               <p>Debe actuar de forma segura, legal y respetuosa.</p>
               <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-              <h5 style={{ color: 'red' }}>ðŸ”’ REPARTIDORES â€“ POLÃTICA DE PRIVACIDAD</h5>
+              <h5 style={{ color: 'red' }}>🔒 REPARTIDORES – POLÍTICA DE PRIVACIDAD</h5>
               <p><strong>Datos recolectados:</strong></p>
               <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
-                <li>Datos personales (nombre, telÃ©fono, email)</li>
-                <li>UbicaciÃ³n en tiempo real (GPS)</li>
+                <li>Datos personales (nombre, teléfono, email)</li>
+                <li>Ubicación en tiempo real (GPS)</li>
                 <li>Actividad de entregas</li>
               </ul>
               <p><strong>Uso de datos:</strong></p>
               <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
-                <li>AsignaciÃ³n de pedidos y optimizaciÃ³n de rutas</li>
+                <li>Asignación de pedidos y optimización de rutas</li>
                 <li>Seguimiento del pedido por el cliente</li>
                 <li>Seguridad del sistema</li>
               </ul>
-              <p><strong>ComparticiÃ³n:</strong></p>
+              <p><strong>Compartición:</strong></p>
               <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
                 <li>Usuarios (clientes)</li>
                 <li>Comercios (locales)</li>
@@ -2741,15 +2741,15 @@ export default function DriverDashboard() {
       {showSessionModal && (
         <div className="dd-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000 }} onClick={() => setShowSessionModal(false)}>
           <div className="dd-modal-content animate-slide-up" style={{ background: 'white', padding: '30px', borderRadius: '24px', maxWidth: '400px', width: '92%', textAlign: 'center', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
-            <div className="dd-modal-title">Â¿CuÃ¡nto tiempo vas a trabajar?</div>
-            <p className="dd-modal-subtitle">ElegÃ­ tu tiempo de disponibilidad. <br/> Al terminar, pasarÃ¡s a modo Inactivo automÃ¡ticamente.</p>
+            <div className="dd-modal-title">¿Cuánto tiempo vas a trabajar?</div>
+            <p className="dd-modal-subtitle">Elegí tu tiempo de disponibilidad. <br/> Al terminar, pasarás a modo Inactivo automáticamente.</p>
             <div className="dd-duration-grid">
               <button 
                 className="dd-duration-btn"
                 style={{ borderColor: 'var(--red-600)' }}
                 onClick={() => confirmarActivacion(1)}
               >
-                <span className="icon">ðŸ§ª</span>
+                <span className="icon">🧪</span>
                 <span className="time">1 min</span>
                 <span className="label">Solo Prueba</span>
               </button>
@@ -2757,18 +2757,18 @@ export default function DriverDashboard() {
                 className="dd-duration-btn"
                 onClick={() => confirmarActivacion(15)}
               >
-                <span className="icon">â±ï¸</span>
+                <span className="icon">⏱️</span>
                 <span className="time">15 min</span>
-                <span className="label">SesiÃ³n corta</span>
+                <span className="label">Sesión corta</span>
               </button>
 
               <button 
                 className="dd-duration-btn"
                 onClick={() => confirmarActivacion(30)}
               >
-                <span className="icon">ðŸ›µ</span>
+                <span className="icon">🛵</span>
                 <span className="time">30 min</span>
-                <span className="label">SesiÃ³n normal</span>
+                <span className="label">Sesión normal</span>
               </button>
             </div>
 
@@ -2787,8 +2787,8 @@ export default function DriverDashboard() {
         <div className="dd-modal-overlay" onClick={() => setShowRankingModal(false)}>
           <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <div className="dd-modal-header" style={{ background: 'var(--red-600)' }}>
-              <h5 style={{ color: 'white' }}>ðŸ† Top 5 Semanal</h5>
-              <button className="dd-modal-close" onClick={() => setShowRankingModal(false)}>Ã—</button>
+              <h5 style={{ color: 'white' }}>🏆 Top 5 Semanal</h5>
+              <button className="dd-modal-close" onClick={() => setShowRankingModal(false)}>×</button>
             </div>
             <div className="dd-modal-body" style={{ padding: '0' }}>
               <div className="ranking-list">
@@ -2798,12 +2798,12 @@ export default function DriverDashboard() {
                     background: r.posicion <= 3 ? '#fffcf0' : 'white'
                   }}>
                     <div className="rank-number" style={{ width: 30, fontWeight: 'bold', fontSize: '1.2rem', color: r.posicion <= 3 ? '#eab308' : '#999' }}>
-                      {r.posicion === 1 ? 'ðŸ¥‡' : r.posicion === 2 ? 'ðŸ¥ˆ' : r.posicion === 3 ? 'ðŸ¥‰' : r.posicion}
+                      {r.posicion === 1 ? '🥇' : r.posicion === 2 ? '🥈' : r.posicion === 3 ? '🥉' : r.posicion}
                     </div>
                     <img src={r.foto_url || "https://i.postimg.cc/Z5N1N0c9/user-avatar.png"} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 'bold' }}>{r.nombre} {r.nombre === driverData?.Nombre && '(TÃº)'}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#666' }}>{r.streak_actual || 0} racha ðŸ”¥</div>
+                      <div style={{ fontWeight: 'bold' }}>{r.nombre} {r.nombre === driverData?.Nombre && '(Tú)'}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666' }}>{r.streak_actual || 0} racha 🔥</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 'bold', color: 'var(--red-600)' }}>{r.puntos_totales} <small>pts</small></div>
@@ -2822,20 +2822,20 @@ export default function DriverDashboard() {
         <div className="dd-modal-overlay" onClick={() => setShowHistoryModal(false)}>
           <div className="dd-modal-content animate-slide-down" onClick={e => e.stopPropagation()}>
             <div className="dd-modal-header">
-              <h5>ðŸ“œ Historial de Puntos</h5>
-              <button className="dd-modal-close" onClick={() => setShowHistoryModal(false)}>Ã—</button>
+              <h5>📜 Historial de Puntos</h5>
+              <button className="dd-modal-close" onClick={() => setShowHistoryModal(false)}>×</button>
             </div>
             <div className="dd-modal-body" style={{ maxHeight: 400, overflowY: 'auto' }}>
               {pointsHistory.length === 0 ? (
-                <p style={{ textAlign: 'center', padding: 20 }}>AÃºn no has acumulado puntos. Â¡Responde a las alertas para ganar!</p>
+                <p style={{ textAlign: 'center', padding: 20 }}>Aún no has acumulado puntos. ¡Responde a las alertas para ganar!</p>
               ) : (
                 <div className="history-list">
                   {pointsHistory.map((p, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #eee' }}>
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                          {p.motivo.startsWith('RESPONSE') ? 'ðŸŽ¯ Respuesta a Alerta' : 
-                           p.motivo.startsWith('STREAK') ? 'ðŸ”¥ Bonus de Racha' : p.motivo}
+                          {p.motivo.startsWith('RESPONSE') ? '🎯 Respuesta a Alerta' : 
+                           p.motivo.startsWith('STREAK') ? '🔥 Bonus de Racha' : p.motivo}
                         </div>
                         <small style={{ color: '#999' }}>{new Date(p.created_at).toLocaleString()}</small>
                       </div>
@@ -2851,5 +2851,4 @@ export default function DriverDashboard() {
     </div>
   );
 }
-
 
