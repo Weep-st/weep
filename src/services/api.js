@@ -197,7 +197,7 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
       data: { role: 'local' }
     }
   });
-  if (authError) throw new Error(authError.message);
+  if (authError) { let msg = authError.message; if (msg.toLowerCase().includes('rate limit')) msg = 'Por seguridad, debes esperar un momento antes de volver a intentarlo.'; throw new Error(msg); }
 
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -369,7 +369,11 @@ export async function repartidorRegister(params) {
     token_confirmacion: code,
     ciudad: params.ciudad || 'Santo Tomé'
   });
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    let msg = error.message;
+    if (msg.toLowerCase().includes('rate limit')) msg = 'Por seguridad, debes esperar un momento antes de volver a solicitar un correo de recuperación.';
+    return { success: false, error: msg };
+  }
   
   return { success: true };
 }
