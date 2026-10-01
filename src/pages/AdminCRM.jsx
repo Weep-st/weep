@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import * as api from '../services/api';
 import './AdminCRM.css';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const DEFAULT_CRM_AUTOMATION_MATRIX = [
     {
@@ -665,6 +667,42 @@ const AdminCRM = () => {
         }
     };
     
+    const handleExportPDF = () => {
+        if (selectedUsers.size === 0) return;
+        const usersToExport = usuarios.filter(u => selectedUsers.has(u.id));
+        const doc = new jsPDF('landscape');
+        
+        const tableColumn = ["Cliente", "Ciudad", "Score Wepi", "Pedidos", "Total Gastado", "Ticket Prom.", "Último Pedido", "Favorito", "Estado CRM", "Etiquetas"];
+        const tableRows = [];
+
+        usersToExport.forEach(u => {
+            const rowData = [
+                u.nombre || 'Sin Nombre',
+                u.ciudad || '-',
+                u.wepi_score ? `${u.wepi_score} pts` : '0 pts',
+                u.cantidad_pedidos || 0,
+                `$${u.total_gastado || 0}`,
+                `$${u.ticket_promedio || 0}`,
+                u.fecha_ultimo_pedido ? new Date(u.fecha_ultimo_pedido).toLocaleDateString() : 'N/A',
+                u.categoria_favorita || '-',
+                u.estado_crm || '-',
+                (u.etiquetas || []).join(', ') || '-'
+            ];
+            tableRows.push(rowData);
+        });
+
+        doc.text("Detalle de Usuarios (Wepi CRM)", 14, 15);
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [15, 118, 110] }
+        });
+
+        doc.save(`Usuarios_CRM_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
+
     const handleDivideCampaigns = async () => {
         const numPartes = prompt("¿En cuántas campañas deseas dividir los usuarios seleccionados?");
         if (!numPartes || isNaN(numPartes) || numPartes <= 1) return;
@@ -820,17 +858,21 @@ const AdminCRM = () => {
     // INACTIVITY ACTION
     // ─────────────────────────────────────────────────────────────
     const handleRunInactivityScan = async () => {
+        console.log("handleRunInactivityScan called");
         const loadToast = toast.loading("Escaneando inactividad de usuarios...");
         try {
             const result = await api.adminRunCRMInactivityCheck();
+            console.log("adminRunCRMInactivityCheck result:", result);
             toast.dismiss(loadToast);
-            if (result && result.success) {
-                toast.success(`Escaneo completado. Clientes pasados a DORMIDO: ${result.updated_count}`);
+            if (result && (result.success || result.updated_count !== undefined)) {
+                const count = result.updated_count || 0;
+                toast.success(`Escaneo completado. Clientes actualizados: ${count}`);
                 loadAllCRMData();
             } else {
                 toast.error("Error en el escaneo de inactividad");
             }
         } catch (err) {
+            console.error("handleRunInactivityScan catch:", err);
             toast.dismiss(loadToast);
             toast.error("Error al ejecutar scan: " + err.message);
         }
@@ -2494,6 +2536,13 @@ const AdminCRM = () => {
                                         style={{ background: '#f59e0b', color: '#fff', border: 'none', marginLeft: '5px' }}
                                     >
                                         ➗ Dividir en Campañas
+                                    </button>
+                                    <button 
+                                        className="btn-copy-phones"
+                                        onClick={handleExportPDF}
+                                        style={{ background: '#0f766e', color: 'white', border: 'none', marginLeft: '5px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                        📄 Exportar a PDF
                                     </button>
                                     <button 
                                         className="btn-copy-phones"

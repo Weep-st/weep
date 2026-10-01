@@ -1752,7 +1752,7 @@ export default function RestaurantDashboard() {
           if (pedido.origen_pedido === 'wepi') {
             api.incrementarUsoMetrica(pedido.localId, 'pedidos_entregados_wepi').catch(() => {});
           } else {
-            api.incrementarUsoMetrica(pedido.localId, 'pedidos_entregados_enlace').catch(() => {});
+            api.incrementarUsoMetrica(pedido.localId, 'pedidos_entregados_enlace_propio').catch(() => {});
           }
         } else if (action === 'Rechazado') {
           await api.notifyOrderRechazado(pedido, reason);
@@ -2120,13 +2120,13 @@ export default function RestaurantDashboard() {
     idPedidoLocal: 'sample-order-1',
     idPedido: 'SAMPLE-1',
     estadoActual: tutorialSampleOrderState,
-    items: [[null, null, 'sample-dish-1', 1, 'Hamburguesa Wepi (Muestra)', '', 1, 4500]],
-    direccion: 'Calle Falsa 123 (Muestra)',
-    observaciones: 'Sin cebolla por favor',
+    items: [[null, null, 'sample-dish-1', 1, 'Producto de Prueba', '', 1, 4500]],
+    direccion: 'Dirección de Prueba 123',
+    observaciones: 'Este es un pedido de prueba para conocer el sistema. NO PREPARAR.',
     metodoPago: 'Efectivo',
     tipoEntrega: 'Delivery',
     emailCliente: 'cliente@ejemplo.com',
-    nombreCliente: 'Juan Pérez (Muestra)',
+    nombreCliente: 'PEDIDO DE PRUEBA',
     fecha: new Date().toISOString(),
     numConfirmacion: '1234',
     repartidorId: null,
@@ -2184,36 +2184,6 @@ export default function RestaurantDashboard() {
 
     return (
       <section className="animate-fade-in" style={{ paddingBottom: '40px' }}>
-        <div className="plans-hero card" style={{ 
-          background: 'linear-gradient(135deg, #c62828 0%, #b71c1c 100%)', 
-          color: 'white', padding: '32px', borderRadius: '24px', marginBottom: '32px',
-          boxShadow: '0 10px 25px rgba(198, 40, 40, 0.2)', position: 'relative', overflow: 'hidden'
-        }}>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <h2 style={{ fontSize: '2.2rem', marginBottom: '8px', fontWeight: 800 }}>Tu Crecimiento</h2>
-            <p style={{ opacity: 0.9, fontSize: '1.1rem' }}>Gestioná tu visibilidad y niveles de comisión</p>
-            
-            <div className="plans-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px', marginTop: '32px' }}>
-              <div className="plan-stat-card" style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
-                <span className="stat-label" style={{ display: 'block', fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Nivel Actual</span>
-                <span className="stat-value" style={{ fontSize: '1.5rem', fontWeight: 800 }}>🚀 {getLevelName(nivel_actual)}</span>
-              </div>
-              <div className="plan-stat-card" style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
-                <span className="stat-label" style={{ display: 'block', fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Comisión</span>
-                <span className="stat-value" style={{ fontSize: '1.5rem', fontWeight: 800 }}>{comision_actual}%</span>
-              </div>
-              <div className="plan-stat-card" style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
-                <span className="stat-label" style={{ display: 'block', fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Ventas (30d)</span>
-                <span className="stat-value" style={{ fontSize: '1.5rem', fontWeight: 800 }}>{metricas_mes.pedidos}</span>
-              </div>
-            </div>
-          </div>
-          {/* Círculos decorativos */}
-          <>
-            <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', bottom: '-30px', left: '10%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-          </>
-        </div>
 
         <div className="card" style={{ padding: '32px', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '1.5rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2267,27 +2237,6 @@ export default function RestaurantDashboard() {
           </div>
         </div>
 
-        {/* Tabla de Referencia de Comisiones */}
-        <div style={{ marginTop: '48px', padding: '32px', background: '#f8fafc', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-          <h4 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '1.2rem' }}>Escala de Comisiones por Ventas</h4>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '24px' }}>
-            Las comisiones se ajustan dinámicamente según tu volumen de ventas en los últimos 30 días.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            {[
-              { n: 'Despegue', c: '15%', t: '0+' },
-              { n: 'Crecimiento', c: '12%', t: '15+' },
-              { n: 'Experto', c: '10%', t: '30+' },
-              { n: 'Nivel Pro', c: '8%', t: '50+' },
-            ].map((tier, i) => (
-              <div key={i} style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{tier.n}</p>
-                <p style={{ margin: '8px 0', fontSize: '1.5rem', fontWeight: 800, color: '#c62828' }}>{tier.c}</p>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{tier.t} ventas / 30d</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
     );
   };
@@ -2582,7 +2531,7 @@ export default function RestaurantDashboard() {
       },
       {
         title: "Cargar nuevo plato",
-        text: "Haz click en '+ Añadir' para crear platos. ¡Las buenas fotos atraen más clientes!",
+        text: "Haz click en '+ Agregar producto' para crear platos. ¡Las buenas fotos atraen más clientes!",
         target: ".rd-nav-btn:nth-child(3)",
       },
       {
@@ -3290,17 +3239,17 @@ export default function RestaurantDashboard() {
                     📦 <strong>Stock Crítico:</strong> Tenés <span style={{ color: '#dc2626', fontWeight: 'bold' }}>{stockBajoCount} productos</span> con stock bajo su límite mínimo. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('menu'); loadMenu(); }}>Gestionar stock</a>.
                   </li>
                 )}
-                {/* 2. WhatsApp Assistant */}
-                {!profileData?.whatsapp_assistant_enabled && (
+                {/* 2. Plan de Visibilidad */}
+                {(!planInfo || planInfo?.plan_nombre !== 'Destacado') && (
                   <li>
-                    🤖 <strong>Automatiza Pedidos:</strong> Conectá el asistente de WhatsApp para que el bot tome pedidos de tus clientes de forma automática y aumente tu conversión. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('whatsapp'); }}>Vincular WhatsApp</a>.
+                    🌟 <strong>Aumenta tu Visibilidad:</strong> Suscribite a un Plan superior para aparecer primero en las búsquedas de los clientes en tu zona y recibir muchos más pedidos. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('plans'); }}>Mejorar Mi Plan</a>.
                   </li>
                 )}
                 {/* 3. Compartir menú */}
                 <li>
                   🔗 <strong>Compartí tu Menú:</strong> Promocioná tu enlace personalizado en tu perfil de Instagram para recibir pedidos directos. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_enlace'); }}>Ver enlace de menú</a>.
                 </li>
-                {stockBajoCount === 0 && profileData?.whatsapp_assistant_enabled && (
+                {stockBajoCount === 0 && planInfo?.plan_nombre === 'Destacado' && (
                   <li>
                     🚀 ¡Excelente! Tu local está perfectamente configurado y optimizado para vender. Sigamos creciendo juntos.
                   </li>
@@ -3435,7 +3384,7 @@ export default function RestaurantDashboard() {
                       setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>➕</span> Agregar
+                    <span>➕</span> Agregar producto
                   </button>
                 </li>
                 <li>
@@ -3486,12 +3435,32 @@ export default function RestaurantDashboard() {
               <>
                 <li>
                   <button 
+                    className={`rd-sidebar-btn ${(view === 'settings' && profileSubView === 'enlace') ? 'active' : ''}`} 
+                    onClick={() => {
+                      setView('settings'); setProfileSubView('enlace'); setMobileSidebarOpen(false);
+                    }}
+                  >
+                    <span>🔗</span> Compartir Menú
+                  </button>
+                </li>
+                <li>
+                  <button 
                     className={`rd-sidebar-btn ${(view === 'settings' && profileSubView === 'printing') ? 'active' : ''}`} 
                     onClick={() => {
                       setView('settings'); setProfileSubView('printing'); setMobileSidebarOpen(false);
                     }}
                   >
                     <span>🖨️</span> Impresión Tickets
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    className={`rd-sidebar-btn ${(view === 'settings' && profileSubView === 'cajas') ? 'active' : ''}`} 
+                    onClick={() => {
+                      setView('settings'); setProfileSubView('cajas'); setMobileSidebarOpen(false);
+                    }}
+                  >
+                    <span>🔑</span> Cajeros
                   </button>
                 </li>
                 <li>
@@ -3517,26 +3486,6 @@ export default function RestaurantDashboard() {
                     <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fde68a' }}>
                       Próximamente
                     </span>
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    className={`rd-sidebar-btn ${(view === 'settings' && profileSubView === 'cajas') ? 'active' : ''}`} 
-                    onClick={() => {
-                      setView('settings'); setProfileSubView('cajas'); setMobileSidebarOpen(false);
-                    }}
-                  >
-                    <span>🔑</span> Cajeros
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    className={`rd-sidebar-btn ${(view === 'settings' && profileSubView === 'enlace') ? 'active' : ''}`} 
-                    onClick={() => {
-                      setView('settings'); setProfileSubView('enlace'); setMobileSidebarOpen(false);
-                    }}
-                  >
-                    <span>🔗</span> Compartir Menú
                   </button>
                 </li>
               </>
@@ -3568,20 +3517,18 @@ export default function RestaurantDashboard() {
               </>
             )}
 
-            <li className="rd-sidebar-title">Cuenta</li>
             <li>
               <button 
-                className="rd-sidebar-btn" 
-                onClick={() => { 
-                  setShowTutorial(true); 
-                  setTutorialStep(1); 
-                  setView('orders'); 
-                  setMobileSidebarOpen(false); 
+                className={`rd-sidebar-btn ${view === 'tutoriales' ? 'active' : ''}`} 
+                onClick={() => {
+                  setView('tutoriales');
+                  setMobileSidebarOpen(false);
                 }}
               >
-                <span>📖</span> Ver tutorial
+                <span>📚</span> Tutoriales y Guías
               </button>
             </li>
+            <li className="rd-sidebar-title">Cuenta</li>
             <li>
               <button 
                 className="rd-sidebar-btn" 
@@ -3704,7 +3651,7 @@ export default function RestaurantDashboard() {
                     Plan {planInfo?.plan_nombre || 'Visible'}
                     <button className="btn btn-xs" style={{ background: 'var(--red-600)', color: 'white', fontSize: '0.65rem', padding: '1px 6px', borderRadius: '20px', border: 'none', fontWeight: 600 }}>Aumentar Visibilidad</button>
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 700 }}>Nivel {getLevelName(planInfo?.nivel_actual) || 'Despegue'} • {planInfo?.comision_actual ?? '--'}% comisión</p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--red-600)', fontWeight: 700 }}>Nivel {getLevelName(planInfo?.nivel_actual) || 'Despegue'}</p>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -3736,11 +3683,11 @@ export default function RestaurantDashboard() {
 
             {planInfo?.proximo_nivel ? (
               <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
-                Faltan <strong>{planInfo.proximo_nivel.falta_pedidos} pedidos</strong> para llegar a <strong>{planInfo.proximo_nivel.nombre}</strong>. ¡Bajá a <strong>{planInfo.proximo_nivel.comision}%</strong> de comisión!
+                Faltan <strong>{planInfo.proximo_nivel.falta_pedidos} pedidos</strong> para llegar a <strong>{planInfo.proximo_nivel.nombre}</strong>.
               </p>
             ) : (
               <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#059669', textAlign: 'center', fontWeight: 700 }}>
-                ¡Has alcanzado el máximo nivel! 🏆 Beneficio: {planInfo?.comision_actual ?? '--'}% comisión
+                ¡Has alcanzado el máximo nivel! 🏆
               </p>
             )}
           </div>
@@ -3751,6 +3698,29 @@ export default function RestaurantDashboard() {
 
         {/* ─── Wepi Sync View ─── */}
         {view === 'sync' && renderSyncView()}
+
+        {/* 📚 Tutoriales View */}
+        {view === 'tutoriales' && (
+          <div className="rd-view-container">
+            <div className="rd-topbar">
+              <h1 className="rd-title">📚 Tutoriales y Guías</h1>
+            </div>
+            <div className="rd-content" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '800px', margin: '0' }}>
+                
+                {/* Tutorial MP */}
+                <a href="https://drive.google.com/file/d/1yF-ccJU5o_on2bjpAaqPFKbU9Y-tBq8p/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#fff', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--gray-200)', textDecoration: 'none', color: 'inherit', transition: 'all 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f0f9ff'; e.currentTarget.style.borderColor = '#bae6fd'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.borderColor = 'var(--gray-200)'; }}>
+                  <div style={{ fontSize: '1.5rem', opacity: 0.9 }}>📄</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.05rem', margin: '0', fontWeight: 600, color: '#0369a1' }}>MERCADO PAGO_ Vinculación y Configuración de Ingresos</h3>
+                  </div>
+                  <div style={{ color: 'var(--gray-400)' }}>➜</div>
+                </a>
+
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ─── Orders View ─── */}
         {view === 'orders' && (
@@ -3922,6 +3892,21 @@ export default function RestaurantDashboard() {
                 }} 
               />
             ))}
+            <div style={{ marginTop: '16px', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-outline" 
+                style={{ borderColor: '#bae6fd', color: '#0369a1', background: '#f0f9ff', gap: '8px', display: 'flex', alignItems: 'center', padding: '8px 16px', borderRadius: '8px' }}
+                onClick={() => {
+                  setShowTutorial(true); 
+                  setTutorialStep(4);
+                  setView('orders');
+                  setTutorialSampleOrderState('Pendiente');
+                  setCurrentTab('pendientes');
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>👀</span> Ver Pedido de prueba
+              </button>
+            </div>
           </section>
         )}
 
@@ -3940,7 +3925,7 @@ export default function RestaurantDashboard() {
                           setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
                         }
                       }}>
-                        + Añadir { (profileData?.rubros?.includes('Cafetería') || profileData?.rubros?.includes('Heladería')) && '▾' }
+                        + Agregar producto { (profileData?.rubros?.includes('Cafetería') || profileData?.rubros?.includes('Heladería')) && '▾' }
                       </button>
                       
                       {menuAddOpen && (
@@ -4543,7 +4528,7 @@ export default function RestaurantDashboard() {
                               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
                             </div>
                           ))}
-                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '', disponible: true }])}>+ Añadir Variante</button>
+                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '', disponible: true }])}>+ Agregar Variante</button>
                         </div>
 
                         <div style={{ marginBottom: '20px' }}>
@@ -4556,7 +4541,7 @@ export default function RestaurantDashboard() {
                               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerExtras(burgerExtras.filter((_, i) => i !== idx))}>✕</button>
                             </div>
                           ))}
-                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Añadir Extra</button>
+                          <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Agregar Extra</button>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #edf2f7', paddingTop: '15px' }}>
@@ -5322,6 +5307,10 @@ export default function RestaurantDashboard() {
                     )}
                   </div>
                 </div>
+                  <a href="https://drive.google.com/file/d/1yF-ccJU5o_on2bjpAaqPFKbU9Y-tBq8p/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', backgroundColor: '#fff', border: '1px solid #bae6fd', borderRadius: '8px', textDecoration: 'none', color: '#0369a1', fontWeight: '600', marginTop: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', fontSize: '0.9rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>📺</span>
+                    Ver Tutorial: Vinculación y Configuración de Ingresos
+                  </a>
               </div>
             )}
 
@@ -6762,7 +6751,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
               </div>
             ) : (
               <>
-                {(isShop ? ['Pendiente', 'Confirmado'] : ['Confirmado']).includes(o.estadoActual) ? (
+                {(isShop ? ['Pendiente', 'Confirmado'] : ['Confirmado', 'Pendiente']).includes(o.estadoActual) ? (
                   <>
                     <button className="btn btn-success btn-sm" disabled={loading} onClick={() => handleAction('Aceptado')}>
                       {loading === 'Aceptado' ? (

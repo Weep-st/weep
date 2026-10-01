@@ -6756,18 +6756,19 @@ export async function adminSaveCRMScoreConfig(configList) {
 export async function adminRunCRMInactivityCheck() {
   try {
     // 1. Run DB RPC for score/status updates
-    const { data: rpcData } = await supabase.rpc('check_and_update_crm_inactivity').catch(e => ({ data: null }));
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('check_and_update_crm_inactivity');
+    if (rpcErr) console.error("RPC Error in check_and_update_crm_inactivity:", rpcErr);
 
     // 2. Fetch active users
     const { data: users, error: uErr } = await supabase
       .from('usuarios')
       .select('id, nombre, fecha_ultimo_pedido, created_at, estado_crm');
 
-    if (uErr || !users) return rpcData || { success: true, updated_count: 0 };
+    if (uErr || !users) return { success: true, updated_count: rpcData?.updated_count || 0 };
 
     // 3. Fetch Matrix rules
     const matrix = await adminGetCRMAutomationMatrix();
-    if (!Array.isArray(matrix) || matrix.length === 0) return rpcData || { success: true, updated_count: 0 };
+    if (!Array.isArray(matrix) || matrix.length === 0) return { success: true, updated_count: rpcData?.updated_count || 0 };
 
     // Filter active inactivity rules (trigger_type === 'dias_inactividad')
     const inactivityRules = matrix.filter(r => 
@@ -6776,7 +6777,7 @@ export async function adminRunCRMInactivityCheck() {
       r.trigger_config?.dias > 0
     );
 
-    if (inactivityRules.length === 0) return rpcData || { success: true, updated_count: 0 };
+    if (inactivityRules.length === 0) return { success: true, updated_count: rpcData?.updated_count || 0 };
 
     // Sort rules descending by threshold days (e.g. 60, 30, 14, 7, 1)
     inactivityRules.sort((a, b) => (Number(b.trigger_config?.dias) || 0) - (Number(a.trigger_config?.dias) || 0));

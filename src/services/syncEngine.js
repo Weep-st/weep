@@ -170,9 +170,13 @@ export async function syncCatalog({
 
   // Mapear menú actual por SKU (O(1))
   const menuActualPorSku = {};
+  const menuActualPorNombre = {};
   menuActual.forEach(item => {
     if (item.sku) {
       menuActualPorSku[item.sku.toString().trim().toLowerCase()] = item;
+    }
+    if (item.nombre) {
+      menuActualPorNombre[item.nombre.toString().trim().toLowerCase()] = item;
     }
   });
 
@@ -197,6 +201,7 @@ export async function syncCatalog({
       const sku = rawSku.toString().trim();
       const nombre = rawNombre.toString().trim();
       const skuLower = sku.toLowerCase();
+      const nombreLower = nombre.toLowerCase();
 
       if (skusProcesadosEnArchivo.has(skuLower)) return; // Evitar duplicados en el mismo archivo
       skusProcesadosEnArchivo.add(skuLower);
@@ -231,7 +236,7 @@ export async function syncCatalog({
       const codigoBarras = rawCodigoBarras ? rawCodigoBarras.toString().trim() : null;
       const descripcion = rawDescripcion ? rawDescripcion.toString().trim() : 'Sincronizado desde ERP';
 
-      const itemExistente = menuActualPorSku[skuLower];
+      const itemExistente = menuActualPorSku[skuLower] || menuActualPorNombre[nombreLower];
 
       if (itemExistente) {
         // ACTUALIZAR PRODUCTO EXISTENTE

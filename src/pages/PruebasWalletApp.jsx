@@ -1875,7 +1875,9 @@ export default function PruebasWalletApp() {
           const isWhatsApp = searchParams.get('utm_source') === 'wa_bot';
           
           api.incrementarUsoMetrica(local.id, 'visitas_totales').catch(() => {});
-          if (isWhatsApp) {
+          if (Capacitor.isNativePlatform()) {
+            api.incrementarUsoMetrica(local.id, 'visitas_app').catch(() => {});
+          } else if (isWhatsApp) {
             api.incrementarUsoMetrica(local.id, 'visitas_whatsapp').catch(() => {});
           } else {
             api.incrementarUsoMetrica(local.id, 'visitas_enlace_propio').catch(() => {});
