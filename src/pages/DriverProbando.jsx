@@ -827,7 +827,7 @@ export default function DriverProbando() {
         ciudad: fd.get('ciudad') || 'Santo Tomé'
       });
       if (d?.success) {
-        toast.success('¡Registro exitoso! Iniciá sesión.');
+        toast.success('Usuario Registrado. Recibir�s la verificaci�n en tu email.', { duration: 6000 });
         setAuthView('login');
       } else toast.error(d?.error || 'Error al registrar');
     } catch { toast.error('Error de conexión'); }
@@ -2404,6 +2404,7 @@ export default function DriverProbando() {
     </div>
   );
 }
+
 
 
 
