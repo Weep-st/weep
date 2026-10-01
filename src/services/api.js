@@ -309,7 +309,7 @@ export async function deleteLocalUsuario(usuarioId) {
 // ═══════════════════════════════════════════════════
 export async function repartidorLogin(email, password) {
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-  if (authError || !authData.user) return { success: false, error: 'Credenciales incorrectas o cuenta no migrada' };
+  if (authError || !authData.user) return { success: false, error: 'El email no existe, no ha sido verificado o la contrase�a es incorrecta' };
 
   const { data, error } = await supabase.from('repartidores').select('*').eq('auth_id', authData.user.id).single();
   if (error || !data) {
@@ -8360,3 +8360,4 @@ export async function extenderEsperaRepartidor(pedidoId, whatsappOptin, userPhon
     return { success: false, error };
   }
 }
+
