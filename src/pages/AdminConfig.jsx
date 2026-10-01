@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
 
 const ALL_RUBROS = [
     { label: 'Restaurante', type: 'Restaurante' },
-    { label: 'Helados', type: 'Heladería' },
-    { label: 'Cafetería', type: 'Cafetería' },
+    { label: 'Helados', type: 'HeladerÃ­a' },
+    { label: 'CafeterÃ­a', type: 'CafeterÃ­a' },
     { label: 'Market', type: 'Market' },
     { label: 'Farmacia', type: 'Farmacia' },
     { label: 'Bebidas', type: 'Bebidas' },
-    { label: 'Carnicería', type: 'Carnicería' },
+    { label: 'CarnicerÃ­a', type: 'CarnicerÃ­a' },
     { label: 'SHOPS', type: 'SHOPS' },
     { label: 'Hogar (Shops)', type: 'Hogar' },
-    { label: 'Tecnología (Shops)', type: 'Tecnología' },
+    { label: 'TecnologÃ­a (Shops)', type: 'TecnologÃ­a' },
     { label: 'Moda (Shops)', type: 'Moda' },
-    { label: 'Regalería (Shops)', type: 'Regalería' },
+    { label: 'RegalerÃ­a (Shops)', type: 'RegalerÃ­a' },
     { label: 'Deportes (Shops)', type: 'Deportes' }
 ];
 
@@ -41,7 +41,7 @@ const AdminConfig = () => {
                 setPartners(partnersData);
             } catch (err) {
                 console.error(err);
-                toast.error('Error al cargar la configuración');
+                toast.error('Error al cargar la configuraciÃ³n');
             } finally {
                 setLoading(false);
             }
@@ -88,30 +88,30 @@ const AdminConfig = () => {
                     funcional: c.funcional !== undefined ? c.funcional : true
                 });
             }
-            toast.success('Configuración guardada correctamente');
+            toast.success('ConfiguraciÃ³n guardada correctamente');
         } catch (err) {
             console.error(err);
-            toast.error('Error al guardar la configuración');
+            toast.error('Error al guardar la configuraciÃ³n');
         } finally {
             setSaving(false);
         }
     };
 
     if (loading) {
-        return <div className="admin-loading">Cargando configuración...</div>;
+        return <div className="admin-loading">Cargando configuraciÃ³n...</div>;
     }
 
     return (
         <div className="panel-card animate-fade-in">
             <div className="panel-header">
-                <h2>Configuración Global</h2>
+                <h2>ConfiguraciÃ³n Global</h2>
             </div>
 
             <form onSubmit={handleSave} className="admin-form">
                 <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
                     <div className="form-group" style={{ flex: '1', minWidth: '280px', maxWidth: '400px', marginBottom: 0 }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            Valor de Envío para Delivery (/pedir) ($)
+                            Valor de EnvÃ­o para Delivery (/pedir) ($)
                         </label>
                         <input
                             type="number"
@@ -130,13 +130,13 @@ const AdminConfig = () => {
                             required
                         />
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
-                            Este valor se aplicará a todos los pedidos con envío en la plataforma de Delivery.
+                            Este valor se aplicarÃ¡ a todos los pedidos con envÃ­o en la plataforma de Delivery.
                         </p>
                     </div>
 
                     <div className="form-group" style={{ flex: '1', minWidth: '280px', maxWidth: '400px', marginBottom: 0 }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            Valor de Envío para Shops (/shops) ($)
+                            Valor de EnvÃ­o para Shops (/shops) ($)
                         </label>
                         <input
                             type="number"
@@ -155,7 +155,7 @@ const AdminConfig = () => {
                             required
                         />
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
-                            Este valor se aplicará a todos los pedidos con envío en la plataforma de Shops.
+                            Este valor se aplicarÃ¡ a todos los pedidos con envÃ­o en la plataforma de Shops.
                         </p>
                     </div>
                 </div>
@@ -163,7 +163,7 @@ const AdminConfig = () => {
                 <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
                     <div className="form-group" style={{ flex: '1', minWidth: '280px', maxWidth: '400px', marginBottom: 0 }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            Fee de Envío (Mercado Pago) ($)
+                            Fee de EnvÃ­o (Mercado Pago) ($)
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <input
@@ -193,14 +193,14 @@ const AdminConfig = () => {
                             </label>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
-                            Este fee se sumará al valor del envío pagado por el cliente cuando use Mercado Pago, y quedará para Wepi. El switch lo activa o desactiva.
+                            Este fee se sumarÃ¡ al valor del envÃ­o pagado por el cliente cuando use Mercado Pago, y quedarÃ¡ para Wepi. El switch lo activa o desactiva.
                         </p>
                     </div>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                        Código de Acceso para Registro de Locales
+                        CÃ³digo de Acceso para Registro de Locales
                     </label>
                     <input
                         type="text"
@@ -219,7 +219,7 @@ const AdminConfig = () => {
                         }}
                     />
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                        Este código será requerido a los nuevos locales para poder completar el registro.
+                        Este cÃ³digo serÃ¡ requerido a los nuevos locales para poder completar el registro.
                     </p>
                 </div>
 
@@ -249,12 +249,12 @@ const AdminConfig = () => {
                 </div>
 
                 <div className="maintenance-section" style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
-                    <h3 style={{ marginBottom: '1.5rem', color: 'white' }}>Mantenimiento de Páginas</h3>
+                    <h3 style={{ marginBottom: '1.5rem', color: 'white' }}>Mantenimiento de PÃ¡ginas</h3>
                     
                     <div style={{ display: 'grid', gap: '1.5rem' }}>
                         <div className="toggle-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '400px' }}>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: '1rem' }}>Página de Clientes (/pedir)</h4>
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>PÃ¡gina de Clientes (/pedir)</h4>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Bloquea el acceso a la app de pedidos</p>
                             </div>
                             <label className="switch">
@@ -269,7 +269,7 @@ const AdminConfig = () => {
 
                         <div className="toggle-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '400px' }}>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: '1rem' }}>Página de Locales (/locales)</h4>
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>PÃ¡gina de Locales (/locales)</h4>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Bloquea el acceso al dashboard de comercios</p>
                             </div>
                             <label className="switch">
@@ -284,7 +284,7 @@ const AdminConfig = () => {
 
                         <div className="toggle-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '400px' }}>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: '1rem' }}>Página de Repartidores (/repartidores)</h4>
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>PÃ¡gina de Repartidores (/repartidores)</h4>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Bloquea el acceso al panel de drivers</p>
                             </div>
                             <label className="switch">
@@ -300,7 +300,7 @@ const AdminConfig = () => {
                 </div>
 
                 <div className="maintenance-section" style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
-                    <h3 style={{ marginBottom: '1.5rem', color: 'white' }}>Logística por Ciudad</h3>
+                    <h3 style={{ marginBottom: '1.5rem', color: 'white' }}>LogÃ­stica por Ciudad</h3>
                     
                     <div style={{ display: 'grid', gap: '1.5rem' }}>
                         {ciudades.map((c, idx) => (
@@ -315,7 +315,7 @@ const AdminConfig = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{c.ciudad}</h4>
-                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Modalidad de distribución</p>
+                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Modalidad de distribuciÃ³n</p>
                                     </div>
                                     <select
                                         value={c.tipo_logistica}
@@ -338,7 +338,7 @@ const AdminConfig = () => {
                                         }}
                                     >
                                         <option value="individual" style={{ background: '#222' }}>Repartidor Individual (Broadcast)</option>
-                                        <option value="partner" style={{ background: '#222' }}>Partner Logístico (Empresa)</option>
+                                        <option value="partner" style={{ background: '#222' }}>Partner LogÃ­stico (Empresa)</option>
                                     </select>
                                 </div>
 
@@ -377,8 +377,8 @@ const AdminConfig = () => {
 
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: '10px' }}>
                                     <div>
-                                        <span style={{ fontSize: '0.85rem', color: 'white' }}>Tarifa de Envío:</span>
-                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Método de cobro por envío</p>
+                                        <span style={{ fontSize: '0.85rem', color: 'white' }}>Tarifa de EnvÃ­o:</span>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>MÃ©todo de cobro por envÃ­o</p>
                                     </div>
                                     <select
                                         value={c.cobro_envio_tipo || 'fijo'}
@@ -398,7 +398,7 @@ const AdminConfig = () => {
                                         }}
                                     >
                                         <option value="fijo" style={{ background: '#222' }}>Tarifa Fija</option>
-                                        <option value="dinamico" style={{ background: '#222' }}>Tarifa Dinámica (por Km)</option>
+                                        <option value="dinamico" style={{ background: '#222' }}>Tarifa DinÃ¡mica (por Km)</option>
                                     </select>
                                 </div>
 
@@ -454,7 +454,7 @@ const AdminConfig = () => {
                                 )}
 
                                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '14px' }}>
-                                    <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#38bdf8', fontWeight: 'bold' }}>Configuración Geográfica y Cobertura</h5>
+                                    <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#38bdf8', fontWeight: 'bold' }}>ConfiguraciÃ³n GeogrÃ¡fica y Cobertura</h5>
                                     
                                     <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
                                         <div style={{ flex: 1 }}>
@@ -484,7 +484,7 @@ const AdminConfig = () => {
                                                 }}
                                                 className="admin-input"
                                                 style={{ width: '100%', padding: '0.4rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', borderRadius: '0.25rem', color: 'white', fontSize: '0.8rem' }}
-                                                placeholder="Centro Cívico"
+                                                placeholder="Centro CÃ­vico"
                                             />
                                         </div>
                                     </div>
@@ -541,7 +541,7 @@ const AdminConfig = () => {
                                             />
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Envío Mínimo ($)</label>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>EnvÃ­o MÃ­nimo ($)</label>
                                             <input
                                                 type="number"
                                                 value={c.min_delivery_fee !== undefined && c.min_delivery_fee !== null ? c.min_delivery_fee : ''}
@@ -574,7 +574,7 @@ const AdminConfig = () => {
                                             />
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Dist. Máxima (Km)</label>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Dist. MÃ¡xima (Km)</label>
                                             <input
                                                 type="number"
                                                 value={c.max_delivery_distance_km !== undefined && c.max_delivery_distance_km !== null ? c.max_delivery_distance_km : ''}
@@ -625,11 +625,11 @@ const AdminConfig = () => {
 
                 
                 <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginTop: '24px' }}>
-                    <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '12px' }}>Versiones de la App (Forzar Actualización)</h3>
+                    <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '12px' }}>Versiones de la App (Forzar ActualizaciÃ³n)</h3>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
                         <div>
-                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Versión mínima iOS (App Store)</label>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>VersiÃ³n mÃ­nima iOS (App Store)</label>
                             <input
                                 type="text"
                                 className="form-input"
@@ -639,7 +639,7 @@ const AdminConfig = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Versión mínima Android (Google Play)</label>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>VersiÃ³n mÃ­nima Android (Google Play)</label>
                             <input
                                 type="text"
                                 className="form-input"
@@ -670,7 +670,7 @@ const AdminConfig = () => {
                         </div>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '12px' }}>
-                        * Si la versión de la app instalada es MENOR a la versión mínima aquí configurada, se bloqueará la app y se obligará al usuario a actualizar.
+                        * Si la versiÃ³n de la app instalada es MENOR a la versiÃ³n mÃ­nima aquÃ­ configurada, se bloquearÃ¡ la app y se obligarÃ¡ al usuario a actualizar.
                     </p>
                 </div>
 
@@ -775,6 +775,7 @@ const AdminConfig = () => {
 };
 
 export default AdminConfig;
+
 
 
 
