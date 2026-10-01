@@ -184,10 +184,20 @@ export async function loginLocal(identifier, password) {
 }
 
 export async function registerLocal(nombre, direccion, email, password, termsAccepted = true, privacyAccepted = true, planType = 'Emprendedor', lat = null, lng = null, contacto = null, ciudad = 'Santo Tomé', tipo_servicio = 'delivery', rubros = []) {
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: window.location.origin + '/locales',
+      data: { role: 'local' }
+    }
+  });
+  if (authError) throw new Error(authError.message);
+
   const id = 'LOC-' + Date.now();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('locales').insert({ 
-    id, nombre, direccion, email, password,
+    id, auth_id: authData.user ? authData.user.id : null, nombre, direccion, email, password,
     terms_accepted: termsAccepted,
     privacy_accepted: privacyAccepted,
     terms_accepted_at: new Date().toISOString(),
@@ -204,9 +214,6 @@ export async function registerLocal(nombre, direccion, email, password, termsAcc
     rubros: rubros
   });
   if (error) throw new Error(error.message);
-  
-  // Enviar email de confirmación
-  sendConfirmationEmail(email, code, 'local', nombre).catch(console.error);
   
   return { success: true };
 }

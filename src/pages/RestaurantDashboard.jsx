@@ -1495,7 +1495,7 @@ export default function RestaurantDashboard() {
         fd.get('tipo_servicio') || 'delivery',
         selectedRubros
       );
-      toast.success('¡Local registrado! Iniciá sesión.');
+      toast.success('Local registrado. Recibirás la verificación en tu email.', { duration: 6000 });
       setAuthEmail(email);
       setAuthView('login');
     } catch (err) { 
@@ -3213,18 +3213,7 @@ export default function RestaurantDashboard() {
                   </li>
                 )}
                 {/* 4. Email */}
-                {!emailConfirmado && (
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    ✉️ <strong>Email no confirmado:</strong> Por favor confirma tu dirección de correo electrónico para operar con normalidad.
-                    <button 
-                      className="btn btn-sm" 
-                      style={{ background: '#faad14', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                      onClick={handleResendConfirmationService}
-                    >
-                      Reenviar enlace
-                    </button>
-                  </li>
-                )}
+                
                 {ubicacionConfigurada && horariosConfigurados && mercadopagoVinculado && emailConfirmado && (
                   <li>
                     🎉 <strong>¡Todo completado!</strong> Has configurado todos los requisitos pendientes. Tu cuenta está siendo revisada para el alta definitiva.
