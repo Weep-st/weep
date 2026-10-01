@@ -1,4 +1,4 @@
-import * as React from 'react';
+﻿import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useJsApiLoader } from '@react-google-maps/api';
@@ -26,30 +26,30 @@ const getLevelName = (lvl) => {
 const planBenefits = {
   'Visible': [
     'Visibilidad en la plataforma',
-    'Pedidos automáticos',
-    'Gestión de menú en tiempo real',
-    'Acceso a soporte vía email'
+    'Pedidos automÃ¡ticos',
+    'GestiÃ³n de menÃº en tiempo real',
+    'Acceso a soporte vÃ­a email'
   ],
-  'Básico': [
+  'BÃ¡sico': [
     'Visibilidad en la plataforma',
-    'Pedidos automáticos',
-    'Gestión de menú en tiempo real',
-    'Acceso a soporte vía email'
+    'Pedidos automÃ¡ticos',
+    'GestiÃ³n de menÃº en tiempo real',
+    'Acceso a soporte vÃ­a email'
   ],
-  'Plan Básico': [
+  'Plan BÃ¡sico': [
     'Visibilidad en la plataforma',
-    'Pedidos automáticos',
-    'Gestión de menú en tiempo real',
-    'Acceso a soporte vía email'
+    'Pedidos automÃ¡ticos',
+    'GestiÃ³n de menÃº en tiempo real',
+    'Acceso a soporte vÃ­a email'
   ],
   'Recomendado': [
-    'Prioridad MEDIA en búsquedas',
+    'Prioridad MEDIA en bÃºsquedas',
     'Seccion Locales Recomendados',
     'Soporte prioritario',
-    'Publicidad básica'
+    'Publicidad bÃ¡sica'
   ],
   'Destacado': [
-    'Prioridad MÁXIMA (Top de lista)',
+    'Prioridad MÃXIMA (Top de lista)',
     'Banner destacado en Home',
     'Seccion Locales Recomendados',
     'Publicidad en redes Wepi'
@@ -75,14 +75,14 @@ export default function RestaurantDashboard() {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
-      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseÃ±a');
       return;
     }
     setAuthLoading(true);
     const redirectUrl = window.location.origin + window.location.pathname;
     const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
     if (res.success) {
-      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseÃ±a', { duration: 6000 });
       setAuthView('login');
     } else {
       toast.error(res.error || 'Error al enviar el correo');
@@ -95,17 +95,17 @@ export default function RestaurantDashboard() {
     const fd = new FormData(e.target);
     const newPassword = fd.get('password');
     if (newPassword.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+      toast.error('La contraseÃ±a debe tener al menos 6 caracteres');
       return;
     }
     setAuthLoading(true);
     const res = await api.updateUserPassword(newPassword);
     if (res.success) {
-      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
+      toast.success('ContraseÃ±a actualizada correctamente. Inicia sesiÃ³n.');
       window.location.hash = ''; // clear hash
       setAuthView('login');
     } else {
-      toast.error(res.error || 'Error al actualizar contraseña');
+      toast.error(res.error || 'Error al actualizar contraseÃ±a');
     }
     setAuthLoading(false);
   };
@@ -167,7 +167,7 @@ export default function RestaurantDashboard() {
   const handleConnectWAMeta = () => {
     // Si el usuario presiona vincular, permitimos tanto FB.login como ingreso directo del Phone Number ID
     const phoneIdInput = window.prompt(
-      "Ingresá el ID de teléfono de WhatsApp (Phone Number ID) de tu cuenta de Meta for Developers:\n\n(Ejemplo de prueba: 1235973679598249)",
+      "IngresÃ¡ el ID de telÃ©fono de WhatsApp (Phone Number ID) de tu cuenta de Meta for Developers:\n\n(Ejemplo de prueba: 1235973679598249)",
       "1235973679598249"
     );
 
@@ -176,7 +176,7 @@ export default function RestaurantDashboard() {
     }
 
     setWaConnecting(true);
-    toast("Vinculando con Meta Cloud API...", { icon: '🔄' });
+    toast("Vinculando con Meta Cloud API...", { icon: 'ðŸ”„' });
 
     api.vincularWhatsAppMeta({
       localId: restaurant.id,
@@ -188,7 +188,7 @@ export default function RestaurantDashboard() {
     .then(async () => {
       await loadProfile();
       setWaConnecting(false);
-      toast.success("¡Asistente de WhatsApp Oficial de Meta vinculado con éxito! (Modo Coexistencia Activo)", { duration: 6000 });
+      toast.success("Â¡Asistente de WhatsApp Oficial de Meta vinculado con Ã©xito! (Modo Coexistencia Activo)", { duration: 6000 });
     })
     .catch((err) => {
       console.error("Error al vincular con Meta:", err);
@@ -198,7 +198,7 @@ export default function RestaurantDashboard() {
   };
 
   const handleDisconnectWAMeta = async () => {
-    if (!window.confirm("¿Estás seguro de que deseas desconectar el Asistente de WhatsApp Oficial?")) return;
+    if (!window.confirm("Â¿EstÃ¡s seguro de que deseas desconectar el Asistente de WhatsApp Oficial?")) return;
     try {
       await api.desvincularWhatsAppMeta(restaurant.id);
       await loadProfile();
@@ -209,7 +209,7 @@ export default function RestaurantDashboard() {
   };
   const isInventory = React.useMemo(() => {
     if (!profileData) return false;
-    return profileData.tipo_servicio === 'shops' || profileData.rubros?.some(r => r === 'Market' || r === 'Farmacia' || r === 'Bebidas' || r === 'Hogar' || r === 'Tecnología' || r === 'Moda' || r === 'Regalería' || r === 'Deportes');
+    return profileData.tipo_servicio === 'shops' || profileData.rubros?.some(r => r === 'Market' || r === 'Farmacia' || r === 'Bebidas' || r === 'Hogar' || r === 'TecnologÃ­a' || r === 'Moda' || r === 'RegalerÃ­a' || r === 'Deportes');
   }, [profileData]);
   const [menuItems, setMenuItems] = React.useState([]);
   const [menuLoading, setMenuLoading] = React.useState(false);
@@ -280,7 +280,7 @@ export default function RestaurantDashboard() {
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
-    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+    console.error("âŒ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
   }
 
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
@@ -290,7 +290,7 @@ export default function RestaurantDashboard() {
   });
 
   if (loadError) {
-    console.error("❌ Error loading Google Maps:", loadError);
+    console.error("âŒ Error loading Google Maps:", loadError);
   }
 
   // Tutorial State
@@ -349,7 +349,7 @@ export default function RestaurantDashboard() {
       ? 'MERCADO PAGO' 
       : String(o.metodoPago).toUpperCase();
 
-    const isEnvio = String(o.tipoEntrega).toLowerCase().includes('env') || String(o.tipoEntrega).toLowerCase().includes('domicilio') || String(o.tipoEntrega).toLowerCase() === 'con envío';
+    const isEnvio = String(o.tipoEntrega).toLowerCase().includes('env') || String(o.tipoEntrega).toLowerCase().includes('domicilio') || String(o.tipoEntrega).toLowerCase() === 'con envÃ­o';
     const costoEnvioVal = Number(o.precioEnvio || o.costoEnvio || 0);
     const feeEnvioVal = Number(o.fee_envio || 0);
     const subtotalVal = Number(o.totalLocal || o.total || 0);
@@ -392,7 +392,7 @@ export default function RestaurantDashboard() {
     const totalSectionHtml = isEnvio ? `
       <div style="font-weight:bold; text-align:right; margin-top:6px; font-size:0.95rem;">
         <div>Subtotal: $${subtotalVal.toFixed(2)}</div>
-        <div>Env�o Wepi: $${(costoEnvioVal + feeEnvioVal).toFixed(2)}</div>
+        <div>Envï¿½o Wepi: $${(costoEnvioVal + feeEnvioVal).toFixed(2)}</div>
           <div style="font-size: 1.1rem; margin-top: 4px;">TOTAL: $${finalTotalVal.toFixed(2)}</div>
       </div>
     ` : `
@@ -441,12 +441,12 @@ export default function RestaurantDashboard() {
         <div>${itemsHtml}</div>
         <div class="dashed-separator"></div>
         <div>
-          <strong>PAGO:</strong> ${metodoPagoClean} ${opNumber ? `(N° Op: ${opNumber})` : ''}<br>
+          <strong>PAGO:</strong> ${metodoPagoClean} ${opNumber ? `(NÂ° Op: ${opNumber})` : ''}<br>
           ${o.observaciones && o.observaciones !== 'Ninguna' ? `<strong>OBS Gral:</strong> ${o.observaciones}` : ''}
         </div>
         ${totalSectionHtml}
         <div class="footer">
-          ¡Gracias por su compra!<br>
+          Â¡Gracias por su compra!<br>
           <strong>Wepi - Pedidos y Delivery</strong>
         </div>
         <script>
@@ -490,7 +490,7 @@ export default function RestaurantDashboard() {
     }
   }, [profileData?.foto_url]);
 
-  // ─── Wepi Sync V1 States ───
+  // â”€â”€â”€ Wepi Sync V1 States â”€â”€â”€
   const [syncFile, setSyncFile] = React.useState(null);
   const [syncFileType, setSyncFileType] = React.useState('csv'); // 'csv', 'xlsx'
   const [syncHeaders, setSyncHeaders] = React.useState([]);
@@ -526,15 +526,15 @@ export default function RestaurantDashboard() {
     }
   }, [editItem]);
 
-  // ─── Modal Arrepentimiento ───
+  // â”€â”€â”€ Modal Arrepentimiento â”€â”€â”€
   const renderRegretModal = () => (
     showRegretModal && (
       <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
         <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
-          <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
+          <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>BotÃ³n de Arrepentimiento</h3>
           <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
-            ¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Wepi? <br/>
-            <strong>Esta acción eliminará todos tus productos y datos.</strong>
+            Â¿Deseas arrepentirte de tu registro y eliminar tu cuenta de local permanentemente de Wepi? <br/>
+            <strong>Esta acciÃ³n eliminarÃ¡ todos tus productos y datos.</strong>
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button 
@@ -543,7 +543,7 @@ export default function RestaurantDashboard() {
               disabled={deleting}
               onClick={async () => {
                 if (!restaurant?.id) {
-                  toast.error("Debes iniciar sesión para eliminar tu cuenta.");
+                  toast.error("Debes iniciar sesiÃ³n para eliminar tu cuenta.");
                   setShowRegretModal(false);
                   return;
                 }
@@ -561,7 +561,7 @@ export default function RestaurantDashboard() {
                 }
               }}
             >
-              {deleting ? 'Eliminando...' : 'Sí, eliminar mi local'}
+              {deleting ? 'Eliminando...' : 'SÃ­, eliminar mi local'}
             </button>
             <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
           </div>
@@ -570,28 +570,28 @@ export default function RestaurantDashboard() {
     )
   );
 
-  // ─── Modal Términos y Condiciones ───
+  // â”€â”€â”€ Modal TÃ©rminos y Condiciones â”€â”€â”€
   const renderTermsModal = () => (
     showTerms && (
       <div className="modal-overlay" style={{ zIndex: 9999 }} onClick={() => setShowTerms(false)}>
         <div className="modal-box animate-fade-in" style={{ maxWidth: '500px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '12px' }} onClick={e => e.stopPropagation()}>
-          <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>Términos y Condiciones para Locales</h4>
+          <h4 style={{ color: 'var(--red-600)', marginBottom: '16px', fontSize: '1.2rem' }}>TÃ©rminos y Condiciones para Locales</h4>
           <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, overflowY: 'auto', paddingRight: '10px', textAlign: 'left', flex: 1 }}>
-            <h5 style={{ color: 'red', marginTop: 0 }}>📄 2. COMERCIOS – TÉRMINOS Y CONDICIONES</h5>
-            <p><strong>1. Relación</strong></p>
-            <p>El comercio utiliza Wepi como plataforma de visibilidad y gestión de pedidos. No existe relación societaria ni laboral.</p>
+            <h5 style={{ color: 'red', marginTop: 0 }}>ðŸ“„ 2. COMERCIOS â€“ TÃ‰RMINOS Y CONDICIONES</h5>
+            <p><strong>1. RelaciÃ³n</strong></p>
+            <p>El comercio utiliza Wepi como plataforma de visibilidad y gestiÃ³n de pedidos. No existe relaciÃ³n societaria ni laboral.</p>
             <p><strong>2. Calidad</strong></p>
-            <p>El local es el único responsable por el estado, higiene y veracidad de los productos entregados.</p>
-            <p><strong>3. Gestión de Pedidos</strong></p>
-            <p>El comercio debe mantener su menú actualizado y responder a los pedidos en tiempo y forma.</p>
+            <p>El local es el Ãºnico responsable por el estado, higiene y veracidad de los productos entregados.</p>
+            <p><strong>3. GestiÃ³n de Pedidos</strong></p>
+            <p>El comercio debe mantener su menÃº actualizado y responder a los pedidos en tiempo y forma.</p>
             <p><strong>4. Comisiones</strong></p>
-            <p>Wepi percibirá una comisión acordada sobre las ventas realizadas a través de la plataforma.</p>
+            <p>Wepi percibirÃ¡ una comisiÃ³n acordada sobre las ventas realizadas a travÃ©s de la plataforma.</p>
             <p><strong>5. Cancelaciones</strong></p>
             <p>El comercio debe informar inmediatamente si no puede cumplir con un pedido aceptado.</p>
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            <h5 style={{ color: 'red' }}>🔒 COMERCIOS – POLÍTICA DE PRIVACIDAD</h5>
+            <h5 style={{ color: 'red' }}>ðŸ”’ COMERCIOS â€“ POLÃTICA DE PRIVACIDAD</h5>
             <p><strong>Uso de Datos:</strong></p>
-            <p>Recolectamos datos del comercio, ventas, productos y métricas de desempeño para mejorar el servicio y facilitar la facturación.</p>
+            <p>Recolectamos datos del comercio, ventas, productos y mÃ©tricas de desempeÃ±o para mejorar el servicio y facilitar la facturaciÃ³n.</p>
           </div>
           <button className="btn btn-secondary btn-full" onClick={() => setShowTerms(false)} style={{ marginTop: 16 }}>Cerrar</button>
         </div>
@@ -649,7 +649,7 @@ export default function RestaurantDashboard() {
     const password = fd.get('password')?.trim();
 
     if (!nombre || !username || !password) {
-      toast.error('Completá todos los campos');
+      toast.error('CompletÃ¡ todos los campos');
       return;
     }
 
@@ -661,7 +661,7 @@ export default function RestaurantDashboard() {
         password,
         role: 'Cajero'
       });
-      toast.success('Cajero creado con éxito');
+      toast.success('Cajero creado con Ã©xito');
       e.target.reset();
       loadCajeros();
     } catch (err) {
@@ -703,7 +703,7 @@ export default function RestaurantDashboard() {
         );
         if (newAlerts.length > 0) {
           playAlertSound();
-          toast.success(`Tenés ${newAlerts.length} pedido(s) nuevo(s)!`, { icon: '🔔' });
+          toast.success(`TenÃ©s ${newAlerts.length} pedido(s) nuevo(s)!`, { icon: 'ðŸ””' });
         }
       } else {
         isInitialLoadRef.current = false;
@@ -742,7 +742,7 @@ export default function RestaurantDashboard() {
   }, [restaurant]);
 
   const handleDeleteCajero = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta caja?')) return;
+    if (!window.confirm('Â¿EstÃ¡s seguro de eliminar esta caja?')) return;
     try {
       await api.deleteLocalUsuario(id);
       toast.success('Caja eliminada');
@@ -774,7 +774,7 @@ export default function RestaurantDashboard() {
             return;
           }
         } catch (e) {
-          console.warn('Fetch directo a MP con CORS falló, intentando Edge Function...', e);
+          console.warn('Fetch directo a MP con CORS fallÃ³, intentando Edge Function...', e);
         }
 
         // 2. Fallback a Edge Function para evitar problemas de CORS
@@ -804,7 +804,7 @@ export default function RestaurantDashboard() {
   }, [profileSubView, profileData?.mp_access_token]);
 
   const handleDesvincularMP = async () => {
-    if (!window.confirm('¿Estás seguro de que deseas desvincular la cuenta de Mercado Pago de tu local? Los clientes no podrán abonar con MP en tu comercio hasta que vuelvas a vincular una cuenta.')) {
+    if (!window.confirm('Â¿EstÃ¡s seguro de que deseas desvincular la cuenta de Mercado Pago de tu local? Los clientes no podrÃ¡n abonar con MP en tu comercio hasta que vuelvas a vincular una cuenta.')) {
       return;
     }
     try {
@@ -871,7 +871,7 @@ export default function RestaurantDashboard() {
           setConfigHorarios(d.config_horarios);
         } else {
           const initialConfig = {};
-          ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+          ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'].forEach(day => {
             const dayNorm = day.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
             const isSelected = d.dias_apertura?.some(da => da.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === dayNorm);
             if (isSelected || !d.dias_apertura) {
@@ -901,7 +901,7 @@ export default function RestaurantDashboard() {
           if (data.event === 'FINISH') {
             const { phone_number_id, waba_id } = data.data || {};
             setWaConnecting(true);
-            toast("Vinculando WhatsApp Business oficial...", { icon: '🔄' });
+            toast("Vinculando WhatsApp Business oficial...", { icon: 'ðŸ”„' });
             
             await api.vincularWhatsAppMeta({
               localId: restaurant.id,
@@ -913,9 +913,9 @@ export default function RestaurantDashboard() {
 
             await loadProfile();
             setWaConnecting(false);
-            toast.success("¡WhatsApp Business Oficial vinculado con éxito! (Modo Coexistencia Activo)", { duration: 6000 });
+            toast.success("Â¡WhatsApp Business Oficial vinculado con Ã©xito! (Modo Coexistencia Activo)", { duration: 6000 });
           } else if (data.event === 'CANCEL') {
-            toast.error("Vinculación de WhatsApp cancelada");
+            toast.error("VinculaciÃ³n de WhatsApp cancelada");
             setWaConnecting(false);
           }
         }
@@ -938,7 +938,7 @@ export default function RestaurantDashboard() {
     const params = new URLSearchParams(window.location.search);
     const mpoauth = params.get('mpoauth');
     if (mpoauth === 'success') {
-      toast.success('¡Mercado Pago vinculado con éxito!', { icon: '💳', duration: 5000 });
+      toast.success('Â¡Mercado Pago vinculado con Ã©xito!', { icon: 'ðŸ’³', duration: 5000 });
       // Limpiar URL
       window.history.replaceState({}, document.title, window.location.pathname);
       loadProfile(); // Refrescar datos para mostrar el badge
@@ -951,7 +951,7 @@ export default function RestaurantDashboard() {
 
 
 
-  /* ─── Modo Automático ─── */
+  /* â”€â”€â”€ Modo AutomÃ¡tico â”€â”€â”€ */
   // Deprecated: Use isLocalOpen from utils/businessHours
   const estaDentroDeHorario = React.useCallback((apertura, cierre, diasApertura, apertura2, cierre2) => {
     return isLocalOpen({ horario_apertura: apertura, horario_cierre: cierre, dias_apertura: diasApertura, horario_apertura2: apertura2, horario_cierre2: cierre2, modo_automatico: true });
@@ -970,8 +970,8 @@ export default function RestaurantDashboard() {
         if (!res.success) {
            console.error("Error auto-updating estado en backend");
         } else {
-           console.log(`[AUTO] Estado cambiado a ${nuevoEstado} según horario`);
-           toast.success(`[Modo Automático] Local ${shouldBeOpen ? 'Abierto' : 'Cerrado'}`, { icon: '🕰️' });
+           console.log(`[AUTO] Estado cambiado a ${nuevoEstado} segÃºn horario`);
+           toast.success(`[Modo AutomÃ¡tico] Local ${shouldBeOpen ? 'Abierto' : 'Cerrado'}`, { icon: 'ðŸ•°ï¸' });
         }
       }).catch(err => console.error(err));
     }
@@ -1005,7 +1005,7 @@ export default function RestaurantDashboard() {
       }
     } catch (err) { 
       console.error(err);
-      toast.error('Error al cargar menú'); 
+      toast.error('Error al cargar menÃº'); 
     }
     setMenuLoading(false);
   }, [restaurant, profileData?.rubros]);
@@ -1020,7 +1020,7 @@ export default function RestaurantDashboard() {
       );
 
       await Promise.all(promises);
-      toast.success('¡Stock confirmado para hoy!');
+      toast.success('Â¡Stock confirmado para hoy!');
       setNeedsStockConfirmation(false);
       loadMenu();
     } catch {
@@ -1079,7 +1079,7 @@ export default function RestaurantDashboard() {
         setShowVariantsConfig(false);
     }
 
-    // ─── Sync OneSignal ID ───
+    // â”€â”€â”€ Sync OneSignal ID â”€â”€â”€
     if (restaurant && window.OneSignalDeferred) {
       window.OneSignalDeferred.push(async (OneSignal) => {
         try {
@@ -1109,7 +1109,7 @@ export default function RestaurantDashboard() {
             await OneSignal.Notifications.requestPermission();
           }
         } catch (err) {
-          console.error("❌ OneSignal Sync Error:", err);
+          console.error("âŒ OneSignal Sync Error:", err);
         }
       });
     }
@@ -1150,7 +1150,7 @@ export default function RestaurantDashboard() {
     loadRepartidoresStatus();
 
     // Subscribe to realtime changes in pedidos_locales for this local
-    console.log("📡 Subscribing to realtime updates for local orders:", restaurant.id);
+    console.log("ðŸ“¡ Subscribing to realtime updates for local orders:", restaurant.id);
     let channel;
     
     const setupRealtimeChannel = () => {
@@ -1163,14 +1163,14 @@ export default function RestaurantDashboard() {
           table: 'pedidos_locales',
           filter: `local_id=eq.${restaurant.id}`
         }, (payload) => {
-          console.log("🔔 Realtime update on pedidos_locales received:", payload);
+          console.log("ðŸ”” Realtime update on pedidos_locales received:", payload);
           loadOrders(true); // silent refresh
         })
         .subscribe((status, err) => {
-          console.log(`📡 Estado de canal Realtime (${restaurant.id}):`, status);
-          if (err) console.error("❌ Error en suscripción Realtime:", err);
+          console.log(`ðŸ“¡ Estado de canal Realtime (${restaurant.id}):`, status);
+          if (err) console.error("âŒ Error en suscripciÃ³n Realtime:", err);
           if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
-            console.warn("⚠️ Canal Realtime cerrado o con error, reintentando suscripción en 5s...");
+            console.warn("âš ï¸ Canal Realtime cerrado o con error, reintentando suscripciÃ³n en 5s...");
             setTimeout(setupRealtimeChannel, 5000);
           }
         });
@@ -1178,15 +1178,15 @@ export default function RestaurantDashboard() {
 
     setupRealtimeChannel();
 
-    // Fallback polling ultra-rápido (cada 15s) para garantizar actualización si el WebSocket sufre micro-cortes
+    // Fallback polling ultra-rÃ¡pido (cada 15s) para garantizar actualizaciÃ³n si el WebSocket sufre micro-cortes
     pollingRef.current = setInterval(() => {
-      console.log("🔄 Fallback polling refresh (15s)...");
+      console.log("ðŸ”„ Fallback polling refresh (15s)...");
       loadOrders(true);
       loadRepartidoresStatus();
     }, 15000);
 
     return () => {
-      console.log("🔌 Unsubscribing from realtime local orders:", restaurant.id);
+      console.log("ðŸ”Œ Unsubscribing from realtime local orders:", restaurant.id);
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
       if (channel) api.supabase.removeChannel(channel);
@@ -1214,9 +1214,9 @@ export default function RestaurantDashboard() {
 
       if (unacceptedIds.length > 0) {
         api.playNotificationSound();
-        toast.warning(`⚠️ Tenés ${unacceptedIds.length} pedido(s) pendiente(s) sin aceptar desde hace más de 30 segundos!`, {
+        toast.warning(`âš ï¸ TenÃ©s ${unacceptedIds.length} pedido(s) pendiente(s) sin aceptar desde hace mÃ¡s de 30 segundos!`, {
           duration: 6000,
-          icon: '🔔'
+          icon: 'ðŸ””'
         });
         
         if (profileDataRef.current?.onesignal_id) {
@@ -1224,8 +1224,8 @@ export default function RestaurantDashboard() {
           if (subscriptionIds.length > 0) {
             api.sendPushNotification({
               subscriptionIds: subscriptionIds,
-              title: '¡Pedidos Pendientes! ⚠️',
-              message: `Tenés ${unacceptedIds.length} pedido(s) esperando a ser aceptados. ¡Ingresá para confirmarlos!`,
+              title: 'Â¡Pedidos Pendientes! âš ï¸',
+              message: `TenÃ©s ${unacceptedIds.length} pedido(s) esperando a ser aceptados. Â¡IngresÃ¡ para confirmarlos!`,
               url: 'https://wepi.com.ar/locales',
               data: { type: 'unaccepted_orders' }
             }).catch(e => console.error("Error enviando recordatorio push:", e));
@@ -1277,9 +1277,9 @@ export default function RestaurantDashboard() {
   };
 
   const handleSuscripPlan = async (plan) => {
-    // Si el plan no es el básico, redirigir a WhatsApp
-    if (plan.nombre !== 'Básico') {
-      const message = `Hola! Me gustaría solicitar el cambio al plan ${plan.nombre} para mi local: ${restaurant?.nombre || 'Mi Local'}`;
+    // Si el plan no es el bÃ¡sico, redirigir a WhatsApp
+    if (plan.nombre !== 'BÃ¡sico') {
+      const message = `Hola! Me gustarÃ­a solicitar el cambio al plan ${plan.nombre} para mi local: ${restaurant?.nombre || 'Mi Local'}`;
       const waUrl = `https://wa.me/5493756543610?text=${encodeURIComponent(message)}`;
       window.open(waUrl, '_blank');
       return;
@@ -1288,7 +1288,7 @@ export default function RestaurantDashboard() {
     try {
       setAuthLoading(true);
       await api.suscribirAPlan(restaurant.id, plan.id);
-      toast.success('¡Plan actualizado! Los cambios se verán reflejados en breve.');
+      toast.success('Â¡Plan actualizado! Los cambios se verÃ¡n reflejados en breve.');
       loadPlanInfo();
     } catch (err) {
       toast.error('Error al cambiar de plan: ' + err.message);
@@ -1333,7 +1333,7 @@ export default function RestaurantDashboard() {
     try {
       setCierreLoading(true);
       await api.saveLocalCierre({ ...cierreReport, localId: restaurant.id });
-      toast.success('Cierre de caja guardado con éxito');
+      toast.success('Cierre de caja guardado con Ã©xito');
       setCierreReport(null);
       await loadHistorialCierres();
       setCierreSubTab('historial');
@@ -1364,7 +1364,7 @@ export default function RestaurantDashboard() {
       const data = await api.getLocalAnalytics(restaurant.id, statsDates.start, statsDates.end);
       setStatsData(data);
     } catch (e) {
-      toast.error('Error al cargar estadísticas');
+      toast.error('Error al cargar estadÃ­sticas');
     } finally {
       setCierreLoading(false);
     }
@@ -1439,7 +1439,7 @@ export default function RestaurantDashboard() {
   };
 
   const handleDeleteAdicional = async (id) => {
-    if (!confirm('¿Eliminar este adicional?')) return;
+    if (!confirm('Â¿Eliminar este adicional?')) return;
     try {
       await api.deleteAdicional(id);
       toast.success('Adicional eliminado');
@@ -1455,7 +1455,7 @@ export default function RestaurantDashboard() {
   };
 
   const handleDeleteSabor = async (id) => {
-    if (!confirm('¿Eliminar este sabor?')) return;
+    if (!confirm('Â¿Eliminar este sabor?')) return;
     try {
       await api.deleteSabor(id);
       toast.success('Sabor eliminado');
@@ -1478,7 +1478,7 @@ export default function RestaurantDashboard() {
     } catch { 
       setLocalOpen(!newBool); 
       localOpenRef.current = !newBool;
-      toast.error('Error de conexión'); 
+      toast.error('Error de conexiÃ³n'); 
     }
   };
 
@@ -1488,9 +1488,9 @@ export default function RestaurantDashboard() {
     setAuthLoading(true);
     try {
       const d = await api.loginLocal(fd.get('email'), fd.get('password'));
-      if (d.success && d.localId) { loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado, role: d.role }); toast.success('¡Bienvenido!'); }
+      if (d.success && d.localId) { loginAsRestaurant({ localId: d.localId, emailConfirmado: d.emailConfirmado, role: d.role }); toast.success('Â¡Bienvenido!'); }
       else toast.error('Credenciales incorrectas');
-    } catch { toast.error('Error de conexión'); }
+    } catch { toast.error('Error de conexiÃ³n'); }
     setAuthLoading(false);
   };
 
@@ -1499,7 +1499,7 @@ export default function RestaurantDashboard() {
     const codigoArea = document.querySelector('select[name="codigo_area"]')?.value || '+549';
     const telefono = document.querySelector('input[name="telefono"]')?.value || '';
     const contacto = telefono ? `${codigoArea}${telefono}` : '';
-    let text = "Hola! Quiero registrar mi local en Wepi y solicitar un código de acceso.";
+    let text = "Hola! Quiero registrar mi local en Wepi y solicitar un cÃ³digo de acceso.";
     if (nombre || contacto) {
       text += ` Mi local se llama: ${nombre}.`;
       if (contacto) text += ` Celular de contacto: ${contacto}.`;
@@ -1512,7 +1512,7 @@ export default function RestaurantDashboard() {
     e.preventDefault();
     const fd = new FormData(e.target);
     const email = fd.get('email');
-    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (!isValidEmail(email)) { toast.error('IngresÃ¡ un email vÃ¡lido'); return; }
     
     const selectedRubros = fd.getAll('reg_rubros');
     if (selectedRubros.length === 0) {
@@ -1527,7 +1527,7 @@ export default function RestaurantDashboard() {
       const expectedCode = config.codigo_acceso?.trim() || 'WEPI123';
       
       if (enteredCode !== expectedCode) {
-        toast.error('El código de acceso ingresado es incorrecto. Solicítalo por WhatsApp.');
+        toast.error('El cÃ³digo de acceso ingresado es incorrecto. SolicÃ­talo por WhatsApp.');
         setAuthLoading(false);
         return;
       }
@@ -1544,11 +1544,11 @@ export default function RestaurantDashboard() {
         null,
         null,
         contactoFull,
-        fd.get('ciudad') || 'Santo Tomé',
+        fd.get('ciudad') || 'Santo TomÃ©',
         fd.get('tipo_servicio') || 'delivery',
         selectedRubros
       );
-      toast.success('Local registrado. Recibirás la verificación en tu email.', { duration: 6000 });
+      toast.success('Local registrado. RecibirÃ¡s la verificaciÃ³n en tu email.', { duration: 6000 });
       setAuthEmail(email);
       setAuthView('login');
     } catch (err) { 
@@ -1559,22 +1559,22 @@ export default function RestaurantDashboard() {
 
   const handleResendConfirmationService = async () => {
     if (!profileData?.email) {
-      toast.error('No se encontró el email en tu perfil');
+      toast.error('No se encontrÃ³ el email en tu perfil');
       return;
     }
     const loading = toast.loading('Reenviando email...');
     try {
       const res = await api.reenviarEmailConfirmacion(profileData.email, 'local');
-      if (res.success) toast.success('¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
+      if (res.success) toast.success('Â¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
       else toast.error(res.error || 'Error al reenviar', { id: loading });
-    } catch { toast.error('Error de conexión', { id: loading }); }
+    } catch { toast.error('Error de conexiÃ³n', { id: loading }); }
   };
 
   const handleSaveSlug = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     const cleanSlug = customSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (!cleanSlug) {
-      toast.error('El enlace personalizado no puede estar vacío');
+      toast.error('El enlace personalizado no puede estar vacÃ­o');
       return;
     }
     
@@ -1583,7 +1583,7 @@ export default function RestaurantDashboard() {
     try {
       const isAvailable = await api.isSlugAvailable(cleanSlug, restaurant.id);
       if (!isAvailable) {
-        toast.error('Este enlace personalizado ya está en uso por otro local. Elige uno diferente.', { id: loading });
+        toast.error('Este enlace personalizado ya estÃ¡ en uso por otro local. Elige uno diferente.', { id: loading });
         setSlugSaving(false);
         return;
       }
@@ -1592,7 +1592,7 @@ export default function RestaurantDashboard() {
       if (success) {
         setProfileData(prev => ({ ...prev, slug: cleanSlug }));
         setCustomSlug(cleanSlug);
-        toast.success('¡Enlace personalizado actualizado con éxito!', { id: loading, icon: '🔗' });
+        toast.success('Â¡Enlace personalizado actualizado con Ã©xito!', { id: loading, icon: 'ðŸ”—' });
       } else {
         toast.error('Error al guardar el enlace', { id: loading });
       }
@@ -1621,7 +1621,7 @@ export default function RestaurantDashboard() {
       const hasImage = (imgUrl && imgUrl.trim() !== '') || (editItem && editItem.imagen_url && editItem.imagen_url.trim() !== '');
 
       if (!isBase && isAvailable && !hasImage) {
-        toast.error('No puedes guardar un producto disponible sin foto. Sube una foto o cámbialo a "Oculto/No disponible".');
+        toast.error('No puedes guardar un producto disponible sin foto. Sube una foto o cÃ¡mbialo a "Oculto/No disponible".');
         setItemLoading(false);
         return;
       }
@@ -1704,7 +1704,7 @@ export default function RestaurantDashboard() {
       } else {
         await api.addMenuItem(data);
       }
-      const itemTerm = isInventory ? 'Artículo' : 'Plato';
+      const itemTerm = isInventory ? 'ArtÃ­culo' : 'Plato';
       toast.success(editItem ? `${itemTerm} actualizado` : `${itemTerm} agregado`);
       setEditItem(null);
       setIsBaseProductMode(false);
@@ -1715,10 +1715,10 @@ export default function RestaurantDashboard() {
   };
 
   const handleDeleteItem = async (id) => {
-    if (!confirm(`¿Eliminar este ${isInventory ? 'artículo' : 'plato'} permanentemente?`)) return;
+    if (!confirm(`Â¿Eliminar este ${isInventory ? 'artÃ­culo' : 'plato'} permanentemente?`)) return;
     try {
       await api.deleteMenuItem(id);
-      toast.success(isInventory ? 'Artículo eliminado' : 'Plato eliminado');
+      toast.success(isInventory ? 'ArtÃ­culo eliminado' : 'Plato eliminado');
       loadMenu();
     } catch { toast.error('Error al eliminar'); }
   };
@@ -1782,7 +1782,7 @@ export default function RestaurantDashboard() {
           );
           */
 
-          // Notificar al repartidor si está asignado
+          // Notificar al repartidor si estÃ¡ asignado
           /*
           if (pedido.repartidorId) {
             api.repartidorGetDatos(pedido.repartidorId).then(rep => {
@@ -1815,13 +1815,13 @@ export default function RestaurantDashboard() {
       }
 
       const statusMap = {
-        'Aceptado': 'En preparación',
+        'Aceptado': 'En preparaciÃ³n',
         'Listo': 'Listos',
         'Entregado': 'Ventas',
         'Rechazado': 'Rechazados'
       };
       const nextTab = statusMap[action] || action;
-      toast.success(`Pedido marcado como ${action}. El pedido se movió a ${nextTab}`);
+      toast.success(`Pedido marcado como ${action}. El pedido se moviÃ³ a ${nextTab}`);
       loadOrders();
     } catch (err) { 
       console.error("handleOrderAction error:", err);
@@ -1834,7 +1834,7 @@ export default function RestaurantDashboard() {
     const fd = new FormData(e.target);
     const file = fd.get('foto');
     const email = fd.get('email');
-    if (email && !isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (email && !isValidEmail(email)) { toast.error('IngresÃ¡ un email vÃ¡lido'); return; }
     
     try {
       let fotoUrl = '';
@@ -1844,7 +1844,7 @@ export default function RestaurantDashboard() {
       if (fd.has('nombre')) params.nombre = fd.get('nombre');
       if (fd.has('email')) params.email = email;
       
-      // Manejo de Dirección
+      // Manejo de DirecciÃ³n
       if (fd.has('direccion') || fd.has('update_address')) {
         params.direccion = profileAddress;
         params.lat = profileLat;
@@ -1856,7 +1856,7 @@ export default function RestaurantDashboard() {
         params.descuento_general = parseFloat(fd.get('descuento_general')) || 0;
         params.categoria_descuento = fd.get('categoria_descuento') || '';
         const discountDays = [];
-        ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+        ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'].forEach(day => {
           if (fd.get(`desc_${day}`) === 'on') discountDays.push(day);
         });
         params.dias_descuento = discountDays;
@@ -1892,7 +1892,7 @@ export default function RestaurantDashboard() {
     // Si el formulario contiene campos de Horarios
     if (fd.has('modo_automatico')) {
       const selectedDays = [];
-      ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(day => {
+      ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'].forEach(day => {
         if (fd.get(`day_${day}`) === 'on') selectedDays.push(day);
       });
       params.horario_apertura = fd.get('horario_apertura');
@@ -1904,7 +1904,7 @@ export default function RestaurantDashboard() {
       params.config_horarios = configHorarios;
     }
 
-    // Si el formulario contiene campos de Métodos de Entrega
+    // Si el formulario contiene campos de MÃ©todos de Entrega
     if (e.target.querySelector('input[name="acepta_retiro"]') || e.target.querySelector('input[name="acepta_envio"]')) {
       params.acepta_retiro = fd.get('acepta_retiro') === 'on';
       params.acepta_envio = fd.get('acepta_envio') === 'on';
@@ -1913,10 +1913,10 @@ export default function RestaurantDashboard() {
     try {
       const success = await api.updatePerfilLocal(params);
       if (success) {
-        toast.success('Configuración actualizada correctamente');
+        toast.success('ConfiguraciÃ³n actualizada correctamente');
         setProfileData(prev => ({ ...prev, ...params }));
       }
-    } catch { toast.error('Error al guardar configuración'); }
+    } catch { toast.error('Error al guardar configuraciÃ³n'); }
   };
   const handleAddressConfirm = async (data) => {
     setProfileAddress(data.address);
@@ -1933,7 +1933,7 @@ export default function RestaurantDashboard() {
           lng: data.lng
         });
         if (success) {
-          toast.success('Dirección guardada correctamente');
+          toast.success('DirecciÃ³n guardada correctamente');
           setProfileData(prev => ({
             ...prev,
             direccion: data.address,
@@ -1941,11 +1941,11 @@ export default function RestaurantDashboard() {
             lng: data.lng
           }));
         } else {
-          toast.error('No se pudo guardar la dirección');
+          toast.error('No se pudo guardar la direcciÃ³n');
         }
       } catch (err) {
         console.error('Error saving address:', err);
-        toast.error('Error al guardar la dirección');
+        toast.error('Error al guardar la direcciÃ³n');
       }
     }
   };
@@ -2015,7 +2015,7 @@ export default function RestaurantDashboard() {
   };
 
   const renderHorariosConfig = () => {
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const days = ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'];
     return (
       <div className="rd-horarios-config" style={{ marginTop: '0px' }}>
         {days.map(day => {
@@ -2127,7 +2127,7 @@ export default function RestaurantDashboard() {
                           onClick={() => handleRemoveInterval(day, idx)}
                           style={{ background: 'none', border: 'none', color: 'var(--red-600)', cursor: 'pointer', fontSize: '1.1rem' }}
                         >
-                          ×
+                          Ã—
                         </button>
                       )}
                     </div>
@@ -2158,7 +2158,7 @@ export default function RestaurantDashboard() {
       </div>
     );
   };
-  // ─── Tutorial Mock Data logic ───
+  // â”€â”€â”€ Tutorial Mock Data logic â”€â”€â”€
   const tutorialSampleDish = {
     id: 'sample-dish-1',
     nombre: 'Hamburguesa Wepi (Muestra)',
@@ -2174,7 +2174,7 @@ export default function RestaurantDashboard() {
     idPedido: 'SAMPLE-1',
     estadoActual: tutorialSampleOrderState,
     items: [[null, null, 'sample-dish-1', 1, 'Producto de Prueba', '', 1, 4500]],
-    direccion: 'Dirección de Prueba 123',
+    direccion: 'DirecciÃ³n de Prueba 123',
     observaciones: 'Este es un pedido de prueba para conocer el sistema. NO PREPARAR.',
     metodoPago: 'Efectivo',
     tipoEntrega: 'Delivery',
@@ -2221,7 +2221,7 @@ export default function RestaurantDashboard() {
   // Categories for select
   const categories = [...new Set(menuItems.map(i => i.categoria).filter(Boolean))].sort();
   const filteredMenu = menuItems.filter(i => {
-    if (i.categoria === 'Base') return false; // No mostrar productos base en la lista de menú pública
+    if (i.categoria === 'Base') return false; // No mostrar productos base en la lista de menÃº pÃºblica
     const nameOk = !menuFilter || i.nombre.toLowerCase().includes(menuFilter.toLowerCase());
     const catOk = !menuCatFilter || i.categoria === menuCatFilter;
     return nameOk && catOk;
@@ -2230,7 +2230,7 @@ export default function RestaurantDashboard() {
   const finalMenu = showTutorial && view === 'menu' ? [tutorialSampleDish, ...filteredMenu] : filteredMenu;
 
   // processOrders moved below isShop definition for correct scope
-  // ─── Renderizado de Planes y Niveles ───
+  // â”€â”€â”€ Renderizado de Planes y Niveles â”€â”€â”€
   const renderPlansView = () => {
     if (!planInfo) return <div className="loading-state"><div className="spinner" /> Cargando info de planes...</div>;
     const { plan_nombre, nivel_actual, comision_actual, metricas_mes, proximo_nivel } = planInfo;
@@ -2240,10 +2240,10 @@ export default function RestaurantDashboard() {
 
         <div className="card" style={{ padding: '32px', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
           <h3 style={{ fontSize: '1.5rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.8rem' }}>🌟</span> Planes de Visibilidad
+            <span style={{ fontSize: '1.8rem' }}>ðŸŒŸ</span> Planes de Visibilidad
           </h3>
           <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '20px' }}>
-            Tu plan de visibilidad determina qué tan arriba apareces en la aplicación y qué beneficios publicitarios tienes.
+            Tu plan de visibilidad determina quÃ© tan arriba apareces en la aplicaciÃ³n y quÃ© beneficios publicitarios tienes.
           </p>
           <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '32px' }}>
             {availablePlans.map(plan => (
@@ -2275,7 +2275,7 @@ export default function RestaurantDashboard() {
                 <ul className="plan-advantages" style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', textAlign: 'left', flex: 1 }}>
                   {(planBenefits[plan.nombre] || []).map((benefit, i) => (
                     <li key={i} style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '12px', display: 'flex', gap: '10px' }}>
-                      <span style={{ color: '#059669', fontWeight: 'bold' }}>✓</span> {benefit}
+                      <span style={{ color: '#059669', fontWeight: 'bold' }}>âœ“</span> {benefit}
                     </li>
                   ))}
                 </ul>
@@ -2363,33 +2363,33 @@ export default function RestaurantDashboard() {
     return currentTabOrders;
   })();
 
-  // ─── Auth Screen ───
-  if (!restaurant) return (
+  // â”€â”€â”€ Auth Screen â”€â”€â”€
+  if (!restaurant || authView === 'reset') return (
     <div className="rd-page">
       <header className="rd-header">
         <Link to="/">
           <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" className="rd-logo" />
         </Link>
-        <h1>Panel de Gestión</h1>
+        <h1>Panel de GestiÃ³n</h1>
       </header>
       <main className="rd-main">
         <div className="rd-auth-card card animate-fade-in" key={authView}>
           <div className="card-body">
             <h2>Acceso Local</h2>
             <div className="rd-auth-tabs">
-              <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar Sesión</button>
+              <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar SesiÃ³n</button>
               <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrar Local</button>
             </div>
             
         {authView === 'reset' ? (
           <form onSubmit={handleResetPassword} className="dd-form" key="reset" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', textAlign: 'center' }}>Ingresa tu nueva contraseña</h3>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', textAlign: 'center' }}>Ingresa tu nueva contraseÃ±a</h3>
             <div className="password-container">
               <input 
                 name="password" 
                 type={showPassword ? "text" : "password"} 
                 className="form-input" 
-                placeholder="Nueva Contraseña" 
+                placeholder="Nueva ContraseÃ±a" 
                 required 
                 autoComplete="new-password" 
               />
@@ -2418,7 +2418,7 @@ export default function RestaurantDashboard() {
                     name="password" 
                     type={showPassword ? "text" : "password"} 
                     className="form-input" 
-                    placeholder="Contraseña" 
+                    placeholder="ContraseÃ±a" 
                     required 
                     autoComplete="current-password" 
                   />
@@ -2430,25 +2430,25 @@ export default function RestaurantDashboard() {
                   </button>
                 </div>
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
-                  {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
+                  {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar SesiÃ³n'}
                 </button>
               
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
-                  ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
+                  Â¿Olvidaste tu contraseÃ±a? Ingresa tu email arriba y haz clic aquÃ­
                 </button>
               </div>
             </form>
             ) : (
               <form onSubmit={handleRegister} className="rd-auth-form">
-                <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
+                <input name="email" type="email" className="form-input" placeholder="Email (Este serÃ¡ tu usuario)" required autoComplete="username" />
                 <input name="nombre" className="form-input" placeholder="Nombre del Local" required autoComplete="organization" />
                 <div className="password-container">
                   <input 
                     name="password" 
                     type={showPassword ? "text" : "password"} 
                     className="form-input" 
-                    placeholder="Contraseña" 
+                    placeholder="ContraseÃ±a" 
                     required 
                     autoComplete="new-password" 
                   />
@@ -2465,8 +2465,8 @@ export default function RestaurantDashboard() {
                     className="form-input" 
                     style={{ width: '105px', margin: 0, padding: '0 8px', height: '42px', minHeight: '42px' }}
                   >
-                    <option value="+549">🇦🇷 +549</option>
-                    <option value="+55">🇧🇷 +55</option>
+                    <option value="+549">ðŸ‡¦ðŸ‡· +549</option>
+                    <option value="+55">ðŸ‡§ðŸ‡· +55</option>
                   </select>
                   <input 
                     name="telefono" 
@@ -2484,18 +2484,18 @@ export default function RestaurantDashboard() {
                     name="ciudad" 
                     className="form-input" 
                     required
-                    defaultValue="Santo Tomé"
+                    defaultValue="Santo TomÃ©"
                     style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
                   >
-                    <option value="" disabled>Seleccioná tu Ciudad</option>
-                <option value="Santo Tomé">Santo Tomé</option>
-                <option value="Oberá">Oberá</option>
+                    <option value="" disabled>SeleccionÃ¡ tu Ciudad</option>
+                <option value="Santo TomÃ©">Santo TomÃ©</option>
+                <option value="OberÃ¡">OberÃ¡</option>
                 <option value="Alem (Misiones)">Alem (Misiones)</option>
-                <option value="Apóstoles (Misiones)">Apóstoles (Misiones)</option>
-                <option value="Villaguay (Entre Ríos)">Villaguay (Entre Ríos)</option>
+                <option value="ApÃ³stoles (Misiones)">ApÃ³stoles (Misiones)</option>
+                <option value="Villaguay (Entre RÃ­os)">Villaguay (Entre RÃ­os)</option>
                 <option value="Paso de los Libres (Corrientes)">Paso de los Libres (Corrientes)</option>
                 <option value="San Vicente (Misiones)">San Vicente (Misiones)</option>
-                <option value="Colon (Entre Ríos)">Colon (Entre Ríos)</option>
+                <option value="Colon (Entre RÃ­os)">Colon (Entre RÃ­os)</option>
                   </select>
                 </div>
 
@@ -2508,8 +2508,8 @@ export default function RestaurantDashboard() {
                     onChange={(e) => setRegTipoServicio(e.target.value)} 
                     style={{ width: '100%', margin: 0, padding: '0 12px', height: '42px', minHeight: '42px' }}
                   >
-                    <option value="delivery">🛵 Wepi Delivery (Gastronomía, Heladería, Farmacia...)</option>
-                    <option value="shops">🛍️ Wepi Shops (Hogar, Tecnología, Moda, Regalería, Deportes...)</option>
+                    <option value="delivery">ðŸ›µ Wepi Delivery (GastronomÃ­a, HeladerÃ­a, Farmacia...)</option>
+                    <option value="shops">ðŸ›ï¸ Wepi Shops (Hogar, TecnologÃ­a, Moda, RegalerÃ­a, Deportes...)</option>
                   </select>
                 </div>
 
@@ -2525,8 +2525,8 @@ export default function RestaurantDashboard() {
                       border: '1px solid #e2e8f0'
                   }}>
                       {(regTipoServicio === 'shops' 
-                          ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas'] 
-                          : ['Restaurante', 'Cafetería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Carnicería']
+                          ? ['Hogar', 'TecnologÃ­a', 'Moda', 'RegalerÃ­a', 'Deportes', 'Bebidas'] 
+                          : ['Restaurante', 'CafeterÃ­a', 'HeladerÃ­a', 'Market', 'Farmacia', 'Bebidas', 'CarnicerÃ­a']
                       ).map(r => (
                           <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0, color: 'var(--gray-700)' }}>
                               <input 
@@ -2545,7 +2545,7 @@ export default function RestaurantDashboard() {
                     name="codigo_acceso" 
                     type="text" 
                     className="form-input" 
-                    placeholder="Código de Acceso" 
+                    placeholder="CÃ³digo de Acceso" 
                     required 
                     style={{ margin: 0, flex: 1 }} 
                   />
@@ -2555,7 +2555,7 @@ export default function RestaurantDashboard() {
                     onClick={handleSolicitarCodigo} 
                     style={{ whiteSpace: 'nowrap', padding: '0 12px', fontSize: '0.85rem' }}
                   >
-                    Solicitar Código
+                    Solicitar CÃ³digo
                   </button>
                 </div>
                 
@@ -2566,10 +2566,10 @@ export default function RestaurantDashboard() {
                   <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
                     {authView === 'register' ? (
                       <>
-                        Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>Términos y Condiciones y Política de Privacidad</button> para Locales.
+                        Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setShowTerms(true)}>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad</button> para Locales.
                       </>
                     ) : (
-                      <span>Términos y Condiciones y Política de Privacidad para Locales.</span>
+                      <span>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad para Locales.</span>
                     )}
                   </label>
                 </div>
@@ -2587,18 +2587,18 @@ export default function RestaurantDashboard() {
       </main>
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
         <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain' }} />
-        <p>© 2026 <strong>Wepi</strong> — Panel de Locales</p>
+        <p>Â© 2026 <strong>Wepi</strong> â€” Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'var(--red-500)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
         >
-          Ver Términos y Condiciones
+          Ver TÃ©rminos y Condiciones
         </button>
         <button 
           onClick={() => setShowRegretModal(true)} 
           style={{ background: 'none', border: 'none', color: 'var(--red-600)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}
         >
-          Botón de Arrepentimiento
+          BotÃ³n de Arrepentimiento
         </button>
       </footer>
       {renderTermsModal()}
@@ -2606,7 +2606,7 @@ export default function RestaurantDashboard() {
     </div>
   );
 
-  // ─── Tutorial Overlay ───
+  // â”€â”€â”€ Tutorial Overlay â”€â”€â”€
   const renderTutorial = () => {
     if (!showTutorial) return null;
 
@@ -2614,30 +2614,30 @@ export default function RestaurantDashboard() {
 
     const steps = [
       {
-        title: "¡Bienvenido a Wepi!",
-        text: "Soy tu guía. En este panel gestionarás todo tu negocio de forma simple.",
+        title: "Â¡Bienvenido a Wepi!",
+        text: "Soy tu guÃ­a. En este panel gestionarÃ¡s todo tu negocio de forma simple.",
         position: "bottom-right"
       },
       {
         title: "Cargar nuevo plato",
-        text: "Haz click en '+ Agregar producto' para crear platos. ¡Las buenas fotos atraen más clientes!",
+        text: "Haz click en '+ Agregar producto' para crear platos. Â¡Las buenas fotos atraen mÃ¡s clientes!",
         target: ".rd-nav-btn:nth-child(3)",
       },
       {
-        title: "Gestionar tu Menú",
-        text: "Aquí ves tus platos. Puedes pausarlos si no tienes stock. Mira este ejemplo de hamburguesa.",
+        title: "Gestionar tu MenÃº",
+        text: "AquÃ­ ves tus platos. Puedes pausarlos si no tienes stock. Mira este ejemplo de hamburguesa.",
         target: ".rd-menu-item"
       },
       {
-        title: "Logística de Pedidos",
-        text: tutorialSampleOrderState === 'Pendiente' ? "¡Mira! Tienes un pedido. Dale a 'Aceptar' para empezar a cocinar." :
-              tutorialSampleOrderState === 'Aceptado' ? "¡Muy bien! Ahora está en preparación. Cuando termines, dale a 'Listo'." :
-              "¡Perfecto! El pedido está listo para ser entregado.",
+        title: "LogÃ­stica de Pedidos",
+        text: tutorialSampleOrderState === 'Pendiente' ? "Â¡Mira! Tienes un pedido. Dale a 'Aceptar' para empezar a cocinar." :
+              tutorialSampleOrderState === 'Aceptado' ? "Â¡Muy bien! Ahora estÃ¡ en preparaciÃ³n. Cuando termines, dale a 'Listo'." :
+              "Â¡Perfecto! El pedido estÃ¡ listo para ser entregado.",
         target: ".rd-tabs"
       },
       {
-        title: "¡Todo listo!",
-        text: "Ya dominas lo básico. Encuéntrame en Mi Perfil > Ver tutorial si me necesitas de nuevo.",
+        title: "Â¡Todo listo!",
+        text: "Ya dominas lo bÃ¡sico. EncuÃ©ntrame en Mi Perfil > Ver tutorial si me necesitas de nuevo.",
         position: "center"
       }
     ];
@@ -2655,14 +2655,14 @@ export default function RestaurantDashboard() {
           background: 'white', position: 'relative', overflow: 'visible',
           borderRadius: '16px'
         }}>
-          {/* Avatar Guía */}
+          {/* Avatar GuÃ­a */}
           <div style={{
             position: 'absolute', top: '-50px', left: '20px',
             width: '80px', height: '80px', borderRadius: '50%',
             border: '3px solid var(--red-500)', backgroundColor: 'white',
             overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
           }}>
-            <img src={mascotUrl} alt="Guía" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={mascotUrl} alt="GuÃ­a" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
 
           <div style={{ marginTop: '30px' }}>
@@ -2676,14 +2676,14 @@ export default function RestaurantDashboard() {
               <button className="btn btn-ghost btn-xs" onClick={finishTutorial} style={{ fontSize: '0.75rem' }}>Saltar tutorial</button>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {tutorialStep > 1 && tutorialStep !== 4 && (
-                  <button className="btn btn-secondary btn-sm" onClick={handleTutorialPrev}>Atrás</button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleTutorialPrev}>AtrÃ¡s</button>
                 )}
                 <button 
                   className="btn btn-primary btn-sm" 
                   onClick={handleTutorialNext}
                   disabled={tutorialStep === 4 && tutorialSampleOrderState !== 'Entregado'}
                 >
-                  {tutorialStep === steps.length ? '¡Empezar!' : 
+                  {tutorialStep === steps.length ? 'Â¡Empezar!' : 
                    tutorialStep === 4 ? (tutorialSampleOrderState === 'Entregado' ? 'Continuar' : 'Sigue los pasos...') :
                    'Siguiente'}
                 </button>
@@ -2711,9 +2711,9 @@ export default function RestaurantDashboard() {
     return (
       <div className="modal-overlay animate-fade-in" style={{ zIndex: 10001 }}>
         <div className="modal-content animate-slide-up" style={{ maxWidth: '500px', width: '95%' }}>
-          <h2 style={{ color: '#c2410c', marginBottom: 12 }}>🥖 Confirmar Stock del Día</h2>
+          <h2 style={{ color: '#c2410c', marginBottom: 12 }}>ðŸ¥– Confirmar Stock del DÃ­a</h2>
           <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: 20 }}>
-            Ingresá las unidades frescas disponibles para hoy. Esto evitará que vendas productos que ya no tenés.
+            IngresÃ¡ las unidades frescas disponibles para hoy. Esto evitarÃ¡ que vendas productos que ya no tenÃ©s.
           </p>
 
           <form onSubmit={(e) => {
@@ -2749,7 +2749,7 @@ export default function RestaurantDashboard() {
             </div>
 
             <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
-              <button type="button" className="btn btn-ghost" onClick={() => setShowStockModal(false)}>Más tarde</button>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowStockModal(false)}>MÃ¡s tarde</button>
               <button type="submit" className="btn btn-primary" style={{ background: '#f97316', borderColor: '#f97316' }} disabled={itemLoading}>
                {itemLoading ? <span className="spinner spinner-white" /> : 'Confirmar Todo'}
               </button>
@@ -2767,11 +2767,11 @@ export default function RestaurantDashboard() {
       <div className="modal-overlay animate-fade-in" style={{ zIndex: 10001 }}>
         <div className="modal-content animate-slide-up" style={{ maxWidth: '500px', width: '95%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ color: '#c2410c', margin: 0, fontSize: '1.2rem' }}>⚙️ Habilitar Stock de Productos</h2>
-            <button className="close-btn" style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setShowStockSelectorModal(false)}>✕</button>
+            <h2 style={{ color: '#c2410c', margin: 0, fontSize: '1.2rem' }}>âš™ï¸ Habilitar Stock de Productos</h2>
+            <button className="close-btn" style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setShowStockSelectorModal(false)}>âœ•</button>
           </div>
           <p style={{ color: 'var(--gray-600)', fontSize: '0.85rem', marginBottom: 20 }}>
-            Activá el control de stock para los productos que quieras gestionar desde el panel de Stock Rápido.
+            ActivÃ¡ el control de stock para los productos que quieras gestionar desde el panel de Stock RÃ¡pido.
           </p>
 
           <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2818,7 +2818,7 @@ export default function RestaurantDashboard() {
     );
   };
 
-  // ─── Wepi Sync V1 Handlers & Views ───
+  // â”€â”€â”€ Wepi Sync V1 Handlers & Views â”€â”€â”€
   const handleExecuteSync = async () => {
     if (!profileData?.id) {
       toast.error('No se ha podido identificar el local actual.');
@@ -2832,7 +2832,7 @@ export default function RestaurantDashboard() {
 
       if (syncFileType === 'sheets') {
         if (!syncGoogleSheetsUrl) {
-          toast.error('Por favor, ingresa una URL pública de Google Sheets.');
+          toast.error('Por favor, ingresa una URL pÃºblica de Google Sheets.');
           setSyncEngineLoading(false);
           return;
         }
@@ -2865,7 +2865,7 @@ export default function RestaurantDashboard() {
       setSyncEngineResult(syncResult);
       setSyncStep('result');
 
-      // Guardar configuración e historial en locales
+      // Guardar configuraciÃ³n e historial en locales
       const nuevoHistorialLog = {
         fecha: new Date().toISOString(),
         origen: syncFileType === 'sheets' ? 'sheets' : syncFile.name,
@@ -2878,7 +2878,7 @@ export default function RestaurantDashboard() {
       };
 
       const historialActual = profileData.sync_config_data?.historial || [];
-      const nuevoHistorial = [nuevoHistorialLog, ...historialActual].slice(0, 10); // Conservar últimos 10
+      const nuevoHistorial = [nuevoHistorialLog, ...historialActual].slice(0, 10); // Conservar Ãºltimos 10
 
       const nuevaConfigData = {
         ...profileData.sync_config_data,
@@ -2896,7 +2896,7 @@ export default function RestaurantDashboard() {
       if (typeof loadProfile === 'function') {
         await loadProfile();
       } else {
-        // Fallback si no está definido en este dashboard
+        // Fallback si no estÃ¡ definido en este dashboard
         const { data: refreshedProfile } = await api.supabase
           .from('locales')
           .select('*')
@@ -2907,17 +2907,17 @@ export default function RestaurantDashboard() {
         }
       }
 
-      await loadMenu(); // Recargar los platos del menú locales
+      await loadMenu(); // Recargar los platos del menÃº locales
 
       if (syncResult.errores > 0) {
-        toast.error(`Sincronización completada con ${syncResult.errores} errores.`);
+        toast.error(`SincronizaciÃ³n completada con ${syncResult.errores} errores.`);
       } else {
-        toast.success(`Sincronización exitosa: +${syncResult.creados} nuevos, ${syncResult.actualizados} actualizados.`);
+        toast.success(`SincronizaciÃ³n exitosa: +${syncResult.creados} nuevos, ${syncResult.actualizados} actualizados.`);
       }
 
     } catch (error) {
-      console.error('Error ejecutando sincronización:', error);
-      toast.error('Error ejecutando sincronización: ' + (error.message || error));
+      console.error('Error ejecutando sincronizaciÃ³n:', error);
+      toast.error('Error ejecutando sincronizaciÃ³n: ' + (error.message || error));
     } finally {
       setSyncEngineLoading(false);
     }
@@ -2930,10 +2930,10 @@ export default function RestaurantDashboard() {
       <div className="animate-fade-in" style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
         <div className="card card-body" style={{ marginBottom: '24px' }}>
           <h2 style={{ color: 'var(--red-600)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🔄 Wepi Sync
+            ðŸ”„ Wepi Sync
           </h2>
           <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: '20px' }}>
-            Sincroniza el catálogo de productos de tu sistema de gestión (ERP, Excel o CSV) con Wepi. Wepi actualizará automáticamente precios, stock e incorporará los nuevos productos mapeados por su SKU.
+            Sincroniza el catÃ¡logo de productos de tu sistema de gestiÃ³n (ERP, Excel o CSV) con Wepi. Wepi actualizarÃ¡ automÃ¡ticamente precios, stock e incorporarÃ¡ los nuevos productos mapeados por su SKU.
           </p>
 
           {syncStep === 'upload' && (
@@ -2949,13 +2949,13 @@ export default function RestaurantDashboard() {
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: syncFileType === 'sheets' ? 'bold' : 'normal', color: syncFileType === 'sheets' ? 'var(--red-600)' : 'inherit' }}>
                   <input type="radio" name="syncType" checked={syncFileType === 'sheets'} onChange={() => { setSyncFileType('sheets'); setSyncFile(null); }} />
-                  Google Sheets público
+                  Google Sheets pÃºblico
                 </label>
               </div>
 
               {syncFileType === 'sheets' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Enlace público de Google Sheets</label>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Enlace pÃºblico de Google Sheets</label>
                   <input 
                     type="url" 
                     className="form-input" 
@@ -2964,7 +2964,7 @@ export default function RestaurantDashboard() {
                     onChange={(e) => setSyncGoogleSheetsUrl(e.target.value)}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
-                    Asegúrate de que el documento esté configurado como "Cualquier persona con el enlace puede leer".
+                    AsegÃºrate de que el documento estÃ© configurado como "Cualquier persona con el enlace puede leer".
                   </span>
                 </div>
               ) : (
@@ -2986,12 +2986,12 @@ export default function RestaurantDashboard() {
                         const nuevoMapeo = { ...syncMapeo };
                         parsedHeaders.forEach(header => {
                           const lower = header.toLowerCase().trim();
-                          if (lower === 'sku' || lower === 'código' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
+                          if (lower === 'sku' || lower === 'cÃ³digo' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
                           if (lower === 'nombre' || lower === 'producto' || lower === 'item' || lower === 'titulo' || lower === 'plato') nuevoMapeo.nombre = header;
-                          if (lower === 'descripción' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
+                          if (lower === 'descripciÃ³n' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
                           if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
                           if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
-                          if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
+                          if (lower === 'categorÃ­a' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
                           if (lower === 'codigo_barras' || lower === 'codigo de barras' || lower === 'barras' || lower === 'upc' || lower === 'ean') nuevoMapeo.codigo_barras = header;
                         });
                         setSyncMapeo(nuevoMapeo);
@@ -3005,7 +3005,7 @@ export default function RestaurantDashboard() {
                     Drag & drop o haz clic para subir tu archivo <strong>{syncFileType === 'csv' ? 'CSV' : 'Excel'}</strong>
                   </p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', margin: 0 }}>
-                    {syncFileType === 'csv' ? 'Formato CSV delimitado por comas o punto y coma' : 'Formato de hoja de cálculo estándar (.xlsx)'}
+                    {syncFileType === 'csv' ? 'Formato CSV delimitado por comas o punto y coma' : 'Formato de hoja de cÃ¡lculo estÃ¡ndar (.xlsx)'}
                   </p>
                 </div>
               )}
@@ -3023,12 +3023,12 @@ export default function RestaurantDashboard() {
                     const nuevoMapeo = { ...syncMapeo };
                     parsedHeaders.forEach(header => {
                       const lower = header.toLowerCase().trim();
-                      if (lower === 'sku' || lower === 'código' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
+                      if (lower === 'sku' || lower === 'cÃ³digo' || lower === 'codigo' || lower === 'id') nuevoMapeo.sku = header;
                       if (lower === 'nombre' || lower === 'producto' || lower === 'item' || lower === 'titulo' || lower === 'plato') nuevoMapeo.nombre = header;
-                      if (lower === 'descripción' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
+                      if (lower === 'descripciÃ³n' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
                       if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
                       if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
-                      if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
+                      if (lower === 'categorÃ­a' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
                       if (lower === 'codigo_barras' || lower === 'codigo de barras' || lower === 'barras' || lower === 'upc' || lower === 'ean') nuevoMapeo.codigo_barras = header;
                     });
                     setSyncMapeo(nuevoMapeo);
@@ -3039,7 +3039,7 @@ export default function RestaurantDashboard() {
                     setSyncEngineLoading(false);
                   }
                 }} disabled={syncEngineLoading}>
-                  {syncEngineLoading ? <span className="spinner spinner-white" /> : 'Siguiente: Mapear Columnas ➔'}
+                  {syncEngineLoading ? <span className="spinner spinner-white" /> : 'Siguiente: Mapear Columnas âž”'}
                 </button>
               )}
             </div>
@@ -3057,10 +3057,10 @@ export default function RestaurantDashboard() {
               {/* Mapeo de Columnas */}
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '12px' }}>
-                  🗺️ Mapeo de Columnas
+                  ðŸ—ºï¸ Mapeo de Columnas
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '16px' }}>
-                  Elige a qué columna de tu archivo corresponde cada dato requerido en Wepi. El <strong>SKU</strong> es el campo clave para asociar y buscar tus productos.
+                  Elige a quÃ© columna de tu archivo corresponde cada dato requerido en Wepi. El <strong>SKU</strong> es el campo clave para asociar y buscar tus productos.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
@@ -3090,7 +3090,7 @@ export default function RestaurantDashboard() {
 
               <hr style={{ border: 'none', borderTop: '1px solid var(--gray-200)', margin: '10px 0' }} />
 
-              {/* Configuración de Sincronización */}
+              {/* ConfiguraciÃ³n de SincronizaciÃ³n */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flexWrap: 'wrap' }}>
                 {/* Campos a Actualizar */}
                 <div>
@@ -3129,17 +3129,17 @@ export default function RestaurantDashboard() {
                       checked={syncDesactivarFaltantes}
                       onChange={(e) => setSyncDesactivarFaltantes(e.target.checked)}
                     />
-                    <span>⚠️ Desactivar automáticamente productos en Wepi que no estén en este archivo.</span>
+                    <span>âš ï¸ Desactivar automÃ¡ticamente productos en Wepi que no estÃ©n en este archivo.</span>
                   </label>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
                 <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSyncStep('upload')} disabled={syncEngineLoading}>
-                  Atrás
+                  AtrÃ¡s
                 </button>
                 <button type="button" className="btn btn-primary" style={{ flex: 2, background: 'var(--red-600)', borderColor: 'var(--red-600)' }} onClick={handleExecuteSync} disabled={syncEngineLoading}>
-                  {syncEngineLoading ? <span className="spinner spinner-white" /> : 'Ejecutar Sincronización ⚡'}
+                  {syncEngineLoading ? <span className="spinner spinner-white" /> : 'Ejecutar SincronizaciÃ³n âš¡'}
                 </button>
               </div>
             </div>
@@ -3148,13 +3148,13 @@ export default function RestaurantDashboard() {
           {syncStep === 'result' && syncEngineResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
-                <h3 style={{ color: '#16a34a', margin: '0 0 4px 0', fontSize: '1.2rem' }}>Sincronización Procesada</h3>
+                <h3 style={{ color: '#16a34a', margin: '0 0 4px 0', fontSize: '1.2rem' }}>SincronizaciÃ³n Procesada</h3>
                 <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: '#15803d' }}>
-                  El proceso ha terminado. Se han procesado los registros del catálogo con los siguientes resultados:
+                  El proceso ha terminado. Se han procesado los registros del catÃ¡logo con los siguientes resultados:
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.85rem', color: '#14532d', fontWeight: 'bold' }}>
                   <span>Total filas en archivo: {syncEngineResult.totalFilas || 0}</span>
-                  <span>•</span>
+                  <span>â€¢</span>
                   <span style={{ color: syncEngineResult.filasSalteadas > 0 ? '#991b1b' : '#14532d' }}>
                     Filas salteadas: {syncEngineResult.filasSalteadas || 0}
                   </span>
@@ -3186,11 +3186,11 @@ export default function RestaurantDashboard() {
         {/* Historial de Sincronizaciones */}
         <div className="card card-body">
           <h3 style={{ fontSize: '1rem', color: 'var(--gray-800)', marginBottom: '16px', fontWeight: 'bold' }}>
-            📋 Historial de Sincronizaciones
+            ðŸ“‹ Historial de Sincronizaciones
           </h3>
           {historial.length === 0 ? (
             <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', textAlign: 'center', padding: '16px' }}>
-              Aún no se han realizado sincronizaciones en este local.
+              AÃºn no se han realizado sincronizaciones en este local.
             </p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -3243,7 +3243,7 @@ export default function RestaurantDashboard() {
     );
   };
 
-  // ─── Dashboard ───
+  // â”€â”€â”€ Dashboard â”€â”€â”€
   const renderDashboardView = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const ordersToday = orders.filter(o => o.creado_a?.startsWith(todayStr));
@@ -3261,16 +3261,16 @@ export default function RestaurantDashboard() {
       <div className="animate-fade-in" style={{ padding: '8px 0' }}>
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--gray-900)', margin: '0 0 4px 0' }}>
-            ¡Hola, {profileData?.nombre || 'Socio'}! 👋
+            Â¡Hola, {profileData?.nombre || 'Socio'}! ðŸ‘‹
           </h2>
           <p style={{ color: 'var(--gray-500)', fontSize: '0.95rem', margin: 0, fontWeight: 500 }}>
             {isAccepted
               ? 'Recomendaciones y avisos de tu Aliado comercial Wepi para potenciar tu negocio.'
-              : 'Aquí están las cosas que faltan para que tu cuenta esté lista para ser dada de alta.'}
+              : 'AquÃ­ estÃ¡n las cosas que faltan para que tu cuenta estÃ© lista para ser dada de alta.'}
           </p>
         </div>
 
-        {/* Sección de Mensajes de Aliado Comercial o Pendientes de Alta */}
+        {/* SecciÃ³n de Mensajes de Aliado Comercial o Pendientes de Alta */}
         <div className="card" style={{ 
           padding: '20px', 
           marginBottom: '24px', 
@@ -3278,34 +3278,34 @@ export default function RestaurantDashboard() {
           borderLeft: isAccepted ? '4px solid var(--red-500)' : '4px solid #f59e0b' 
         }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: isAccepted ? 'var(--red-700)' : '#b45309', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isAccepted ? '🤝 Recomendaciones de tu Aliado Wepi' : '⏳ Pendientes para Alta de Cuenta'}
+            {isAccepted ? 'ðŸ¤ Recomendaciones de tu Aliado Wepi' : 'â³ Pendientes para Alta de Cuenta'}
           </h3>
           <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem', color: 'var(--gray-700)' }}>
             {!isAccepted ? (
               <>
-                {/* 1. Ubicación */}
+                {/* 1. UbicaciÃ³n */}
                 {!ubicacionConfigurada && (
                   <li>
-                    📍 <strong>Ubicación no configurada:</strong> Tu local no tiene una dirección o ubicación exacta en el mapa. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('profile'); setProfileSubView('edit'); setShowAddressSelector(true); }}>Configurar dirección ahora</a>
+                    ðŸ“ <strong>UbicaciÃ³n no configurada:</strong> Tu local no tiene una direcciÃ³n o ubicaciÃ³n exacta en el mapa. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('profile'); setProfileSubView('edit'); setShowAddressSelector(true); }}>Configurar direcciÃ³n ahora</a>
                   </li>
                 )}
                 {/* 2. Horarios */}
                 {!horariosConfigurados && (
                   <li>
-                    🕒 <strong>Horarios sin configurar:</strong> No has configurado tus horarios de apertura de cocina. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_horarios'); }}>Configurar horarios</a>
+                    ðŸ•’ <strong>Horarios sin configurar:</strong> No has configurado tus horarios de apertura de cocina. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_horarios'); }}>Configurar horarios</a>
                   </li>
                 )}
                 {/* 3. Mercado Pago */}
                 {!mercadopagoVinculado && (
                   <li>
-                    💳 <strong>Mercado Pago desvinculado:</strong> Vinculá tu cuenta para poder aceptar pagos digitales de los clientes. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_mercadopago'); }}>Vincular Mercado Pago</a>
+                    ðŸ’³ <strong>Mercado Pago desvinculado:</strong> VinculÃ¡ tu cuenta para poder aceptar pagos digitales de los clientes. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_mercadopago'); }}>Vincular Mercado Pago</a>
                   </li>
                 )}
                 {/* 4. Email */}
                 
                 {ubicacionConfigurada && horariosConfigurados && mercadopagoVinculado && emailConfirmado && (
                   <li>
-                    🎉 <strong>¡Todo completado!</strong> Has configurado todos los requisitos pendientes. Tu cuenta está siendo revisada para el alta definitiva.
+                    ðŸŽ‰ <strong>Â¡Todo completado!</strong> Has configurado todos los requisitos pendientes. Tu cuenta estÃ¡ siendo revisada para el alta definitiva.
                   </li>
                 )}
               </>
@@ -3314,22 +3314,22 @@ export default function RestaurantDashboard() {
                 {/* 1. Stock */}
                 {stockBajoCount > 0 && (
                   <li>
-                    📦 <strong>Stock Crítico:</strong> Tenés <span style={{ color: '#dc2626', fontWeight: 'bold' }}>{stockBajoCount} productos</span> con stock bajo su límite mínimo. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('menu'); loadMenu(); }}>Gestionar stock</a>.
+                    ðŸ“¦ <strong>Stock CrÃ­tico:</strong> TenÃ©s <span style={{ color: '#dc2626', fontWeight: 'bold' }}>{stockBajoCount} productos</span> con stock bajo su lÃ­mite mÃ­nimo. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('menu'); loadMenu(); }}>Gestionar stock</a>.
                   </li>
                 )}
                 {/* 2. Plan de Visibilidad */}
                 {(!planInfo || planInfo?.plan_nombre !== 'Destacado') && (
                   <li>
-                    🌟 <strong>Aumenta tu Visibilidad:</strong> Suscribite a un Plan superior para aparecer primero en las búsquedas de los clientes en tu zona y recibir muchos más pedidos. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('plans'); }}>Mejorar Mi Plan</a>.
+                    ðŸŒŸ <strong>Aumenta tu Visibilidad:</strong> Suscribite a un Plan superior para aparecer primero en las bÃºsquedas de los clientes en tu zona y recibir muchos mÃ¡s pedidos. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('plans'); }}>Mejorar Mi Plan</a>.
                   </li>
                 )}
-                {/* 3. Compartir menú */}
+                {/* 3. Compartir menÃº */}
                 <li>
-                  🔗 <strong>Compartí tu Menú:</strong> Promocioná tu enlace personalizado en tu perfil de Instagram para recibir pedidos directos. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_enlace'); }}>Ver enlace de menú</a>.
+                  ðŸ”— <strong>CompartÃ­ tu MenÃº:</strong> PromocionÃ¡ tu enlace personalizado en tu perfil de Instagram para recibir pedidos directos. <a href="#" style={{ color: 'var(--red-600)', textDecoration: 'underline', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); setView('settings'); setProfileSubView('edit_enlace'); }}>Ver enlace de menÃº</a>.
                 </li>
                 {stockBajoCount === 0 && planInfo?.plan_nombre === 'Destacado' && (
                   <li>
-                    🚀 ¡Excelente! Tu local está perfectamente configurado y optimizado para vender. Sigamos creciendo juntos.
+                    ðŸš€ Â¡Excelente! Tu local estÃ¡ perfectamente configurado y optimizado para vender. Sigamos creciendo juntos.
                   </li>
                 )}
               </>
@@ -3337,23 +3337,23 @@ export default function RestaurantDashboard() {
           </ul>
         </div>
 
-        {/* Acciones Rápidas */}
+        {/* Acciones RÃ¡pidas */}
         <div style={{ marginBottom: '24px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--gray-800)', margin: '0 0 12px 0' }}>
-            🔗 Acciones Rápidas
+            ðŸ”— Acciones RÃ¡pidas
           </h3>
           <div className="rd-quick-actions">
             <button className="rd-quick-action-btn" onClick={() => { setView('orders'); loadOrders(); }}>
-              <span>📋</span> Ver Pedidos
+              <span>ðŸ“‹</span> Ver Pedidos
             </button>
             <button className="rd-quick-action-btn" onClick={() => { setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false); }}>
-              <span>➕</span> Agregar Producto
+              <span>âž•</span> Agregar Producto
             </button>
             <button className="rd-quick-action-btn" onClick={() => { setView('cierre'); setCierreSubTab('generar'); setHideStatsInCierre(true); }}>
-              <span>💰</span> Cerrar Caja
+              <span>ðŸ’°</span> Cerrar Caja
             </button>
             <button className="rd-quick-action-btn" onClick={() => { setView('sync'); }}>
-              <span>🔄</span> Wepi Sync
+              <span>ðŸ”„</span> Wepi Sync
             </button>
           </div>
         </div>
@@ -3361,7 +3361,7 @@ export default function RestaurantDashboard() {
     );
   };
 
-  // ─── Dashboard ───
+  // â”€â”€â”€ Dashboard â”€â”€â”€
   const stockBajoCount = menuItems.filter(i => i.maneja_stock && !i.stock_base_id && i.stock_actual <= i.stock_minimo).length;
   const mercadopagoVinculado = !!profileData?.mp_access_token;
   const horariosConfigurados = (profileData?.horario_apertura && profileData?.horario_cierre) || (profileData?.config_horarios && Object.keys(profileData.config_horarios).length > 0);
@@ -3371,13 +3371,13 @@ export default function RestaurantDashboard() {
 
   let recommendationsCount = 0;
   if (!isAccepted) {
-    // Si no está aceptado, los pendientes son requisitos para el alta
+    // Si no estÃ¡ aceptado, los pendientes son requisitos para el alta
     if (!ubicacionConfigurada) recommendationsCount++;
     if (!horariosConfigurados) recommendationsCount++;
     if (!mercadopagoVinculado) recommendationsCount++;
     if (!emailConfirmado) recommendationsCount++;
   } else {
-    // Si está aceptado, cuenta las sugerencias comerciales
+    // Si estÃ¡ aceptado, cuenta las sugerencias comerciales
     if (stockBajoCount > 0) recommendationsCount++;
     if (!profileData?.whatsapp_assistant_enabled) recommendationsCount++;
   }
@@ -3397,7 +3397,7 @@ export default function RestaurantDashboard() {
         </div>
         
         <h1 className="rd-header-title">
-          Panel de Gestión
+          Panel de GestiÃ³n
         </h1>
 
         <div className="rd-topbar-right" style={{ border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -3407,7 +3407,7 @@ export default function RestaurantDashboard() {
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
             style={{ position: 'relative' }}
           >
-            ☰
+            â˜°
             {totalMobileBadgeCount > 0 && (
               <span className="rd-hamburger-badge">
                 {totalMobileBadgeCount}
@@ -3424,7 +3424,7 @@ export default function RestaurantDashboard() {
             <li className="rd-sidebar-title">Principal</li>
             <li>
               <button className={`rd-sidebar-btn ${view === 'dashboard' ? 'active' : ''}`} onClick={() => { setView('dashboard'); setMobileSidebarOpen(false); }}>
-                <span>{isAccepted ? '🤝' : '⏳'}</span> {isAccepted ? 'Recomendaciones' : 'Pendientes'}
+                <span>{isAccepted ? 'ðŸ¤' : 'â³'}</span> {isAccepted ? 'Recomendaciones' : 'Pendientes'}
                 {recommendationsCount > 0 && (
                   <span className={`rd-sidebar-badge ${isAccepted ? 'amber' : 'red'}`}>{recommendationsCount}</span>
                 )}
@@ -3435,14 +3435,14 @@ export default function RestaurantDashboard() {
                 className={`rd-sidebar-btn ${view === 'orders' ? 'active' : ''}`} 
                 onClick={() => { setView('orders'); loadOrders(); setMobileSidebarOpen(false); }}
               >
-                <span>📋</span> Pedidos
+                <span>ðŸ“‹</span> Pedidos
                 {pendingCount > 0 && (
                   <span className="rd-sidebar-badge">{pendingCount}</span>
                 )}
               </button>
             </li>
 
-            <li className="rd-sidebar-title">Catálogo</li>
+            <li className="rd-sidebar-title">CatÃ¡logo</li>
             {restaurant?.role !== 'Cajero' && (
               <>
                 <li>
@@ -3452,7 +3452,7 @@ export default function RestaurantDashboard() {
                       setView('menu'); loadMenu(); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>📖</span> Productos
+                    <span>ðŸ“–</span> Productos
                   </button>
                 </li>
                 <li>
@@ -3462,12 +3462,12 @@ export default function RestaurantDashboard() {
                       setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>➕</span> Agregar producto
+                    <span>âž•</span> Agregar producto
                   </button>
                 </li>
                 <li>
                   <button className={`rd-sidebar-btn ${view === 'sync' ? 'active' : ''}`} onClick={() => { setView('sync'); setMobileSidebarOpen(false); }}>
-                    <span>📥</span> Carga masiva
+                    <span>ðŸ“¥</span> Carga masiva
                   </button>
                 </li>
               </>
@@ -3483,7 +3483,7 @@ export default function RestaurantDashboard() {
                       setView('profile'); setProfileSubView('ventas'); loadOrders(); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>📊</span> Mis Ventas
+                    <span>ðŸ“Š</span> Mis Ventas
                   </button>
                 </li>
 
@@ -3494,7 +3494,7 @@ export default function RestaurantDashboard() {
                       setView('plans'); loadPlanInfo(); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>🎟️</span> Mi Plan
+                    <span>ðŸŽŸï¸</span> Mi Plan
                   </button>
                 </li>
               </>
@@ -3504,7 +3504,7 @@ export default function RestaurantDashboard() {
                 className={`rd-sidebar-btn ${view === 'cierre' ? 'active' : ''}`} 
                 onClick={() => { setView('cierre'); setCierreSubTab('generar'); setHideStatsInCierre(true); setMobileSidebarOpen(false); }}
               >
-                <span>💰</span> Cierre de turno
+                <span>ðŸ’°</span> Cierre de turno
               </button>
             </li>
 
@@ -3518,7 +3518,7 @@ export default function RestaurantDashboard() {
                       setView('settings'); setProfileSubView('enlace'); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>🔗</span> Compartir Menú
+                    <span>ðŸ”—</span> Compartir MenÃº
                   </button>
                 </li>
                 <li>
@@ -3528,7 +3528,7 @@ export default function RestaurantDashboard() {
                       setView('settings'); setProfileSubView('printing'); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>🖨️</span> Impresión Tickets
+                    <span>ðŸ–¨ï¸</span> ImpresiÃ³n Tickets
                   </button>
                 </li>
                 <li>
@@ -3538,7 +3538,7 @@ export default function RestaurantDashboard() {
                       setView('settings'); setProfileSubView('cajas'); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>🔑</span> Cajeros
+                    <span>ðŸ”‘</span> Cajeros
                   </button>
                 </li>
                 <li>
@@ -3548,7 +3548,7 @@ export default function RestaurantDashboard() {
                       setView('settings'); setProfileSubView('notifications'); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>🔔</span> Notificaciones
+                    <span>ðŸ””</span> Notificaciones
                   </button>
                 </li>
                 <li>
@@ -3557,19 +3557,19 @@ export default function RestaurantDashboard() {
                     style={{ opacity: 0.65, cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                     onClick={(e) => {
                       e.preventDefault();
-                      toast.info('🔒 La sección WhatsApp Assistant estará disponible próximamente', { icon: '🤖' });
+                      toast.info('ðŸ”’ La secciÃ³n WhatsApp Assistant estarÃ¡ disponible prÃ³ximamente', { icon: 'ðŸ¤–' });
                     }}
                   >
-                    <span><span>💬</span> WhatsApp Assistant</span>
+                    <span><span>ðŸ’¬</span> WhatsApp Assistant</span>
                     <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fde68a' }}>
-                      Próximamente
+                      PrÃ³ximamente
                     </span>
                   </button>
                 </li>
               </>
             )}
 
-            <li className="rd-sidebar-title">Configuración</li>
+            <li className="rd-sidebar-title">ConfiguraciÃ³n</li>
             {restaurant?.role !== 'Cajero' && (
               <>
                 <li>
@@ -3579,7 +3579,7 @@ export default function RestaurantDashboard() {
                       setView('settings'); setProfileSubView('edit'); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>⚙️</span> Ajustes Local
+                    <span>âš™ï¸</span> Ajustes Local
                   </button>
                 </li>
                 <li>
@@ -3589,7 +3589,7 @@ export default function RestaurantDashboard() {
                       setView('profile'); setProfileSubView('edit'); loadProfile(); setMobileSidebarOpen(false);
                     }}
                   >
-                    <span>👤</span> Editar Perfil
+                    <span>ðŸ‘¤</span> Editar Perfil
                   </button>
                 </li>
               </>
@@ -3603,7 +3603,7 @@ export default function RestaurantDashboard() {
                   setMobileSidebarOpen(false);
                 }}
               >
-                <span>📚</span> Tutoriales y Guías
+                <span>ðŸ“š</span> Tutoriales y GuÃ­as
               </button>
             </li>
             <li className="rd-sidebar-title">Cuenta</li>
@@ -3616,7 +3616,7 @@ export default function RestaurantDashboard() {
                   window.location.reload(); 
                 }}
               >
-                <span>🚪</span> Cerrar Sesión
+                <span>ðŸšª</span> Cerrar SesiÃ³n
               </button>
             </li>
           </ul>
@@ -3630,7 +3630,7 @@ export default function RestaurantDashboard() {
             <img src="https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" alt="Alert" className="banner-icon" />
             <div className="banner-content">
               <strong>Notificaciones Bloqueadas</strong>
-              <p>No recibirás avisos de nuevos pedidos. Habilítalas en la configuración de tu navegador para no perder ventas.</p>
+              <p>No recibirÃ¡s avisos de nuevos pedidos. HabilÃ­talas en la configuraciÃ³n de tu navegador para no perder ventas.</p>
             </div>
           </div>
         )}
@@ -3640,7 +3640,7 @@ export default function RestaurantDashboard() {
             <img src="https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" alt="Alert" className="banner-icon" />
             <div className="banner-content">
               <strong>Habilitar Notificaciones</strong>
-              <p>Activá las notificaciones para enterarte al instante cuando recibas un nuevo pedido.</p>
+              <p>ActivÃ¡ las notificaciones para enterarte al instante cuando recibas un nuevo pedido.</p>
               <button 
                 className="btn btn-primary btn-xs" 
                 style={{ marginTop: '8px', background: 'var(--red-600)', borderColor: 'var(--red-600)' }}
@@ -3669,7 +3669,7 @@ export default function RestaurantDashboard() {
             <span className={`rd-status ${localOpen ? 'open' : ''}`}>{localOpen ? 'Abierto' : 'Cerrado'}</span>
             {!isAccepted && (
               <span className="badge badge-amber" style={{ marginLeft: '8px', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, background: '#fef3c7', color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                ⚠️ Pendiente de alta
+                âš ï¸ Pendiente de alta
               </span>
             )}
           </div>
@@ -3701,7 +3701,7 @@ export default function RestaurantDashboard() {
                   }}></div>
                 </div>
               </div>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{showGamification ? '▲' : '▼'}</span>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{showGamification ? 'â–²' : 'â–¼'}</span>
             </div>
           )}
         </div>
@@ -3723,7 +3723,7 @@ export default function RestaurantDashboard() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '1.5rem' }}>💎</span>
+                <span style={{ fontSize: '1.5rem' }}>ðŸ’Ž</span>
                 <div>
                   <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     Plan {planInfo?.plan_nombre || 'Visible'}
@@ -3734,7 +3734,7 @@ export default function RestaurantDashboard() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{planInfo?.metricas_mes?.pedidos ?? 0} pedidos</span>
-                <p style={{ margin: 0, fontSize: '0.65rem', color: '#64748b' }}>últimos 30 d</p>
+                <p style={{ margin: 0, fontSize: '0.65rem', color: '#64748b' }}>Ãºltimos 30 d</p>
               </div>
             </div>
 
@@ -3765,7 +3765,7 @@ export default function RestaurantDashboard() {
               </p>
             ) : (
               <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#059669', textAlign: 'center', fontWeight: 700 }}>
-                ¡Has alcanzado el máximo nivel! 🏆
+                Â¡Has alcanzado el mÃ¡ximo nivel! ðŸ†
               </p>
             )}
           </div>
@@ -3774,25 +3774,25 @@ export default function RestaurantDashboard() {
         {/* Dashboard View */}
         {view === 'dashboard' && renderDashboardView()}
 
-        {/* ─── Wepi Sync View ─── */}
+        {/* â”€â”€â”€ Wepi Sync View â”€â”€â”€ */}
         {view === 'sync' && renderSyncView()}
 
-        {/* 📚 Tutoriales View */}
+        {/* ðŸ“š Tutoriales View */}
         {view === 'tutoriales' && (
           <div className="rd-view-container">
             <div className="rd-topbar">
-              <h1 className="rd-title">📚 Tutoriales y Guías</h1>
+              <h1 className="rd-title">ðŸ“š Tutoriales y GuÃ­as</h1>
             </div>
             <div className="rd-content" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '800px', margin: '0' }}>
                 
                 {/* Tutorial MP */}
                 <a href="https://drive.google.com/file/d/1yF-ccJU5o_on2bjpAaqPFKbU9Y-tBq8p/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#fff', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--gray-200)', textDecoration: 'none', color: 'inherit', transition: 'all 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f0f9ff'; e.currentTarget.style.borderColor = '#bae6fd'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.borderColor = 'var(--gray-200)'; }}>
-                  <div style={{ fontSize: '1.5rem', opacity: 0.9 }}>📄</div>
+                  <div style={{ fontSize: '1.5rem', opacity: 0.9 }}>ðŸ“„</div>
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '1.05rem', margin: '0', fontWeight: 600, color: '#0369a1' }}>MERCADO PAGO_ Vinculación y Configuración de Ingresos</h3>
+                    <h3 style={{ fontSize: '1.05rem', margin: '0', fontWeight: 600, color: '#0369a1' }}>MERCADO PAGO_ VinculaciÃ³n y ConfiguraciÃ³n de Ingresos</h3>
                   </div>
-                  <div style={{ color: 'var(--gray-400)' }}>➜</div>
+                  <div style={{ color: 'var(--gray-400)' }}>âžœ</div>
                 </a>
 
               </div>
@@ -3800,14 +3800,14 @@ export default function RestaurantDashboard() {
           </div>
         )}
 
-        {/* ─── Orders View ─── */}
+        {/* â”€â”€â”€ Orders View â”€â”€â”€ */}
         {view === 'orders' && (
           <section className="animate-fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: 12, flexWrap: 'wrap' }}>
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="🔍 Buscar pedido..." 
+                placeholder="ðŸ” Buscar pedido..." 
                 style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
@@ -3817,7 +3817,7 @@ export default function RestaurantDashboard() {
                 style={{ background: 'var(--gray-800)', borderColor: 'var(--gray-800)', gap: '8px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}
                 onClick={() => { setView('cierre'); setCierreSubTab('generar'); setHideStatsInCierre(true); }}
               >
-                🧾 Cerrar Turno / Caja
+                ðŸ§¾ Cerrar Turno / Caja
               </button>
             </div>
 
@@ -3827,7 +3827,7 @@ export default function RestaurantDashboard() {
                   Pendientes <span className="badge badge-amber" style={{ marginLeft: 6 }}>{pendientesOrders.length + (showTutorial && tutorialSampleOrderState === 'Pendiente' ? 1 : 0)}</span>
                 </button>
                 <button className={currentTab === 'preparacion' ? 'active' : ''} onClick={() => setCurrentTab('preparacion')} style={{ position: 'relative' }}>
-                  En Preparación <span className="badge badge-info" style={{ marginLeft: 6 }}>{preparacionOrders.length + (showTutorial && tutorialSampleOrderState === 'Aceptado' ? 1 : 0)}</span>
+                  En PreparaciÃ³n <span className="badge badge-info" style={{ marginLeft: 6 }}>{preparacionOrders.length + (showTutorial && tutorialSampleOrderState === 'Aceptado' ? 1 : 0)}</span>
                 </button>
                 <button className={currentTab === 'listos' ? 'active' : ''} onClick={() => setCurrentTab('listos')} style={{ position: 'relative' }}>
                   Listos <span className="badge badge-blue" style={{ marginLeft: 6 }}>{listosOrders.length + (showTutorial && tutorialSampleOrderState === 'Listo' ? 1 : 0)}</span>
@@ -3839,10 +3839,10 @@ export default function RestaurantDashboard() {
             ) : (
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--gray-700)', padding: '8px 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  📋 {currentTab === 'entregados' ? 'Historial' : 'Pedidos Activos'} <span className="badge badge-amber" style={{ fontSize: '0.85rem' }}>{finalOrders.length}</span>
+                  ðŸ“‹ {currentTab === 'entregados' ? 'Historial' : 'Pedidos Activos'} <span className="badge badge-amber" style={{ fontSize: '0.85rem' }}>{finalOrders.length}</span>
                 </div>
                 <button className={`btn btn-sm ${currentTab === 'entregados' ? 'btn-success' : 'btn-outline'}`} onClick={() => setCurrentTab(currentTab === 'entregados' ? 'pendientes' : 'entregados')}>
-                  {currentTab === 'entregados' ? '📋 Ver Activos' : `📦 Historial (${entregadosOrders.length})`}
+                  {currentTab === 'entregados' ? 'ðŸ“‹ Ver Activos' : `ðŸ“¦ Historial (${entregadosOrders.length})`}
                 </button>
               </div>
             )}
@@ -3860,7 +3860,7 @@ export default function RestaurantDashboard() {
                 margin: '12px 0 16px'
               }}>
                 <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  📅 Filtrar Historial:
+                  ðŸ“… Filtrar Historial:
                 </span>
                 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -3878,7 +3878,7 @@ export default function RestaurantDashboard() {
                     onClick={() => setHistorialFilterType('dia')}
                     style={historialFilterType === 'dia' ? { background: '#0284c7', borderColor: '#0284c7', color: 'white' } : {}}
                   >
-                    Día Específico
+                    DÃ­a EspecÃ­fico
                   </button>
                   <button 
                     type="button"
@@ -3936,7 +3936,7 @@ export default function RestaurantDashboard() {
             {ordersLoading ? (
               <div className="loading-state"><div className="spinner" /> Cargando...</div>
             ) : finalOrders.length === 0 ? (
-              <p className="rd-empty">No hay pedidos en esta sección</p>
+              <p className="rd-empty">No hay pedidos en esta secciÃ³n</p>
             ) : finalOrders.map(o => (
               <OrderCard 
                 key={o.idPedidoLocal} 
@@ -3954,14 +3954,14 @@ export default function RestaurantDashboard() {
                     if (action === 'Aceptado') {
                        setTutorialSampleOrderState('Aceptado');
                        setCurrentTab('preparacion');
-                       toast.success('¡Pedido aceptado! El pedido se movió a En preparación (Muestra)');
+                       toast.success('Â¡Pedido aceptado! El pedido se moviÃ³ a En preparaciÃ³n (Muestra)');
                     } else if (action === 'Listo') {
                        setTutorialSampleOrderState('Listo');
                        setCurrentTab('listos');
-                       toast.success('¡Pedido listo! El pedido se movió a Listos (Muestra)');
+                       toast.success('Â¡Pedido listo! El pedido se moviÃ³ a Listos (Muestra)');
                     } else if (action === 'Entregado') {
                        setTutorialSampleOrderState('Entregado');
-                       toast.success('¡Pedido entregado! El pedido se movió a Ventas (Muestra)');
+                       toast.success('Â¡Pedido entregado! El pedido se moviÃ³ a Ventas (Muestra)');
                        setTutorialStep(5); // Move to next step if in tutorial
                     }
                   } else {
@@ -3982,65 +3982,65 @@ export default function RestaurantDashboard() {
                   setCurrentTab('pendientes');
                 }}
               >
-                <span style={{ fontSize: '1.2rem' }}>👀</span> Ver Pedido de prueba
+                <span style={{ fontSize: '1.2rem' }}>ðŸ‘€</span> Ver Pedido de prueba
               </button>
             </div>
           </section>
         )}
 
-        {/* ─── Menu View ─── */}
+        {/* â”€â”€â”€ Menu View â”€â”€â”€ */}
         {view === 'menu' && (
           <section className="animate-fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                   {/* Dropdown Añadir */}
+                   {/* Dropdown AÃ±adir */}
                    <div style={{ position: 'relative' }}>
                       <button className="btn btn-success" onClick={() => {
-                        const needsDropdown = profileData?.rubros?.includes('Cafetería') || profileData?.rubros?.includes('Heladería');
+                        const needsDropdown = profileData?.rubros?.includes('CafeterÃ­a') || profileData?.rubros?.includes('HeladerÃ­a');
                         if (needsDropdown) {
                           setMenuAddOpen(!menuAddOpen);
                         } else {
                           setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false);
                         }
                       }}>
-                        + Agregar producto { (profileData?.rubros?.includes('Cafetería') || profileData?.rubros?.includes('Heladería')) && '▾' }
+                        + Agregar producto { (profileData?.rubros?.includes('CafeterÃ­a') || profileData?.rubros?.includes('HeladerÃ­a')) && 'â–¾' }
                       </button>
                       
                       {menuAddOpen && (
                         <div className="rd-dropdown-menu animate-fade-in" style={{ left: 0, top: '100%', display: 'block', zIndex: 100 }}>
                            <button className="rd-dropdown-item" onClick={() => { setEditItem(null); setItemCategory(''); setItemSubcategory('Helado por kg'); setItemName(''); setView('addItem'); setIsBaseProductMode(false); setMenuAddOpen(false); }}>
-                             {isInventory ? '📦 Nuevo Artículo' : '🍔 Nuevo Plato'}
+                             {isInventory ? 'ðŸ“¦ Nuevo ArtÃ­culo' : 'ðŸ” Nuevo Plato'}
                            </button>
 
-                           {(profileData?.rubros?.includes('Heladería')) && (
+                           {(profileData?.rubros?.includes('HeladerÃ­a')) && (
                              <button className="rd-dropdown-item" onClick={() => { setView('sabores'); loadSabores(); setMenuAddOpen(false); }}>
-                               🍦 Sabores y Adicionales
+                               ðŸ¦ Sabores y Adicionales
                              </button>
                            )}
                         </div>
                       )}
                    </div>
 
-                   {(profileData?.rubro === 'Heladeria' || profileData?.rubro === 'Heladería' || (Array.isArray(profileData?.rubros) && profileData.rubros.some(r => String(r).toLowerCase().includes('helad'))) || String(profileData?.nombre).toLowerCase().includes('helad')) && (
+                   {(profileData?.rubro === 'Heladeria' || profileData?.rubro === 'HeladerÃ­a' || (Array.isArray(profileData?.rubros) && profileData.rubros.some(r => String(r).toLowerCase().includes('helad'))) || String(profileData?.nombre).toLowerCase().includes('helad')) && (
                      <button 
                        className="btn" 
                        style={{ background: '#f59e0b', color: 'white', borderColor: '#d97706', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
                        onClick={() => { setView('sabores'); loadSabores(); }}
                      >
-                       🍨 Sabores y Adicionales
+                       ðŸ¨ Sabores y Adicionales
                      </button>
                    )}
 
                    <button className={`btn ${showStockPanel ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setShowStockPanel(!showStockPanel); setShowDiscountPanel(false); }} style={showStockPanel ? { background: '#f97316', borderColor: '#f97316' } : {}}>
-                     📦 Stock
+                     ðŸ“¦ Stock
                    </button>
 
                    <button className={`btn ${showDiscountPanel ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setShowDiscountPanel(!showDiscountPanel); setShowStockPanel(false); }}>
-                     🎁 Descuentos
+                     ðŸŽ Descuentos
                    </button>
 
                    <button className="btn btn-outline" onClick={() => setView('sync')}>
-                     📥 Carga masiva
+                     ðŸ“¥ Carga masiva
                    </button>
                 </div>
 
@@ -4049,7 +4049,7 @@ export default function RestaurantDashboard() {
                      const today = new Date().toLocaleString('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
                      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                      const isPromo = profileData?.dias_descuento?.some(d => normalize(d) === normalize(today));
-                     return isPromo ? <span style={{ color: 'var(--red-600)' }}>🔥 PROMO {profileData?.descuento_general}% OFF {profileData?.categoria_descuento ? `en ${profileData.categoria_descuento}` : 'en todo el catálogo'}</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
+                     return isPromo ? <span style={{ color: 'var(--red-600)' }}>ðŸ”¥ PROMO {profileData?.descuento_general}% OFF {profileData?.categoria_descuento ? `en ${profileData.categoria_descuento}` : 'en todo el catÃ¡logo'}</span> : <span style={{ color: 'var(--gray-500)' }}>Sin promo general</span>;
                    })()}
                 </div>
             </div>
@@ -4058,8 +4058,8 @@ export default function RestaurantDashboard() {
               <div className="card card-body animate-slide-up" style={{ marginBottom: 24, border: '1px solid #feb2b2', background: '#fff5f5' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20 }}>
                   <div style={{ flex: 1, minWidth: '300px' }}>
-                    <h3 style={{ color: 'var(--red-600)', marginBottom: 12, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>🎁 Descuento General del Local</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#742a2a', marginBottom: 12 }}>Este descuento se aplica automáticamente a todos tus platos los días seleccionados (excepto a los platos que ya tengan un descuento propio).</p>
+                    <h3 style={{ color: 'var(--red-600)', marginBottom: 12, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>ðŸŽ Descuento General del Local</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#742a2a', marginBottom: 12 }}>Este descuento se aplica automÃ¡ticamente a todos tus platos los dÃ­as seleccionados (excepto a los platos que ya tengan un descuento propio).</p>
                     
                     <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -4078,14 +4078,14 @@ export default function RestaurantDashboard() {
                             style={{ width: '180px', marginBottom: 0, marginLeft: '6px' }}
                             defaultValue={profileData?.categoria_descuento || ''}
                           >
-                            <option value="">Todo el catálogo</option>
+                            <option value="">Todo el catÃ¡logo</option>
                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
-                          <button type="submit" className="btn btn-success btn-sm" style={{ marginLeft: '10px' }}>Guardar Configuración</button>
+                          <button type="submit" className="btn btn-success btn-sm" style={{ marginLeft: '10px' }}>Guardar ConfiguraciÃ³n</button>
                        </div>
                        
                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
+                          {['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'].map(day => {
                             const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                             const isSelected = profileData?.dias_descuento?.some(d => normalize(d) === normalize(day));
                             return (
@@ -4095,7 +4095,7 @@ export default function RestaurantDashboard() {
                               </label>
                             );
                           })}
-                          <button type="submit" className="btn btn-ghost btn-xs" style={{ color: 'var(--red-600)', textDecoration: 'underline' }}>Guardar Días</button>
+                          <button type="submit" className="btn btn-ghost btn-xs" style={{ color: 'var(--red-600)', textDecoration: 'underline' }}>Guardar DÃ­as</button>
                        </div>
   
                        {/* Hidden profile fields for handleSaveProfile compatibility */}
@@ -4107,7 +4107,7 @@ export default function RestaurantDashboard() {
                           <input name="modo_automatico" defaultValue={profileData?.modo_automatico ? 'true' : 'false'} />
                           <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
                           <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
-                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                          {['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'].map(day => (
                             <input key={day} type="checkbox" name={`day_${day}`} defaultChecked={profileData?.dias_apertura?.some(d => d.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === day.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())} />
                           ))}
                        </div>
@@ -4117,19 +4117,19 @@ export default function RestaurantDashboard() {
               </div>
             )}
             
-            {/* ─── Panel de Stock Rápido ─── */}
+            {/* â”€â”€â”€ Panel de Stock RÃ¡pido â”€â”€â”€ */}
             {showStockPanel && (
               <div className="card animate-fade-in" style={{ marginBottom: 24, padding: '16px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                   <h3 style={{ color: '#c2410c', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    📦 Gestión de Stock Rápida
+                    ðŸ“¦ GestiÃ³n de Stock RÃ¡pida
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                      <button className="btn btn-sm btn-success" style={{ fontSize: '0.8rem', background: '#22c55e', border: 'none' }} onClick={() => setShowStockSelectorModal(true)}>
                        + Nuevo producto
                      </button>
                      <span style={{ fontSize: '0.75rem', background: '#fff7ed', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', border: '1px solid #ffedd5', fontWeight: 600 }}>
-                       Sólo ítems que manejan stock
+                       SÃ³lo Ã­tems que manejan stock
                      </span>
                   </div>
                 </div>
@@ -4144,7 +4144,7 @@ export default function RestaurantDashboard() {
                 }}>
                   {menuItems.filter(i => i.maneja_stock).length === 0 ? (
                     <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', textAlign: 'center', gridColumn: '1/-1', padding: '20px' }}>
-                      No tenés platos con stock habilitado. Habilitá stock presionando "+ Nuevo producto".
+                      No tenÃ©s platos con stock habilitado. HabilitÃ¡ stock presionando "+ Nuevo producto".
                     </p>
                   ) : (
                     menuItems.filter(i => i.maneja_stock).map(item => (
@@ -4198,16 +4198,16 @@ export default function RestaurantDashboard() {
             )}
 
             <div className="rd-menu-filters">
-              <input className="form-input" placeholder="🔍 Buscar artículo o plato..." value={menuFilter} onChange={e => setMenuFilter(e.target.value)} />
+              <input className="form-input" placeholder="ðŸ” Buscar artÃ­culo o plato..." value={menuFilter} onChange={e => setMenuFilter(e.target.value)} />
               <select className="form-select" value={menuCatFilter} onChange={e => setMenuCatFilter(e.target.value)}>
-                <option value="">Todas las categorías</option>
+                <option value="">Todas las categorÃ­as</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             {menuLoading ? (
-              <div className="loading-state"><div className="spinner" /> Cargando catálogo...</div>
+              <div className="loading-state"><div className="spinner" /> Cargando catÃ¡logo...</div>
             ) : finalMenu.length === 0 ? (
-              <p className="rd-empty">No hay {isInventory ? 'artículos' : 'platos'}. ¡Agregá tu primer {isInventory ? 'artículo' : 'plato'}!</p>
+              <p className="rd-empty">No hay {isInventory ? 'artÃ­culos' : 'platos'}. Â¡AgregÃ¡ tu primer {isInventory ? 'artÃ­culo' : 'plato'}!</p>
             ) : finalMenu.map(item => (
               <div key={item.id} className="rd-menu-item card">
                 {item.imagen_url ? <img src={item.imagen_url} alt={item.nombre} className="rd-menu-img" /> :
@@ -4218,7 +4218,7 @@ export default function RestaurantDashboard() {
                       <h3>{item.nombre}</h3>
                       <p>{item.descripcion || ''}</p>
                       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                        <span className="badge badge-gray">{item.categoria || 'Sin categoría'}</span>
+                        <span className="badge badge-gray">{item.categoria || 'Sin categorÃ­a'}</span>
                         {item.maneja_stock && (
                           (() => {
                             const baseItem = item.stock_base_id ? menuItems.find(mi => mi.id === item.stock_base_id) : null;
@@ -4262,14 +4262,14 @@ export default function RestaurantDashboard() {
                                         await handleQuickStockSave(baseItem ? baseItem.id : item.id, val);
                                       }}
                                     >
-                                      ✓
+                                      âœ“
                                     </button>
                                     <button 
                                       className="btn btn-xs btn-secondary" 
                                       style={{ padding: '2px 6px', fontSize: '0.7rem' }}
                                       onClick={() => setEditingStockItem(null)}
                                     >
-                                      ✕
+                                      âœ•
                                     </button>
                                   </div>
                                 ) : (
@@ -4282,7 +4282,7 @@ export default function RestaurantDashboard() {
                                       style={{ padding: '2px 6px', fontSize: '0.65rem', color: '#c2410c', borderColor: '#ffedd5', background: '#fff7ed', borderRadius: '4px', cursor: 'pointer' }}
                                       onClick={() => setEditingStockItem(baseItem ? baseItem.id : item.id)}
                                     >
-                                      ⚙️ Gestionar Stock
+                                      âš™ï¸ Gestionar Stock
                                     </button>
                                   </>
                                 )}
@@ -4400,12 +4400,12 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
-        {/* ─── Add/Edit Item ─── */}
+        {/* â”€â”€â”€ Add/Edit Item â”€â”€â”€ */}
         {view === 'addItem' && (
           <section className="animate-fade-in">
             <div className="card card-body">
               <h2 style={{ color: 'var(--red-600)', marginBottom: 16 }}>
-                {isBaseProductMode ? '🍞 Nuevo Producto Base' : (editItem ? (isInventory ? 'Editar Artículo' : 'Editar Plato') : (isInventory ? 'Nuevo Artículo' : 'Nuevo Plato'))}
+                {isBaseProductMode ? 'ðŸž Nuevo Producto Base' : (editItem ? (isInventory ? 'Editar ArtÃ­culo' : 'Editar Plato') : (isInventory ? 'Nuevo ArtÃ­culo' : 'Nuevo Plato'))}
               </h2>
               <form onSubmit={handleSaveItem} className="rd-item-form">
                 <div className="rd-form-row">
@@ -4414,7 +4414,7 @@ export default function RestaurantDashboard() {
                       <input 
                         name="nombre" 
                         className="form-input" 
-                        placeholder={isInventory ? 'Nombre del artículo' : 'Nombre del plato'} 
+                        placeholder={isInventory ? 'Nombre del artÃ­culo' : 'Nombre del plato'} 
                         value={editItem ? undefined : itemName}
                         defaultValue={editItem ? editItem.nombre : undefined}
                         onChange={(e) => {
@@ -4441,24 +4441,24 @@ export default function RestaurantDashboard() {
                     disabled={isBaseProductMode || editItem?.categoria === 'Base'}
                     onChange={(e) => setItemCategory(e.target.value)}
                   >
-                    <option value="">Categoría</option>
+                    <option value="">CategorÃ­a</option>
                     {isBaseProductMode || editItem?.categoria === 'Base' ? (
                       <option value="Base">Base (Inventario Interno)</option>
                     ) : (
                       (function() {
                         const rubros = profileData?.rubros || [];
                         const rubroConfigs = [
-                          { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Cafetería', 'Combos', 'Bebidas'] },
-                          { name: 'Cafetería', cats: ['Café', 'Licuados', 'Facturas', 'Pastelería', 'Galletas', 'Tostados', 'Promos'] },
-                          { name: 'Heladería', cats: ['Helados'] },
-                          { name: 'Carnicería', cats: ['Carne Vacuna', 'Pollo', 'Cerdo', 'Embutidos', 'Achuras', 'Promos'] },
-                          { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
-                          { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] },
+                          { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'CafeterÃ­a', 'Combos', 'Bebidas'] },
+                          { name: 'CafeterÃ­a', cats: ['CafÃ©', 'Licuados', 'Facturas', 'PastelerÃ­a', 'Galletas', 'Tostados', 'Promos'] },
+                          { name: 'HeladerÃ­a', cats: ['Helados'] },
+                          { name: 'CarnicerÃ­a', cats: ['Carne Vacuna', 'Pollo', 'Cerdo', 'Embutidos', 'Achuras', 'Promos'] },
+                          { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'AlmacÃ©n', 'Congelados', 'Higiene', 'Promos'] },
+                          { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'BebÃ©s/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] },
                           { name: 'Bebidas', cats: ['Gaseosas', 'Sin gas', 'Cervezas', 'Vinos/Espumantes', 'Aperitivos', 'Otros'] },
-                          { name: 'Hogar', cats: ['Muebles', 'Decoración', 'Blanquería', 'Cocina', 'Bazar', 'Iluminación', 'Otros'] },
-                          { name: 'Tecnología', cats: ['Celulares', 'Computación', 'Audio y Video', 'Accesorios', 'Gaming', 'Smart Home', 'Otros'] },
-                          { name: 'Moda', cats: ['Ropa de Hombre', 'Ropa de Mujer', 'Ropa Infantil', 'Calzado', 'Accesorios', 'Marroquinería', 'Otros'] },
-                          { name: 'Regalería', cats: ['Juguetes', 'Peluches', 'Librería', 'Artesanías', 'Gifts', 'Otros'] },
+                          { name: 'Hogar', cats: ['Muebles', 'DecoraciÃ³n', 'BlanquerÃ­a', 'Cocina', 'Bazar', 'IluminaciÃ³n', 'Otros'] },
+                          { name: 'TecnologÃ­a', cats: ['Celulares', 'ComputaciÃ³n', 'Audio y Video', 'Accesorios', 'Gaming', 'Smart Home', 'Otros'] },
+                          { name: 'Moda', cats: ['Ropa de Hombre', 'Ropa de Mujer', 'Ropa Infantil', 'Calzado', 'Accesorios', 'MarroquinerÃ­a', 'Otros'] },
+                          { name: 'RegalerÃ­a', cats: ['Juguetes', 'Peluches', 'LibrerÃ­a', 'ArtesanÃ­as', 'Gifts', 'Otros'] },
                           { name: 'Deportes', cats: ['Indumentaria Deportiva', 'Calzado Deportivo', 'Accesorios', 'Equipamiento', 'Suplementos', 'Otros'] }
                         ];
 
@@ -4478,7 +4478,7 @@ export default function RestaurantDashboard() {
                   </select>
                   {(isBaseProductMode || editItem?.categoria === 'Base') && <input type="hidden" name="categoria" value="Base" />}
                 </div>
-                <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
+                <textarea name="descripcion" className="form-textarea" rows={2} placeholder="DescripciÃ³n" defaultValue={editItem?.descripcion || ''} />
                 
                 <div className="rd-form-row rd-form-row-3" style={ (isBaseProductMode || editItem?.categoria === 'Base') ? { opacity: 0.5, pointerEvents: 'none' } : {} }>
                   <div>
@@ -4500,20 +4500,20 @@ export default function RestaurantDashboard() {
 
                 <div className="rd-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>SKU (Código de Sincronización)</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>SKU (CÃ³digo de SincronizaciÃ³n)</label>
                     <input name="sku" type="text" className="form-input" placeholder="Ej: SKU-12345" defaultValue={editItem?.sku || ''} />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Código de Barras</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>CÃ³digo de Barras</label>
                     <input name="codigo_barras" type="text" className="form-input" placeholder="Ej: 7791234567890" defaultValue={editItem?.codigo_barras || ''} />
                   </div>
                 </div>
                 
-                {/* ─── Helados Subcategory Selector ─── */}
+                {/* â”€â”€â”€ Helados Subcategory Selector â”€â”€â”€ */}
                 {(itemCategory === 'Helados' || editItem?.categoria === 'Helados') && (
                   <div className="rd-form-row" style={{ marginBottom: '16px' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--red-600)' }}>Subcategoría de Helado</label>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--red-600)' }}>SubcategorÃ­a de Helado</label>
                       <select 
                         name="subcategoria" 
                         className="form-select" 
@@ -4529,7 +4529,7 @@ export default function RestaurantDashboard() {
                   </div>
                 )}
 
-                {/* ─── Helados Configuration (Only for 'Helado por kg') ─── */}
+                {/* â”€â”€â”€ Helados Configuration (Only for 'Helado por kg') â”€â”€â”€ */}
                 {(() => {
                   if (itemCategory !== 'Helados' && editItem?.categoria !== 'Helados') return null;
                   if (itemSubcategory !== 'Helado por kg') return null;
@@ -4542,29 +4542,29 @@ export default function RestaurantDashboard() {
 
                   return (
                     <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#fff5f5', border: '1px solid #feb2b2' }}>
-                      <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>🍦 Configuración de Helados</h3>
+                      <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', marginBottom: '12px' }}>ðŸ¦ ConfiguraciÃ³n de Helados</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                         <div>
                           <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>1/4 kg</label>
                           <input name="p_14" type="number" className="form-input" placeholder="Precio" defaultValue={p['1/4kg']?.precio || ''} />
-                          <input name="m_14" type="number" className="form-input" placeholder="Máx sabores" defaultValue={p['1/4kg']?.max || 3} />
+                          <input name="m_14" type="number" className="form-input" placeholder="MÃ¡x sabores" defaultValue={p['1/4kg']?.max || 3} />
                         </div>
                         <div>
                           <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>1/2 kg</label>
                           <input name="p_12" type="number" className="form-input" placeholder="Precio" defaultValue={p['1/2kg']?.precio || ''} />
-                          <input name="m_12" type="number" className="form-input" placeholder="Máx sabores" defaultValue={p['1/2kg']?.max || 3} />
+                          <input name="m_12" type="number" className="form-input" placeholder="MÃ¡x sabores" defaultValue={p['1/2kg']?.max || 3} />
                         </div>
                         <div>
                           <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>1 kg</label>
                           <input name="p_1" type="number" className="form-input" placeholder="Precio" defaultValue={p['1kg']?.precio || ''} />
-                          <input name="m_1" type="number" className="form-input" placeholder="Máx sabores" defaultValue={p['1kg']?.max || 4} />
+                          <input name="m_1" type="number" className="form-input" placeholder="MÃ¡x sabores" defaultValue={p['1kg']?.max || 4} />
                         </div>
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* ─── Advanced Configuration (Variants/Extras) ─── */}
+                {/* â”€â”€â”€ Advanced Configuration (Variants/Extras) â”€â”€â”€ */}
                 {(itemCategory !== 'Base' && (itemCategory !== '' || editItem) && (itemCategory !== 'Helados' || (itemCategory === 'Helados' && itemSubcategory !== 'Helado por kg'))) && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <div 
@@ -4572,20 +4572,20 @@ export default function RestaurantDashboard() {
                       onClick={() => setShowVariantsConfig(!showVariantsConfig)}
                     >
                       <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        ✨ Configuración de Variantes y Extras
+                        âœ¨ ConfiguraciÃ³n de Variantes y Extras
                       </h3>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>{showVariantsConfig ? '▲ Ocultar' : '▼ Configurar'}</span>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>{showVariantsConfig ? 'â–² Ocultar' : 'â–¼ Configurar'}</span>
                     </div>
                     
                     <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '8px', marginBottom: showVariantsConfig ? '16px' : 0 }}>
-                      Son adicionales opcionales que se suman al precio de la variante elegida. El cliente debe elegir una sola opción. Cada una tiene su propio precio total.
+                      Son adicionales opcionales que se suman al precio de la variante elegida. El cliente debe elegir una sola opciÃ³n. Cada una tiene su propio precio total.
                     </p>
 
                     {showVariantsConfig && (
                       <div className="animate-fade-in" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
                         <div style={{ marginBottom: '20px' }}>
                           <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--gray-700)' }}>Variantes (Simple, Doble, etc.)</p>
-                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>El cliente debe elegir una sola opción. Cada una tiene su propio precio total.</p>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '8px' }}>El cliente debe elegir una sola opciÃ³n. Cada una tiene su propio precio total.</p>
                           {burgerVariants.map((v, idx) => (
                             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                               <input placeholder="Nombre" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={v.nombre} onChange={(e) => { const newV = [...burgerVariants]; newV[idx].nombre = e.target.value; setBurgerVariants(newV); }} />
@@ -4603,7 +4603,7 @@ export default function RestaurantDashboard() {
                                 <span className="toggle-track" />
                                 <span className="toggle-thumb" />
                               </label>
-                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>✕</button>
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerVariants(burgerVariants.filter((_, i) => i !== idx))}>âœ•</button>
                             </div>
                           ))}
                           <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerVariants([...burgerVariants, { nombre: '', precio: '', disponible: true }])}>+ Agregar Variante</button>
@@ -4616,7 +4616,7 @@ export default function RestaurantDashboard() {
                             <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                               <input placeholder="Nombre extra" className="form-input" style={{ flex: 2, marginBottom: 0 }} value={ex.nombre} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].nombre = e.target.value; setBurgerExtras(newE); }} />
                               <input placeholder="Precio" type="number" className="form-input" style={{ flex: 1, marginBottom: 0 }} value={ex.precio} onChange={(e) => { const newE = [...burgerExtras]; newE[idx].precio = e.target.value; setBurgerExtras(newE); }} />
-                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerExtras(burgerExtras.filter((_, i) => i !== idx))}>✕</button>
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBurgerExtras(burgerExtras.filter((_, i) => i !== idx))}>âœ•</button>
                             </div>
                           ))}
                           <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Agregar Extra</button>
@@ -4640,13 +4640,13 @@ export default function RestaurantDashboard() {
                 )}
 
                 <input name="foto" type="file" className="form-input" accept="image/*" />
-                {/* Ocultar control de stock del formulario de añadir/editar, manejar vía Stock Rápido */}
+                {/* Ocultar control de stock del formulario de aÃ±adir/editar, manejar vÃ­a Stock RÃ¡pido */}
                 <input type="hidden" name="maneja_stock" value={editItem?.maneja_stock ? 'on' : 'off'} />
 
                 <div className="rd-form-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => { setEditItem(null); setView('menu'); loadMenu(); setIsBaseProductMode(false); }}>Cancelar</button>
                   <button type="submit" className="btn btn-success" disabled={itemLoading}>
-                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (isInventory ? 'Guardar Artículo' : 'Guardar Plato'))}
+                    {itemLoading ? <span className="spinner spinner-white" /> : (editItem ? 'Guardar Cambios' : (isInventory ? 'Guardar ArtÃ­culo' : 'Guardar Plato'))}
                   </button>
                 </div>
               </form>
@@ -4654,15 +4654,15 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
-        {/* ─── Gestión de Helados (Sabores, Salsas, Adicionales) ─── */}
+        {/* â”€â”€â”€ GestiÃ³n de Helados (Sabores, Salsas, Adicionales) â”€â”€â”€ */}
         {view === 'sabores' && (
           <section className="animate-fade-in">
-            <h2 style={{ color: 'var(--red-600)', marginBottom: 24, textAlign: 'center' }}>Gestión de Helados</h2>
+            <h2 style={{ color: 'var(--red-600)', marginBottom: 24, textAlign: 'center' }}>GestiÃ³n de Helados</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              {/* Sección Sabores y Salsas */}
+              {/* SecciÃ³n Sabores y Salsas */}
               <div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>🍦 Sabores y Salsas</h3>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>ðŸ¦ Sabores y Salsas</h3>
                 <div className="card card-body" style={{ marginBottom: 16 }}>
                   <form onSubmit={handleAddSabor} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <input name="nombre" className="form-input" placeholder="Nombre (Ej: Dulce de Leche)" required />
@@ -4694,16 +4694,16 @@ export default function RestaurantDashboard() {
                             <span className={`badge ${s.tipo === 'Salsa' ? 'badge-amber' : 'badge-blue'}`} style={{ marginLeft: 8, fontSize: '0.7rem' }}>{s.tipo}</span>
                           </div>
                         </div>
-                        <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteSabor(s.id)} style={{ color: 'var(--red-500)', padding: 4 }}>✕</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteSabor(s.id)} style={{ color: 'var(--red-500)', padding: 4 }}>âœ•</button>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Sección Adicionales (Pagos) */}
+              {/* SecciÃ³n Adicionales (Pagos) */}
               <div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>📦 Adicionales (Con Precio)</h3>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>ðŸ“¦ Adicionales (Con Precio)</h3>
                 <div className="card card-body" style={{ marginBottom: 16 }}>
                   <form onSubmit={handleAddAdicional} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <input name="nombre" className="form-input" placeholder="Nombre (Ej: Cucurucho)" required />
@@ -4732,7 +4732,7 @@ export default function RestaurantDashboard() {
                             <span style={{ marginLeft: 8, color: 'var(--red-600)', fontWeight: 700, fontSize: '0.9rem' }}>${a.precio}</span>
                           </div>
                         </div>
-                        <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteAdicional(a.id)} style={{ color: 'var(--red-500)', padding: 4 }}>✕</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteAdicional(a.id)} style={{ color: 'var(--red-500)', padding: 4 }}>âœ•</button>
                       </div>
                     ))}
                   </div>
@@ -4742,12 +4742,12 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
-        {/* ─── Cierre View ─── */}
+        {/* â”€â”€â”€ Cierre View â”€â”€â”€ */}
         {view === 'cierre' && (
           <section className="animate-fade-in" style={{ padding: '0 20px 40px' }}>
             <div className="card card-body" style={{ maxWidth: '800px', margin: '0 auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                <h2 style={{ color: 'var(--red-600)', margin: 0 }}>🧾 Cierre de Caja</h2>
+                <h2 style={{ color: 'var(--red-600)', margin: 0 }}>ðŸ§¾ Cierre de Caja</h2>
                 
                 <div className="rd-tabs" style={{ background: '#f1f5f9', padding: '4px', borderRadius: '8px', display: 'flex', gap: '4px' }}>
                   <button 
@@ -4770,7 +4770,7 @@ export default function RestaurantDashboard() {
                       onClick={() => { setCierreSubTab('estadisticas'); loadStats(); }}
                       style={{ fontSize: '0.75rem' }}
                     >
-                      Estadísticas
+                      EstadÃ­sticas
                     </button>
                   )}
 
@@ -4802,9 +4802,9 @@ export default function RestaurantDashboard() {
                       value={cierreMode}
                       onChange={(e) => setCierreMode(e.target.value)}
                     >
-                      <option value="pendientes">⏳ Últimos Pedidos (Sin Cerrar)</option>
-                      <option value="dia">📅 Por Día Específico</option>
-                      <option value="intervalo">🗓️ Por Intervalo de Fechas</option>
+                      <option value="pendientes">â³ Ãšltimos Pedidos (Sin Cerrar)</option>
+                      <option value="dia">ðŸ“… Por DÃ­a EspecÃ­fico</option>
+                      <option value="intervalo">ðŸ—“ï¸ Por Intervalo de Fechas</option>
                     </select>
 
                     {cierreMode === 'dia' && (
@@ -4838,7 +4838,7 @@ export default function RestaurantDashboard() {
                     )}
 
                     <button className="btn btn-primary" onClick={loadCierreReport} disabled={cierreLoading}>
-                      {cierreLoading ? <span className="spinner spinner-white" /> : '🔍 Generar Informe'}
+                      {cierreLoading ? <span className="spinner spinner-white" /> : 'ðŸ” Generar Informe'}
                     </button>
                   </div>
                 )}
@@ -4849,11 +4849,11 @@ export default function RestaurantDashboard() {
               {cierreSubTab === 'generar' ? (
                 !cierreReport ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)' }}>
-                    Seleccioná una fecha y hacé clic en "Generar Informe" para ver las ventas.
+                    SeleccionÃ¡ una fecha y hacÃ© clic en "Generar Informe" para ver las ventas.
                   </div>
                 ) : (
                   <div id="printable-cierre" style={{ background: 'white' }}>
-                    {/* Header solo para impresión */}
+                    {/* Header solo para impresiÃ³n */}
                     <div className="only-print" style={{ display: 'none', marginBottom: 20, borderBottom: '2px solid #000', paddingBottom: 15 }}>
 
                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -4899,7 +4899,7 @@ export default function RestaurantDashboard() {
 
 
                   <h3 style={{ fontSize: '1.2rem', marginBottom: 16, color: 'var(--gray-800)', borderBottom: '2px solid var(--gray-100)', paddingBottom: 8 }}>
-                    📋 Detalle de Pedidos ({cierreReport.pedidos.length})
+                    ðŸ“‹ Detalle de Pedidos ({cierreReport.pedidos.length})
                   </h3>
 
                   <div style={{ overflowX: 'auto' }}>
@@ -4908,9 +4908,9 @@ export default function RestaurantDashboard() {
                         <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
                           <th style={{ padding: '8px 4px' }}>Pedido</th>
                           <th style={{ padding: '8px 4px' }}>Fecha/Hora</th>
-                          <th style={{ padding: '8px 4px' }}>Método</th>
+                          <th style={{ padding: '8px 4px' }}>MÃ©todo</th>
                           <th style={{ padding: '8px 4px', textAlign: 'right' }}>Total</th>
-                          <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)' }}>Financiación</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--blue-600)' }}>FinanciaciÃ³n</th>
                           <th style={{ padding: '8px 4px', textAlign: 'right', color: 'var(--red-600)' }}>Monto Com.</th>
                           <th style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>Neto</th>
                         </tr>
@@ -4964,17 +4964,17 @@ export default function RestaurantDashboard() {
                             </tr>
                             
                              <tr style={{ background: '#f0f9ff' }}>
-                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>FINANCIACIÓN WEPI A LIQUIDAR</td>
+                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--blue-600)' }}>FINANCIACIÃ“N WEPI A LIQUIDAR</td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--blue-600)' }}>${cierreReport.totalCreditoWepi}</td>
                                <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-600)', paddingLeft: '15px', verticalAlign: 'middle', textAlign: 'left' }}>
-                                 <div style={{ fontWeight: 700, marginBottom: '2px' }}>Detalle de liquidación financiada por Wepi:</div>
-                                 {Number(cierreReport.totalCreditoWallet) > 0 && <div>• Crédito Wallet: ${cierreReport.totalCreditoWallet}</div>}
-                                 {Number(cierreReport.totalDescuentoWepi) > 0 && <div>• Descuento Promos Wepi: ${cierreReport.totalDescuentoWepi}</div>}
-                                 <div style={{ color: 'var(--gray-400)', marginTop: '4px', fontSize: '0.7rem' }}>Wepi liquidará este total al local.</div>
+                                 <div style={{ fontWeight: 700, marginBottom: '2px' }}>Detalle de liquidaciÃ³n financiada por Wepi:</div>
+                                 {Number(cierreReport.totalCreditoWallet) > 0 && <div>â€¢ CrÃ©dito Wallet: ${cierreReport.totalCreditoWallet}</div>}
+                                 {Number(cierreReport.totalDescuentoWepi) > 0 && <div>â€¢ Descuento Promos Wepi: ${cierreReport.totalDescuentoWepi}</div>}
+                                 <div style={{ color: 'var(--gray-400)', marginTop: '4px', fontSize: '0.7rem' }}>Wepi liquidarÃ¡ este total al local.</div>
                                </td>
                              </tr>
                              <tr style={{ background: 'var(--gray-50)' }}>
-                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÓN WEPI</td>
+                               <td colSpan="3" style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'right', color: 'var(--red-600)' }}>COMISIÃ“N WEPI</td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--red-600)' }}>-${cierreReport.comisiones}</td>
                                <td colSpan="3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', verticalAlign: 'middle', paddingLeft: '15px' }}>
                                   <div style={{ display: 'flex', gap: '15px' }}>
@@ -4984,18 +4984,18 @@ export default function RestaurantDashboard() {
                                </td>
                             </tr>
                             <tr style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
-                               <td colSpan="3" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisión Wepi)</td>
+                               <td colSpan="3" style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'right', color: '#166534', fontSize: '1rem' }}>TOTAL NETO (sin comisiÃ³n Wepi)</td>
                                <td colSpan="3"></td>
                                <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 800, color: '#166534', fontSize: '1rem' }}>${cierreReport.neto}</td>
                             </tr>
                             <tr style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
                                <td colSpan="8" style={{ padding: '16px 8px', textAlign: 'right' }}>
                                   <div style={{ marginBottom: 4 }}>
-                                    <span style={{ marginRight: 20 }}>💳 Transferencia: ${cierreReport.transferencia}</span>
-                                    <span>💵 Efectivo: ${cierreReport.efectivo}</span>
+                                    <span style={{ marginRight: 20 }}>ðŸ’³ Transferencia: ${cierreReport.transferencia}</span>
+                                    <span>ðŸ’µ Efectivo: ${cierreReport.efectivo}</span>
                                   </div>
                                   <div style={{ fontStyle: 'italic', color: 'var(--gray-400)', fontSize: '0.65rem' }}>
-                                    * Este informe contempla únicamente la comisión de servicio de Wepi. No incluye retenciones de pasarelas de pago (Mercado Pago) ni impuestos externos.
+                                    * Este informe contempla Ãºnicamente la comisiÃ³n de servicio de Wepi. No incluye retenciones de pasarelas de pago (Mercado Pago) ni impuestos externos.
                                   </div>
                                 </td>
                             </tr>
@@ -5008,9 +5008,9 @@ export default function RestaurantDashboard() {
                   </div>
 
                   <div className="no-print" style={{ marginTop: 30, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                     <button className="btn btn-outline" onClick={() => window.print()}>🖨️ Imprimir Informe</button>
+                     <button className="btn btn-outline" onClick={() => window.print()}>ðŸ–¨ï¸ Imprimir Informe</button>
                      <button className="btn btn-success" onClick={handleSaveCierre} disabled={cierreLoading || cierreReport.pedidos.length === 0}>
-                       {cierreLoading ? <span className="spinner spinner-white" /> : '💾 Guardar Cierre'}
+                       {cierreLoading ? <span className="spinner spinner-white" /> : 'ðŸ’¾ Guardar Cierre'}
                      </button>
                   </div>
                   </div>
@@ -5022,7 +5022,7 @@ export default function RestaurantDashboard() {
                         <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--gray-100)' }}>
                           <th style={{ padding: '12px 8px' }}>Fecha</th>
                           <th style={{ padding: '12px 8px' }}>Subtotal</th>
-                          <th style={{ padding: '12px 8px' }}>Comisión</th>
+                          <th style={{ padding: '12px 8px' }}>ComisiÃ³n</th>
                           <th style={{ padding: '12px 8px' }}>Neto</th>
                           <th style={{ padding: '12px 8px', textAlign: 'right' }}>Acciones</th>
                         </tr>
@@ -5057,7 +5057,7 @@ export default function RestaurantDashboard() {
                         ))}
                         {historialCierres.length === 0 && !cierreLoading && (
                           <tr>
-                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>No hay cierres guardados aún.</td>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-400)' }}>No hay cierres guardados aÃºn.</td>
                           </tr>
                         )}
                       </tbody>
@@ -5106,7 +5106,7 @@ export default function RestaurantDashboard() {
                               <th style={{ padding: '8px' }}>Fecha</th>
                               <th style={{ padding: '8px' }}>Pedidos</th>
                               <th style={{ padding: '8px' }}>Venta</th>
-                              <th style={{ padding: '8px' }}>Comisión</th>
+                              <th style={{ padding: '8px' }}>ComisiÃ³n</th>
                               <th style={{ padding: '8px' }}>Neto</th>
                             </tr>
                           </thead>
@@ -5140,34 +5140,34 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
-        {/* ─── Settings View ─── */}
+        {/* â”€â”€â”€ Settings View â”€â”€â”€ */}
         {view === 'settings' && (
           <section className="animate-fade-in">
             {!profileSubView.startsWith('edit') && (
               <div className="rd-tabs" style={{ gap: 8, marginBottom: 24 }}>
                 <button className={profileSubView === 'printing' ? 'active' : ''} onClick={() => setProfileSubView('printing')}>
-                  🖨️ Impresión Ticket
+                  ðŸ–¨ï¸ ImpresiÃ³n Ticket
                 </button>
                 <button className={profileSubView === 'notifications' ? 'active' : ''} onClick={() => setProfileSubView('notifications')}>
-                  📳 Notificaciones
+                  ðŸ“³ Notificaciones
                 </button>
                 <button className={profileSubView === 'cajas' ? 'active' : ''} onClick={() => setProfileSubView('cajas')}>
-                  🔑 Cajas / Dispositivos
+                  ðŸ”‘ Cajas / Dispositivos
                 </button>
                 <button className={profileSubView === 'whatsapp' ? 'active' : ''} onClick={() => setProfileSubView('whatsapp')}>
-                  🤖 Wepi Assistant (Beta)
+                  ðŸ¤– Wepi Assistant (Beta)
                 </button>
                 <button className={profileSubView === 'enlace' ? 'active' : ''} onClick={() => setProfileSubView('enlace')}>
-                  🔗 Compartir Menú
+                  ðŸ”— Compartir MenÃº
                 </button>
               </div>
             )}
 
             {profileSubView === 'edit' && (
               <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 16px' }}>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: '8px', textAlign: 'left', fontWeight: 800, fontSize: '1.6rem' }}>⚙️ Ajustes del Local</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: '8px', textAlign: 'left', fontWeight: 800, fontSize: '1.6rem' }}>âš™ï¸ Ajustes del Local</h2>
                 <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '24px', textAlign: 'left', fontWeight: 500 }}>
-                  Administrá los parámetros principales de tu local. Seleccioná una sección para configurar:
+                  AdministrÃ¡ los parÃ¡metros principales de tu local. SeleccionÃ¡ una secciÃ³n para configurar:
                 </p>
                 
                 <div style={{ 
@@ -5182,23 +5182,23 @@ export default function RestaurantDashboard() {
                     className="card"
                     style={{ padding: '24px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid var(--gray-200)', background: '#fff' }}
                   >
-                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🕒</div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--gray-800)' }}>Horarios de Atención</h3>
+                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>ðŸ•’</div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--gray-800)' }}>Horarios de AtenciÃ³n</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.4 }}>
-                      Establecé los horarios de apertura de tu cocina para cada día de la semana.
+                      EstablecÃ© los horarios de apertura de tu cocina para cada dÃ­a de la semana.
                     </p>
                   </div>
 
-                  {/* Shortcut 2: Métodos de Entrega */}
+                  {/* Shortcut 2: MÃ©todos de Entrega */}
                   <div 
                     onClick={() => setProfileSubView('edit_entrega')}
                     className="card"
                     style={{ padding: '24px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid var(--gray-200)', background: '#fff' }}
                   >
-                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🛵</div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--gray-800)' }}>Métodos de Entrega</h3>
+                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>ðŸ›µ</div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--gray-800)' }}>MÃ©todos de Entrega</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.4 }}>
-                      Habilitá envíos a domicilio o retiros en el local y configurá las opciones básicas.
+                      HabilitÃ¡ envÃ­os a domicilio o retiros en el local y configurÃ¡ las opciones bÃ¡sicas.
                     </p>
                   </div>
 
@@ -5208,10 +5208,10 @@ export default function RestaurantDashboard() {
                     className="card"
                     style={{ padding: '24px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid var(--gray-200)', background: '#fff' }}
                   >
-                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>💳</div>
+                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>ðŸ’³</div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--gray-800)' }}>Cobros con Mercado Pago</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.4 }}>
-                      Vinculá tu cuenta para cobrar de forma digital y recibir dinero al instante.
+                      VinculÃ¡ tu cuenta para cobrar de forma digital y recibir dinero al instante.
                     </p>
                   </div>
 
@@ -5221,10 +5221,10 @@ export default function RestaurantDashboard() {
                     className="card"
                     style={{ padding: '24px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid var(--gray-200)', background: '#fff' }}
                   >
-                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🛍️</div>
+                    <div style={{ fontSize: '2rem', marginBottom: '12px' }}>ðŸ›ï¸</div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--gray-800)' }}>Rama y Rubros</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.4 }}>
-                      Configurá la rama principal (Delivery / Shops) y los rubros de tu negocio.
+                      ConfigurÃ¡ la rama principal (Delivery / Shops) y los rubros de tu negocio.
                     </p>
                   </div>
                 </div>
@@ -5238,25 +5238,25 @@ export default function RestaurantDashboard() {
                   className="btn btn-ghost" 
                   style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--gray-500)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  ← Volver a Ajustes
+                  â† Volver a Ajustes
                 </button>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>🕒 Horarios de Atención</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>ðŸ•’ Horarios de AtenciÃ³n</h2>
                 
                 <form onSubmit={handleSaveSettings}>
                   <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
                     <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>
-                      Configurá los horarios específicos para cada día de la semana.
+                      ConfigurÃ¡ los horarios especÃ­ficos para cada dÃ­a de la semana.
                     </p>
                     {renderHorariosConfig()}
 
                     <div style={{ marginTop: 24, padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid var(--gray-200)' }}>
-                      <label style={{ fontSize: '0.85rem', color: 'var(--gray-600)', display: 'block', marginBottom: 8, fontWeight: 600 }}>Gestión de Estado</label>
+                      <label style={{ fontSize: '0.85rem', color: 'var(--gray-600)', display: 'block', marginBottom: 8, fontWeight: 600 }}>GestiÃ³n de Estado</label>
                       <select name="modo_automatico" className="form-select" defaultValue={profileData?.modo_automatico ? 'true' : 'false'}>
-                        <option value="true">Modo Automático (Abrir/Cerrar según horario)</option>
-                        <option value="false">Modo Manual (Yo controlo el botón de Abrir/Cerrar)</option>
+                        <option value="true">Modo AutomÃ¡tico (Abrir/Cerrar segÃºn horario)</option>
+                        <option value="false">Modo Manual (Yo controlo el botÃ³n de Abrir/Cerrar)</option>
                       </select>
                       <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: 8 }}>
-                        En modo automático, el local cambiará su estado a "Abierto" o "Cerrado" siguiendo la configuración de arriba.
+                        En modo automÃ¡tico, el local cambiarÃ¡ su estado a "Abierto" o "Cerrado" siguiendo la configuraciÃ³n de arriba.
                       </p>
                     </div>
                   </div>
@@ -5275,20 +5275,20 @@ export default function RestaurantDashboard() {
                   className="btn btn-ghost" 
                   style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--gray-500)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  ← Volver a Ajustes
+                  â† Volver a Ajustes
                 </button>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>🛵 Métodos de Entrega</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>ðŸ›µ MÃ©todos de Entrega</h2>
                 
                 <form onSubmit={handleSaveSettings}>
                   <div style={{ marginBottom: 24, padding: 24, background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-200)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}>
                         <input type="checkbox" name="acepta_retiro" defaultChecked={profileData?.acepta_retiro !== false} />
-                        🏪 Ofrecer Retiro en Local
+                        ðŸª Ofrecer Retiro en Local
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}>
                         <input type="checkbox" name="acepta_envio" defaultChecked={profileData?.acepta_envio !== false} />
-                        🛵 Ofrecer Envío a Domicilio
+                        ðŸ›µ Ofrecer EnvÃ­o a Domicilio
                       </label>
                     </div>
                   </div>
@@ -5307,9 +5307,9 @@ export default function RestaurantDashboard() {
                   className="btn btn-ghost" 
                   style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--gray-500)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  ← Volver a Ajustes
+                  â† Volver a Ajustes
                 </button>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>💳 Cobros con Mercado Pago</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>ðŸ’³ Cobros con Mercado Pago</h2>
                 
                 <div style={{ backgroundColor: '#f0f9ff', padding: '24px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
@@ -5318,23 +5318,23 @@ export default function RestaurantDashboard() {
                       Mercado Pago
                     </h3>
                     {profileData?.mp_access_token ? (
-                      <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#d1fae5', color: '#065f46', borderRadius: '12px', fontWeight: 600 }}>✓ Cuenta Vinculada</span>
+                      <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#d1fae5', color: '#065f46', borderRadius: '12px', fontWeight: 600 }}>âœ“ Cuenta Vinculada</span>
                     ) : (
-                      <span className="badge badge-red" style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#fee2e2', color: '#991b1b', borderRadius: '12px', fontWeight: 600 }}>✗ Desvinculada</span>
+                      <span className="badge badge-red" style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#fee2e2', color: '#991b1b', borderRadius: '12px', fontWeight: 600 }}>âœ— Desvinculada</span>
                     )}
                   </div>
 
                   <p style={{ color: '#0c4a6e', fontSize: '0.9rem', marginBottom: '20px', lineHeight: 1.5 }}>
-                    Conectá tu cuenta de Mercado Pago para recibir pagos online de forma automática en tu cuenta bancaria o billetera digital.
+                    ConectÃ¡ tu cuenta de Mercado Pago para recibir pagos online de forma automÃ¡tica en tu cuenta bancaria o billetera digital.
                   </p>
 
                   {profileData?.mp_access_token && (
                     <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #bae6fd', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                       <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', color: '#0284c7', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        📌 Información de la Cuenta Vinculada
+                        ðŸ“Œ InformaciÃ³n de la Cuenta Vinculada
                       </h4>
                       {mpAccountLoading ? (
-                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>⏳ Cargando datos de Mercado Pago...</div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>â³ Cargando datos de Mercado Pago...</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem', color: '#334155' }}>
                           <div>
@@ -5363,14 +5363,14 @@ export default function RestaurantDashboard() {
                       className="btn btn-primary" 
                       style={{ backgroundColor: '#009ee3', borderColor: '#009ee3', padding: '10px 20px', fontWeight: 600, border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff', fontSize: '0.9rem' }}
                       onClick={() => {
-                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicación de Mercado Pago:");
+                        const clientId = import.meta.env.VITE_MP_CLIENT_ID || prompt("Por favor, ingresa el CLIENT_ID de tu aplicaciÃ³n de Mercado Pago:");
                         if (!clientId) return;
                         const redirectUri = `${import.meta.env.VITE_SUPABASE_URL || 'https://jskxfescamdjesdrcnkf.supabase.co'}/functions/v1/mp-oauth-callback`;
                         const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&state=${restaurant.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
                         window.location.href = authUrl;
                       }}
                     >
-                      {profileData?.mp_access_token ? '🔄 Cambiar / Re-vincular Cuenta' : '💳 Vincular MercadoPago'}
+                      {profileData?.mp_access_token ? 'ðŸ”„ Cambiar / Re-vincular Cuenta' : 'ðŸ’³ Vincular MercadoPago'}
                     </button>
 
                     {profileData?.mp_access_token && (
@@ -5380,33 +5380,33 @@ export default function RestaurantDashboard() {
                         onClick={handleDesvincularMP}
                         style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', padding: '10px 18px', fontWeight: 600, border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff', fontSize: '0.9rem' }}
                       >
-                        {mpUnlinking ? 'Desvinculando...' : '🗑️ Desvincular Cuenta'}
+                        {mpUnlinking ? 'Desvinculando...' : 'ðŸ—‘ï¸ Desvincular Cuenta'}
                       </button>
                     )}
                   </div>
                 </div>
                   <a href="https://drive.google.com/file/d/1yF-ccJU5o_on2bjpAaqPFKbU9Y-tBq8p/view?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', backgroundColor: '#fff', border: '1px solid #bae6fd', borderRadius: '8px', textDecoration: 'none', color: '#0369a1', fontWeight: '600', marginTop: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', fontSize: '0.9rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>📺</span>
-                    Ver Tutorial: Vinculación y Configuración de Ingresos
+                    <span style={{ fontSize: '1.2rem' }}>ðŸ“º</span>
+                    Ver Tutorial: VinculaciÃ³n y ConfiguraciÃ³n de Ingresos
                   </a>
               </div>
             )}
 
             {profileSubView === 'enlace' && (
               <div className="card card-body" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'left' }}>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>🔗 Compartir Menú</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>ðŸ”— Compartir MenÃº</h2>
                 
                 <div style={{ backgroundColor: '#f0fdf4', padding: '18px', borderRadius: '12px', border: '1px solid #bbf7d0', marginBottom: 24, fontSize: '0.9rem', color: '#166534', lineHeight: 1.5 }}>
-                  💡 <strong>¿Cómo usar tu enlace?</strong>
+                  ðŸ’¡ <strong>Â¿CÃ³mo usar tu enlace?</strong>
                   <p style={{ margin: '8px 0 0 0' }}>
-                    Derivá este enlace personalizado en tus biografías de Instagram, Facebook y estados de WhatsApp. Al hacer clic, tus clientes accederán directamente a tu menú digital de Wepi y verán <strong>exclusivamente tus productos</strong>, facilitando la toma de pedidos y aumentando tus ventas de forma directa.
+                    DerivÃ¡ este enlace personalizado en tus biografÃ­as de Instagram, Facebook y estados de WhatsApp. Al hacer clic, tus clientes accederÃ¡n directamente a tu menÃº digital de Wepi y verÃ¡n <strong>exclusivamente tus productos</strong>, facilitando la toma de pedidos y aumentando tus ventas de forma directa.
                   </p>
                 </div>
 
                 <div>
                   {/* Enlace Compartible */}
                   <div style={{ padding: 16, background: '#f0f9ff', borderRadius: 12, border: '1px solid #bae6fd' }}>
-                    <h3 style={{ fontSize: '1rem', marginBottom: 12, color: '#0369a1', fontWeight: 700 }}>🔗 Enlace Compartible</h3>
+                    <h3 style={{ fontSize: '1rem', marginBottom: 12, color: '#0369a1', fontWeight: 700 }}>ðŸ”— Enlace Compartible</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <div style={{ 
@@ -5459,7 +5459,7 @@ export default function RestaurantDashboard() {
                                 : `https://wepi.com.ar/pedir/${citySlug}/`;
                               const link = `${prefix}${profileData?.slug || ''}`;
                               navigator.clipboard.writeText(link);
-                              toast.success('¡Enlace copiado!', { icon: '📋' });
+                              toast.success('Â¡Enlace copiado!', { icon: 'ðŸ“‹' });
                             }}
                           >
                             Copiar
@@ -5479,9 +5479,9 @@ export default function RestaurantDashboard() {
                   className="btn btn-ghost" 
                   style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--gray-500)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  ← Volver a Ajustes
+                  â† Volver a Ajustes
                 </button>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>🛍️ Rama y Rubros</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 20, fontSize: '1.4rem', fontWeight: 800 }}>ðŸ›ï¸ Rama y Rubros</h2>
                 
                 <div>
                   {/* Rama de Servicio */}
@@ -5509,12 +5509,12 @@ export default function RestaurantDashboard() {
                               const success = await api.updatePerfilLocal({ localId: restaurant.id, tipo_servicio: 'delivery', rubros: [] });
                               if (success) {
                                 setProfileData({ ...profileData, tipo_servicio: 'delivery', rubros: [] });
-                                toast.success('Cambiado a Wepi Delivery. Seleccioná tus nuevos rubros.');
+                                toast.success('Cambiado a Wepi Delivery. SeleccionÃ¡ tus nuevos rubros.');
                               }
                             } catch { toast.error('Error al cambiar de rama'); }
                           }}
                         />
-                        🛵 Wepi Delivery
+                        ðŸ›µ Wepi Delivery
                       </label>
                       <label style={{ 
                         display: 'flex', 
@@ -5537,20 +5537,20 @@ export default function RestaurantDashboard() {
                               const success = await api.updatePerfilLocal({ localId: restaurant.id, tipo_servicio: 'shops', rubros: [] });
                               if (success) {
                                 setProfileData({ ...profileData, tipo_servicio: 'shops', rubros: [] });
-                                toast.success('Cambiado a Wepi Shops. Seleccioná tus nuevos rubros.');
+                                toast.success('Cambiado a Wepi Shops. SeleccionÃ¡ tus nuevos rubros.');
                               }
                             } catch { toast.error('Error al cambiar de rama'); }
                           }}
                         />
-                        🛍️ Wepi Shops
+                        ðŸ›ï¸ Wepi Shops
                       </label>
                     </div>
 
                     <h3 style={{ fontSize: '1rem', marginBottom: 12, color: 'var(--gray-700)', fontWeight: 700 }}>Rubros del Negocio</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12 }}>
                       {(profileData?.tipo_servicio === 'shops'
-                        ? ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas']
-                        : ['Restaurante', 'Cafetería', 'Heladería', 'Market', 'Farmacia', 'Bebidas', 'Carnicería']
+                        ? ['Hogar', 'TecnologÃ­a', 'Moda', 'RegalerÃ­a', 'Deportes', 'Bebidas']
+                        : ['Restaurante', 'CafeterÃ­a', 'HeladerÃ­a', 'Market', 'Farmacia', 'Bebidas', 'CarnicerÃ­a']
                       ).map(r => {
                         const isSelected = profileData?.rubros?.includes(r);
                         return (
@@ -5586,7 +5586,7 @@ export default function RestaurantDashboard() {
                                   });
                                   if (success) {
                                     setProfileData({ ...profileData, rubros: newRubros, rubro: newRubros.length > 0 ? newRubros[0] : null });
-                                    toast.success(checked ? `Rubro ${r} añadido` : `Rubro ${r} removido`);
+                                    toast.success(checked ? `Rubro ${r} aÃ±adido` : `Rubro ${r} removido`);
                                   }
                                 } catch (e) { toast.error('Error al cambiar rubros'); }
                               }}
@@ -5603,10 +5603,10 @@ export default function RestaurantDashboard() {
 
             {profileSubView === 'printing' && (
               <div className="card card-body animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🖨️</div>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Impresión Automática de Tickets</h2>
+                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>ðŸ–¨ï¸</div>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>ImpresiÃ³n AutomÃ¡tica de Tickets</h2>
                 <p style={{ color: 'var(--gray-600)', maxWidth: '500px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-                  Optimizá tu local con nuestra aplicación de escritorio. Imprime tickets automáticamente en tu comandera térmica apenas recibís un pedido.
+                  OptimizÃ¡ tu local con nuestra aplicaciÃ³n de escritorio. Imprime tickets automÃ¡ticamente en tu comandera tÃ©rmica apenas recibÃ­s un pedido.
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
@@ -5616,11 +5616,11 @@ export default function RestaurantDashboard() {
                     className="btn btn-primary btn-full"
                     style={{ padding: '16px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                   >
-                    🚀 Descargar instalador para Windows
+                    ðŸš€ Descargar instalador para Windows
                   </a>
                   
                   <div className="card" style={{ padding: '24px', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', marginTop: '20px' }}>
-                    <h3 style={{ fontSize: '0.9rem', color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Tu ID de Configuración</h3>
+                    <h3 style={{ fontSize: '0.9rem', color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Tu ID de ConfiguraciÃ³n</h3>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
                       <code style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--gray-800)', background: 'white', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--gray-300)' }}>
                         {restaurant?.id}
@@ -5630,11 +5630,11 @@ export default function RestaurantDashboard() {
                         onClick={() => { navigator.clipboard.writeText(restaurant?.id); toast.success('ID Copiado'); }}
                         style={{ padding: '8px' }}
                       >
-                        📋 Copiar
+                        ðŸ“‹ Copiar
                       </button>
                     </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '16px' }}>
-                      Copiá este ID y pegalo en la aplicación de escritorio para vincular tu local.
+                      CopiÃ¡ este ID y pegalo en la aplicaciÃ³n de escritorio para vincular tu local.
                     </p>
                   </div>
                 </div>
@@ -5642,10 +5642,10 @@ export default function RestaurantDashboard() {
                 <div style={{ marginTop: '40px', borderTop: '1px solid var(--gray-100)', paddingTop: '40px', textAlign: 'left', maxWidth: '600px', margin: '40px auto 0' }}>
                   <h4 style={{ marginBottom: '16px' }}>Pasos para configurar:</h4>
                   <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--gray-600)' }}>
-                    <li><strong>Descargá e instalá</strong> el programa en la computadora que tiene conectada la impresora.</li>
-                    <li><strong>Abrí Wepi Desktop</strong> e ingresá tu ID de Local (arriba).</li>
-                    <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
-                    <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
+                    <li><strong>DescargÃ¡ e instalÃ¡</strong> el programa en la computadora que tiene conectada la impresora.</li>
+                    <li><strong>AbrÃ­ Wepi Desktop</strong> e ingresÃ¡ tu ID de Local (arriba).</li>
+                    <li><strong>SeleccionÃ¡ tu impresora</strong> tÃ©rmica en el menÃº desplegable.</li>
+                    <li>Â¡Listo! La app detectarÃ¡ tus pedidos y los imprimirÃ¡ automÃ¡ticamente.</li>
                   </ol>
                 </div>
               </div>
@@ -5653,9 +5653,9 @@ export default function RestaurantDashboard() {
 
             {profileSubView === 'notifications' && (
               <div className="card card-body animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto', padding: '24px' }}>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 12, textAlign: 'center' }}>📳 Notificaciones de Pedidos</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 12, textAlign: 'center' }}>ðŸ“³ Notificaciones de Pedidos</h2>
                 <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: 24, textAlign: 'center' }}>
-                  Configurá múltiples dispositivos (computadora, celulares) para recibir alertas al instante cuando entre un nuevo pedido.
+                  ConfigurÃ¡ mÃºltiples dispositivos (computadora, celulares) para recibir alertas al instante cuando entre un nuevo pedido.
                 </p>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -5693,16 +5693,16 @@ export default function RestaurantDashboard() {
 
                 <div style={{ background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: 12, padding: 16, marginBottom: 20 }}>
                   <h3 style={{ fontSize: '0.95rem', color: '#c2410c', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    📱 Vincular Celular u Otro Dispositivo
+                    ðŸ“± Vincular Celular u Otro Dispositivo
                   </h3>
                   <p style={{ fontSize: '0.8rem', color: '#9a3412', margin: '0 0 16px 0' }}>
-                    Escaneá este código QR con tu celular para abrir tu panel y habilitar las notificaciones. Se sumarán a las de tu computadora.
+                    EscaneÃ¡ este cÃ³digo QR con tu celular para abrir tu panel y habilitar las notificaciones. Se sumarÃ¡n a las de tu computadora.
                   </p>
 
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
                     <img 
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(window.location.origin + '/locales')}`} 
-                      alt="QR Vinculación Celular" 
+                      alt="QR VinculaciÃ³n Celular" 
                       style={{ border: '4px solid white', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
                   </div>
@@ -5728,7 +5728,7 @@ export default function RestaurantDashboard() {
                       className="btn btn-sm btn-ghost" 
                       style={{ color: '#991b1b', background: '#fee2e2', border: '1px solid #fca5a5' }}
                       onClick={async () => {
-                        if (window.confirm("¿Seguro que querés restablecer todos los dispositivos vinculados? Deberás volver a habilitar las notificaciones en cada uno.")) {
+                        if (window.confirm("Â¿Seguro que querÃ©s restablecer todos los dispositivos vinculados? DeberÃ¡s volver a habilitar las notificaciones en cada uno.")) {
                           try {
                             if (window.OneSignalDeferred) {
                               window.OneSignalDeferred.push(async (OneSignal) => {
@@ -5736,7 +5736,7 @@ export default function RestaurantDashboard() {
                                 if (subId) {
                                   await api.localResetOneSignalId(restaurant.id, subId);
                                   setProfileData(prev => ({ ...prev, onesignal_id: subId }));
-                                  toast.success("Dispositivos restablecidos. Solo este dispositivo está activo.");
+                                  toast.success("Dispositivos restablecidos. Solo este dispositivo estÃ¡ activo.");
                                 } else {
                                   await api.localResetOneSignalId(restaurant.id, "");
                                   setProfileData(prev => ({ ...prev, onesignal_id: "" }));
@@ -5759,9 +5759,9 @@ export default function RestaurantDashboard() {
 
             {profileSubView === 'cajas' && (
               <div className="card card-body animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
-                <h2 style={{ color: 'var(--red-600)', marginBottom: 8, textAlign: 'center' }}>🔑 Gestión de Cajas / Dispositivos</h2>
+                <h2 style={{ color: 'var(--red-600)', marginBottom: 8, textAlign: 'center' }}>ðŸ”‘ GestiÃ³n de Cajas / Dispositivos</h2>
                 <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: 24, textAlign: 'center' }}>
-                  Creá usuarios secundarios con nombre de usuario y contraseña para que tus sucursales o cajas inicien sesión de forma segura con permisos limitados.
+                  CreÃ¡ usuarios secundarios con nombre de usuario y contraseÃ±a para que tus sucursales o cajas inicien sesiÃ³n de forma segura con permisos limitados.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
@@ -5778,8 +5778,8 @@ export default function RestaurantDashboard() {
                         <input name="username" type="text" className="form-input" placeholder="Ej: caja_central" required style={{ marginBottom: 0 }} />
                       </div>
                       <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Contraseña</label>
-                        <input name="password" type="text" className="form-input" placeholder="••••••••" required style={{ marginBottom: 0 }} />
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>ContraseÃ±a</label>
+                        <input name="password" type="text" className="form-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required style={{ marginBottom: 0 }} />
                       </div>
                       <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px', background: 'var(--red-600)', borderColor: 'var(--red-600)' }}>
                         Agregar Caja
@@ -5796,7 +5796,7 @@ export default function RestaurantDashboard() {
                       </div>
                     ) : cajeros.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '20px', color: 'var(--gray-500)', fontSize: '0.9rem', border: '1px dashed var(--gray-300)', borderRadius: 12 }}>
-                        No hay cajas registradas todavía.
+                        No hay cajas registradas todavÃ­a.
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -5805,7 +5805,7 @@ export default function RestaurantDashboard() {
                             <div>
                               <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{c.nombre}</div>
                               <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Usuario: <strong>{c.username}</strong></div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Contraseña: <strong>{c.password}</strong></div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>ContraseÃ±a: <strong>{c.password}</strong></div>
                             </div>
                             <button 
                               type="button" 
@@ -5826,10 +5826,10 @@ export default function RestaurantDashboard() {
 
             {profileSubView === 'whatsapp' && (
               <div className="card card-body" style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🤖</div>
+                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>ðŸ¤–</div>
                 <h2 style={{ color: 'var(--red-600)', marginBottom: 8 }}>Wepi Assistant (Beta)</h2>
                 <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 24 }}>
-                  Vincular tu cuenta es muy simple. Escaneá el código QR desde la sección de Dispositivos Vinculados en tu app de WhatsApp.
+                  Vincular tu cuenta es muy simple. EscaneÃ¡ el cÃ³digo QR desde la secciÃ³n de Dispositivos Vinculados en tu app de WhatsApp.
                 </p>
 
                 <div style={{ 
@@ -5847,11 +5847,11 @@ export default function RestaurantDashboard() {
                   {!profileData?.whatsapp_assistant_enabled ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', maxWidth: '340px' }}>
                       <span className="badge badge-gray" style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600 }}>
-                        ⚪ Estado: No Vinculado
+                        âšª Estado: No Vinculado
                       </span>
                       <p style={{ fontSize: '0.8rem', color: 'var(--gray-600)', textAlign: 'center', margin: 0, lineHeight: '1.4' }}>
-                        Vinculá tu <strong>WhatsApp Business Oficial</strong> con un solo clic. 
-                        Tus clientes podrán pedir desde tu catálogo digital y vos <strong>podrás seguir respondiendo desde tu celular sin interrupciones</strong>.
+                        VinculÃ¡ tu <strong>WhatsApp Business Oficial</strong> con un solo clic. 
+                        Tus clientes podrÃ¡n pedir desde tu catÃ¡logo digital y vos <strong>podrÃ¡s seguir respondiendo desde tu celular sin interrupciones</strong>.
                       </p>
                       <button 
                         className="btn" 
@@ -5873,23 +5873,23 @@ export default function RestaurantDashboard() {
                         }}
                         onClick={(e) => {
                           e.preventDefault();
-                          toast.info('🔒 La vinculación de WhatsApp Assistant estará disponible próximamente');
+                          toast.info('ðŸ”’ La vinculaciÃ³n de WhatsApp Assistant estarÃ¡ disponible prÃ³ximamente');
                         }}
                       >
-                        <span style={{ fontSize: '1.1rem' }}>💬</span>
-                        🔒 Vincular WhatsApp Oficial (Próximamente)
+                        <span style={{ fontSize: '1.1rem' }}>ðŸ’¬</span>
+                        ðŸ”’ Vincular WhatsApp Oficial (PrÃ³ximamente)
                       </button>
                       <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
-                        ⏳ Funcionalidad en desarrollo • Próximamente disponible
+                        â³ Funcionalidad en desarrollo â€¢ PrÃ³ximamente disponible
                       </span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                       <span className="badge badge-green" style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, background: '#d1fae5', color: '#065f46' }}>
-                        🟢 Asistente Oficial Activo (Meta)
+                        ðŸŸ¢ Asistente Oficial Activo (Meta)
                       </span>
 
-                      {/* Grid de métricas de uso */}
+                      {/* Grid de mÃ©tricas de uso */}
                       <div style={{ 
                         display: 'grid', 
                         gridTemplateColumns: '1fr 1fr', 
@@ -5899,19 +5899,19 @@ export default function RestaurantDashboard() {
                         margin: '8px 0' 
                       }}>
                         <div style={{ background: '#fff', border: '1px solid var(--gray-200)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '1.25rem', display: 'block', marginBottom: '4px' }}>💬</span>
+                          <span style={{ fontSize: '1.25rem', display: 'block', marginBottom: '4px' }}>ðŸ’¬</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', display: 'block', fontWeight: 600 }}>Respuestas</span>
                           <strong style={{ fontSize: '1.1rem', color: 'var(--gray-800)' }}>{profileData?.whatsapp_messages_sent || 0}</strong>
                         </div>
                         <div style={{ background: '#fff', border: '1px solid var(--gray-200)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '1.25rem', display: 'block', marginBottom: '4px' }}>🔗</span>
+                          <span style={{ fontSize: '1.25rem', display: 'block', marginBottom: '4px' }}>ðŸ”—</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', display: 'block', fontWeight: 600 }}>Visitas</span>
                           <strong style={{ fontSize: '1.1rem', color: 'var(--gray-800)' }}>{profileData?.whatsapp_link_clicks || 0}</strong>
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '12px 18px', borderRadius: '10px', border: '1px solid #d1fae5' }}>
-                        <span style={{ fontSize: '1.2rem' }}>📞</span>
+                        <span style={{ fontSize: '1.2rem' }}>ðŸ“ž</span>
                         <strong style={{ fontSize: '0.95rem', color: 'var(--gray-800)' }}>
                           {profileData?.whatsapp_phone_number || `Phone ID: ${profileData?.whatsapp_phone_id}`}
                         </strong>
@@ -5922,18 +5922,18 @@ export default function RestaurantDashboard() {
                         style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                         onClick={handleDisconnectWAMeta}
                       >
-                        🛑 Desconectar Asistente
+                        ðŸ›‘ Desconectar Asistente
                       </button>
                     </div>
                   )}
                 </div>
 
                 <div style={{ textAlign: 'left', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ fontSize: '0.85rem', color: 'var(--gray-800)', marginBottom: '8px', fontWeight: 700 }}>💡 ¿Cómo funciona el Asistente?</h4>
+                  <h4 style={{ fontSize: '0.85rem', color: 'var(--gray-800)', marginBottom: '8px', fontWeight: 700 }}>ðŸ’¡ Â¿CÃ³mo funciona el Asistente?</h4>
                   <ul style={{ fontSize: '0.8rem', color: 'var(--gray-600)', paddingLeft: '20px', margin: 0, lineHeight: '1.4' }}>
-                    <li style={{ marginBottom: '4px' }}><strong>Sigue usando tu celular</strong>: El bot responde en segundo plano de forma automática, sin que pierdas tu chat móvil.</li>
-                    <li style={{ marginBottom: '4px' }}><strong>Toma Pedidos</strong>: Responde a saludos, muestra categorías principales de tu menú y provee enlaces a tu catálogo.</li>
-                    <li><strong>Estado de pedidos</strong>: Tus clientes pueden consultar el estado de su envío directamente desde WhatsApp.</li>
+                    <li style={{ marginBottom: '4px' }}><strong>Sigue usando tu celular</strong>: El bot responde en segundo plano de forma automÃ¡tica, sin que pierdas tu chat mÃ³vil.</li>
+                    <li style={{ marginBottom: '4px' }}><strong>Toma Pedidos</strong>: Responde a saludos, muestra categorÃ­as principales de tu menÃº y provee enlaces a tu catÃ¡logo.</li>
+                    <li><strong>Estado de pedidos</strong>: Tus clientes pueden consultar el estado de su envÃ­o directamente desde WhatsApp.</li>
                   </ul>
                 </div>
               </div>
@@ -5941,26 +5941,26 @@ export default function RestaurantDashboard() {
           </section>
         )}
 
-        {/* ─── Planes y Comisiones View ─── */}
+        {/* â”€â”€â”€ Planes y Comisiones View â”€â”€â”€ */}
         {view === 'plans' && renderPlansView()}
 
-        {/* ─── Profile ─── */}
+        {/* â”€â”€â”€ Profile â”€â”€â”€ */}
         {view === 'profile' && (
           <section className="animate-fade-in">
             <div className="rd-tabs" style={{ gap: 8, marginBottom: 24 }}>
               <button className={profileSubView === 'ventas' ? 'active' : ''} onClick={() => setProfileSubView('ventas')}>
-                💰 Mis Ventas
+                ðŸ’° Mis Ventas
               </button>
 
               <button className={profileSubView === 'edit' ? 'active' : ''} onClick={() => setProfileSubView('edit')}>
-                👤 Editar Perfil
+                ðŸ‘¤ Editar Perfil
               </button>
             </div>
 
             {profileSubView === 'ventas' && (
               <div className="card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-                   <h2 style={{ color: 'var(--red-600)', margin: 0 }}>📊 Estadísticas de Ventas</h2>
+                   <h2 style={{ color: 'var(--red-600)', margin: 0 }}>ðŸ“Š EstadÃ­sticas de Ventas</h2>
                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Desde:</span>
@@ -5970,7 +5970,7 @@ export default function RestaurantDashboard() {
                       <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Hasta:</span>
                       <input type="date" className="form-input" style={{ marginBottom: 0, width: '150px' }} value={statsDates.end} onChange={e => setStatsDates(s => ({...s, end: e.target.value}))} />
                     </div>
-                    <button className="btn btn-primary btn-sm" onClick={loadStats}>🔍 Filtrar</button>
+                    <button className="btn btn-primary btn-sm" onClick={loadStats}>ðŸ” Filtrar</button>
                   </div>
                 </div>
                 
@@ -6002,7 +6002,7 @@ export default function RestaurantDashboard() {
                             <th style={{ padding: '12px 8px' }}>Fecha</th>
                             <th style={{ padding: '12px 8px' }}>Pedidos</th>
                             <th style={{ padding: '12px 8px' }}>Venta Bruta</th>
-                            <th style={{ padding: '12px 8px' }}>Comisión</th>
+                            <th style={{ padding: '12px 8px' }}>ComisiÃ³n</th>
                             <th style={{ padding: '12px 8px' }}>Neto</th>
                           </tr>
                         </thead>
@@ -6027,8 +6027,8 @@ export default function RestaurantDashboard() {
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: 16 }}>📈</div>
-                    <p>Haz clic en "Filtrar" para ver las estadísticas de tus ventas cerradas.</p>
+                    <div style={{ fontSize: '3rem', marginBottom: 16 }}>ðŸ“ˆ</div>
+                    <p>Haz clic en "Filtrar" para ver las estadÃ­sticas de tus ventas cerradas.</p>
                   </div>
                 )}
               </div>
@@ -6059,11 +6059,11 @@ export default function RestaurantDashboard() {
                           border: '1px solid var(--gray-200)',
                           cursor: 'pointer'
                         }} onClick={() => setShowAddressSelector(true)}>
-                          <span style={{ fontSize: '1.2rem' }}>📍</span>
+                          <span style={{ fontSize: '1.2rem' }}>ðŸ“</span>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Ubicación en el mapa</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>UbicaciÃ³n en el mapa</p>
                             <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--gray-800)', fontWeight: 500 }}>
-                              {profileAddress || 'Configurar ubicación...'}
+                              {profileAddress || 'Configurar ubicaciÃ³n...'}
                             </p>
                           </div>
                           <button type="button" className="btn btn-ghost btn-xs" style={{ color: 'var(--blue-600)' }}>Cambiar</button>
@@ -6071,19 +6071,19 @@ export default function RestaurantDashboard() {
                         <input 
                           name="direccion" 
                           className="form-input" 
-                          placeholder="Dirección manual (opcional)" 
+                          placeholder="DirecciÃ³n manual (opcional)" 
                           value={profileAddress} 
                           onChange={(e) => setProfileAddress(e.target.value)} 
                         />
                         {(!profileLat || !profileLng) && (
                           <span style={{ fontSize: '0.75rem', color: 'var(--amber-600)', fontStyle: 'italic' }}>
-                            ⚠️ Ubicación no configurada en el mapa
+                            âš ï¸ UbicaciÃ³n no configurada en el mapa
                           </span>
                         )}
                       </div>
                     </div>
                     <input name="email" type="email" className="form-input" placeholder="Email" defaultValue={profileData.email || ''} required />
-                    <input name="password" type="password" className="form-input" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
+                    <input name="password" type="password" className="form-input" placeholder="Nueva contraseÃ±a (dejar vacÃ­o para no cambiar)" />
                     
 
                     
@@ -6105,18 +6105,18 @@ export default function RestaurantDashboard() {
 
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '60px 20px', background: 'var(--red-800)', color: 'white' }}>
         <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '50px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-        <p>© 2026 <strong>Wepi</strong> — Panel de Locales</p>
+        <p>Â© 2026 <strong>Wepi</strong> â€” Panel de Locales</p>
         <button 
           onClick={() => setShowTerms(true)} 
           style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem' }}
         >
-          Ver Términos y Condiciones
+          Ver TÃ©rminos y Condiciones
         </button>
         <button 
           onClick={() => setShowRegretModal(true)} 
           style={{ background: 'none', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px', fontWeight: 'bold' }}
         >
-          Botón de Arrepentimiento
+          BotÃ³n de Arrepentimiento
         </button>
       </footer>
       {renderTermsModal()}
@@ -6125,7 +6125,7 @@ export default function RestaurantDashboard() {
       {rejectionModalOpen && (
         <div className="modal-overlay" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }} style={{ zIndex: 9999 }}>
           <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <button className="modal-close" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }}>✕</button>
+            <button className="modal-close" onClick={() => { setRejectionModalOpen(false); setOrderToReject(null); }}>âœ•</button>
             <h2 style={{ color: 'var(--red-600)', marginBottom: '10px' }}>Rechazar Pedido</h2>
             <p style={{ color: 'var(--gray-600)', marginBottom: '20px', fontSize: '0.9rem' }}>
               Por favor, selecciona el motivo del rechazo para informar al cliente:
@@ -6166,10 +6166,10 @@ export default function RestaurantDashboard() {
       {securityModalOpen && (
         <div className="modal-overlay" style={{ zIndex: 10001 }} onClick={() => setSecurityModalOpen(false)}>
           <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🔒</div>
-            <h3 style={{ marginBottom: '8px' }}>Sección Protegida</h3>
+            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>ðŸ”’</div>
+            <h3 style={{ marginBottom: '8px' }}>SecciÃ³n Protegida</h3>
             <p style={{ color: 'var(--gray-600)', marginBottom: '20px', fontSize: '0.9rem' }}>
-              Ingresá la contraseña de tu cuenta para acceder a esta sección.
+              IngresÃ¡ la contraseÃ±a de tu cuenta para acceder a esta secciÃ³n.
             </p>
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -6182,10 +6182,10 @@ export default function RestaurantDashboard() {
                   setSecurityPassword('');
                   if (onSecuritySuccess) onSecuritySuccess();
                 } else {
-                  toast.error('Contraseña incorrecta');
+                  toast.error('ContraseÃ±a incorrecta');
                 }
               } catch (err) {
-                toast.error('Error al verificar contraseña');
+                toast.error('Error al verificar contraseÃ±a');
               } finally {
                 setSecurityLoading(false);
               }
@@ -6193,7 +6193,7 @@ export default function RestaurantDashboard() {
               <input 
                 type="password" 
                 className="form-input" 
-                placeholder="Contraseña" 
+                placeholder="ContraseÃ±a" 
                 value={securityPassword}
                 onChange={e => setSecurityPassword(e.target.value)}
                 autoFocus
@@ -6219,8 +6219,8 @@ export default function RestaurantDashboard() {
           initialCoords={profileLat && profileLng ? { lat: profileLat, lng: profileLng } : null}
           onConfirm={handleAddressConfirm}
           onCancel={() => setShowAddressSelector(false)}
-          title="Ubicación de tu Local"
-          ciudad={profileData?.ciudad || 'Santo Tomé'}
+          title="UbicaciÃ³n de tu Local"
+          ciudad={profileData?.ciudad || 'Santo TomÃ©'}
           allowJustCity={true}
         />
       )}
@@ -6239,7 +6239,7 @@ export default function RestaurantDashboard() {
             if (!imgUrl) throw new Error('No se pudo obtener la URL de la imagen.');
             
             await api.updateMenuItem({ itemId: quickUploadItemId, imagen_url: imgUrl });
-            toast.success('¡Imagen subida y guardada exitosamente!', { id: loadingId });
+            toast.success('Â¡Imagen subida y guardada exitosamente!', { id: loadingId });
             await loadMenu();
           } catch (err) {
             toast.error('Error al subir la imagen: ' + (err.message || err), { id: loadingId });
@@ -6257,7 +6257,7 @@ export default function RestaurantDashboard() {
           const nombreLocal = profileData?.nombre || 'Local';
           await api.notifyOrderListo(o, nombreLocal);
           await api.reavisarRepartidorOrder(o.idPedidoLocal);
-          toast.success(`¡Aviso re-enviado al repartidor para el pedido #${o.idPedido}! 🛵🔔`, { icon: '🛵' });
+          toast.success(`Â¡Aviso re-enviado al repartidor para el pedido #${o.idPedido}! ðŸ›µðŸ””`, { icon: 'ðŸ›µ' });
         }}
         onPrintTicket={(o) => {
           handleGlobalPrintTicket(o);
@@ -6267,7 +6267,7 @@ export default function RestaurantDashboard() {
   );
 }
 
-/* ─── Order Card Component ─── */
+/* â”€â”€â”€ Order Card Component â”€â”€â”€ */
 function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLogo }) {
   const [loading, setLoading] = React.useState('');
   const [showScheduler, setShowScheduler] = React.useState(false);
@@ -6312,7 +6312,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
       }
 
       await api.reavisarRepartidorOrder(o.idPedidoLocal);
-      toast.success('¡Aviso re-enviado al repartidor con éxito! 🛵🔔', { icon: '🛵' });
+      toast.success('Â¡Aviso re-enviado al repartidor con Ã©xito! ðŸ›µðŸ””', { icon: 'ðŸ›µ' });
     } catch (err) {
       console.error("Error en handleReavisar:", err);
       toast.error('No se pudo reavisar al repartidor: ' + (err.message || 'Error'));
@@ -6389,7 +6389,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
           Subtotal: $${subtotalVal.toFixed(2)}
         </div>
         <div style="text-align: right; font-size: 13px;">
-          Env�o Wepi: $${(envioVal + feeEnvioVal).toFixed(2)}
+          Envï¿½o Wepi: $${(envioVal + feeEnvioVal).toFixed(2)}
           </div>
           <div class="total-section" style="border-top: none; margin-top: 1mm; padding-top: 0;">
           TOTAL: $${grandTotal.toFixed(2)}
@@ -6508,14 +6508,14 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
         <div class="dashed-separator"></div>
 
         <div>
-          <strong>PAGO:</strong> ${metodoPagoClean} ${opNumber ? `(N° Op: ${opNumber})` : ''}<br>
+          <strong>PAGO:</strong> ${metodoPagoClean} ${opNumber ? `(NÂ° Op: ${opNumber})` : ''}<br>
           ${o.observaciones && o.observaciones !== 'Ninguna' ? `<strong>OBS Gral:</strong> ${o.observaciones}` : ''}
         </div>
 
         ${totalSectionHtml}
 
         <div class="footer">
-          ¡Gracias por su compra!<br>
+          Â¡Gracias por su compra!<br>
           <strong>Wepi - Pedidos y Delivery</strong>
         </div>
 
@@ -6562,28 +6562,28 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
 
   const handleConfirmRequestDriver = () => {
     if (!scheduleDate || !scheduleTime) {
-      toast.error('Por favor, selecciona fecha y hora para el envío');
+      toast.error('Por favor, selecciona fecha y hora para el envÃ­o');
       return;
     }
     
     // Format items
-    const itemsText = o.items.map(item => `• ${item[4]} x${item[6]}`).join('\n');
+    const itemsText = o.items.map(item => `â€¢ ${item[4]} x${item[6]}`).join('\n');
     
     // Maps link
     const mapsLink = o.lat && o.lng ? `https://www.google.com/maps?q=${o.lat},${o.lng}` : '';
     
-    const msg = `🛵 *SOLICITUD DE REPARTIDOR WEPI (SHOPS)* 🛵\n\n` +
+    const msg = `ðŸ›µ *SOLICITUD DE REPARTIDOR WEPI (SHOPS)* ðŸ›µ\n\n` +
       `*Local:* ${localNombre || 'Tienda Shops'}\n` +
       `*Pedido:* #${o.idPedido}\n` +
       `*Cliente:* ${o.nombreCliente}\n` +
-      `*Teléfono Cliente:* ${o.clienteTelefono || 'No especificado'}\n` +
-      `*Dirección de Entrega:* ${o.direccion}\n` +
-      (mapsLink ? `*Ubicación GPS:* ${mapsLink}\n` : '') +
+      `*TelÃ©fono Cliente:* ${o.clienteTelefono || 'No especificado'}\n` +
+      `*DirecciÃ³n de Entrega:* ${o.direccion}\n` +
+      (mapsLink ? `*UbicaciÃ³n GPS:* ${mapsLink}\n` : '') +
       `*Fecha Programada:* ${scheduleDate}\n` +
       `*Horario Programado:* ${scheduleTime}\n\n` +
       `*Productos:*\n${itemsText}\n\n` +
       `*Total a Cobrar/Entregar:* $${o.totalLocal.toFixed(2)} (${o.metodoPago})\n\n` +
-      `Por favor, confirmar disponibilidad para realizar esta entrega. ¡Gracias!`;
+      `Por favor, confirmar disponibilidad para realizar esta entrega. Â¡Gracias!`;
       
     window.open(`https://wa.me/3756543610?text=${encodeURIComponent(msg)}`, '_blank');
     setShowScheduler(false);
@@ -6602,9 +6602,9 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
         <div>
           <strong>Pedido #{o.idPedido}</strong>
 
-          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false })}</span>}
-          <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
-            {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>ðŸ“… {new Date(o.fecha).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false })}</span>}
+          <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con EnvÃ­o' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
+            {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con EnvÃ­o' ? 'ðŸšš EnvÃ­o' : 'ðŸª Retiro'}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -6615,7 +6615,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
             onClick={handlePrintTicket}
             title="Imprimir Ticket"
           >
-            🖨️ Ticket
+            ðŸ–¨ï¸ Ticket
           </button>
           <span className={`badge ${statusColors[o.estadoActual] || 'badge-gray'}`}>{o.estadoActual}</span>
         </div>
@@ -6632,16 +6632,16 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
           <strong>Pago:</strong> {o.metodoPago}
           {(isOnlinePayment || String(o.metodoPago).toLowerCase().includes('mercado') || String(o.metodoPago).toLowerCase().includes('mp')) && (
             <span style={{ fontSize: '0.82rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bae6fd' }}>
-              N° Op: {o.paymentId || o.numConfirmacion || o.idPedido.substring(0, 8)}
+              NÂ° Op: {o.paymentId || o.numConfirmacion || o.idPedido.substring(0, 8)}
             </span>
           )}
         </p>
         {String(o.metodoPago).toLowerCase().includes('efectivo') && (
           <p style={{ color: 'var(--amber-600)', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '4px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef3c7' }}>
-            ⚠️ El pedido no fue pagado aún
+            âš ï¸ El pedido no fue pagado aÃºn
           </p>
         )}
-        {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío') && (
+        {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con EnvÃ­o') && (
           <p><strong>Repartidor:</strong> <span style={{ color: 'var(--blue-600)', fontWeight: 'bold' }}>{o.repartidorNombre || 'Buscando...'}</span> {o.repartidorTelefono && <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginLeft: 8 }}>({o.repartidorTelefono})</span>}</p>
         )}
         {o.observaciones !== 'Ninguna' && <p><strong>Obs:</strong> {o.observaciones}</p>}
@@ -6656,7 +6656,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
             const cantidad = item[6] || 1;
             const precioSubtotal = item[7] || 0;
 
-            // Extraer nombre principal y descripción secundaria si el nombre viene formateado con paréntesis "Título (Detalles)"
+            // Extraer nombre principal y descripciÃ³n secundaria si el nombre viene formateado con parÃ©ntesis "TÃ­tulo (Detalles)"
             let displayTitle = rawNombre;
             let displayDesc = desc;
 
@@ -6682,7 +6682,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                     />
                   ) : (
                     <div style={{ width: '42px', height: '42px', borderRadius: '6px', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0, color: '#64748b' }}>
-                      📦
+                      ðŸ“¦
                     </div>
                   )}
                   
@@ -6726,11 +6726,11 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                         const text = encodeURIComponent(`Hola ${o.nombreCliente}, nos comunicamos por tu pedido #${o.idPedido}.`);
                         window.open(`https://wa.me/${cleanedPhone}?text=${text}`, '_blank');
                       } else {
-                        toast.error('El usuario no tiene un teléfono de contacto registrado');
+                        toast.error('El usuario no tiene un telÃ©fono de contacto registrado');
                       }
                     }}
                   >
-                    💬 Coordinar Entrega
+                    ðŸ’¬ Coordinar Entrega
                   </button>
 
                   <button 
@@ -6742,7 +6742,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
                       </span>
-                  ) : '✓ Entregado'}
+                  ) : 'âœ“ Entregado'}
                   </button>
 
                   <button 
@@ -6751,18 +6751,18 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                     disabled={loading} 
                     onClick={() => onAction(o, 'RechazarClick')}
                   >
-                    {isOnlinePayment ? '💸 Gestionar Devolución' : '✕ Rechazar Pedido'}
+                    {isOnlinePayment ? 'ðŸ’¸ Gestionar DevoluciÃ³n' : 'âœ• Rechazar Pedido'}
                   </button>
                 </div>
 
-                {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío') && (
+                {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con EnvÃ­o') && (
                   <div style={{ display: 'flex', width: '100%' }}>
                     <button 
                       className="btn btn-primary btn-sm"
                       style={{ background: '#0284c7', borderColor: '#0284c7', color: 'white', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                       onClick={() => setShowScheduler(!showScheduler)}
                     >
-                      🛵 Solicitar Repartidor Wepi
+                      ðŸ›µ Solicitar Repartidor Wepi
                     </button>
                   </div>
                 )}
@@ -6780,7 +6780,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                     width: '100%'
                   }}>
                     <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>
-                      📅 Programar Entrega (repartidor Wepi)
+                      ðŸ“… Programar Entrega (repartidor Wepi)
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <div style={{ flex: 1 }}>
@@ -6836,14 +6836,14 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
                         </span>
-                      ) : '✓ Aceptar'}
+                      ) : 'âœ“ Aceptar'}
                     </button>
                     <button className="btn btn-sm" style={{ background: 'var(--red-500)', color: '#fff' }} disabled={loading} onClick={() => onAction(o, 'RechazarClick')}>
                       {loading === 'Rechazado' ? (
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
                         </span>
-                      ) : '✕ Rechazar'}
+                      ) : 'âœ• Rechazar'}
                     </button>
                   </>
                 ) : ['Aceptado', 'Listo'].includes(o.estadoActual) ? (
@@ -6858,10 +6858,10 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
                         </span>
-                      ) : '✓ Listo'}
+                      ) : 'âœ“ Listo'}
                     </button>
 
-                    {(o.estadoActual === 'Listo' || o.estadoActual === 'Buscando Repartidor') && (String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío') && (
+                    {(o.estadoActual === 'Listo' || o.estadoActual === 'Buscando Repartidor') && (String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con EnvÃ­o') && (
                       <button 
                         className="btn btn-sm" 
                         style={{ background: '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }} 
@@ -6872,7 +6872,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span className="spinner spinner-white" style={{ width: 14, height: 14 }} /> Reavisando...
                           </span>
-                        ) : '🔔 Reavisar'}
+                        ) : 'ðŸ”” Reavisar'}
                       </button>
                     )}
 
@@ -6886,7 +6886,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span className="spinner spinner-white" style={{ width: 16, height: 16 }} /> Cargando...
                         </span>
-                      ) : '📦 Entregado'}
+                      ) : 'ðŸ“¦ Entregado'}
                     </button>
                   </>
                 ) : null}
@@ -6898,3 +6898,4 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
     </div>
   );
 }
+
