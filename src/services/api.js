@@ -8367,3 +8367,27 @@ export async function extenderEsperaRepartidor(pedidoId, whatsappOptin, userPhon
     return { success: false, error };
   }
 }
+
+
+// ═══════════════════════════════════════════════════
+// AUTH CONTRASEÑA (Recuperación)
+// ═══════════════════════════════════════════════════
+export async function sendPasswordResetEmail(email, redirectUrl) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectUrl,
+  });
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function updateUserPassword(newPassword) {
+  const { data: authData, error: authError } = await supabase.auth.updateUser({ password: newPassword });
+  if (authError || !authData.user) return { success: false, error: authError?.message || 'Error actualizando Auth' };
+
+  // Intentar actualizar la tabla locales
+  await supabase.from('locales').update({ password: newPassword }).eq('auth_id', authData.user.id);
+  // Intentar actualizar la tabla repartidores
+  await supabase.from('repartidores').update({ password: newPassword }).eq('auth_id', authData.user.id);
+  
+  return { success: true };
+}

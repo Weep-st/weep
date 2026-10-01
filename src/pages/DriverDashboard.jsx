@@ -26,6 +26,59 @@ function getDistanceMeters(lat1, lng1, lat2, lng2) {
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 export default function DriverDashboard() {
+
+  const [resetEmail, setResetEmail] = React.useState('');
+  React.useEffect(() => {
+    if (window.location.hash.includes('type=recovery')) {
+      setAuthView('reset');
+    } else if (api.supabase) {
+      const { data: authListener } = api.supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setAuthView('reset');
+        }
+      });
+      return () => { if (authListener?.subscription) authListener.subscription.unsubscribe(); };
+    }
+  }, []);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
+      return;
+    }
+    setAuthLoading(true);
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
+    if (res.success) {
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
+      setAuthView('login');
+    } else {
+      toast.error(res.error || 'Error al enviar el correo');
+    }
+    setAuthLoading(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const newPassword = fd.get('password');
+    if (newPassword.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setAuthLoading(true);
+    const res = await api.updateUserPassword(newPassword);
+    if (res.success) {
+      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
+      window.location.hash = ''; // clear hash
+      setAuthView('login');
+    } else {
+      toast.error(res.error || 'Error al actualizar contraseña');
+    }
+    setAuthLoading(false);
+  };
+
   const { driver, loginAsDriver, logoutDriver } = useAuth();
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -1210,9 +1263,39 @@ export default function DriverDashboard() {
           <button className={`btn ${authView === 'login' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('login'); setShowPassword(false); }}>Iniciar Sesión</button>
           <button className={`btn ${authView === 'register' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => { setAuthView('register'); setShowPassword(false); }}>Registrarme</button>
         </div>
-        {authView === 'login' ? (
+        
+        {authView === 'reset' ? (
+          <form onSubmit={handleResetPassword} className="dd-form" key="reset" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', textAlign: 'center' }}>Ingresa tu nueva contraseña</h3>
+            <div className="password-container">
+              <input 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                className="form-input" 
+                placeholder="Nueva Contraseña" 
+                required 
+                autoComplete="new-password" 
+              />
+              <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                <img 
+                  src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                  alt="Ver" 
+                />
+              </button>
+            </div>
+            <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+              {authLoading ? <span className="spinner spinner-white" /> : 'Guardar y Entrar'}
+            </button>
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setAuthView('login')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                  Volver al Login
+                </button>
+              </div>
+          </form>
+        ) : authView === 'login' ? (
+  
           <form onSubmit={handleLogin} className="dd-form" key="login">
-            <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+            <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
             <div className="password-container">
               <input 
                 name="password" 
@@ -1232,7 +1315,13 @@ export default function DriverDashboard() {
             <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
               {authLoading ? <span className="spinner spinner-white" /> : 'Iniciar Sesión'}
             </button>
-          </form>
+          
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                  ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
+                </button>
+              </div>
+            </form>
         ) : (
           <form onSubmit={handleRegister} className="dd-form" key="register">
             <input name="email" type="email" className="form-input" placeholder="Email (Este será tu usuario)" required autoComplete="username" />
