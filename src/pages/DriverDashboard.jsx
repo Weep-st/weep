@@ -975,6 +975,16 @@ export default function DriverDashboard() {
     if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     setAuthLoading(true);
     try {
+      const config = await api.getConfiguracion();
+      const enteredCode = fd.get('codigo_acceso')?.trim();
+      const expectedCode = config.codigo_acceso_repartidores?.trim() || 'DRIVER123';
+
+      if (enteredCode !== expectedCode) {
+        toast.error('El c&oacute;digo de acceso ingresado es incorrecto.');
+        setAuthLoading(false);
+        return;
+      }
+
       const d = await api.repartidorRegister({
         nombre: fd.get('nombre'), telefono,
         email: fd.get('email'), password: fd.get('password'),
@@ -1260,6 +1270,7 @@ export default function DriverDashboard() {
                 />
               </button>
             </div>
+            <input name="codigo_acceso" className="form-input" placeholder="C�digo de Acceso" required />
             <input name="patente" className="form-input" placeholder="Patente de la moto" required />
             <input name="marcaModelo" className="form-input" placeholder="Marca y modelo" required />
 
@@ -2049,93 +2060,6 @@ export default function DriverDashboard() {
       </header>
 
       <main className={`dd-main ${driver ? 'map-active' : ''}`}>
-        {driver && !driver.emailConfirmado && (
-          <div className="unconfirmed-banner" style={{
-            background: '#fff7e6',
-            border: '1px solid #ffd591',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '0.9rem',
-            color: '#874d00'
-          }}>
-            {isEditingEmail ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', width: '100%' }}>
-                <span style={{ fontWeight: 'bold' }}>Editar Email:</span>
-                <input
-                  type="email"
-                  value={tempEmail}
-                  onChange={(e) => setTempEmail(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #faad14',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    minWidth: '220px',
-                    flex: 1,
-                    background: '#fff',
-                    color: '#000'
-                  }}
-                  placeholder="nuevo-email@dominio.com"
-                />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    className="btn btn-sm"
-                    style={{ background: '#52c41a', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                    onClick={handleSaveEmailInBanner}
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    className="btn btn-sm"
-                    style={{ background: '#ff4d4f', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                    onClick={() => setIsEditingEmail(false)}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span>⚠️ <strong>Email no confirmado:</strong> Por favor confirma tu correo.</span>
-                  <span style={{ background: '#ffe7ba', padding: '2px 8px', borderRadius: '4px', border: '1px solid #ffd591', fontSize: '0.85rem', color: '#d46b08', fontWeight: 'bold' }}>
-                    {driverData?.Email || driver.email}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setTempEmail(driverData?.Email || driver.email || '');
-                      setIsEditingEmail(true);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#1890ff',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      textDecoration: 'underline',
-                      padding: 0,
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    (Editar)
-                  </button>
-                </div>
-                <button 
-                  className="btn btn-sm" 
-                  style={{ background: '#faad14', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                  onClick={handleResendConfirmation}
-                >
-                  Enviar Código
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ─── Banner de Notificaciones ─── */}
         {driver && notificationStatus !== 'granted' && (
@@ -2848,4 +2772,9 @@ export default function DriverDashboard() {
     </div>
   );
 }
+
+
+
+
+
 

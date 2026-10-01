@@ -308,38 +308,44 @@ export async function deleteLocalUsuario(usuarioId) {
 // AUTH — Repartidores (Drivers)
 // ═══════════════════════════════════════════════════
 export async function repartidorLogin(email, password) {
-  const { data, error } = await supabase
-    .from('repartidores')
-    .select('*')
-    .ilike('email', email)
-    .limit(1)
-    .eq('password', password)
-    .single();
-  if (error || !data) return { success: false, error: 'Credenciales incorrectas' };
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+  if (authError || !authData.user) return { success: false, error: 'Credenciales incorrectas o cuenta no migrada' };
+
+  const { data, error } = await supabase.from('repartidores').select('*').eq('auth_id', authData.user.id).single();
+  if (error || !data) {
+    await supabase.auth.signOut();
+    return { success: false, error: 'No tienes una cuenta de repartidor valida.' };
+  }
+
   return {
     success: true,
     data: {
       ID: data.id, Nombre: data.nombre, Email: data.email,
       Telefono: data.telefono, Patente: data.patente,
       MarcaModelo: data.marca_modelo, Estado: data.estado,
-      PedidosHoy: data.pedidos_hoy,
-      EmailConfirmado: data.email_confirmado,
-      FotoUrl: data.foto_url,
-      HorarioApertura: data.horario_apertura,
-      HorarioCierre: data.horario_cierre,
-      DiasApertura: data.dias_apertura,
-      es_partner: data.es_partner,
-      partner_id: data.partner_id,
-      ciudad: data.ciudad
+      PedidosHoy: data.pedidos_hoy, EmailConfirmado: !!authData.user.email_confirmed_at || data.email_confirmado,
+      FotoUrl: data.foto_url, HorarioApertura: data.horario_apertura,
+      HorarioCierre: data.horario_cierre, DiasApertura: data.dias_apertura,
+      es_partner: data.es_partner, partner_id: data.partner_id, ciudad: data.ciudad
     },
   };
 }
 
 export async function repartidorRegister(params) {
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: params.email,
+    password: params.password,
+    options: {
+      emailRedirectTo: window.location.origin + '/repartidores',
+      data: { role: 'repartidor' }
+    }
+  });
+  if (authError) return { success: false, error: authError.message };
+
   const id = 'REP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const { error } = await supabase.from('repartidores').insert({
-    id, nombre: params.nombre, telefono: params.telefono,
+    id, auth_id: authData.user ? authData.user.id : null, nombre: params.nombre, telefono: params.telefono,
     email: params.email, password: params.password,
     patente: params.patente, marca_modelo: params.marcaModelo,
     fecha_registro: new Date().toISOString(),
@@ -352,9 +358,6 @@ export async function repartidorRegister(params) {
     ciudad: params.ciudad || 'Santo Tomé'
   });
   if (error) return { success: false, error: error.message };
-  
-  // Enviar email de confirmación
-  sendConfirmationEmail(params.email, code, 'repartidor', params.nombre).catch(console.error);
   
   return { success: true };
 }

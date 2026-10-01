@@ -24,7 +24,8 @@ const AdminConfig = () => {
     const [config, setConfig] = useState({
         valor_envio: 2000,
         valor_envio_shops: 2000,
-        codigo_acceso: ''
+        codigo_acceso: '',
+        codigo_acceso_repartidores: ''
     });
     const [ciudades, setCiudades] = useState([]);
     const [partners, setPartners] = useState([]);
@@ -61,6 +62,7 @@ const AdminConfig = () => {
                 mantenimiento_locales: config.mantenimiento_locales,
                 mantenimiento_repartidores: config.mantenimiento_repartidores,
                 codigo_acceso: config.codigo_acceso,
+                codigo_acceso_repartidores: config.codigo_acceso_repartidores,
                 min_version_ios: config.min_version_ios,
                 min_version_android: config.min_version_android,
                 url_ios: config.url_ios,
@@ -218,6 +220,31 @@ const AdminConfig = () => {
                     />
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                         Este código será requerido a los nuevos locales para poder completar el registro.
+                    </p>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '2rem', maxWidth: '400px' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                        C&oacute;digo de Acceso para Registro de Repartidores
+                    </label>
+                    <input
+                        type="text"
+                        value={config.codigo_acceso_repartidores || ''}
+                        onChange={(e) => setConfig({ ...config, codigo_acceso_repartidores: e.target.value })}
+                        className="admin-input"
+                        placeholder="Ej: DRIVER123"
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '0.5rem',
+                            color: 'white',
+                            fontSize: '1rem'
+                        }}
+                    />
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                        Este c&oacute;digo ser&aacute; requerido a los nuevos repartidores para poder completar el registro.
                     </p>
                 </div>
 
@@ -748,5 +775,12 @@ const AdminConfig = () => {
 };
 
 export default AdminConfig;
+
+
+
+
+
+
+
 
 
