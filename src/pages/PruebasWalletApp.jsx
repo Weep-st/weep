@@ -3395,6 +3395,47 @@ export default function PruebasWalletApp() {
         {/* ─── HOME SCREEN ─── */}
         {!showMenus && !filteredLocals && (
           <div className="home-screen animate-fade-in">
+
+            {/* FASE 2: BANNER INCENTIVO LOGIN */}
+            {!user && (
+              <div 
+                className="login-incentive-banner animate-fade-in"
+                onClick={() => setModal('login')}
+                style={{
+                  background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  margin: '16px 16px 0 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontSize: '2rem' }}>??</div>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: '2px' }}>Ten�s beneficios ocultos</strong>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Inici� sesi�n para ver cupones y descuentos.</span>
+                </div>
+                <button 
+                  style={{
+                    background: 'white',
+                    color: '#6d28d9',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '20px',
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ingresar
+                </button>
+              </div>
+            )}
+
                           {/* Banners Grid Container */}
              <div className="home-banners-grid">
                {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
