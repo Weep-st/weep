@@ -51,6 +51,59 @@ const getInactiveCityFromSlug = (str) => {
 };
 
 export default function PruebasWalletApp() {
+
+  const [resetEmail, setResetEmail] = React.useState('');
+  React.useEffect(() => {
+    if (api.wasPasswordRecovery || window.location.hash.includes('type=recovery')) {
+      setModal('reset');
+    } else if (api.supabase) {
+      const { data: authListener } = api.supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setModal('reset');
+        }
+      });
+      return () => { if (authListener?.subscription) authListener.subscription.unsubscribe(); };
+    }
+  }, []);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
+      return;
+    }
+    setAuthLoading(true);
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
+    if (res.success) {
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
+      setModal('login');
+    } else {
+      toast.error(res.error || 'Error al enviar el correo');
+    }
+    setAuthLoading(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const newPassword = fd.get('password');
+    if (newPassword.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setAuthLoading(true);
+    const res = await api.updateUserPassword(newPassword);
+    if (res.success) {
+      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
+      window.location.hash = ''; // clear hash
+      setModal('login');
+    } else {
+      toast.error(res.error || 'Error al actualizar contraseña');
+    }
+    setAuthLoading(false);
+  };
+
   const [forcedUpdate, setForcedUpdate] = React.useState(null);
   const [otaVersion, setOtaVersion] = React.useState('v1.1.2');
   const { ciudad, slug } = useParams();
@@ -3238,7 +3291,7 @@ export default function PruebasWalletApp() {
               color: 'white',
               padding: '12px 20px',
               textAlign: 'center',
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -4060,7 +4113,7 @@ export default function PruebasWalletApp() {
 
                   <div className="cart-item-controls" style={{ transform: 'scale(0.9)', transformOrigin: 'left center', marginTop: '6px' }}>
                     <button className="qty-btn" onClick={() => cart.updateQty(item.id, -1)}>−</button>
-                    <span className="qty-display" style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.9rem' }}>{item.qty} unid</span>
+                    <span className="qty-display" style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.85rem' }}>{item.qty} unid</span>
                     <button className="qty-btn" onClick={() => cart.updateQty(item.id, 1)}>+</button>
                     <button className="remove-btn-small" style={{ marginLeft: '12px' }} onClick={() => cart.removeItem(item.id)}>🗑️</button>
                   </div>
@@ -4069,7 +4122,7 @@ export default function PruebasWalletApp() {
                     if (!upgradeOffer) return null;
                     const diff = Number(upgradeOffer.precio) - Number(item.precio);
                     return (
-                      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '6px' }}>
                         <button type="button" className="btn btn-success btn-sm animate-fade-in" style={{ borderRadius: '6px', fontWeight: 'bold', fontSize: '0.65rem', padding: '4px 10px', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.3)', whiteSpace: 'normal', textAlign: 'center', lineHeight: '1.2', maxWidth: '95%' }} onClick={() => handleUpgradeItem(item, upgradeOffer)}>
                           ⚡ Mejorá a {upgradeOffer.nombre.length > 26 ? upgradeOffer.nombre.substring(0, 26) + '...' : upgradeOffer.nombre} por SOLO ${(diff).toLocaleString('es-AR')}
                         </button>
@@ -4380,10 +4433,41 @@ export default function PruebasWalletApp() {
           <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>✕</button>
 
-            {modal === 'login' && (
+            
+              {modal === 'reset' && (
+                <form onSubmit={handleResetPassword}>
+                  <h2>Ingresa tu nueva contraseña</h2>
+                  <div className="password-container">
+                    <input 
+                      name="password" 
+                      type={showPassword ? "text" : "password"} 
+                      className="form-input" 
+                      placeholder="Nueva Contraseña" 
+                      required 
+                      autoComplete="new-password" 
+                    />
+                    <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                      <img 
+                        src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                        alt="Ver" 
+                      />
+                    </button>
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+                    {authLoading ? <span className="spinner spinner-white" /> : 'Guardar y Entrar'}
+                  </button>
+                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                      <button type="button" onClick={() => setModal('login')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Volver al Login
+                      </button>
+                  </div>
+                </form>
+              )}
+              {modal === 'login' && (
+
               <form onSubmit={handleLogin}>
                 <h2>Iniciar Sesión</h2>
-                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
                 <div className="password-container">
                   <input 
                     name="password" 
@@ -4404,7 +4488,13 @@ export default function PruebasWalletApp() {
                   {authLoading ? <span className="spinner spinner-white" /> : 'Entrar'}
                 </button>
 
-                <div className="auth-separator">
+                
+                  <div style={{ textAlign: 'center', marginTop: '2px', marginBottom: '2px' }}>
+                    <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                      ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
+                    </button>
+                  </div>
+                  <div className="auth-separator">
                   <span>O</span>
                 </div>
 
@@ -4413,7 +4503,7 @@ export default function PruebasWalletApp() {
                   Continuar con Google
                 </button>
                 {Capacitor.getPlatform() !== 'android' && (
-                  <button type="button" className="btn btn-full" style={{backgroundColor: '#000', color: '#fff', marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'}} onClick={handleAppleLogin} disabled={authLoading}>
+                  <button type="button" className="btn btn-full" style={{backgroundColor: '#000', color: '#fff', marginTop: '6px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'}} onClick={handleAppleLogin} disabled={authLoading}>
                     <svg viewBox="0 0 384 512" width="20" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
                     Continuar con Apple
                   </button>
@@ -4493,7 +4583,7 @@ export default function PruebasWalletApp() {
                   Registrarme con Google
                 </button>
                 {Capacitor.getPlatform() !== 'android' && (
-                  <button type="button" className="btn btn-full" style={{backgroundColor: '#000', color: '#fff', marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'}} onClick={handleAppleLogin} disabled={authLoading}>
+                  <button type="button" className="btn btn-full" style={{backgroundColor: '#000', color: '#fff', marginTop: '6px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'}} onClick={handleAppleLogin} disabled={authLoading}>
                     <svg viewBox="0 0 384 512" width="20" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
                     Registrarme con Apple
                   </button>
@@ -4673,7 +4763,7 @@ export default function PruebasWalletApp() {
             {modal === 'editAddress' && (
               <div>
                 <h2>Cambiar Mi Dirección</h2>
-                <p style={{ fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '16px' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '16px' }}>
                   Seleccioná tu ubicación predeterminada en el mapa para futuras compras.
                 </p>
                 <button 
@@ -4736,7 +4826,7 @@ export default function PruebasWalletApp() {
               <p style={{ color: '#64748b', fontSize: '0.8rem', lineHeight: '1.3', margin: 0 }}>Para mostrarte los locales de tu zona, selecciona tu ciudad:</p>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
               <div style={{ textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#e63946', marginBottom: '1px' }}>
                 CIUDADES DISPONIBLES: Pedí ahora
               </div>
@@ -4789,7 +4879,7 @@ export default function PruebasWalletApp() {
               </div>
 
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px' }}>
                 <button onClick={() => openInactiveCityModal('Alem (Misiones)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   Alem (Misiones)
                 </button>
@@ -5023,7 +5113,7 @@ export default function PruebasWalletApp() {
           <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '20px' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
             <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.4rem' }}>{iceCreamModal.nombre}</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
             
             <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
             <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
@@ -5299,7 +5389,7 @@ export default function PruebasWalletApp() {
                               backgroundColor: selectedVariant?.nombre === v.nombre ? '#fff5f5' : '#fff', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s ease'
                             }}
                           >
-                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{v.nombre}</div>
+                            <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{v.nombre}</div>
                             <div style={{ color: 'var(--red-600)', fontWeight: '700', fontSize: '0.85rem', marginTop: '4px' }}>${v.precio}</div>
                           </div>
                         ))}
@@ -5347,7 +5437,7 @@ export default function PruebasWalletApp() {
                           <div style={{ fontSize: '2.5rem' }}>🍟</div>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontWeight: '700', fontSize: '1rem' }}>¡Si, papas!</div>
-                            <div style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '0.9rem' }}>+ ${cfg.precio_papas}</div>
+                            <div style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '0.85rem' }}>+ ${cfg.precio_papas}</div>
                           </div>
                         </div>
 
@@ -5668,7 +5758,7 @@ export default function PruebasWalletApp() {
                       />
                     </div>
 
-                    <div className="mp-warning-box" style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', background: 'rgba(0,158,227,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,158,227,0.2)' }}>
+                    <div className="mp-warning-box" style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', background: 'rgba(0,158,227,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,158,227,0.2)' }}>
                       <img 
                         src="https://i.postimg.cc/Z5K8N29n/download.png" 
                         alt="Mercado Pago" 
@@ -5733,7 +5823,7 @@ export default function PruebasWalletApp() {
                 <>
                   <div style={{ fontSize: '2.5rem', marginBottom: '12px', textAlign: 'center' }}>?</div>
                   <h4 style={{ margin: '0 0 12px 0', color: '#1e293b', textAlign: 'center', fontSize: '1.35rem' }}>Dejar en espera</h4>
-                  <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '20px', textAlign: 'center' }}>
+                  <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '20px', textAlign: 'center' }}>
                     Durante 10 minutos seguiremos buscando un repartidor para tu pedido.
                   </p>
                   
@@ -6310,7 +6400,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                     background: 'none',
                     border: 'none',
                     color: '#64748b',
-                    fontSize: '0.9rem',
+                    fontSize: '0.85rem',
                     cursor: 'pointer',
                     textDecoration: 'underline'
                   }}
@@ -6327,7 +6417,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
           <div className="wa-optin-modal-content animate-slide-up" style={{ padding: '24px', textAlign: 'center' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>?</div>
             <h4 style={{ margin: '0 0 12px 0', color: '#1e293b' }}>Dejar en espera</h4>
-            <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '20px' }}>
+            <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '20px' }}>
               Durante 10 minutos seguiremos buscando un repartidor para tu pedido.
             </p>
             

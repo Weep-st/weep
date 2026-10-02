@@ -15,6 +15,59 @@ import './CustomerApp.css';
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 export default function CustomerApp() {
+
+  const [resetEmail, setResetEmail] = React.useState('');
+  React.useEffect(() => {
+    if (api.wasPasswordRecovery || window.location.hash.includes('type=recovery')) {
+      setModal('reset');
+    } else if (api.supabase) {
+      const { data: authListener } = api.supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setModal('reset');
+        }
+      });
+      return () => { if (authListener?.subscription) authListener.subscription.unsubscribe(); };
+    }
+  }, []);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
+      return;
+    }
+    setAuthLoading(true);
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
+    if (res.success) {
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
+      setModal('login');
+    } else {
+      toast.error(res.error || 'Error al enviar el correo');
+    }
+    setAuthLoading(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const newPassword = fd.get('password');
+    if (newPassword.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setAuthLoading(true);
+    const res = await api.updateUserPassword(newPassword);
+    if (res.success) {
+      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
+      window.location.hash = ''; // clear hash
+      setModal('login');
+    } else {
+      toast.error(res.error || 'Error al actualizar contraseña');
+    }
+    setAuthLoading(false);
+  };
+
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
@@ -1869,10 +1922,41 @@ export default function CustomerApp() {
           <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>✕</button>
 
-            {modal === 'login' && (
+            
+              {modal === 'reset' && (
+                <form onSubmit={handleResetPassword}>
+                  <h2>Ingresa tu nueva contraseña</h2>
+                  <div className="password-container">
+                    <input 
+                      name="password" 
+                      type={showPassword ? "text" : "password"} 
+                      className="form-input" 
+                      placeholder="Nueva Contraseña" 
+                      required 
+                      autoComplete="new-password" 
+                    />
+                    <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                      <img 
+                        src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                        alt="Ver" 
+                      />
+                    </button>
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+                    {authLoading ? <span className="spinner spinner-white" /> : 'Guardar y Entrar'}
+                  </button>
+                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                      <button type="button" onClick={() => setModal('login')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Volver al Login
+                      </button>
+                  </div>
+                </form>
+              )}
+              {modal === 'login' && (
+  
               <form onSubmit={handleLogin}>
                 <h2>Iniciar Sesión</h2>
-                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
                 <div className="password-container">
                   <input 
                     name="password" 
@@ -1892,7 +1976,13 @@ export default function CustomerApp() {
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Entrar'}
                 </button>
-                <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
+                
+                  <div style={{ textAlign: 'center', marginTop: '1rem', marginBottom: '1rem' }}>
+                    <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                      ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
+                    </button>
+                  </div>
+                  <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
               </form>
             )}
 
