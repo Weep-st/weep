@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -25,8 +25,8 @@ const getCityFromSlug = (str) => {
   try {
     const decoded = decodeURIComponent(str);
     const norm = decoded.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-    if (norm === 'obera') return 'OberÃ¡';
-    if (norm === 'santo tome' || norm === 'santo-tome') return 'Santo TomÃ©';
+    if (norm === 'obera') return 'Oberá';
+    if (norm === 'santo tome' || norm === 'santo-tome') return 'Santo Tomé';
   } catch (e) {
     console.error(e);
   }
@@ -39,11 +39,11 @@ const getInactiveCityFromSlug = (str) => {
     const decoded = decodeURIComponent(str);
     const norm = decoded.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     if (norm === 'alem' || norm === 'leandro-n-alem' || norm === 'leandro n alem' || norm === 'l-n-alem') return 'Alem (Misiones)';
-    if (norm === 'apostoles' || norm === 'apÃ³stoles') return 'ApÃ³stoles (Misiones)';
-    if (norm === 'villaguay') return 'Villaguay (Entre RÃ­os)';
+    if (norm === 'apostoles' || norm === 'apóstoles') return 'Apóstoles (Misiones)';
+    if (norm === 'villaguay') return 'Villaguay (Entre Ríos)';
     if (norm === 'paso de los libres' || norm === 'paso-de-los-libres') return 'Paso de los Libres (Corrientes)';
     if (norm === 'san vicente' || norm === 'san-vicente') return 'San Vicente (Misiones)';
-    if (norm === 'colon' || norm === 'colÃ³n') return 'Colon (Entre RÃ­os)';
+    if (norm === 'colon' || norm === 'colón') return 'Colon (Entre Ríos)';
   } catch (e) {
     console.error(e);
   }
@@ -69,14 +69,14 @@ export default function PruebasWalletApp() {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
-      toast.error('Por favor ingresa tu email arriba para recuperar la contraseÃ±a');
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
       return;
     }
     setAuthLoading(true);
     const redirectUrl = window.location.origin + window.location.pathname;
     const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
     if (res.success) {
-      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseÃ±a', { duration: 6000 });
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
       setModal('login');
     } else {
       toast.error(res.error || 'Error al enviar el correo');
@@ -89,17 +89,17 @@ export default function PruebasWalletApp() {
     const fd = new FormData(e.target);
     const newPassword = fd.get('password');
     if (newPassword.length < 6) {
-      toast.error('La contraseÃ±a debe tener al menos 6 caracteres');
+      toast.error('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     setAuthLoading(true);
     const res = await api.updateUserPassword(newPassword);
     if (res.success) {
-      toast.success('ContraseÃ±a actualizada correctamente. Inicia sesiÃ³n.');
+      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
       window.location.hash = ''; // clear hash
       setModal('login');
     } else {
-      toast.error(res.error || 'Error al actualizar contraseÃ±a');
+      toast.error(res.error || 'Error al actualizar contraseña');
     }
     setAuthLoading(false);
   };
@@ -109,11 +109,11 @@ export default function PruebasWalletApp() {
   const { ciudad, slug } = useParams();
   const location = useLocation();
   const isShopsMode = location.pathname.startsWith('/shops');
-  console.log("ðŸš€ PruebasWalletApp: Initialization started, isShopsMode:", isShopsMode);
+  console.log("🚀 PruebasWalletApp: Initialization started, isShopsMode:", isShopsMode);
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
-    console.error("âŒ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
+    console.error("❌ ERROR: VITE_GOOGLE_MAPS_API_KEY is missing in .env file or build process.");
   }
 
   const { isLoaded: isMapLoaded, loadError } = useJsApiLoader({
@@ -123,7 +123,7 @@ export default function PruebasWalletApp() {
   });
 
   if (loadError) {
-    console.error("âŒ Error loading Google Maps in CustomerApp:", loadError);
+    console.error("❌ Error loading Google Maps in CustomerApp:", loadError);
   }
   
   const { user, loginAsUser, loginWithGoogle, loginWithApple, logoutUser: doLogout, updateUserAddress } = useAuth();
@@ -245,7 +245,7 @@ export default function PruebasWalletApp() {
     }
   }, [location.pathname, activeCity]);
 
-  // â”€â”€ DETECTOR CRM: VISITA_SIN_COMPRA â”€â”€
+  // ── DETECTOR CRM: VISITA_SIN_COMPRA ──
   React.useEffect(() => {
     if (!user?.id) return;
 
@@ -259,7 +259,7 @@ export default function PruebasWalletApp() {
       const hasCompletedOrder = sessionStorage.getItem('wepi_order_completed_time');
       const lastCompletedOrderTime = Number(hasCompletedOrder || 0);
       
-      // Si hizo un pedido en los Ãºltimos 10 minutos, no lo contamos como visita sin compra
+      // Si hizo un pedido en los últimos 10 minutos, no lo contamos como visita sin compra
       if (now - lastCompletedOrderTime < 10 * 60 * 1000) return;
 
       try {
@@ -277,7 +277,7 @@ export default function PruebasWalletApp() {
     setActiveCity(city);
     sessionStorage.setItem('sessionCity', city);
     localStorage.setItem('guestCiudad', city);
-    toast.success(`Ciudad seleccionada: ${city}`, { icon: 'ðŸ“' });
+    toast.success(`Ciudad seleccionada: ${city}`, { icon: '📍' });
   }, []);
 
   React.useEffect(() => {
@@ -287,7 +287,7 @@ export default function PruebasWalletApp() {
     }
   }, [user?.ciudad]);
 
-  // DetecciÃ³n y Registro de MÃ©tricas de Clic desde Emails
+  // Detección y Registro de Métricas de Clic desde Emails
   React.useEffect(() => {
     try {
       const searchParams = new URLSearchParams(location.search);
@@ -295,7 +295,7 @@ export default function PruebasWalletApp() {
                          searchParams.get('utm_source') === 'email' || 
                          searchParams.get('email_ref') === 'true';
       if (isEmailRef) {
-        const campaign = searchParams.get('campaign') || searchParams.get('utm_campaign') || 'CampaÃ±a General';
+        const campaign = searchParams.get('campaign') || searchParams.get('utm_campaign') || 'Campaña General';
         const cityParam = searchParams.get('city') || activeCity || 'Todas';
         const sessionKey = `logged_email_click_${campaign}_${cityParam}`;
         if (!sessionStorage.getItem(sessionKey)) {
@@ -366,13 +366,13 @@ export default function PruebasWalletApp() {
       });
       if (res.success) {
         setLeadSubmitted(true);
-        toast.success(`Â¡Te anotamos con Ã©xito para ${inactiveCityModal}!`, { icon: 'ðŸŽ‰' });
+        toast.success(`¡Te anotamos con éxito para ${inactiveCityModal}!`, { icon: '🎉' });
       } else {
-        toast.error('OcurriÃ³ un error al registrarte');
+        toast.error('Ocurrió un error al registrarte');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Error de conexiÃ³n');
+      toast.error('Error de conexión');
     } finally {
       setLeadSubmitting(false);
     }
@@ -406,7 +406,7 @@ export default function PruebasWalletApp() {
       Notification.requestPermission().then(permission => {
         setNotificationPermission(permission);
         if (permission === 'granted') {
-          toast.success('Â¡Notificaciones activadas! ðŸ””');
+          toast.success('¡Notificaciones activadas! 🔔');
           if (window.OneSignal) {
             window.OneSignal.Notifications.requestPermission();
           }
@@ -517,19 +517,19 @@ export default function PruebasWalletApp() {
     allLocales: [],
     categories: isShopsMode ? [
       { label: 'Hogar', type: 'Hogar', img: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&auto=format&fit=crop&q=80' },
-      { label: 'TecnologÃ­a', type: 'TecnologÃ­a', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
       { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
-      { label: 'RegalerÃ­a', type: 'RegalerÃ­a', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
       { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
       { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
     ] : [
       { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
-      { label: 'Helados', type: 'HeladerÃ­a', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
-      { label: 'CafeterÃ­a', type: 'CafeterÃ­a', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+      { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
+      { label: 'Cafetería', type: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
       { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
       { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
       { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
-      { label: 'CarnicerÃ­a', type: 'CarnicerÃ­a', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
+      { label: 'Carnicería', type: 'Carnicería', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
       { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
     ],
     dynamicBanner: '',
@@ -589,23 +589,23 @@ export default function PruebasWalletApp() {
       const isMorning = hour >= 6 && hour < 11;
       const isAfternoon = hour >= 15 && hour < 19;
       
-      const hasCoffeeOrTea = cartNames.some(n => n.includes('cafe') || n.includes('cafÃ©') || n.includes('te') || n.includes('tÃ©') || n.includes('infusion'));
+      const hasCoffeeOrTea = cartNames.some(n => n.includes('cafe') || n.includes('café') || n.includes('te') || n.includes('té') || n.includes('infusion'));
       const hasBakery = cartNames.some(n => n.includes('chipa') || n.includes('medialuna') || n.includes('alfajor') || n.includes('factura') || n.includes('tostado'));
-      const hasMainDish = cartCategories.some(c => c.includes('hamburguesa') || c.includes('pizza') || c.includes('lomo') || c.includes('sÃ¡ndwich') || c.includes('empanada'));
+      const hasMainDish = cartCategories.some(c => c.includes('hamburguesa') || c.includes('pizza') || c.includes('lomo') || c.includes('sándwich') || c.includes('empanada'));
       const hasDrink = cartCategories.some(c => c.includes('bebida') || c.includes('gaseosa') || c.includes('cerveza'));
 
-      // LÃ³gica Condicional Inteligente
+      // Lógica Condicional Inteligente
       if (hasCoffeeOrTea && !hasBakery) {
-        suggestedCategories.push('panaderÃ­a', 'medialunas', 'alfajores', 'postres', 'tortas', 'chipa');
+        suggestedCategories.push('panadería', 'medialunas', 'alfajores', 'postres', 'tortas', 'chipa');
       } else if (hasBakery && !hasCoffeeOrTea) {
-        suggestedCategories.push('cafÃ©', 'cafe', 'cafeterÃ­a', 'infusiones', 'bebida caliente', 'jugos');
+        suggestedCategories.push('café', 'cafe', 'cafetería', 'infusiones', 'bebida caliente', 'jugos');
       } else if (hasMainDish) {
         if (!hasDrink) suggestedCategories.push('bebidas', 'bebida', 'gaseosas', 'cervezas');
         if (hasDrink) suggestedCategories.push('postres', 'helados', 'guarniciones', 'papas', 'adicionales');
       } else {
         // Por defecto basado en hora si no detectamos combinaciones claras
         if (isMorning || isAfternoon) {
-          suggestedCategories.push('panaderÃ­a', 'medialunas', 'alfajores', 'postres', 'cafeterÃ­a');
+          suggestedCategories.push('panadería', 'medialunas', 'alfajores', 'postres', 'cafetería');
         } else {
           if (!hasDrink) suggestedCategories.push('bebidas', 'bebida', 'cervezas');
           suggestedCategories.push('postres', 'adicionales');
@@ -625,7 +625,7 @@ export default function PruebasWalletApp() {
            .slice(0, 3);
       }
 
-      // Filtrar para no sugerir algo que ya se sugiriÃ³ como Upgrade
+      // Filtrar para no sugerir algo que ya se sugirió como Upgrade
       const currentUpgrades = cart.items.map(i => getUpgradeOffer(i, localMenu)).filter(Boolean).map(u => u.id);
       suggestions = suggestions.filter(item => !currentUpgrades.includes(item.id));
 
@@ -646,10 +646,10 @@ export default function PruebasWalletApp() {
     
     const isIceCream = categoriaNormalizada.includes('helado') || categoriaNormalizada.includes('heladeria');
     
-    // Helados pueden duplicar su precio al subir de tamaÃ±o (1/4 -> 1/2 -> 1Kg), permitimos hasta 2.5x
+    // Helados pueden duplicar su precio al subir de tamaño (1/4 -> 1/2 -> 1Kg), permitimos hasta 2.5x
     const maxMultiplier = isIceCream ? 2.5 : 1.6;
     
-    // Ignorar palabras genÃ©ricas o de peso para centrarse en el sustantivo real
+    // Ignorar palabras genéricas o de peso para centrarse en el sustantivo real
     const ignoreWords = ['de', 'con', 'y', 'la', 'el', 'en', 'x', 'sin', 'kg', 'lts', 'ml', '1/4', '1/2', '1', 'un', 'medio', 'cuarto', 'kilo', 'litro', 'lata', 'pinta'];
     const words = itemName.split(/[\s,]+/).filter(w => w.length > 2 && !ignoreWords.includes(w));
     
@@ -664,7 +664,7 @@ export default function PruebasWalletApp() {
       
       const mName = m.nombre.toLowerCase();
       
-      // Regla Especial para Helados: Cualquier helado mÃ¡s caro en la misma categorÃ­a es un upgrade vÃ¡lido (tamaÃ±o)
+      // Regla Especial para Helados: Cualquier helado más caro en la misma categoría es un upgrade válido (tamaño)
       if (isIceCream) return true;
       
       // Regla General: Debe compartir alguna palabra significativa (ej. "Hamburguesa", "Lomo", "Pizza")
@@ -680,7 +680,7 @@ export default function PruebasWalletApp() {
     
     if (candidates.length === 0) return null;
     
-    // Sugerir siempre el escalÃ³n siguiente (el mÃ¡s barato dentro de los mÃ¡s caros)
+    // Sugerir siempre el escalón siguiente (el más barato dentro de los más caros)
     candidates.sort((a, b) => Number(a.precio) - Number(b.precio));
     return candidates[0];
   };
@@ -766,25 +766,25 @@ export default function PruebasWalletApp() {
   const handleRegisterWhatsappOptin = async () => {
     let phone = (user && user.telefono) || '';
     if (!phone) {
-      phone = prompt("IngresÃ¡ tu nÃºmero de WhatsApp con cÃ³digo de Ã¡rea (ej: 5493756543610):");
+      phone = prompt("Ingresá tu número de WhatsApp con código de área (ej: 5493756543610):");
       if (!phone) return;
     }
     setOptInLoading(true);
     try {
       const res = await api.registerWhatsappOptin({
         phoneNumber: phone,
-        ciudad: activeCity || 'Santo TomÃ©',
+        ciudad: activeCity || 'Santo Tomé',
         pedidoId: pendingOrderId,
         userId: user?.id || null
       });
 
       if (res && res.error) {
-        toast.error(res.error || 'Por favor ingresÃ¡ un nÃºmero de telÃ©fono vÃ¡lido');
+        toast.error(res.error || 'Por favor ingresá un número de teléfono válido');
       } else {
         setOptInRegistered(true);
-        toast.success('Â¡Listo! Te avisaremos por WhatsApp apenas haya repartidores disponibles. ðŸ›µ');
+        toast.success('¡Listo! Te avisaremos por WhatsApp apenas haya repartidores disponibles. 🛵');
         
-        // Enviar plantilla "sin_repartidores" como confirmaciÃ³n por WhatsApp
+        // Enviar plantilla "sin_repartidores" como confirmación por WhatsApp
         api.sendWhatsappTemplateMessage({
           to: phone,
           templateName: 'sin_repartidores',
@@ -807,7 +807,7 @@ export default function PruebasWalletApp() {
   // const [mundialAward, setMundialAward] = React.useState(null);
   // const [showMundialPopup, setShowMundialPopup] = React.useState(false);
 
-  // â”€â”€â”€ Estado y Efectos para Tarifas de EnvÃ­o Multi-ciudad â”€â”€â”€
+  // ─── Estado y Efectos para Tarifas de Envío Multi-ciudad ───
   const [ciudadesConfig, setCiudadesConfig] = React.useState([]);
   const [isOutofCoverage, setIsOutofCoverage] = React.useState(false);
 
@@ -835,7 +835,7 @@ export default function PruebasWalletApp() {
 
     const calculateFee = async () => {
       try {
-        const city = currentLocal.ciudad || 'Santo TomÃ©';
+        const city = currentLocal.ciudad || 'Santo Tomé';
         const slugify = (text) => 
           String(text)
             .toLowerCase()
@@ -887,9 +887,9 @@ export default function PruebasWalletApp() {
   const getTimeBasedTitle = React.useCallback(() => {
     if (isShopsMode) {
       return { 
-          title: "Vidriera Digital â€” Tiendas Locales", 
+          title: "Vidriera Digital — Tiendas Locales", 
           banner: "https://i.postimg.cc/mZ8ZgHZt/Gemini-Generated-Image-6hv0ff6hv0ff6hv0.png",
-          rubros: ['Hogar', 'TecnologÃ­a', 'Moda', 'RegalerÃ­a', 'Deportes', 'Bebidas'],
+          rubros: ['Hogar', 'Tecnología', 'Moda', 'Regalería', 'Deportes', 'Bebidas'],
           marketCats: []
       };
     }
@@ -897,21 +897,21 @@ export default function PruebasWalletApp() {
     
     // 00 a 06 hs (antojo nocturno)
     if (hour >= 0 && hour < 6) return { 
-        title: "Antojo nocturno... Â¿Sale algo?", 
+        title: "Antojo nocturno... ¿Sale algo?", 
         banner: "https://i.postimg.cc/q7vSVXZn/Gemini-Generated-Image-n0aom0n0aom0n0ao.png",
-        rubros: ['Restaurante', 'HeladerÃ­a', 'Market', 'Bebidas'],
+        rubros: ['Restaurante', 'Heladería', 'Market', 'Bebidas'],
         marketCats: ['Golosinas', 'Snacks', 'Bebidas']
     };
     // 06 a 11 hs (desayuno)
     if (hour >= 6 && hour < 11) return { 
-        title: "Â¡Buenos dÃ­as! Un rico desayuno", 
+        title: "¡Buenos días! Un rico desayuno", 
         banner: "https://i.postimg.cc/LsDCxY9K/Gemini-Generated-Image-muhz58muhz58muhz.png",
-        rubros: ['CafeterÃ­a', 'Market', 'Bebidas'],
+        rubros: ['Cafetería', 'Market', 'Bebidas'],
         marketCats: ['Snacks', 'Bebidas']
     };
     // 11 hs a 13 hs (almuerzo)
     if (hour >= 11 && hour < 13) return { 
-        title: "Hora del almuerzo: PedÃ­ algo rico", 
+        title: "Hora del almuerzo: Pedí algo rico", 
         banner: "https://i.postimg.cc/d1Dbdm8W/Gemini-Generated-Image-py0z0lpy0z0lpy0z.png",
         rubros: ['Restaurante', 'Market', 'Bebidas'],
         marketCats: ['Bebidas']
@@ -920,19 +920,19 @@ export default function PruebasWalletApp() {
     if (hour >= 13 && hour < 16) return { 
         title: "Postres y Tentaciones", 
         banner: "https://i.postimg.cc/853qbJ4k/Gemini-Generated-Image-wcc6vbwcc6vbwcc6.png",
-        rubros: ['HeladerÃ­a', 'Market', 'Bebidas'],
+        rubros: ['Heladería', 'Market', 'Bebidas'],
         marketCats: ['Golosinas']
     };
     // 16 a 20 hs (merienda)
     if (hour >= 16 && hour < 20) return { 
         title: "Merienda: Un break para vos", 
         banner: "https://i.postimg.cc/LsDCxY9K/Gemini-Generated-Image-muhz58muhz58muhz.png",
-        rubros: ['CafeterÃ­a', 'HeladerÃ­a', 'Market', 'Bebidas'],
+        rubros: ['Cafetería', 'Heladería', 'Market', 'Bebidas'],
         marketCats: ['Snacks', 'Bebidas']
     };
     // 20 a 00 hs (cena)
     if (hour >= 20 || hour < 0) return { 
-        title: "Â¿QuÃ© pedimos para cenar?", 
+        title: "¿Qué pedimos para cenar?", 
         banner: "https://i.postimg.cc/d1Dbdm8W/Gemini-Generated-Image-py0z0lpy0z0lpy0z.png",
         rubros: ['Restaurante', 'Market', 'Bebidas'],
         marketCats: ['Bebidas']
@@ -940,7 +940,7 @@ export default function PruebasWalletApp() {
     
     // Default
     return { 
-        title: "Â¿QuÃ© se te antoja hoy?", 
+        title: "¿Qué se te antoja hoy?", 
         banner: "https://i.postimg.cc/d1Dbdm8W/Gemini-Generated-Image-py0z0lpy0z0lpy0z.png",
         rubros: ['Restaurante', 'Bebidas'],
         marketCats: []
@@ -968,7 +968,7 @@ export default function PruebasWalletApp() {
   }, []);
 
   const getBadgeForLocal = React.useCallback((local, index) => {
-    // MÃ¡ximo 30-40% (1 de cada 3)
+    // Máximo 30-40% (1 de cada 3)
     if (index % 3 !== 0) return null;
     
     const PLAN_PRO = '87bdad7f-51cf-4c9c-ae64-ebab8b07b105';
@@ -989,15 +989,15 @@ export default function PruebasWalletApp() {
   const isClosedToday = React.useCallback((local) => {
     if (!local) return false;
     const config = local.config_horarios || {};
-    const daysMap = ['Domingo', 'Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado'];
+    const daysMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const currentDayName = daysMap[new Date().getDay()];
     
-    // Si tiene la nueva configuraciÃ³n, verificamos si ese dÃ­a estÃ¡ "cerrado"
+    // Si tiene la nueva configuración, verificamos si ese día está "cerrado"
     if (config[currentDayName]) {
       return config[currentDayName].tipo === 'cerrado';
     }
 
-    // Fallback a lÃ³gica vieja si no hay config_horarios
+    // Fallback a lógica vieja si no hay config_horarios
     if (local.modo_automatico && local.dias_apertura && Array.isArray(local.dias_apertura)) {
       const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const normalizedDays = local.dias_apertura.map(normalize);
@@ -1007,7 +1007,7 @@ export default function PruebasWalletApp() {
     return false;
   }, []);
 
-  console.log("ðŸš€ PruebasWalletApp: Logic functions defined");
+  console.log("🚀 PruebasWalletApp: Logic functions defined");
 
   const calculateDiscountedPrice = React.useCallback((item) => {
     if (!item) return 0;
@@ -1020,7 +1020,7 @@ export default function PruebasWalletApp() {
       cart: { 
         totalPrice: basePrice, 
         items: [{ ...item, cantidad: 1, qty: 1 }],
-        metodoPago: metodoPago // Inyectar mÃ©todo actual
+        metodoPago: metodoPago // Inyectar método actual
       },
       user,
       userPromoUsage,
@@ -1031,7 +1031,7 @@ export default function PruebasWalletApp() {
     if (promoResults.discountTotal > 0) {
       finalPrice = basePrice - promoResults.discountTotal;
     } else {
-      // 2. Fallback: LÃ³gica Antigua (Descuento estÃ¡tico en tabla menu o local)
+      // 2. Fallback: Lógica Antigua (Descuento estático en tabla menu o local)
       if (item.descuento > 0) {
         finalPrice = basePrice * (1 - Number(item.descuento) / 100);
       } else {
@@ -1088,7 +1088,7 @@ export default function PruebasWalletApp() {
       
       return (
         <div className="credit-earn-label animate-fade-in" style={{ fontSize: '0.7rem', opacity: 0.9, marginTop: '-2px', marginBottom: '4px' }}>
-          GanÃ¡s ${earned.toLocaleString()} de credito {orderText}{locationText}
+          Ganás ${earned.toLocaleString()} de credito {orderText}{locationText}
         </div>
       );
     }
@@ -1096,7 +1096,7 @@ export default function PruebasWalletApp() {
     // Texto simplificado para Home
     const homeLabel = isFirstOrderPromo 
       ? `+$${earned.toLocaleString()} en 1er pedido` 
-      : `GanÃ¡s $${earned.toLocaleString()}`;
+      : `Ganás $${earned.toLocaleString()}`;
 
     return (
       <div className="credit-earn-label animate-fade-in">
@@ -1127,7 +1127,7 @@ export default function PruebasWalletApp() {
     // 1. Evaluar Promociones Unificadas
     const localId = cart.items.length > 0 ? cart.items[0].local_id : null;
     
-    // IMPORTANTE: Crear una versiÃ³n del carrito con precios ORIGINALES (pero incluyendo el descuento del comercio) para el motor
+    // IMPORTANTE: Crear una versión del carrito con precios ORIGINALES (pero incluyendo el descuento del comercio) para el motor
     const grossItems = cart.items.map(i => {
       const basePrice = Number(i.precioOriginal || i.precio);
       let merchantPrice = basePrice;
@@ -1167,7 +1167,7 @@ export default function PruebasWalletApp() {
         totalPrice: grossP, // Base bruta
         deliveryFee: E, 
         items: grossItems, // Items con precios originales
-        metodoPago: method, // El mÃ©todo elegido en el selector
+        metodoPago: method, // El método elegido en el selector
         couponCode: appliedCoupon
       },
       user,
@@ -1177,11 +1177,11 @@ export default function PruebasWalletApp() {
       currentLocalId: localId
     });
 
-    // Aplicar descuentos de promos al subtotal bruto y envÃ­o
+    // Aplicar descuentos de promos al subtotal bruto y envío
     const discountedP = Math.max(0, grossP - (promoResults.discountTotal || 0));
     const discountedE = promoResults.freeShipping ? 0 : Math.max(0, E - (promoResults.shippingDiscount || 0));
 
-    // Si es Shops, no se cobra comisiÃ³n por venta de productos, solo el valor de envÃ­o queda para la plataforma
+    // Si es Shops, no se cobra comisión por venta de productos, solo el valor de envío queda para la plataforma
     const net_commission = isShopsMode ? 0 : (discountedP * localCommission);
     const net_local = isShopsMode ? discountedP : (discountedP - net_commission);
     const total_net = discountedP + discountedE;
@@ -1231,7 +1231,7 @@ export default function PruebasWalletApp() {
       };
     }
 
-    // 2. ValidaciÃ³n de uso de Billetera (SoberanÃ­a de Promo Admin)
+    // 2. Validación de uso de Billetera (Soberanía de Promo Admin)
     let walletValidation = { canUse: true, reason: null };
     let maxDiscount = 0;
 
@@ -1240,7 +1240,7 @@ export default function PruebasWalletApp() {
       const hasOrdered = user?.ya_realizo_pedidos === true || user?.ya_realizo_pedidos === 'true' || user?.ya_realizo_pedidos === 1 || user?.ya_realizo_pedidos === '1' || user?.ya_realizo_pedidos === 'TRUE' || (orderCount > 0);
       const isFirstOrder = !user || !user.id || !hasOrdered;
 
-      // Buscar la configuraciÃ³n maestra (Promo Activa de CrÃ©dito que aplique al usuario)
+      // Buscar la configuración maestra (Promo Activa de Crédito que aplique al usuario)
       const creditPromo = allPromotions.find(p => {
         if (p.tipo !== 'credito' || !p.activo) return false;
         const triggers = p.triggers || {};
@@ -1249,10 +1249,10 @@ export default function PruebasWalletApp() {
         // Validar Primera Compra
         if (triggers.primera_compra === true && !isFirstOrder) return false;
         
-        // Validar MÃ©todo de Pago (Triggers)
+        // Validar Método de Pago (Triggers)
         if (triggers.metodo_pago && triggers.metodo_pago !== 'todos' && method && method !== triggers.metodo_pago) return false;
         
-        // Validar MÃ©todo de Pago (Requisitos)
+        // Validar Método de Pago (Requisitos)
         if (requisitos.metodo_pago && requisitos.metodo_pago !== 'todos' && method && method !== requisitos.metodo_pago) return false;
         
         return true;
@@ -1266,12 +1266,12 @@ export default function PruebasWalletApp() {
         ? { ...localConfig, ...creditPromo.requisitos } // La promo sobreescribe al config
         : localConfig;
 
-      // 1. Compra MÃ­nima
+      // 1. Compra Mínima
       const minUso = Number(config.min_compra_uso || config.compra_minima_uso || 0);
       if (discountedP < minUso) {
         walletValidation = {
           canUse: false,
-          reason: `Compra mÃ­nima de $${minUso.toLocaleString()} para usar crÃ©dito`
+          reason: `Compra mínima de $${minUso.toLocaleString()} para usar crédito`
         };
         maxDiscount = 0;
       } else {
@@ -1325,8 +1325,8 @@ export default function PruebasWalletApp() {
     if (!local) return false;
 
     const localId = local.local_id || local.id;
-    // Si el objeto recibido ya cuenta con informaciÃ³n de horarios, lo usamos directamente.
-    // De lo contrario (ej: Ã­tem de menÃº), buscamos el local en la lista de locales del estado.
+    // Si el objeto recibido ya cuenta con información de horarios, lo usamos directamente.
+    // De lo contrario (ej: ítem de menú), buscamos el local en la lista de locales del estado.
     const hasHours = local.config_horarios || local.horario_apertura;
     const realLocal = hasHours ? local : ((locals.find(l => l.id === localId)) || local);
     
@@ -1347,7 +1347,7 @@ export default function PruebasWalletApp() {
     if (checkIsComingSoon(local)) {
       return (
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
-          <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.62rem', color: '#f59e0b' }}>PrÃ³ximamente</span>
+          <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.62rem', color: '#f59e0b' }}>Próximamente</span>
         </span>
       );
     }
@@ -1380,12 +1380,12 @@ export default function PruebasWalletApp() {
   }, [isLocalOpen, checkIsComingSoon]);
 
   React.useEffect(() => {
-    console.log("ðŸš€ PruebasWalletApp: Main data useEffect running, activeCity:", activeCity);
+    console.log("🚀 PruebasWalletApp: Main data useEffect running, activeCity:", activeCity);
     api.trackDemandSignal('page_view', sessionId).catch(() => {});
 
     const loadHomeData = async () => {
       try {
-        // 1. Cargar promociones activas, locales y configs de wallet primero para saber quÃ© buscar
+        // 1. Cargar promociones activas, locales y configs de wallet primero para saber qué buscar
         const [allPrms, locsRaw, wcfgsRaw, citiesRaw] = await Promise.all([
           api.getActivePromotions(),
           api.getLocales(),
@@ -1396,14 +1396,14 @@ export default function PruebasWalletApp() {
         setCitiesList(citiesRaw || []);
 
         // Filtrar locales por la ciudad activa y por tipo de servicio (Shops o Delivery)
-        const currentCity = activeCity || 'Santo TomÃ©';
+        const currentCity = activeCity || 'Santo Tomé';
         const locs = (locsRaw || []).filter(l => 
-          (l.ciudad || 'Santo TomÃ©') === currentCity && 
+          (l.ciudad || 'Santo Tomé') === currentCity && 
           (isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio))
         );
         setLocals(locs || []);
         
-        // Mapear configs de wallet por local_id para uso rÃ¡pido
+        // Mapear configs de wallet por local_id para uso rápido
         const configMap = {};
         if (Array.isArray(wcfgsRaw)) {
           wcfgsRaw.forEach(c => {
@@ -1413,16 +1413,16 @@ export default function PruebasWalletApp() {
         }
         setAllWalletConfigs(configMap);
         
-        // Extraer categorÃ­as que tienen promos especÃ­ficas
+        // Extraer categorías que tienen promos específicas
         const targetCats = allPrms.flatMap(p => p.triggers?.categorias || []);
         
         // Extraer si hay promociones globales activas
         const hasGlobalPromo = allPrms.some(p => p.activo && p.triggers?.global);
         
         // Extraer locales que tienen:
-        // a) Alguna promociÃ³n global activa (aplica a todos)
+        // a) Alguna promoción global activa (aplica a todos)
         // b) Descuento general activo
-        // c) ConfiguraciÃ³n de Wallet activa (genera crÃ©dito)
+        // c) Configuración de Wallet activa (genera crédito)
         const targetLocalIds = (locs || []).filter(l => {
           if (hasGlobalPromo) return true;
           const hasGenDiscount = Number(l.descuento_general) > 0;
@@ -1444,7 +1444,7 @@ export default function PruebasWalletApp() {
         const boosted = getBoostedLocales(allLocs);
         const timeInfo = getTimeBasedTitle();
         
-        // El configMap ya se seteÃ³ arriba
+        // El configMap ya se seteó arriba
  
         setDrinks(deks || []);
         const filteredBanners = (bans || []).filter(b => 
@@ -1499,7 +1499,7 @@ export default function PruebasWalletApp() {
             return result;
           };
 
-          // Combinar candidatos: Promos especÃ­ficas + Lo mÃ¡s pedido + Explorar
+          // Combinar candidatos: Promos específicas + Lo más pedido + Explorar
           const allCandidates = [
             ...(prms || []),
             ...(most || []),
@@ -1514,7 +1514,7 @@ export default function PruebasWalletApp() {
             const l = allLocs.find(loc => loc.id === p.local_id);
             if (!l || !isLocalOpen(l)) return false;
 
-            // Evaluar con el motor para detectar beneficios dinÃ¡micos
+            // Evaluar con el motor para detectar beneficios dinámicos
             const promoResults = evaluatePromotions({
               cart: { totalPrice: Number(p.precio), items: [{ ...p, qty: 1, cantidad: 1 }], deliveryFee: 500 },
               user,
@@ -1531,7 +1531,7 @@ export default function PruebasWalletApp() {
             const isCombo = p.categoria?.toLowerCase().includes('combo');
             const hasDayDiscount = calculateDiscountedPrice(p) < Number(p.precio);
 
-            // Excluir COMBOS por pedido explÃ­cito
+            // Excluir COMBOS por pedido explícito
             if (isCombo) return false;
 
             return hasBaseDiscount || hasDayDiscount || earnsCredit || hasFreeShipping || hasDynamicDiscount;
@@ -1566,19 +1566,19 @@ export default function PruebasWalletApp() {
             categories: (() => {
               const defaultCats = isShopsMode ? [
                 { label: 'Hogar', type: 'Hogar', img: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=200&auto=format&fit=crop&q=80' },
-                { label: 'TecnologÃ­a', type: 'TecnologÃ­a', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Tecnología', type: 'Tecnología', img: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&auto=format&fit=crop&q=80' },
                 { label: 'Moda', type: 'Moda', img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&auto=format&fit=crop&q=80' },
-                { label: 'RegalerÃ­a', type: 'RegalerÃ­a', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Regalería', type: 'Regalería', img: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=200&auto=format&fit=crop&q=80' },
                 { label: 'Deportes', type: 'Deportes', img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&auto=format&fit=crop&q=80' },
                 { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' }
               ] : [
                 { label: 'Restaurante', type: 'Restaurante', img: 'https://i.postimg.cc/VLtZ23Km/descarga-(1)-(8).jpg' },
-                { label: 'Helados', type: 'HeladerÃ­a', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
-                { label: 'CafeterÃ­a', type: 'CafeterÃ­a', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+                { label: 'Helados', type: 'Heladería', img: 'https://i.postimg.cc/VLPKFCY9/buscamos-repartidores-(18).png' },
+                { label: 'Cafetería', type: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
                 { label: 'Market', type: 'Market', img: 'https://i.postimg.cc/FFByJ1Gq/buscamos-repartidores-(38).png' },
                 { label: 'Farmacia', type: 'Farmacia', img: 'https://i.postimg.cc/vBmn4dnT/buscamos-repartidores-(37).png' },
                 { label: 'Bebidas', type: 'Bebidas', img: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=200&auto=format&fit=crop&q=80' },
-                { label: 'CarnicerÃ­a', type: 'CarnicerÃ­a', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
+                { label: 'Carnicería', type: 'Carnicería', img: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=200&auto=format&fit=crop&q=80' },
                 { label: 'SHOPS', type: 'SHOPS', img: 'https://i.postimg.cc/YqMqFDzf/wepi-(2).png' }
               ];
 
@@ -1599,7 +1599,7 @@ export default function PruebasWalletApp() {
                 const all = [...(expl||[]), ...(most||[]), ...(prms||[])]; 
                 const hour = new Date().getHours(); 
                 const isDay = hour >= 6 && hour < 19; 
-                const cats = isDay ? ['panaderÃ­a', 'cafeterÃ­a', 'desayuno', 'merienda', 'medialunas', 'alfajores', 'tostado', 'chipa', 'infusiones', 'torta', 'helado', 'postre'] : ['hamburguesa', 'pizza', 'sÃ¡ndwich', 'empanada', 'lomo', 'restaurante', 'cena', 'almuerzo', 'bebidas', 'cerveza', 'helado', 'postre']; 
+                const cats = isDay ? ['panadería', 'cafetería', 'desayuno', 'merienda', 'medialunas', 'alfajores', 'tostado', 'chipa', 'infusiones', 'torta', 'helado', 'postre'] : ['hamburguesa', 'pizza', 'sándwich', 'empanada', 'lomo', 'restaurante', 'cena', 'almuerzo', 'bebidas', 'cerveza', 'helado', 'postre']; 
                 let openItems = all.filter(item => { 
                     const loc = allLocs.find(l => l.id === item.local_id); 
                     return loc && isLocalOpen(loc); 
@@ -1682,7 +1682,7 @@ export default function PruebasWalletApp() {
       api.getPlanInfo(localId)
         .then(res => {
           if (res.success && typeof res.comision_actual === 'number') {
-            console.log(`ðŸ“Š PruebasWalletApp: ComisiÃ³n para local ${localId}: ${res.comision_actual}%`);
+            console.log(`📊 PruebasWalletApp: Comisión para local ${localId}: ${res.comision_actual}%`);
             setLocalCommission(res.comision_actual / 100);
           } else {
             setLocalCommission(0.15); // Fallback to 15%
@@ -1731,7 +1731,7 @@ export default function PruebasWalletApp() {
         try {
           const pendingData = JSON.parse(pendingRaw);
           if (status === 'approved') {
-            toast.success(`Â¡Pago confirmado! Tu pedido #${pendingData.pedidoId} estÃ¡ siendo procesado.`);
+            toast.success(`¡Pago confirmado! Tu pedido #${pendingData.pedidoId} está siendo procesado.`);
             setConfirmedOrderId(pendingData.pedidoId);
             setShowConfirmedModal(true);
             setSearchingDriver(false);
@@ -1799,7 +1799,7 @@ export default function PruebasWalletApp() {
 
             cart.clearCart();
           } else if (status === 'pending') {
-            toast.error('El pago estÃ¡ pendiente de aprobaciÃ³n');
+            toast.error('El pago está pendiente de aprobación');
           } else {
             toast.error('El pago no fue aprobado');
           }
@@ -1825,7 +1825,7 @@ export default function PruebasWalletApp() {
           setMenus(d || []);
           setMenuTitle(`Resultados para "${search}"`);
           setShowMenus(true);
-        }).catch(() => toast.error('Error en bÃºsqueda')).finally(() => setLoadingMenus(false));
+        }).catch(() => toast.error('Error en búsqueda')).finally(() => setLoadingMenus(false));
       }, 500);
     } else if (search === '') {
       setShowMenus(false);
@@ -1836,7 +1836,7 @@ export default function PruebasWalletApp() {
   const fetchMenusByLocal = React.useCallback((localId, catId = null, fromDirectLink = false) => {
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
     if (local && checkIsComingSoon(local)) {
-      toast.error(`${local.nombre} estarÃ¡ disponible prÃ³ximamente.`);
+      toast.error(`${local.nombre} estará disponible próximamente.`);
       return;
     }
     setLoadingMenus(true);
@@ -1873,9 +1873,9 @@ export default function PruebasWalletApp() {
         mapped = mapped.filter(i => (i.categoria || '').toLowerCase() === catId.toLowerCase());
       }
       setMenus(mapped);
-      setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `MenÃº de ${local?.nombre || 'Local'}`);
+      setMenuTitle(catId ? `${catId} en ${local?.nombre || 'Local'}` : `Menú de ${local?.nombre || 'Local'}`);
       setShowMenus(true);
-    }).catch(() => toast.error('No pudimos cargar el menÃº')).finally(() => setLoadingMenus(false));
+    }).catch(() => toast.error('No pudimos cargar el menú')).finally(() => setLoadingMenus(false));
   }, [locals, filteredLocals, checkIsComingSoon]);
   
   // Auto-scroll to category if coming from rubro click
@@ -1898,7 +1898,7 @@ export default function PruebasWalletApp() {
         }
 
         if (match) {
-          console.log(`ðŸŽ¯ Auto-scrolling to category: ${match}`);
+          console.log(`🎯 Auto-scrolling to category: ${match}`);
           const el = document.getElementById(`cat-${match}`);
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1909,19 +1909,19 @@ export default function PruebasWalletApp() {
     }
   }, [showMenus, menus, targetMenuCategory]);
 
-  // Carga automÃ¡tica por slug (Landing Page de Local)
+  // Carga automática por slug (Landing Page de Local)
   React.useEffect(() => {
     if (slug) {
       // Si el slug es en realidad el nombre de una ciudad, no intentar cargarlo como local
       if (getCityFromSlug(slug)) {
         return;
       }
-      console.log("ðŸ”— PruebasWalletApp: Slug detectado en URL:", slug);
+      console.log("🔗 PruebasWalletApp: Slug detectado en URL:", slug);
       api.getLocalBySlug(slug).then(local => {
         if (local && local.admin_status === 'Aceptado') {
-          console.log("âœ… PruebasWalletApp: Local encontrado y aceptado:", local.nombre);
+          console.log("✅ PruebasWalletApp: Local encontrado y aceptado:", local.nombre);
           
-          // RedirecciÃ³n y compatibilidad multiciudad
+          // Redirección y compatibilidad multiciudad
           const citySlug = getCitySlug(local.ciudad);
           const hasIncorrectCity = !ciudad || !citiesMatch(ciudad, local.ciudad);
           
@@ -1934,12 +1934,12 @@ export default function PruebasWalletApp() {
             navigate(`${prefix}/${citySlug}/${local.slug}`, { replace: true });
           }
 
-          // Sincronizar ciudad activa de la sesiÃ³n
+          // Sincronizar ciudad activa de la sesión
           if (local.ciudad && activeCity !== local.ciudad) {
             selectCity(local.ciudad);
           }
 
-          // Registrar mÃ©tricas de uso de plataforma
+          // Registrar métricas de uso de plataforma
           const searchParams = new URLSearchParams(location.search);
           const isWhatsApp = searchParams.get('utm_source') === 'wa_bot';
           
@@ -1954,17 +1954,17 @@ export default function PruebasWalletApp() {
 
           fetchMenusByLocal(local.id, null, true);
         } else if (local && local.admin_status !== 'Aceptado') {
-          console.warn("âš ï¸ PruebasWalletApp: Local no aceptado:", local.nombre);
-          toast.error("Este local aÃºn no estÃ¡ habilitado.");
+          console.warn("⚠️ PruebasWalletApp: Local no aceptado:", local.nombre);
+          toast.error("Este local aún no está habilitado.");
           navigate('/pruebas');
         } else {
-          console.warn("âš ï¸ PruebasWalletApp: Local no encontrado para el slug:", slug);
+          console.warn("⚠️ PruebasWalletApp: Local no encontrado para el slug:", slug);
           toast.error("El local solicitado no existe.");
           navigate('/pruebas');
         }
       }).catch(err => {
-        console.error("âŒ PruebasWalletApp: Error cargando local por slug:", err);
-        toast.error("Error al cargar el menÃº del local.");
+        console.error("❌ PruebasWalletApp: Error cargando local por slug:", err);
+        toast.error("Error al cargar el menú del local.");
       });
     } else {
       setShowMenus(false);
@@ -2081,7 +2081,7 @@ export default function PruebasWalletApp() {
     
     setLoadingLocals(true);
     api.getLocalesByRubro(cat).then(d => {
-      const currentCity = activeCity || 'Santo TomÃ©';
+      const currentCity = activeCity || 'Santo Tomé';
       const mapped = (d || []).map(l => ({
         id: l.local_id,
         nombre: l.nombre_local,
@@ -2102,7 +2102,7 @@ export default function PruebasWalletApp() {
         ciudad: l.ciudad
       }))
       .filter(l => isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio))
-      .filter(l => (l.ciudad || 'Santo TomÃ©') === currentCity)
+      .filter(l => (l.ciudad || 'Santo Tomé') === currentCity)
       .sort((a, b) => {
         const openA = isLocalOpen(a) ? 1 : 0;
         const openB = isLocalOpen(b) ? 1 : 0;
@@ -2134,7 +2134,7 @@ export default function PruebasWalletApp() {
       const r = await api.toggleFavorito(user.id, menuId);
       if (r.added) {
         setFavorites(prev => [...prev, menuId]);
-        toast.success('â¤ï¸ Agregado a favoritos');
+        toast.success('❤️ Agregado a favoritos');
       } else {
         setFavorites(prev => prev.filter(id => id !== menuId));
         toast.success('Quitado de favoritos');
@@ -2158,9 +2158,9 @@ export default function PruebasWalletApp() {
           emailConfirmado: d.emailConfirmado 
         });
         setModal(null);
-        toast.success('Â¡Bienvenido!');
+        toast.success('¡Bienvenido!');
       } else toast.error('Credenciales incorrectas');
-    } catch { toast.error('Error de conexiÃ³n'); }
+    } catch { toast.error('Error de conexión'); }
     setAuthLoading(false);
   };
 
@@ -2170,12 +2170,12 @@ export default function PruebasWalletApp() {
     if (res.success) {
       setModal(null);
       if (res.isNew) {
-        toast.success('Â¡Bienvenido! RecordÃ¡ completar tu telÃ©fono en el perfil para pedir.');
+        toast.success('¡Bienvenido! Recordá completar tu teléfono en el perfil para pedir.');
       } else {
-        toast.success('Â¡Bienvenido!');
+        toast.success('¡Bienvenido!');
       }
     } else {
-      toast.error(res.error || 'Error al iniciar sesiÃ³n con Google');
+      toast.error(res.error || 'Error al iniciar sesión con Google');
     }
     setAuthLoading(false);
   };
@@ -2187,12 +2187,12 @@ export default function PruebasWalletApp() {
     if (res.success) {
       setModal(null);
       if (res.isNew) {
-        toast.success("Â¡Bienvenido! RecordÃ¡ completar tu telÃ©fono en el perfil para pedir.");
+        toast.success("¡Bienvenido! Recordá completar tu teléfono en el perfil para pedir.");
       } else {
-        toast.success("Â¡Bienvenido!");
+        toast.success("¡Bienvenido!");
       }
     } else {
-      toast.error(res.error || "Error al iniciar sesiÃ³n con Apple");
+      toast.error(res.error || "Error al iniciar sesión con Apple");
     }
     setAuthLoading(false);
   };
@@ -2202,9 +2202,9 @@ export default function PruebasWalletApp() {
     const loading = toast.loading('Reenviando email...');
     try {
       const res = await api.reenviarEmailConfirmacion(user.email, 'usuario');
-      if (res.success) toast.success('Â¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
+      if (res.success) toast.success('¡Email reenviado! Revisa tu bandeja de entrada.', { id: loading });
       else toast.error(res.error || 'Error al reenviar', { id: loading });
-    } catch { toast.error('Error de conexiÃ³n', { id: loading }); }
+    } catch { toast.error('Error de conexión', { id: loading }); }
   };
 
   const handleRegister = async (e) => {
@@ -2217,11 +2217,11 @@ export default function PruebasWalletApp() {
     const prefix = fd.get('prefix');
     const localNumber = fd.get('telefono');
     const telefono = `${prefix}${localNumber}`;
-    const ciudad = fd.get('ciudad') || 'Santo TomÃ©';
+    const ciudad = fd.get('ciudad') || 'Santo Tomé';
 
-    if (!isValidEmail(email)) { toast.error('IngresÃ¡ un email vÃ¡lido'); return; }
-    if (password.length < 6) { toast.error('La contraseÃ±a debe tener al menos 6 caracteres'); return; }
-    if (!localNumber) { toast.error('El telÃ©fono es obligatorio'); return; }
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!localNumber) { toast.error('El teléfono es obligatorio'); return; }
     
     setAuthLoading(true);
     try {
@@ -2243,16 +2243,16 @@ export default function PruebasWalletApp() {
           telefono: telefono,
           ciudad: ciudad
         });
-            const isInactiveCity = !ciudad.includes('Santo TomÃ©') && !ciudad.includes('OberÃ¡');
+            const isInactiveCity = !ciudad.includes('Santo Tomé') && !ciudad.includes('Oberá');
             if (isInactiveCity) {
               setInactiveCityModal(ciudad);
               setModal('success_inactive');
             } else {
               setModal(null);
-              toast.success('Â¡Registro exitoso!');
+              toast.success('¡Registro exitoso!');
             }
           } else toast.error('Error al registrar');
-    } catch (err) { toast.error(err.message || 'Error de conexiÃ³n'); }
+    } catch (err) { toast.error(err.message || 'Error de conexión'); }
     setAuthLoading(false);
   };
 
@@ -2266,9 +2266,9 @@ export default function PruebasWalletApp() {
     const telefono = `${prefix}${localNumber}`;
     const newPass = fd.get('newPassword');
 
-    if (!nombre || !email || !localNumber) { toast.error('Nombre, email y telÃ©fono son obligatorios'); return; }
-    if (!isValidEmail(email)) { toast.error('IngresÃ¡ un email vÃ¡lido'); return; }
-    if (newPass && newPass.length < 6) { toast.error('La nueva contraseÃ±a debe tener 6+ caracteres'); return; }
+    if (!nombre || !email || !localNumber) { toast.error('Nombre, email y teléfono son obligatorios'); return; }
+    if (!isValidEmail(email)) { toast.error('Ingresá un email válido'); return; }
+    if (newPass && newPass.length < 6) { toast.error('La nueva contraseña debe tener 6+ caracteres'); return; }
     
     setAuthLoading(true);
     try {
@@ -2299,7 +2299,7 @@ export default function PruebasWalletApp() {
 
 
   const handleAddToCart = async (menu) => {
-    // Red de seguridad: Verificar disponibilidad antes de cualquier acciÃ³n
+    // Red de seguridad: Verificar disponibilidad antes de cualquier acción
     const availabilityDate = menu.local_disponible_desde;
     if (availabilityDate) {
       const today = new Date();
@@ -2307,22 +2307,22 @@ export default function PruebasWalletApp() {
       const parts = availabilityDate.split('-');
       const availableDate = new Date(parts[0], parts[1] - 1, parts[2]);
       if (today < availableDate) {
-        toast.error(`Este local abrirÃ¡ el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}`);
+        toast.error(`Este local abrirá el ${availableDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}`);
         return;
       }
     }
 
-    // Verificar si el local estÃ¡ abierto
+    // Verificar si el local está abierto
     const localRef = (selectedLocal && selectedLocal.id === menu.local_id) 
       ? selectedLocal 
       : (locals.find(l => l.id === menu.local_id) || menu);
 
     if (!isLocalOpen(localRef)) {
-      toast.error('Este local estÃ¡ cerrado por el momento');
+      toast.error('Este local está cerrado por el momento');
       return;
     }
 
-    // Registrar mÃ©trica de Carrito Creado (Ãºnico por sesiÃ³n de usuario)
+    // Registrar métrica de Carrito Creado (único por sesión de usuario)
     try {
       const cartTrackedKey = `wepi_cart_tracked_${menu.local_id}`;
       if (!sessionStorage.getItem(cartTrackedKey)) {
@@ -2330,7 +2330,7 @@ export default function PruebasWalletApp() {
         sessionStorage.setItem(cartTrackedKey, 'true');
       }
     } catch (e) {
-      console.error("[Metrics] Error registrando creaciÃ³n de carrito:", e);
+      console.error("[Metrics] Error registrando creación de carrito:", e);
     }
 
     // Detect category and configuration
@@ -2409,7 +2409,7 @@ export default function PruebasWalletApp() {
 
     // Calculate final price once here
     const discountedPrice = calculateDiscountedPrice(menu);
-    console.log("ðŸ›’ handleAddToCart: Price calculation", { 
+    console.log("🛒 handleAddToCart: Price calculation", { 
       name: menu.nombre, 
       original: menu.precio, 
       final: discountedPrice 
@@ -2425,7 +2425,7 @@ export default function PruebasWalletApp() {
     cart.addItem(itemToAdd);
     toast((t) => (
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        Â¡{menu.nombre} agregado! âœ“
+        ¡{menu.nombre} agregado! ✓
         <button onClick={() => { openCart(); toast.dismiss(t.id); }} style={{ background: 'var(--red-500)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
           Ver carrito
         </button>
@@ -2502,43 +2502,43 @@ export default function PruebasWalletApp() {
     e.preventDefault();
     if (!user) { setModal('login'); return; }
     if (!user.telefono) {
-      toast.error('Por favor, configurÃ¡ tu telÃ©fono en el perfil antes de realizar un pedido.');
+      toast.error('Por favor, configurá tu teléfono en el perfil antes de realizar un pedido.');
       setModal('editProfile');
       return;
     }
-    if (cart.items.length === 0) { toast.error('Tu carrito estÃ¡ vacÃ­o'); return; }
+    if (cart.items.length === 0) { toast.error('Tu carrito está vacío'); return; }
     const fd = new FormData(e.target);
     const mp = metodoPago; // Use state instead of FormData
     const dir = addressData.address;
-    if (cart.deliveryType === 'envio' && !dir) { toast.error('IngresÃ¡ tu direcciÃ³n de entrega'); return; }
+    if (cart.deliveryType === 'envio' && !dir) { toast.error('Ingresá tu dirección de entrega'); return; }
     if (cart.deliveryType === 'envio' && isOutofCoverage) {
-      toast.error('Esta direcciÃ³n estÃ¡ fuera del Ã¡rea de cobertura por el momento.');
+      toast.error('Esta dirección está fuera del área de cobertura por el momento.');
       return;
     }
 
-    // ValidaciÃ³n de direcciÃ³n correcta (no solo el nombre de la ciudad)
+    // Validación de dirección correcta (no solo el nombre de la ciudad)
     if (cart.deliveryType === 'envio') {
       const lowerAddr = dir.toLowerCase();
       const cityStrings = [
-        'santo tomÃ©, corrientes', 
-        'santo tomÃ©', 
+        'santo tomé, corrientes', 
+        'santo tomé', 
         'santo tome, corrientes', 
         'santo tome',
-        'santo tomÃ©, corrientes province',
+        'santo tomé, corrientes province',
         'santo tome, corrientes province',
-        'santo tomÃ©, provincia de corrientes',
+        'santo tomé, provincia de corrientes',
         'santo tome, provincia de corrientes'
       ];
       const isJustCity = cityStrings.some(s => lowerAddr.startsWith(s)) && lowerAddr.length < 60;
 
       if (isJustCity) {
-        toast.error('DirecciÃ³n no encontrada, por favor indica tu direcciÃ³n con el marcador');
+        toast.error('Dirección no encontrada, por favor indica tu dirección con el marcador');
         setShowAddressSelector(true);
         return;
       }
     }
 
-    if (!mp) { toast.error('SeleccionÃ¡ un mÃ©todo de pago'); return; }
+    if (!mp) { toast.error('Seleccioná un método de pago'); return; }
     
     // Facebook Pixel: InitiateCheckout
     if (window.fbq) {
@@ -2563,11 +2563,11 @@ export default function PruebasWalletApp() {
 
 
     if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
-      toast.error('Este local no ofrece la opciÃ³n de retiro en el local.');
+      toast.error('Este local no ofrece la opción de retiro en el local.');
       return;
     }
 
-    // ValidaciÃ³n de primer pedido por transferencia
+    // Validación de primer pedido por transferencia
     if (mp === 'efectivo' && (orderCount === 0 || orderCount === null)) {
       // Si es null, por seguridad asumimos que es el primero si ya logramos obtener user e intentamos cargar orderCount
       toast.error('Por seguridad, tu primer pedido debe ser por transferencia / Mercado Pago.');
@@ -2613,7 +2613,7 @@ export default function PruebasWalletApp() {
       }
       */
 
-      // --- NUEVA VALIDACIÃƒâ€œN DE DISPONIBILIDAD EN TIEMPO REAL ---
+      // --- NUEVA VALIDACIÃ“N DE DISPONIBILIDAD EN TIEMPO REAL ---
       const uniqueLocalIds = [...new Set(cart.items.map(i => i.local_id).filter(Boolean))];
       const uniqueItemIds = [...new Set(cart.items.map(i => i.menuId || i.id))];
 
@@ -2623,12 +2623,12 @@ export default function PruebasWalletApp() {
       for (const localId of uniqueLocalIds) {
         const freshLocal = availability.locales.find(l => l.id === localId);
         if (!freshLocal) {
-          toast.error("Uno de los locales ya no estÃ¡ disponible.");
+          toast.error("Uno de los locales ya no está disponible.");
           setCheckoutLoading(false);
           return;
         }
         if (!isLocalOpen(freshLocal)) {
-          toast.error(`El local "${freshLocal.nombre}" acaba de cerrar o no estÃ¡ aceptando pedidos en este momento.`);
+          toast.error(`El local "${freshLocal.nombre}" acaba de cerrar o no está aceptando pedidos en este momento.`);
           setCheckoutLoading(false);
           return;
         }
@@ -2638,12 +2638,12 @@ export default function PruebasWalletApp() {
       for (const item of cart.items) {
         const freshItem = availability.items.find(i => i.id === (item.menuId || item.id));
         if (!freshItem || !freshItem.disponibilidad) {
-          toast.error(`El plato "${item.nombre}" ya no estÃ¡ disponible.`);
+          toast.error(`El plato "${item.nombre}" ya no está disponible.`);
           setCheckoutLoading(false);
           return;
         }
       }
-      // --- FIN VALIDACIÃƒâ€œN ---
+      // --- FIN VALIDACIÃ“N ---
 
       // 7. Calculate exact prices using new logic
       const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
@@ -2663,7 +2663,7 @@ export default function PruebasWalletApp() {
 
       const orderInfo = {
         direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
-        tipoEntrega: cart.deliveryType === 'envio' ? 'Con EnvÃ­o' : 'Para Retirar',
+        tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
         metodoPago: mp, 
         observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
         emailCliente: user.email, 
@@ -2683,14 +2683,14 @@ export default function PruebasWalletApp() {
       // 3. Handle Flow
       const pregeneratedId = 'ORD-' + Math.random().toString(36).substring(2, 12).toUpperCase();
       
-      // Unificamos el estado inicial: si es envÃ­o y no es Shops, buscamos repartidor broadcast
+      // Unificamos el estado inicial: si es envío y no es Shops, buscamos repartidor broadcast
       const initialState = (cart.deliveryType === 'envio' && !isShopsMode) ? 'Buscando Repartidor' : (mp === 'efectivo' ? 'Confirmado' : 'Pendiente de Pago');
 
       const orderDataForCreation = {
         userId: user.id,
         pedidoId: pregeneratedId,
         direccion: cart.deliveryType === 'envio' ? dir : 'Retiro en local',
-        tipoEntrega: cart.deliveryType === 'envio' ? 'Con EnvÃ­o' : 'Para Retirar',
+        tipoEntrega: cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar',
         metodoPago: mp, 
         observaciones: (fd.get('observaciones') || '') + (addressData.reference ? ` | Ref: ${addressData.reference}` : ''),
         items: orderItems,
@@ -2716,11 +2716,11 @@ export default function PruebasWalletApp() {
          if (!response.success) throw new Error("No se pudo crear el pedido base.");
          cart.markOrderCompleted?.();
 
-         // Registrar WhatsApp Opt-in silenciosamente si estÃ¡ marcado
+         // Registrar WhatsApp Opt-in silenciosamente si está marcado
          if (!optInRegistered && whatsappCheckoutOptIn && user && user.telefono) {
            api.registerWhatsappOptin({
              phoneNumber: user.telefono,
-             ciudad: activeCity || 'Santo TomÃ©',
+             ciudad: activeCity || 'Santo Tomé',
              pedidoId: pregeneratedId,
              userId: user.id,
              tipo: 'delivery_update'
@@ -2729,7 +2729,7 @@ export default function PruebasWalletApp() {
            }).catch(err => console.error("Error auto-optin whatsapp:", err));
          }
 
-         // Registrar mÃ©trica de Pedido Creado (Entrega o Efectivo/Transferencia)
+         // Registrar métrica de Pedido Creado (Entrega o Efectivo/Transferencia)
          const localIdForMetric = cart.items[0]?.local_id;
          if (localIdForMetric) {
            api.incrementarUsoMetrica(localIdForMetric, 'pedidos_creados').catch(() => {});
@@ -2767,7 +2767,7 @@ export default function PruebasWalletApp() {
             // RETIRO O ENVIO DE SHOPS + EFECTIVO
             if (mp === 'efectivo') {
               setCheckoutLoading(false);
-              toast.success(`Â¡Pedido #${pregeneratedId} registrado exitosamente!`);
+              toast.success(`¡Pedido #${pregeneratedId} registrado exitosamente!`);
               setConfirmedOrderId(pregeneratedId);
               setShowConfirmedModal(true);
               // Refrescar balance y estado tras pedido exitoso
@@ -2779,7 +2779,7 @@ export default function PruebasWalletApp() {
                 }
               }).catch(() => {});
               
-              const deliveryTypeLabel = cart.deliveryType === 'envio' ? 'Con EnvÃ­o' : 'Para Retirar';
+              const deliveryTypeLabel = cart.deliveryType === 'envio' ? 'Con Envío' : 'Para Retirar';
               const addressLabel = cart.deliveryType === 'envio' ? dir : 'Retiro en local';
               api.notifyLocalsAboutNewOrder(pregeneratedId, cart.items, addressLabel, deliveryTypeLabel, orderDataForCreation.observaciones, mp).catch(e => console.error(e));
               cart.clearCart();
@@ -2811,9 +2811,9 @@ export default function PruebasWalletApp() {
         api.getUserPromoUsage(user.id).then(setUserPromoUsage).catch(() => {});
         const hasOrdered = res.count > 0;
         if (hasOrdered !== user.ya_realizo_pedidos) {
-          console.log("ðŸ”„ Syncing user order status:", hasOrdered);
+          console.log("🔄 Syncing user order status:", hasOrdered);
           loginAsUser({ ...user, userId: user.id, ya_realizo_pedidos: hasOrdered });
-          // PequeÃ±a espera para asegurar propagaciÃ³n de estado
+          // Pequeña espera para asegurar propagación de estado
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       } catch (err) {
@@ -2843,7 +2843,7 @@ export default function PruebasWalletApp() {
           
           // Re-enviar Push cada 15 segundos para incentivar
           if (prev > 0 && prev % 15 === 0 && pendingOrderId) {
-            console.log("ðŸ“¢ Re-enviando push de incentivo...");
+            console.log("📢 Re-enviando push de incentivo...");
             const currentShipping = cart.deliveryType === 'envio' ? (cart.shippingCost || 0) : 0;
             api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, currentShipping).catch(console.error);
           }
@@ -2859,7 +2859,7 @@ export default function PruebasWalletApp() {
   React.useEffect(() => {
     if (!pendingOrderId || !searchingDriver || foundDriver) return;
 
-    console.log("ðŸ“¡ Subscribing to order updates for:", pendingOrderId);
+    console.log("📡 Subscribing to order updates for:", pendingOrderId);
 
     const checkStatus = async () => {
       try {
@@ -2871,8 +2871,8 @@ export default function PruebasWalletApp() {
           
         if (data) {
           if (data.estado === 'Confirmado' && data.payment_id) {
-            console.log("âœ… Order confirmed via webhook (Detected via Polling/Initial Check)!");
-            toast.success(`Â¡Pago confirmado! Tu pedido #${data.id} estÃ¡ siendo procesado.`);
+            console.log("✅ Order confirmed via webhook (Detected via Polling/Initial Check)!");
+            toast.success(`¡Pago confirmado! Tu pedido #${data.id} está siendo procesado.`);
             setConfirmedOrderId(data.id);
             setShowConfirmedModal(true);
             setSearchingDriver(false);
@@ -2883,7 +2883,7 @@ export default function PruebasWalletApp() {
           }
 
           if (['Cancelado', 'Rechazado'].includes(data.estado)) {
-            console.log("âŒ Order canceled or rejected (Detected via Polling/Initial Check)!");
+            console.log("❌ Order canceled or rejected (Detected via Polling/Initial Check)!");
             if (user?.id) {
               const isNoDriver = !data.repartidor_id || (data.motivo_cancelacion && data.motivo_cancelacion.toLowerCase().includes('repartidor'));
               const targetEvent = isNoDriver ? 'sin_repartidores' : 'PEDIDO_RECHAZADO_FALTA_PAGO';
@@ -2902,14 +2902,14 @@ export default function PruebasWalletApp() {
             return true;
           }
 
-          // Si ya se asignÃ³ repartidor o estamos en el modal de repartidor encontrado, no cancelar
+          // Si ya se asignó repartidor o estamos en el modal de repartidor encontrado, no cancelar
           if (data.repartidor_id || foundDriver) {
             if (!foundDriver) handleDriverFound(data);
             return true;
           }
 
           if ((data.estado === 'Pendiente de Pago' || data.estado === 'Aceptado') && data.repartidor_id && !foundDriver) {
-            console.log("âœ… Order accepted with driver (Detected via Polling/Initial Check)!");
+            console.log("✅ Order accepted with driver (Detected via Polling/Initial Check)!");
             handleDriverFound(data);
             return true;
           }
@@ -2933,11 +2933,11 @@ export default function PruebasWalletApp() {
         filter: `id=eq.${pendingOrderId}`
       }, (payload) => {
         const newOrder = payload.new;
-        console.log("ðŸ”„ Realtime update:", newOrder.id, newOrder.estado, "Driver ID:", newOrder.repartidor_id);
+        console.log("🔄 Realtime update:", newOrder.id, newOrder.estado, "Driver ID:", newOrder.repartidor_id);
         
         if (newOrder.estado === 'Confirmado' && newOrder.payment_id) {
-          console.log("âœ… Order confirmed via webhook (Realtime Update)!");
-          toast.success(`Â¡Pago confirmado! Tu pedido #${newOrder.id} estÃ¡ siendo procesado.`);
+          console.log("✅ Order confirmed via webhook (Realtime Update)!");
+          toast.success(`¡Pago confirmado! Tu pedido #${newOrder.id} está siendo procesado.`);
           setConfirmedOrderId(newOrder.id);
           setShowConfirmedModal(true);
           setSearchingDriver(false);
@@ -2948,7 +2948,7 @@ export default function PruebasWalletApp() {
         }
 
         if (['Cancelado', 'Rechazado'].includes(newOrder.estado)) {
-          console.log("âŒ Order canceled or rejected (Realtime Update)!");
+          console.log("❌ Order canceled or rejected (Realtime Update)!");
           if (user?.id) {
             const isNoDriver = !newOrder.repartidor_id || (newOrder.motivo_cancelacion && newOrder.motivo_cancelacion.toLowerCase().includes('repartidor'));
             const targetEvent = isNoDriver ? 'sin_repartidores' : 'PEDIDO_RECHAZADO_FALTA_PAGO';
@@ -2992,7 +2992,7 @@ export default function PruebasWalletApp() {
 
   const handleDriverFound = async (orderData) => {
     if (!orderData || !orderData.repartidor_id) {
-      console.warn("âš ï¸ handleDriverFound called but no repartidor_id is present.");
+      console.warn("⚠️ handleDriverFound called but no repartidor_id is present.");
       return;
     }
     try {
@@ -3005,7 +3005,7 @@ export default function PruebasWalletApp() {
       setFoundDriver(rep || { nombre: 'Repartidor' });
       setAcceptedOrder(orderData);
       setEstimatedTime('15-30 min');
-      toast.success('Â¡Repartidor encontrado! ðŸš€');
+      toast.success('¡Repartidor encontrado! 🚀');
       
       // Clear flags and close modal after a short delay
       setTimeout(async () => {
@@ -3014,7 +3014,7 @@ export default function PruebasWalletApp() {
           const pendingData = JSON.parse(pendingRaw);
           if (pendingData.metodoPago === 'efectivo') {
             try {
-              toast.success('Â¡Pedido confirmado!');
+              toast.success('¡Pedido confirmado!');
               setConfirmedOrderId(pendingData.pedidoId);
               setShowConfirmedModal(true);
               setSearchingDriver(false);
@@ -3081,7 +3081,7 @@ export default function PruebasWalletApp() {
           }).catch(err => console.error("Error registrando evento CRM sin_repartidores:", err));
         }
 
-        toast.success('BÃºsqueda cancelada');
+        toast.success('Búsqueda cancelada');
       } catch (e) {
         console.error("Error cancelling order:", e);
       }
@@ -3090,11 +3090,11 @@ export default function PruebasWalletApp() {
   const triggerMPCheckout = async (originalOrder) => {
     try {
       const pendingRaw = localStorage.getItem('pendingOrderDataPruebas');
-      if (!pendingRaw) throw new Error('No se encontrÃ³ la informaciÃ³n del pedido');
+      if (!pendingRaw) throw new Error('No se encontró la información del pedido');
       
       const pendingData = JSON.parse(pendingRaw);
 
-      // Registrar mÃ©trica de Pedido Creado (Pago Online Mercado Pago)
+      // Registrar métrica de Pedido Creado (Pago Online Mercado Pago)
       if (pendingData.localId) {
         api.incrementarUsoMetrica(pendingData.localId, 'pedidos_creados').catch(() => {});
       }
@@ -3157,7 +3157,7 @@ export default function PruebasWalletApp() {
     { type: 'Pizzas', label: 'Pizzas', img: 'https://i.postimg.cc/cJkcvmFw/descarga-(1)-(10).jpg' },
     { type: 'Empanadas', label: 'Empanadas', img: 'https://i.postimg.cc/KYjPhTmk/descarga-(1)-(11).jpg' },
     { type: 'Panchos', label: 'Panchos', img: 'https://i.postimg.cc/XqcCXxZr/buscamos-repartidores-(30).png' },
-    { type: 'CafeterÃ­a', label: 'CafeterÃ­a', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
+    { type: 'Cafetería', label: 'Cafetería', img: 'https://i.postimg.cc/HnYWFwgm/descarga-(1)-(13).jpg' },
     { type: 'Combos', label: 'Combos', img: 'https://i.postimg.cc/1X1wQDX5/buscamos-repartidores-(19).png' },
     { type: 'Bebidas', label: 'Bebidas', img: 'https://i.postimg.cc/KvhCcGkT/descarga-(1)-(14).jpg' },
     { type: 'favoritos', label: 'Mis favoritos', img: 'https://i.postimg.cc/RCktgLyZ/buscamos-repartidores-(7).png' },
@@ -3175,9 +3175,9 @@ export default function PruebasWalletApp() {
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '24px', textAlign: 'center', color: 'white'
         }}>
-          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#ff4757' }}>ActualizaciÃ³n Obligatoria</h2>
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#ff4757' }}>Actualización Obligatoria</h2>
           <p style={{ fontSize: '16px', marginBottom: '32px', color: '#ddd', maxWidth: '300px' }}>
-            Hemos lanzado una versiÃ³n nueva con mejoras importantes. Para continuar usando la aplicaciÃ³n, por favor actualÃ­zala.
+            Hemos lanzado una versión nueva con mejoras importantes. Para continuar usando la aplicación, por favor actualízala.
           </p>
           <button 
             className="btn btn-primary"
@@ -3197,12 +3197,12 @@ export default function PruebasWalletApp() {
       {showOnboarding && (
         <div className="modal-overlay animate-fade-in" style={{ zIndex: 100000 }}>
           <div className="modal-box animate-slide-up" style={{ textAlign: 'center', padding: '32px 24px', maxWidth: '360px', borderRadius: '24px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>ðŸŽ</div>
+            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎁</div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '12px', color: '#0f172a' }}>
-              Â¡Bienvenido a Wepi!
+              ¡Bienvenido a Wepi!
             </h2>
             <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: '1.5', marginBottom: '24px' }}>
-              IniciÃ¡ sesiÃ³n ahora para enterarte de promociones, novedades y beneficios exclusivos.
+              Iniciá sesión ahora para enterarte de promociones, novedades y beneficios exclusivos.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button 
@@ -3213,7 +3213,7 @@ export default function PruebasWalletApp() {
                   setModal('login');
                 }}
               >
-                Iniciar SesiÃ³n / Registrarme
+                Iniciar Sesión / Registrarme
               </button>
               <button 
                 className="btn btn-outline"
@@ -3232,13 +3232,13 @@ export default function PruebasWalletApp() {
             <img src="https://i.postimg.cc/W1qfzj0L/wepi-(1)-(1).png" alt="Wepi" className="app-logo" />
           </Link>
           <div className="city-selector-dropdown" onClick={handleBadgeClick}>
-            <span className="city-selector-name">{activeCity || 'Santo TomÃ©'}</span>
-            <span className="city-selector-arrow">â–¼</span>
+            <span className="city-selector-name">{activeCity || 'Santo Tomé'}</span>
+            <span className="city-selector-arrow">▼</span>
           </div>
         </div>
         <div className="search-wrapper">
           <img src="https://i.postimg.cc/TPXmybcH/18611-(1)-(2).png" alt="Buscar" className="search-icon" style={{ width: 34, height: 34, objectFit: 'contain' }} />
-          <input type="text" placeholder="Buscar menÃºs o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
+          <input type="text" placeholder="Buscar menús o locales..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         </div>
         <div className="header-actions">
           {user && (
@@ -3270,7 +3270,7 @@ export default function PruebasWalletApp() {
                  disabled={refreshingWallet}
                  title="Actualizar saldo"
                >
-                 ðŸ”„
+                 🔄
                </button>
             </div>
           )}
@@ -3299,7 +3299,7 @@ export default function PruebasWalletApp() {
             justifyContent: 'center',
             gap: '8px'
           }}>
-            <span>âš ï¸</span> No hay repartidores disponibles en este momento, vuelve intentar en unos minutos. Solo retiro en local disponible.
+            <span>⚠️</span> No hay repartidores disponibles en este momento, vuelve intentar en unos minutos. Solo retiro en local disponible.
           </div>
         )}
 
@@ -3323,8 +3323,8 @@ export default function PruebasWalletApp() {
               boxShadow: '0 4px 12px rgba(239, 68, 68, 0.08)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
-                <span style={{ fontSize: '1.25rem' }}>ðŸ””</span>
-                <span><strong>Activar Notificaciones:</strong> Necesitamos tu permiso para avisarte cuando tu pedido estÃ© en camino.</span>
+                <span style={{ fontSize: '1.25rem' }}>🔔</span>
+                <span><strong>Activar Notificaciones:</strong> Necesitamos tu permiso para avisarte cuando tu pedido esté en camino.</span>
               </div>
               <button 
                 className="btn btn-primary" 
@@ -3352,7 +3352,7 @@ export default function PruebasWalletApp() {
               fontWeight: '600',
               zIndex: 90
             }}>
-              <span>ðŸ›µ Â¡Tienes un pedido en proceso!</span>
+              <span>🛵 ¡Tienes un pedido en proceso!</span>
                             <button 
                 onClick={() => navigate('/mis-pedidos')} 
                 style={{
@@ -3379,10 +3379,10 @@ export default function PruebasWalletApp() {
           {user && !user.telefono && (
             <div className="missing-phone-banner">
               <div className="missing-phone-content">
-                <span className="missing-phone-icon">ðŸ“ž</span>
+                <span className="missing-phone-icon">📞</span>
                 <div>
-                  <p style={{ margin: 0 }}>Â¡CompletÃ¡ tu cuenta!</p>
-                  <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>AgregÃ¡ tu telÃ©fono para que el repartidor pueda contactarte.</span>
+                  <p style={{ margin: 0 }}>¡Completá tu cuenta!</p>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Agregá tu teléfono para que el repartidor pueda contactarte.</span>
                 </div>
               </div>
               <button className="btn btn-sm" onClick={() => setModal('editProfile')}>
@@ -3392,7 +3392,7 @@ export default function PruebasWalletApp() {
           )}
         </div>
 
-        {/* â”€â”€â”€ HOME SCREEN â”€â”€â”€ */}
+        {/* ─── HOME SCREEN ─── */}
         {!showMenus && !filteredLocals && (
           <div className="home-screen animate-fade-in">
 
@@ -3414,7 +3414,7 @@ export default function PruebasWalletApp() {
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ fontSize: '2rem' }}>??</div>
+                <div style={{ fontSize: '2rem' }}>🎁</div>
                 <div style={{ flex: 1 }}>
                   <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: '2px' }}>Tenés beneficios ocultos</strong>
                   <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Iniciá sesión para ver cupones y descuentos.</span>
@@ -3438,7 +3438,7 @@ export default function PruebasWalletApp() {
 
                           {/* Banners Grid Container */}
              <div className="home-banners-grid">
-               {/* 1. BLOQUE DINÃMICO PRINCIPAL (Banner) */}
+               {/* 1. BLOQUE DINÁMICO PRINCIPAL (Banner) */}
              <section className="home-section dynamic-banner-section">
                <div 
                  className="dynamic-banner animate-fade-in" 
@@ -3447,12 +3447,12 @@ export default function PruebasWalletApp() {
                  <img src={homeLayout.dynamicBanner} alt={homeLayout.dynamicTitle} />
                  <div className="banner-overlay">
                    <h2>{homeLayout.dynamicTitle}</h2>
-                   <button className="banner-btn">Ver locales âž”</button>
+                   <button className="banner-btn">Ver locales ➔</button>
                  </div>
                </div>
              </section>
 
-               {/* â€”â€”â€” Banners Carousel â€”â€”â€” */}
+               {/* ——— Banners Carousel ——— */}
         {!bannersLoading && banners.length > 0 && (
           <div className="wallet-banners-carousel-wrapper animate-fade-in">
             <div 
@@ -3494,10 +3494,10 @@ export default function PruebasWalletApp() {
              </div>
               <div className="home-brand-message-box" style={{ padding: '0 20px', margin: '24px 0 12px', textAlign: 'center' }}>
                 <p className="home-brand-quote" style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--gray-900)', margin: 0, letterSpacing: '-0.5px' }}>
-                  Todo lo que buscÃ¡s, <span style={{ color: 'var(--red-600)' }}>estÃ¡ en Wepi.</span>
+                  Todo lo que buscás, <span style={{ color: 'var(--red-600)' }}>está en Wepi.</span>
                 </p>
               </div>
-             {/* 2. RUBROS PRINCIPALES (ImÃ¡genes circulares) */}
+             {/* 2. RUBROS PRINCIPALES (Imágenes circulares) */}
              <section className="home-section rubros-categories">
 
                <div className="categories-grid-home">
@@ -3550,7 +3550,7 @@ export default function PruebasWalletApp() {
              )}
 
              
-             {/* 4. PROMOS DEL DÃA */}
+             {/* 4. PROMOS DEL DÍA */}
              {!isShopsMode && homeLayout.promosOfDay.length > 0 && (
                <section className="home-section promos-imperdibles">
                  <div className="section-header-with-link">
@@ -3558,7 +3558,7 @@ export default function PruebasWalletApp() {
                       PROMOS IMPERDIBLES
                       <img src="https://i.postimg.cc/c4T1cbZf/descarga-(31)-(6).png" alt="" style={{ height: '28px', width: '28px', objectFit: 'contain' }} />
                     </h2>
-                   <button className="view-all-btn">Ver mÃ¡s</button>
+                   <button className="view-all-btn">Ver más</button>
                  </div>
                  <div className="horizontal-scroll-items" style={{ gap: '12px', padding: '10px 4px' }}>
                      {homeLayout.promosOfDay.map((item) => {
@@ -3650,11 +3650,11 @@ export default function PruebasWalletApp() {
              )}
 
              
-                           {/* 5.5 LO MÃS PEDIDO (Igual a Promos, sin CorazÃ³n) */}
+                           {/* 5.5 LO MÁS PEDIDO (Igual a Promos, sin Corazón) */}
               {!isShopsMode && homeLayout.mostOrdered && homeLayout.mostOrdered.length > 0 && (
                <section className="home-section top-ordered">
                   <div className="section-header-simple">
-                    <h2>Lo mÃ¡s pedido ðŸ”¥</h2>
+                    <h2>Lo más pedido 🔥</h2>
                   </div>
                   <div className="horizontal-scroll-items" style={{ gap: '12px', padding: '10px 4px' }}>
                     {homeLayout.mostOrdered.map((item) => {
@@ -3711,7 +3711,7 @@ export default function PruebasWalletApp() {
              {homeLayout.otherOptions && homeLayout.otherOptions.length > 0 && (
                <section className="home-section other-options">
                   <div className="section-header-simple">
-                    <h2>DESCUBRÃ</h2>
+                    <h2>DESCUBRÍ</h2>
                   </div>
                   <div className="horizontal-scroll-items" style={{ gap: '12px', padding: '10px 4px' }}>
                     {homeLayout.otherOptions.map((item) => {
@@ -3804,7 +3804,7 @@ export default function PruebasWalletApp() {
 {/* 7. EXPLORAR (Grid de Items) */}
              <section className="home-section explore-items">
                 <div className="section-header-simple">
-                  <h2>Explorar mÃ¡s productos ðŸ›µ</h2>
+                  <h2>Explorar más productos 🛵</h2>
                 </div>
 
                 {/* FILTROS EXPLORAR */}
@@ -3831,7 +3831,7 @@ export default function PruebasWalletApp() {
                   </div>
 
                   <div className="filter-group" style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--gray-700)', marginBottom: '8px', display: 'block' }}>CategorÃ­as</label>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--gray-700)', marginBottom: '8px', display: 'block' }}>Categorías</label>
                     <div className="horizontal-scroll-chips" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
                       <button 
                         className={`filter-chip ${exploreCatFilter === '' ? 'active' : ''}`}
@@ -3934,7 +3934,7 @@ export default function PruebasWalletApp() {
           </div>
         )}
 
-        {/* â”€â”€â”€ RUBRO EXPLORER (Explorer View) â”€â”€â”€ */}
+        {/* ─── RUBRO EXPLORER (Explorer View) ─── */}
         {filteredLocals && !showMenus && (
           <div className="explorer-view animate-fade-in">
              <div className="category-chips-sticky">
@@ -3960,13 +3960,13 @@ export default function PruebasWalletApp() {
               <section className="locals-section">
                 <div className="section-header-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h2 className="locals-title">Locales con {selectedCategory || 'Explorar'}</h2>
-                  <button className="btn btn-ghost btn-sm" style={{ padding: '6px 12px' }} onClick={() => { setFilteredLocals(null); setSelectedCategory(null); }}>âœ• Ver todos</button>
+                  <button className="btn btn-ghost btn-sm" style={{ padding: '6px 12px' }} onClick={() => { setFilteredLocals(null); setSelectedCategory(null); }}>✕ Ver todos</button>
                 </div>
                 
                 {loadingLocals ? (
                   <div className="loading-state-premium">Buscando los mejores locales...</div>
                 ) : filteredLocals.length === 0 ? (
-                  <div className="empty-state-premium">PrÃ³ximamente en Wepi</div>
+                  <div className="empty-state-premium">Próximamente en Wepi</div>
                 ) : (
                   <div className="locals-scroll" style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '16px 16px', margin: '0 -16px' }}>
                     {filteredLocals.map((local) => {
@@ -3999,7 +3999,7 @@ export default function PruebasWalletApp() {
                               </div>
                             ) : (
                               <div className="availability-badge" style={{ color: checkIsComingSoon(local) ? '#f59e0b' : 'var(--red-600)', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                {checkIsComingSoon(local) ? 'PRÃ“XIMAMENTE' : 'CERRADO'}
+                                {checkIsComingSoon(local) ? 'PRÓXIMAMENTE' : 'CERRADO'}
                               </div>
                             )}
                           </div>
@@ -4015,7 +4015,7 @@ export default function PruebasWalletApp() {
               {(loadingDiscovery || discoveryItems.length > 0) && (
                 <section className="locals-section items-discovery-section animate-fade-in" style={{ marginTop: '32px', borderTop: '1px solid var(--gray-100)', paddingTop: '24px' }}>
                   <div className="section-header-premium" style={{ marginBottom: '16px' }}>
-                    <h2 className="locals-title">Productos Sugeridos âœ¨</h2>
+                    <h2 className="locals-title">Productos Sugeridos ✨</h2>
                   </div>
                   
                   {loadingDiscovery ? (
@@ -4082,26 +4082,26 @@ export default function PruebasWalletApp() {
           </div>
         )}
 
-        {/* â”€â”€â”€ LOCAL MENU (Menu View) â”€â”€â”€ */}
+        {/* ─── LOCAL MENU (Menu View) ─── */}
         {showMenus && (
           <div className="menu-view animate-fade-in">
              <div className="menu-header-sticky">
-                <button className="back-btn-premium" onClick={() => { setShowMenus(false); setSelectedLocal(null); }}>â† Volver</button>
+                <button className="back-btn-premium" onClick={() => { setShowMenus(false); setSelectedLocal(null); }}>← Volver</button>
                 <h2 className="menu-local-title">{selectedLocal?.nombre}</h2>
              </div>
 
              <div className="menu-content-premium">
                {loadingMenus ? (
-                 <div className="loading-state-premium">Cargando el menÃº...</div>
+                 <div className="loading-state-premium">Cargando el menú...</div>
                ) : (
                  <>
-                   {/* CategorÃ­as del Local */}
+                   {/* Categorías del Local */}
                    <div className="local-categories-nav">
                                            {menus.some(m => doesItemEarnCredit(m)) && (
                         <button className="local-cat-chip" style={{ background: 'var(--sky-50)', color: 'var(--sky-700)', borderColor: 'var(--sky-200)', fontWeight: 'bold' }} onClick={() => {
                           document.getElementById(`cat-credito`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }}>
-                          GanÃ¡ crÃ©ditos ðŸ’°
+                          Ganá créditos 💰
                         </button>
                       )}
                       {Array.from(new Set(menus.map(m => m.categoria))).filter(c => c && c !== 'Base').map(cat => (
@@ -4115,11 +4115,11 @@ export default function PruebasWalletApp() {
                    </div>
 
                    {/* Listado de Productos Agrupados */}
-                                       {/* SecciÃ³n Especial: GanÃ¡ CrÃ©ditos */}
+                                       {/* Sección Especial: Ganá Créditos */}
                     {menus.some(m => doesItemEarnCredit(m)) && (
                       <section id="cat-credito" className="menu-category-section">
                          <h3 className="category-group-title" style={{ color: 'var(--sky-700)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                           GanÃ¡ crÃ©ditos ðŸ’°
+                           Ganá créditos 💰
                          </h3>
                          <div className="menu-list-wallet" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {menus
@@ -4146,12 +4146,12 @@ export default function PruebasWalletApp() {
              </div>
           </div>
         )}      </main>
-      {/* â”€â”€â”€ Cart Sidebar â”€â”€â”€ */}
+      {/* ─── Cart Sidebar ─── */}
       <div className={`cart-backdrop ${cartOpen ? 'active' : ''}`} onClick={() => setCartOpen(false)} />
       <aside className={`cart-sidebar ${cartOpen ? 'active' : ''}`}>
         <div className="cart-header-bar">
           <h2>Tu Carrito</h2>
-          <button className="cart-close-btn" onClick={() => setCartOpen(false)}>âœ•</button>
+          <button className="cart-close-btn" onClick={() => setCartOpen(false)}>✕</button>
         </div>
         <div className="cart-body-content">
 
@@ -4167,10 +4167,10 @@ export default function PruebasWalletApp() {
                 return (
                   <>
                     {(currentLocal?.acepta_envio !== false) && (
-                      <option value="envio">Con envÃ­o a domicilio</option>
+                      <option value="envio">Con envío a domicilio</option>
                     )}
                     {(currentLocal?.acepta_retiro === true) && (
-                      <option value="retiro">ðŸ¥¡ Retirar en local</option>
+                      <option value="retiro">🥡 Retirar en local</option>
                     )}
                   </>
                 );
@@ -4180,8 +4180,8 @@ export default function PruebasWalletApp() {
 
           {cart.items.length === 0 ? (
             <div className="cart-empty">
-              <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito VacÃ­o" style={{ width: '64px', height: '64px', margin: '0 auto 16px', opacity: 0.8 }} />
-              <p>Tu carrito estÃ¡ vacÃ­o</p>
+              <img src="https://i.postimg.cc/QCcjwFRf/18611-(1).png" alt="Carrito Vacío" style={{ width: '64px', height: '64px', margin: '0 auto 16px', opacity: 0.8 }} />
+              <p>Tu carrito está vacío</p>
               <button className="btn btn-secondary btn-sm" onClick={() => setCartOpen(false)}>Seguir comprando</button>
             </div>
           ) : (
@@ -4203,10 +4203,10 @@ export default function PruebasWalletApp() {
                   </div>
 
                   <div className="cart-item-controls" style={{ transform: 'scale(0.9)', transformOrigin: 'left center', marginTop: '6px' }}>
-                    <button className="qty-btn" onClick={() => cart.updateQty(item.id, -1)}>âˆ’</button>
+                    <button className="qty-btn" onClick={() => cart.updateQty(item.id, -1)}>−</button>
                     <span className="qty-display" style={{ minWidth: '45px', textAlign: 'center', fontSize: '0.85rem' }}>{item.qty} unid</span>
                     <button className="qty-btn" onClick={() => cart.updateQty(item.id, 1)}>+</button>
-                    <button className="remove-btn-small" style={{ marginLeft: '12px' }} onClick={() => cart.removeItem(item.id)}>ðŸ—‘ï¸</button>
+                    <button className="remove-btn-small" style={{ marginLeft: '12px' }} onClick={() => cart.removeItem(item.id)}>🗑️</button>
                   </div>
                   {(() => {
                     const upgradeOffer = getUpgradeOffer(item, menus);
@@ -4215,7 +4215,7 @@ export default function PruebasWalletApp() {
                     return (
                       <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '6px' }}>
                         <button type="button" className="btn btn-success btn-sm animate-fade-in" style={{ borderRadius: '6px', fontWeight: 'bold', fontSize: '0.65rem', padding: '4px 10px', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.3)', whiteSpace: 'normal', textAlign: 'center', lineHeight: '1.2', maxWidth: '95%' }} onClick={() => handleUpgradeItem(item, upgradeOffer)}>
-                          âš¡ MejorÃ¡ a {upgradeOffer.nombre.length > 26 ? upgradeOffer.nombre.substring(0, 26) + '...' : upgradeOffer.nombre} por SOLO ${(diff).toLocaleString('es-AR')}
+                          ⚡ Mejorá a {upgradeOffer.nombre.length > 26 ? upgradeOffer.nombre.substring(0, 26) + '...' : upgradeOffer.nombre} por SOLO ${(diff).toLocaleString('es-AR')}
                         </button>
                       </div>
                     );
@@ -4225,7 +4225,7 @@ export default function PruebasWalletApp() {
 
               {upsellItems.length > 0 && (
                 <div className="upsell-carousel animate-fade-in" style={{ marginTop: `15px`, marginBottom: `15px`, padding: `12px`, background: `#f8fafc`, borderRadius: `12px`, border: `1px dashed #cbd5e1` }}>
-                  <h4 style={{ fontSize: `0.85rem`, margin: `0 0 10px 0`, color: `#334155`, fontWeight: `700` }}>Â¿Completamos tu pedido?</h4>
+                  <h4 style={{ fontSize: `0.85rem`, margin: `0 0 10px 0`, color: `#334155`, fontWeight: `700` }}>¿Completamos tu pedido?</h4>
                   <div style={{ display: `flex`, gap: `10px`, overflowX: `auto`, paddingBottom: `5px` }}>
                     {upsellItems.map(item => (
                       <div key={item.id} style={{ minWidth: `140px`, background: `white`, padding: `8px`, borderRadius: `8px`, border: `1px solid #e2e8f0`, boxShadow: `0 1px 3px rgba(0,0,0,0.05)`, display: `flex`, flexDirection: `column`, justifyContent: `space-between` }}>
@@ -4251,14 +4251,14 @@ export default function PruebasWalletApp() {
               )}
 
               <div className="payment-method-selector" style={{ marginTop: '20px', marginBottom: '10px' }}>
-                <label className="form-label">Seleccionar mÃ©todo de pago</label>
+                <label className="form-label">Seleccionar método de pago</label>
                 <select 
                   className="form-select" 
                   value={metodoPago} 
                   onChange={e => setMetodoPago(e.target.value)}
                   style={{ marginBottom: '5px' }}
                 >
-                  <option value="" disabled>ElegÃ­ cÃ³mo pagar</option>
+                  <option value="" disabled>Elegí cómo pagar</option>
                   <option value="transferencia">Mercado Pago</option>
                   <option 
                     value="efectivo" 
@@ -4291,7 +4291,7 @@ export default function PruebasWalletApp() {
                         disabled={!checkoutTotals.walletValidation?.canUse}
                       />
                       <div className="wallet-cb-info">
-                        <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', color: '#0369a1' }}>Utilizar crÃ©dito Wepi Wallet</span>
+                        <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', color: '#0369a1' }}>Utilizar crédito Wepi Wallet</span>
                         <span style={{ fontSize: '0.75rem', color: '#0ea5e9' }}>
                           Saldo disponible: <strong>{walletBalance === null ? 'Cargando...' : `$${(walletBalance || 0).toLocaleString()}`}</strong>
                         </span>
@@ -4306,13 +4306,13 @@ export default function PruebasWalletApp() {
                             alignItems: 'center',
                             gap: '4px'
                           }}>
-                            <span>âš ï¸</span> {checkoutTotals.walletValidation.reason}
+                            <span>⚠️</span> {checkoutTotals.walletValidation.reason}
                           </div>
                         )}
 
                         {checkoutTotals.walletValidation?.canUse && checkoutTotals.maxAvailableDiscount < walletBalance && checkoutTotals.maxAvailableDiscount > 0 && (
                            <div style={{ fontSize: '0.68rem', color: '#0369a1', marginTop: '2px', fontStyle: 'italic' }}>
-                             * PodÃ©s usar hasta ${checkoutTotals.maxAvailableDiscount.toLocaleString()} en este pedido.
+                             * Podés usar hasta ${checkoutTotals.maxAvailableDiscount.toLocaleString()} en este pedido.
                            </div>
                         )}
                       </div>
@@ -4334,16 +4334,16 @@ export default function PruebasWalletApp() {
                     onClick={() => setShowCouponInput(true)}
                     style={{ background: 'none', border: 'none', color: 'var(--red-600)', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    ðŸŽŸï¸ Usar cupÃ³n de descuento
+                    🎟️ Usar cupón de descuento
                   </button>
                 ) : (
                   <div className="animate-fade-in">
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>IngresÃ¡ tu cÃ³digo</label>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Ingresá tu código</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input 
                         type="text" 
                         className="form-input" 
-                        placeholder="CÃ³digo" 
+                        placeholder="Código" 
                         value={couponInput}
                         onChange={e => setCouponInput(e.target.value.toUpperCase())}
                         style={{ textTransform: 'uppercase', padding: '8px 12px', minHeight: '38px' }}
@@ -4353,7 +4353,7 @@ export default function PruebasWalletApp() {
                         className="btn btn-secondary btn-sm" 
                         onClick={() => {
                           setAppliedCoupon(couponInput);
-                          if(couponInput) toast.success("CupÃ³n validado");
+                          if(couponInput) toast.success("Cupón validado");
                         }}
                         disabled={!couponInput}
                       >
@@ -4363,7 +4363,7 @@ export default function PruebasWalletApp() {
                   </div>
                 )}
                 {appliedCoupon && checkoutTotals?.appliedCuponId && (
-                  <small style={{ color: 'var(--green-600)', fontWeight: 'bold', display: 'block', marginTop: '6px' }}>Â¡CupÃ³n "{appliedCoupon}" aceptado!</small>
+                  <small style={{ color: 'var(--green-600)', fontWeight: 'bold', display: 'block', marginTop: '6px' }}>¡Cupón "{appliedCoupon}" aceptado!</small>
                 )}
               </div>
 
@@ -4388,10 +4388,10 @@ export default function PruebasWalletApp() {
                 {cart.deliveryType !== 'retiro' && (
                   <div className="cart-line">
                     <span>
-                      EnvÃ­o
+                      Envío
                       {cart.incentivoActivo > 0 && (
                         <span style={{ color: 'var(--red-500)', fontWeight: 600, marginLeft: 8, fontSize: '0.75rem' }}>
-                          âš¡ DinÃ¡mica
+                          ⚡ Dinámica
                         </span>
                       )}
                     </span>
@@ -4402,25 +4402,25 @@ export default function PruebasWalletApp() {
                             ${(checkoutTotals?.delivery_fee || 0).toLocaleString('es-AR')}
                           </span>
                           <span style={{ color: 'var(--green-600)', fontWeight: '600' }}>
-                            {checkoutTotals?.discounted_delivery_fee === 0 ? 'Â¡GRATIS!' : `$${(checkoutTotals?.discounted_delivery_fee || 0).toLocaleString('es-AR')}`}
+                            {checkoutTotals?.discounted_delivery_fee === 0 ? '¡GRATIS!' : `$${(checkoutTotals?.discounted_delivery_fee || 0).toLocaleString('es-AR')}`}
                           </span>
                         </>
                       ) : (
-                        visibleShipping === 0 ? 'Â¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`
+                        visibleShipping === 0 ? '¡GRATIS!' : `$${visibleShipping.toLocaleString('es-AR')}`
                       )}
                     </span>
                   </div>
                 )}
                 {visibleMpFee > 0 && (
                   <div className="cart-line comision-line">
-                    <span>GestiÃ³n de pago</span>
+                    <span>Gestión de pago</span>
                     <span>+${visibleMpFee.toLocaleString('es-AR')}</span>
                   </div>
                 )}
                 {useWallet && walletDiscountUI > 0 && (
                   <div className="cart-line wallet-discount-line" style={{ color: '#0369a1', fontWeight: '700' }}>
                     <span>Descuento Wepi Wallet</span>
-                    <span>âˆ’${walletDiscountUI.toLocaleString()}</span>
+                    <span>−${walletDiscountUI.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="cart-line total-line">
@@ -4444,7 +4444,7 @@ export default function PruebasWalletApp() {
                       const isFirstOrderPromo = promoCredito?.triggers?.primera_compra === true;
                       return (
                         <>
-                          âœ¨ Â¡SumarÃ¡s <strong>${potentialCredit.toLocaleString()}</strong> de crÃ©dito {isFirstOrderPromo ? 'por tu 1er pedido' : 'con esta compra'}!
+                          ✨ ¡Sumarás <strong>${potentialCredit.toLocaleString()}</strong> de crédito {isFirstOrderPromo ? 'por tu 1er pedido' : 'con esta compra'}!
                         </>
                       );
                     })()}
@@ -4456,7 +4456,7 @@ export default function PruebasWalletApp() {
                 {cart.deliveryType === 'envio' && (
                   <div className="address-selector-input-group" style={{ marginBottom: '16px', position: 'relative' }}>
                     <label className="form-label" style={{ display: 'block', textAlign: 'left', marginBottom: '8px' }}>
-                      DirecciÃ³n de entrega
+                      Dirección de entrega
                     </label>
                     <div 
                       className="input-with-icon" 
@@ -4466,13 +4466,13 @@ export default function PruebasWalletApp() {
                       <input 
                         type="text"
                         className="form-input"
-                        placeholder="ðŸ“ SeleccionÃ¡ tu direcciÃ³n en el mapa..."
+                        placeholder="📍 Seleccioná tu dirección en el mapa..."
                         value={addressData.address || ''}
                         readOnly
                         style={{ paddingLeft: '40px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #ddd' }}
                       />
                       <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.2rem' }}>
-                        ðŸ“
+                        📍
                       </span>
                     </div>
                     {addressData.address && (
@@ -4482,7 +4482,7 @@ export default function PruebasWalletApp() {
                         style={{ display: 'block', margin: '4px 0', fontSize: '0.8rem', color: 'var(--red-500)', fontWeight: 'bold' }}
                         onClick={() => setShowAddressSelector(true)}
                       >
-                        (Cambiar ubicaciÃ³n)
+                        (Cambiar ubicación)
                       </button>
                     )}
                     {addressData.reference && (
@@ -4506,7 +4506,7 @@ export default function PruebasWalletApp() {
                     border: '1px solid rgba(239, 68, 68, 0.15)',
                     textAlign: 'center'
                   }}>
-                    Esta direcciÃ³n estÃ¡ fuera del Ã¡rea de cobertura por el momento.
+                    Esta dirección está fuera del área de cobertura por el momento.
                   </div>
                 )}
                 <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={checkoutLoading || isOutofCoverage}>
@@ -4518,22 +4518,22 @@ export default function PruebasWalletApp() {
         </div>
       </aside>
 
-      {/* â”€â”€â”€ Modals â”€â”€â”€ */}
+      {/* ─── Modals ─── */}
       {modal && (
         <div className="modal-overlay" onClick={() => { setModal(null); setShowPassword(false); }} style={{ zIndex: 12000 }}>
           <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>âœ•</button>
+            <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>✕</button>
 
             
               {modal === 'reset' && (
                 <form onSubmit={handleResetPassword}>
-                  <h2>Ingresa tu nueva contraseÃ±a</h2>
+                  <h2>Ingresa tu nueva contraseña</h2>
                   <div className="password-container">
                     <input 
                       name="password" 
                       type={showPassword ? "text" : "password"} 
                       className="form-input" 
-                      placeholder="Nueva ContraseÃ±a" 
+                      placeholder="Nueva Contraseña" 
                       required 
                       autoComplete="new-password" 
                     />
@@ -4557,14 +4557,14 @@ export default function PruebasWalletApp() {
               {modal === 'login' && (
 
               <form onSubmit={handleLogin}>
-                <h2>Iniciar SesiÃ³n</h2>
+                <h2>Iniciar Sesión</h2>
                 <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
                 <div className="password-container">
                   <input 
                     name="password" 
                     type={showPassword ? "text" : "password"} 
                     className="form-input" 
-                    placeholder="ContraseÃ±a" 
+                    placeholder="Contraseña" 
                     required 
                     autoComplete="current-password" 
                   />
@@ -4582,7 +4582,7 @@ export default function PruebasWalletApp() {
                 
                   <div style={{ textAlign: 'center', marginTop: '2px', marginBottom: '2px' }}>
                     <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>
-                      Â¿Olvidaste tu contraseÃ±a? Ingresa tu email arriba y haz clic aquÃ­
+                      ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
                     </button>
                   </div>
                   <div className="auth-separator">
@@ -4600,7 +4600,7 @@ export default function PruebasWalletApp() {
                   </button>
                 )}
 
-                <p className="modal-switch">Â¿No tenÃ©s cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
+                <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
               </form>
             )}
 
@@ -4614,7 +4614,7 @@ export default function PruebasWalletApp() {
                     name="password" 
                     type={showPassword ? "text" : "password"} 
                     className="form-input" 
-                    placeholder="ContraseÃ±a (6+ caracteres)" 
+                    placeholder="Contraseña (6+ caracteres)" 
                     required 
                     autoComplete="new-password" 
                   />
@@ -4627,30 +4627,30 @@ export default function PruebasWalletApp() {
                 </div>
                 <div className="phone-input-group">
                   <select name="prefix" className="phone-prefix-select">
-                    <option value="+549">ðŸ‡¦ðŸ‡· +549</option>
-                    <option value="+55">ðŸ‡§ðŸ‡· +55</option>
+                    <option value="+549">🇦🇷 +549</option>
+                    <option value="+55">🇧🇷 +55</option>
                   </select>
-                  <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="NÃºmero (ej: 1123456789)" required autoComplete="tel-national" />
+                  <input name="telefono" type="tel" className="form-input phone-number-input" placeholder="Número (ej: 1123456789)" required autoComplete="tel-national" />
                 </div>
                 
                 <div className="city-input-group" style={{ marginBottom: '15px', textAlign: 'left' }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px', fontWeight: '600' }}>Ciudad</label>
-                  <select name="ciudad" className="form-input" required defaultValue={inactiveCityModal || "Santo TomÃ©"} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: 'var(--slate-800, #1e293b)', color: '#f8fafc' }}>
-                    <option value="Santo TomÃ©">Santo TomÃ© (Corrientes)</option>
-                    <option value="OberÃ¡">OberÃ¡ (Misiones)</option>
+                  <select name="ciudad" className="form-input" required defaultValue={inactiveCityModal || "Santo Tomé"} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)', background: 'var(--slate-800, #1e293b)', color: '#f8fafc' }}>
+                    <option value="Santo Tomé">Santo Tomé (Corrientes)</option>
+                    <option value="Oberá">Oberá (Misiones)</option>
                     <option value="Alem (Misiones)">Alem (Misiones)</option>
-                    <option value="ApÃ³stoles (Misiones)">ApÃ³stoles (Misiones)</option>
-                    <option value="Villaguay (Entre RÃ­os)">Villaguay (Entre RÃ­os)</option>
+                    <option value="Apóstoles (Misiones)">Apóstoles (Misiones)</option>
+                    <option value="Villaguay (Entre Ríos)">Villaguay (Entre Ríos)</option>
                     <option value="Paso de los Libres (Corrientes)">Paso de los Libres (Corrientes)</option>
                     <option value="San Vicente (Misiones)">San Vicente (Misiones)</option>
-                    <option value="Colon (Entre RÃ­os)">Colon (Entre RÃ­os)</option>
+                    <option value="Colon (Entre Ríos)">Colon (Entre Ríos)</option>
                   </select>
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '16px', textAlign: 'left' }}>
                   <input type="checkbox" id="terms_accepted" name="terms_accepted" required style={{ width: 'auto', marginTop: '4px' }} />
                   <label htmlFor="terms_accepted" style={{ fontSize: '0.85rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>
-                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setModal('terms')}>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad</button> para Usuarios.
+                    Acepto los <button type="button" style={{ background: 'none', border: 'none', color: 'var(--red-500)', padding: 0, textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }} onClick={() => setModal('terms')}>Términos y Condiciones y Política de Privacidad</button> para Usuarios.
                   </label>
                 </div>
 
@@ -4680,7 +4680,7 @@ export default function PruebasWalletApp() {
                   </button>
                 )}
 
-                <p className="modal-switch">Â¿Ya tenÃ©s cuenta? <button type="button" onClick={() => { setModal('login'); setShowPassword(false); }}>Iniciar sesiÃ³n</button></p>
+                <p className="modal-switch">¿Ya tenés cuenta? <button type="button" onClick={() => { setModal('login'); setShowPassword(false); }}>Iniciar sesión</button></p>
               </form>
             )}
 
@@ -4688,13 +4688,13 @@ export default function PruebasWalletApp() {
             {modal === 'success_inactive' && (
               <div style={{ padding: '16px 8px', textAlign: 'center' }}>
                 <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.75rem', fontWeight: '800', padding: '5px 14px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-block', marginBottom: '16px' }}>
-                  PrÃ³ximamente ðŸš€
+                  Próximamente 🚀
                 </span>
                 
-                <h2 style={{ fontSize: '1.45rem', color: '#0f172a', marginBottom: '10px', fontWeight: '800' }}>Â¡Registro Exitoso!</h2>
+                <h2 style={{ fontSize: '1.45rem', color: '#0f172a', marginBottom: '10px', fontWeight: '800' }}>¡Registro Exitoso!</h2>
                 
                 <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '24px' }}>
-                  RecibirÃ¡s novedades exclusivas por email o WhatsApp apenas iniciemos el lanzamiento en tu ciudad.
+                  Recibirás novedades exclusivas por email o WhatsApp apenas iniciemos el lanzamiento en tu ciudad.
                 </p>
                 
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '24px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -4707,7 +4707,7 @@ export default function PruebasWalletApp() {
                   className="btn-full"
                   style={{ width: '100%', background: 'linear-gradient(135deg, #e63946 0%, #b5179e 100%)', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: '700', border: 'none', cursor: 'pointer', fontSize: '1rem', boxShadow: '0 4px 12px rgba(230,57,70,0.25)' }}
                 >
-                  Entendido, Â¡gracias!
+                  Entendido, ¡gracias!
                 </button>
               </div>
             )}
@@ -4720,12 +4720,12 @@ export default function PruebasWalletApp() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button className="btn btn-primary btn-full" onClick={() => setModal('editProfile')}>âœï¸  Editar perfil</button>
-                  <button className="btn btn-secondary btn-full" onClick={() => { setModal(null); navigate('/mis-pedidos'); }}>ðŸ“¦ Mis pedidos</button>
-                  <button className="btn btn-secondary btn-full" onClick={() => { fetchByCategory('favoritos', 'Mis favoritos'); setModal(null); }}>â¤ï¸ Mis favoritos</button>
-                  <button className="btn btn-secondary btn-full" onClick={() => setModal('configuracion')}>âš™ï¸ ConfiguraciÃ³n</button>
-                  <button className="btn btn-ghost btn-full" style={{ marginTop: '12px' }} onClick={async () => { setModal(null); await doLogout(); toast.success('SesiÃ³n cerrada'); setTimeout(() => window.location.reload(), 100); }}>
-                    Cerrar sesiÃ³n
+                  <button className="btn btn-primary btn-full" onClick={() => setModal('editProfile')}>✍️  Editar perfil</button>
+                  <button className="btn btn-secondary btn-full" onClick={() => { setModal(null); navigate('/mis-pedidos'); }}>📦 Mis pedidos</button>
+                  <button className="btn btn-secondary btn-full" onClick={() => { fetchByCategory('favoritos', 'Mis favoritos'); setModal(null); }}>❤️ Mis favoritos</button>
+                  <button className="btn btn-secondary btn-full" onClick={() => setModal('configuracion')}>⚙️ Configuración</button>
+                  <button className="btn btn-ghost btn-full" style={{ marginTop: '12px' }} onClick={async () => { setModal(null); await doLogout(); toast.success('Sesión cerrada'); setTimeout(() => window.location.reload(), 100); }}>
+                    Cerrar sesión
                   </button>
                 </div>
               </div>
@@ -4733,7 +4733,7 @@ export default function PruebasWalletApp() {
 
             {modal === 'configuracion' && user && (
               <div>
-                <h2>ConfiguraciÃ³n</h2>
+                <h2>Configuración</h2>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0', padding: '16px', background: '#262626', borderRadius: '12px' }}>
                   <span style={{ color: 'white', fontSize: '14px' }}>Notificaciones push</span>
                   <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
@@ -4756,14 +4756,14 @@ export default function PruebasWalletApp() {
                                permStatus = await PushNotifications.requestPermissions();
                             }
                             if (permStatus.receive !== 'granted') {
-                               toast.error("Permisos denegados. ActÃ­valos en Ajustes del telÃ©fono.");
+                               toast.error("Permisos denegados. Actívalos en Ajustes del teléfono.");
                                return;
                             }
                             await PushNotifications.register();
                             toast.loading("Activando notificaciones...", { id: 'push-toast' });
                             setTimeout(() => {
                               if (user) user.onesignal_id = 'activado'; // Actualizar visualmente
-                              toast.success("Â¡Notificaciones activadas correctamente!", { id: 'push-toast' });
+                              toast.success("¡Notificaciones activadas correctamente!", { id: 'push-toast' });
                               setModal('configuracion_refresh'); // Forzar render
                               setTimeout(() => setModal('configuracion'), 10);
                             }, 2000);
@@ -4807,22 +4807,22 @@ export default function PruebasWalletApp() {
                 <input name="nombre" className="form-input" defaultValue={user.name} required />
                 <label className="form-label">Email</label>
                 <input name="email" type="email" className="form-input" defaultValue={user.email} required />
-                <label className="form-label">TelÃ©fono</label>
+                <label className="form-label">Teléfono</label>
                 <div className="phone-input-group">
                   <select name="prefix" className="phone-prefix-select" defaultValue={user.telefono?.startsWith('+55') ? '+55' : '+549'}>
-                    <option value="+549">ðŸ‡¦ðŸ‡· +549</option>
-                    <option value="+55">ðŸ‡§ðŸ‡· +55</option>
+                    <option value="+549">🇦🇷 +549</option>
+                    <option value="+55">🇧🇷 +55</option>
                   </select>
                   <input 
                     name="telefono" 
                     type="tel" 
                     className="form-input phone-number-input" 
                     defaultValue={user.telefono ? user.telefono.replace(/^\+549|^\+54|^\+55/, '') : ''} 
-                    placeholder="NÃºmero (ej: 1123456789)" 
+                    placeholder="Número (ej: 1123456789)" 
                     required 
                   />
                 </div>
-                <label className="form-label">DirecciÃ³n de entrega</label>
+                <label className="form-label">Dirección de entrega</label>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                   <input 
                     type="text" 
@@ -4840,10 +4840,10 @@ export default function PruebasWalletApp() {
                       setModal(null);
                     }}
                   >
-                    ðŸ“ Mapa
+                    📍 Mapa
                   </button>
                 </div>
-                <label className="form-label">Nueva contraseÃ±a (opcional)</label>
+                <label className="form-label">Nueva contraseña (opcional)</label>
                 <input name="newPassword" type="password" className="form-input" placeholder="Dejar en blanco si no deseas cambiarla" />
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Guardar cambios'}
@@ -4853,15 +4853,15 @@ export default function PruebasWalletApp() {
 
             {modal === 'editAddress' && (
               <div>
-                <h2>Cambiar Mi DirecciÃ³n</h2>
+                <h2>Cambiar Mi Dirección</h2>
                 <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '16px' }}>
-                  SeleccionÃ¡ tu ubicaciÃ³n predeterminada en el mapa para futuras compras.
+                  Seleccioná tu ubicación predeterminada en el mapa para futuras compras.
                 </p>
                 <button 
                   className="btn btn-primary btn-full" 
                   onClick={() => setShowProfileAddressSelector(true)}
                 >
-                  ðŸ“ Abrir Mapa de DirecciÃ³n
+                  📍 Abrir Mapa de Dirección
                 </button>
                 <p style={{ marginTop: '12px', fontSize: '0.85rem' }}>
                   <strong>Actual:</strong> {user?.address || 'No configurada'}
@@ -4870,33 +4870,33 @@ export default function PruebasWalletApp() {
             )}
             {modal === 'terms' && (
               <div>
-                <h2>TÃ©rminos y Condiciones y PolÃ­tica de Privacidad</h2>
+                <h2>Términos y Condiciones y Política de Privacidad</h2>
                 <div style={{ fontSize: '0.88rem', color: 'var(--gray-600)', lineHeight: 1.5, maxHeight: '350px', overflowY: 'auto', paddingRight: '10px', textAlign: 'left' }}>
-                  <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>ðŸ“„ 1. USUARIOS â€“ TÃ‰RMINOS Y CONDICIONES</h3>
+                  <h3 style={{ color: 'var(--red-600)', marginTop: 0 }}>📄 1. USUARIOS – TÉRMINOS Y CONDICIONES</h3>
                   <p><strong>1. Naturaleza del servicio</strong></p>
-                  <p>Wepi es una plataforma que Intermedia entre usuarios y comercios, facilita la gestiÃ³n de pedidos y coordina la logÃ­stica de entrega. Wepi no elabora ni comercializa productos.</p>
-                  <p><strong>2. RelaciÃ³n contractual</strong></p>
+                  <p>Wepi es una plataforma que Intermedia entre usuarios y comercios, facilita la gestión de pedidos y coordina la logística de entrega. Wepi no elabora ni comercializa productos.</p>
+                  <p><strong>2. Relación contractual</strong></p>
                   <p>El usuario acepta que la compra es con el comercio, la entrega es realizada por repartidores independientes, y Wepi no es parte directa de dichas relaciones.</p>
                   <p><strong>3. Productos</strong></p>
-                  <p>Los comercios son los Ãºnicos responsables de Calidad, Ingredientes, Higiene y Estado. Wepi no garantiza los productos.</p>
+                  <p>Los comercios son los únicos responsables de Calidad, Ingredientes, Higiene y Estado. Wepi no garantiza los productos.</p>
                   <p><strong>4. Entregas</strong></p>
-                  <p>Wepi coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logÃ­stica.</p>
-                  <p><strong>5. LimitaciÃ³n de responsabilidad</strong></p>
-                  <p>Wepi no serÃ¡ responsable por intoxicaciones, problemas de salud, daÃ±os derivados del producto, demoras razonables o fallas de terceros.</p>
+                  <p>Wepi coordina entregas mediante repartidores independientes. El usuario acepta que los tiempos son estimados, pueden existir demoras y existen riesgos inherentes a la logística.</p>
+                  <p><strong>5. Limitación de responsabilidad</strong></p>
+                  <p>Wepi no será responsable por intoxicaciones, problemas de salud, daños derivados del producto, demoras razonables o fallas de terceros.</p>
                   <p><strong>6. Pagos</strong></p>
                   <p>Los pagos se procesan mediante Mercado Pago. Wepi no es entidad financiera, no fija precios y puede aplicar comisiones.</p>
                   <p><strong>7. Cancelaciones</strong></p>
                   <p>Dependen del comercio y estado del pedido.</p>
                   <p><strong>8. Indemnidad</strong></p>
                   <p>El usuario mantiene indemne a Wepi ante reclamos derivados del uso.</p>
-                  <p><strong>9. AceptaciÃ³n</strong></p>
-                  <p>Mediante registro y confirmaciÃ³n electrÃ³nica.</p>
+                  <p><strong>9. Aceptación</strong></p>
+                  <p>Mediante registro y confirmación electrónica.</p>
                   <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
                   <p><strong>Datos recolectados:</strong></p>
                   <ul style={{ paddingLeft: '18px', marginBottom: '10px' }}>
-                    <li>Nombre, telÃ©fono, email</li>
-                    <li>DirecciÃ³n</li>
-                    <li>UbicaciÃ³n en tiempo real</li>
+                    <li>Nombre, teléfono, email</li>
+                    <li>Dirección</li>
+                    <li>Ubicación en tiempo real</li>
                     <li>Historial de pedidos</li>
                   </ul>
                 </div>
@@ -4907,22 +4907,22 @@ export default function PruebasWalletApp() {
         </div>
       )}
 
-      {/* â”€â”€â”€ Modal de SelecciÃ³n de Ciudad Obligatorio â”€â”€â”€ */}
+      {/* ─── Modal de Selección de Ciudad Obligatorio ─── */}
       {!activeCity && (
         <div className="modal-overlay" style={{ zIndex: 10000, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, padding: '12px' }}>
           <div className="modal-box animate-fade-in" style={{ maxWidth: '370px', width: '100%', padding: '22px 20px', textAlign: 'center', borderRadius: '18px', boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.15)', background: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a' }} onClick={e => e.stopPropagation()}>
             <div style={{ marginBottom: '10px' }}>
               <img src="https://i.postimg.cc/d1myDmBb/wepi.png" alt="Wepi Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', marginBottom: '6px' }} />
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: '0 0 3px 0', fontFamily: "'Outfit', sans-serif" }}>Â¡Bienvenido a Wepi!</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: '0 0 3px 0', fontFamily: "'Outfit', sans-serif" }}>¡Bienvenido a Wepi!</h2>
               <p style={{ color: '#64748b', fontSize: '0.8rem', lineHeight: '1.3', margin: 0 }}>Para mostrarte los locales de tu zona, selecciona tu ciudad:</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
               <div style={{ textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#e63946', marginBottom: '1px' }}>
-                CIUDADES DISPONIBLES: PedÃ­ ahora
+                CIUDADES DISPONIBLES: Pedí ahora
               </div>
               <button 
-                onClick={() => selectCity('Santo TomÃ©')} 
+                onClick={() => selectCity('Santo Tomé')} 
                 className="btn btn-full"
                 style={{ 
                   background: '#ffffff', 
@@ -4940,11 +4940,11 @@ export default function PruebasWalletApp() {
                   justify: 'center'
                 }}
               >
-                Santo TomÃ© (Corrientes)
+                Santo Tomé (Corrientes)
               </button>
               
               <button 
-                onClick={() => selectCity('OberÃ¡')} 
+                onClick={() => selectCity('Oberá')} 
                 className="btn btn-full"
                 style={{ 
                   background: '#ffffff', 
@@ -4962,11 +4962,11 @@ export default function PruebasWalletApp() {
                   justify: 'center'
                 }}
               >
-                OberÃ¡ (Misiones)
+                Oberá (Misiones)
               </button>
 
               <div style={{ textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#d97706', marginTop: '6px', marginBottom: '1px' }}>
-                Muy pronto en tu ciudad: RecibÃ­ novedades
+                Muy pronto en tu ciudad: Recibí novedades
               </div>
 
               
@@ -4974,11 +4974,11 @@ export default function PruebasWalletApp() {
                 <button onClick={() => openInactiveCityModal('Alem (Misiones)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   Alem (Misiones)
                 </button>
-                <button onClick={() => openInactiveCityModal('ApÃ³stoles (Misiones)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  ApÃ³stoles (Misiones)
+                <button onClick={() => openInactiveCityModal('Apóstoles (Misiones)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  Apóstoles (Misiones)
                 </button>
-                <button onClick={() => openInactiveCityModal('Villaguay (Entre RÃ­os)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  Villaguay (Entre RÃ­os)
+                <button onClick={() => openInactiveCityModal('Villaguay (Entre Ríos)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  Villaguay (Entre Ríos)
                 </button>
                 <button onClick={() => openInactiveCityModal('Paso de los Libres (Corrientes)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   Paso de los Libres
@@ -4986,8 +4986,8 @@ export default function PruebasWalletApp() {
                 <button onClick={() => openInactiveCityModal('San Vicente (Misiones)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   San Vicente (Mnes)
                 </button>
-                <button onClick={() => openInactiveCityModal('Colon (Entre RÃ­os)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  Colon (Entre RÃ­os)
+                <button onClick={() => openInactiveCityModal('Colon (Entre Ríos)')} className="btn btn-full" style={{ background: '#f8fafc', color: '#334155', padding: '7px 11px', borderRadius: '9px', fontWeight: '500', fontSize: '0.82rem', border: '1px dashed #cbd5e1', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  Colon (Entre Ríos)
                 </button>
               </div>
             
@@ -4996,7 +4996,7 @@ export default function PruebasWalletApp() {
         </div>
       )}
 
-      {/* â”€â”€â”€ Modal Pop-up para Registrarse para Novedades (Ciudades Inactivas) â”€â”€â”€ */}
+      {/* ─── Modal Pop-up para Registrarse para Novedades (Ciudades Inactivas) ─── */}
       {false && inactiveCityModal && (
         <div className="modal-overlay" style={{ zIndex: 10050, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, padding: '12px' }}>
           <div className="modal-box animate-fade-in" style={{ maxWidth: '370px', width: '100%', padding: '22px 20px', textAlign: 'center', borderRadius: '18px', boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.15)', background: '#ffffff', border: '1px solid #e2e8f0', color: '#0f172a', position: 'relative' }} onClick={e => e.stopPropagation()}>
@@ -5005,13 +5005,13 @@ export default function PruebasWalletApp() {
               onClick={() => { setInactiveCityModal(null); setLeadSubmitted(false); }}
               style={{ position: 'absolute', top: '12px', right: '12px', background: '#f1f5f9', border: 'none', color: '#64748b', width: '26px', height: '26px', borderRadius: '50%', cursor: 'pointer', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              âœ•
+              ✕
             </button>
 
             {!leadSubmitted ? (
               <>
                 <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.68rem', fontWeight: '700', padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'inline-block', marginBottom: '6px' }}>
-                  PrÃ³ximamente
+                  Próximamente
                 </span>
                 
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', fontFamily: "'Outfit', sans-serif" }}>
@@ -5019,7 +5019,7 @@ export default function PruebasWalletApp() {
                 </h2>
                 
                 <p style={{ color: '#64748b', fontSize: '0.8rem', lineHeight: '1.3', margin: '0 0 12px 0' }}>
-                  Registrate para recibir novedades y promociones exclusivas el dÃ­a del lanzamiento.
+                  Registrate para recibir novedades y promociones exclusivas el día del lanzamiento.
                 </p>
 
                 <form onSubmit={handleLeadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
@@ -5028,7 +5028,7 @@ export default function PruebasWalletApp() {
                     <input 
                       type="text" 
                       required 
-                      placeholder="Ej: Juan PÃ©rez" 
+                      placeholder="Ej: Juan Pérez" 
                       value={leadForm.nombre}
                       onChange={e => setLeadForm({ ...leadForm, nombre: e.target.value })}
                       style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.82rem', outline: 'none' }}
@@ -5084,7 +5084,7 @@ export default function PruebasWalletApp() {
             ) : (
               <div style={{ padding: '6px 0' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px', fontFamily: "'Outfit', sans-serif" }}>
-                  Â¡Gracias por sumarte!
+                  ¡Gracias por sumarte!
                 </h3>
                 <p style={{ color: '#475569', fontSize: '0.82rem', lineHeight: '1.3', marginBottom: '14px' }}>
                   Registramos tus datos para <strong style={{ color: '#e63946' }}>{inactiveCityModal}</strong>. Te avisaremos apenas iniciemos operaciones.
@@ -5110,14 +5110,14 @@ export default function PruebasWalletApp() {
         </div>
       )}
 
-      {/* â”€â”€â”€ Modal de Pedido Confirmado y Encuesta / Notificaciones â”€â”€â”€ */}
+      {/* ─── Modal de Pedido Confirmado y Encuesta / Notificaciones ─── */}
       {showConfirmedModal && (
         <div className="modal-overlay" style={{ zIndex: 11000 }} onClick={() => setShowConfirmedModal(false)}>
           <div className="modal-box animate-fade-in" style={{ maxWidth: '450px', textAlign: 'center', padding: '30px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>ðŸŽ‰</div>
-            <h3 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#16a34a', marginBottom: '8px', fontFamily: "'Outfit', sans-serif" }}>Â¡Pedido Confirmado!</h3>
+            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🎉</div>
+            <h3 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#16a34a', marginBottom: '8px', fontFamily: "'Outfit', sans-serif" }}>¡Pedido Confirmado!</h3>
             <p style={{ color: '#475569', fontSize: '0.95rem', marginBottom: '24px', lineHeight: '1.5' }}>
-              Tu pedido <strong style={{color: '#0f172a'}}>#{confirmedOrderId}</strong> ha sido registrado con Ã©xito y ya estÃ¡ en preparaciÃ³n.
+              Tu pedido <strong style={{color: '#0f172a'}}>#{confirmedOrderId}</strong> ha sido registrado con éxito y ya está en preparación.
             </p>
 
             {!optInRegistered && (
@@ -5132,7 +5132,7 @@ export default function PruebasWalletApp() {
                     if (isChecked) {
                       let phone = (user && user.telefono) || '';
                       if (!phone) {
-                        phone = prompt("IngresÃ¡ tu nÃºmero de WhatsApp con cÃ³digo de Ã¡rea (ej: 5493756543610):");
+                        phone = prompt("Ingresá tu número de WhatsApp con código de área (ej: 5493756543610):");
                         if (!phone) {
                           setWhatsappCheckoutOptIn(false);
                           return;
@@ -5142,16 +5142,16 @@ export default function PruebasWalletApp() {
                       try {
                         const res = await api.registerWhatsappOptin({
                           phoneNumber: phone,
-                          ciudad: activeCity || 'Santo TomÃ©',
+                          ciudad: activeCity || 'Santo Tomé',
                           pedidoId: confirmedOrderId,
                           userId: user?.id || null,
                           tipo: 'delivery_update'
                         });
                         if (!res.error) {
                           setOptInRegistered(true);
-                          toast.success('Â¡Listo! Te avisaremos cuando llegue tu pedido. ðŸ›µ');
+                          toast.success('¡Listo! Te avisaremos cuando llegue tu pedido. 🛵');
                         } else {
-                           toast.error(res.error || 'Por favor ingresÃ¡ un nÃºmero vÃ¡lido');
+                           toast.error(res.error || 'Por favor ingresá un número válido');
                            setWhatsappCheckoutOptIn(false);
                         }
                       } catch (err) {
@@ -5173,7 +5173,7 @@ export default function PruebasWalletApp() {
 
             {(!user || !user.onesignal_id) && !Capacitor.isNativePlatform() && (
               <div style={{ marginTop: '24px', marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '12px', color: '#1e293b' }}>Ahora tenÃ©s Wepi mÃ¡s cerca que nunca.</h4>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '12px', color: '#1e293b' }}>Ahora tenés Wepi más cerca que nunca.</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
                   <a href="https://apps.apple.com/ar/app/wepi-app/id6801576564" target="_blank" rel="noopener noreferrer">
                     <img src="https://i.postimg.cc/3xLdFwyB/disponible-app-store-rtt.png" alt="App Store" style={{ height: '40px' }} />
@@ -5198,15 +5198,15 @@ export default function PruebasWalletApp() {
 
 
 
-      {/* â€”â€”â€” Ice Cream Modal â€”â€”â€” */}
+      {/* ——— Ice Cream Modal ——— */}
       {iceCreamModal && (
         <div className="modal-overlay" onClick={() => setIceCreamModal(null)}>
           <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '20px' }} onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setIceCreamModal(null)}>âœ•</button>
+            <button className="modal-close" onClick={() => setIceCreamModal(null)}>✕</button>
             <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.4rem' }}>{iceCreamModal.nombre}</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 16 }}>{iceCreamModal.descripcion}</p>
             
-            <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700' }}>1. ElegÃ­ el tamaÃ±o:</h3>
+            <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700' }}>1. Elegí el tamaño:</h3>
             <div className="size-selector" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
               {Object.keys(JSON.parse(iceCreamModal.variantes).precios).map(size => (
                 <div 
@@ -5228,9 +5228,9 @@ export default function PruebasWalletApp() {
             </div>
 
             <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>
-               2. SeleccionÃ¡ tus sabores:
+               2. Seleccioná tus sabores:
                <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', fontWeight: '400', marginTop: '2px' }}>
-                MÃ¡ximo {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max} sabores
+                Máximo {JSON.parse(iceCreamModal.variantes).precios[selectedSize].max} sabores
                </div>
             </h3>
             
@@ -5254,22 +5254,22 @@ export default function PruebasWalletApp() {
                       } else if (canSelect) {
                         setSelectedFlavors(prev => [...prev, flavor.nombre]);
                       } else {
-                        toast.error(`MÃ¡ximo ${max} sabores para este tamaÃ±o`);
+                        toast.error(`Máximo ${max} sabores para este tamaño`);
                       }
                     }}
                   >
                     {flavor.nombre}
-                    {isSelected && <span style={{ marginLeft: 'auto' }}>âœ“</span>}
+                    {isSelected && <span style={{ marginLeft: 'auto' }}>✓</span>}
                   </button>
                 );
               })}
             </div>
 
-            {/* SecciÃ³n de Salsas Forzada */}
+            {/* Sección de Salsas Forzada */}
             {(iceCreamModal.salsasDisponibles || []).length > 0 && (
               <div style={{ background: '#fff9f0', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffe4bc' }}>
                 <h3 style={{ fontSize: '1rem', marginBottom: 10, fontWeight: '700', color: '#b45309' }}>
-                  ðŸ¯ Â¿QuerÃ©s agregar salsas?
+                  🍯 ¿Querés agregar salsas?
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {(iceCreamModal.salsasDisponibles || []).map(sauce => {
@@ -5437,10 +5437,10 @@ export default function PruebasWalletApp() {
                     };
                     cart.addItem(finalItem);
                     setIceCreamModal(null);
-                    toast.success('Â¡Helado agregado!');
+                    toast.success('¡Helado agregado!');
                   }}
                 >
-                  Agregar â€¢ {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${currentTotal}
+                  Agregar • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${currentTotal}
                 </button>
               );
             })()}
@@ -5451,7 +5451,7 @@ export default function PruebasWalletApp() {
       {burgerModal && (
         <div className="modal-overlay" onClick={() => setBurgerModal(null)}>
           <div className="modal-box animate-scale-in" style={{ maxWidth: 500, padding: '24px' }} onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setBurgerModal(null)}>âœ•</button>
+            <button className="modal-close" onClick={() => setBurgerModal(null)}>✕</button>
             <h2 style={{ color: 'var(--red-600)', marginBottom: 8, fontSize: '1.5rem' }}>{burgerModal.nombre}</h2>
             <p style={{ fontSize: '0.95rem', color: 'var(--gray-500)', marginBottom: 24 }}>{burgerModal.descripcion}</p>
             
@@ -5468,7 +5468,7 @@ export default function PruebasWalletApp() {
                 <>
                   {cfg.variants?.length > 0 && (
                     <div style={{ marginBottom: 24 }}>
-                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. SeleccionÃ¡ la opciÃ³n:</h3>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>1. Seleccioná la opción:</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                         {cfg.variants.filter(v => v.disponible !== false).map((v, i) => (
                           <div 
@@ -5514,7 +5514,7 @@ export default function PruebasWalletApp() {
 
                   {cfg.con_papas && (
                     <div style={{ marginBottom: 28 }}>
-                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. Â¿Lo hacemos COMBO?</h3>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 12, fontWeight: '700' }}>3. ¿Lo hacemos COMBO?</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div 
                           className={`selection-card ${withFries ? 'active' : ''}`}
@@ -5525,9 +5525,9 @@ export default function PruebasWalletApp() {
                             boxShadow: withFries ? '0 4px 12px rgba(220, 38, 38, 0.1)' : 'none'
                           }}
                         >
-                          <div style={{ fontSize: '2.5rem' }}>ðŸŸ</div>
+                          <div style={{ fontSize: '2.5rem' }}>🍟</div>
                           <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Â¡Si, papas!</div>
+                            <div style={{ fontWeight: '700', fontSize: '1rem' }}>¡Si, papas!</div>
                             <div style={{ color: 'var(--red-600)', fontWeight: '800', fontSize: '0.85rem' }}>+ ${cfg.precio_papas}</div>
                           </div>
                         </div>
@@ -5541,7 +5541,7 @@ export default function PruebasWalletApp() {
                             opacity: !withFries ? 1 : 0.7
                           }}
                         >
-                          <div style={{ fontSize: '2.5rem' }}>{cfg.es_pancho ? 'ðŸŒ­' : (cfg.es_hamburguesa ? 'ðŸ”' : 'ðŸ½ï¸')}</div>
+                          <div style={{ fontSize: '2.5rem' }}>{cfg.es_pancho ? '🌭' : (cfg.es_hamburguesa ? '🍔' : '🍽️')}</div>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontWeight: '700', fontSize: '1rem' }}>{cfg.es_pancho ? 'Solo el pancho' : (cfg.es_hamburguesa ? 'Solo la hamburguesa' : 'Solo el plato')}</div>
                             <div style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Sin papas</div>
@@ -5577,10 +5577,10 @@ export default function PruebasWalletApp() {
                       };
                       cart.addItem(finalItem);
                       setBurgerModal(null);
-                      toast.success(`Â¡Agregado al carrito!`);
+                      toast.success(`¡Agregado al carrito!`);
                     }}
                   >
-                    Agregar â€¢ {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${totalCalculated}
+                    Agregar • {hasDiscount && <span style={{ textDecoration: 'line-through', opacity: 0.7, fontSize: '0.95rem', marginRight: '8px' }}>${rawTotal}</span>} ${totalCalculated}
                   </button>
                 </>
               );
@@ -5594,19 +5594,19 @@ export default function PruebasWalletApp() {
       <footer className="footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 20px' }}>
         <img src="https://i.postimg.cc/htHr0QMM/Tarde-de-superclasico-(1)-(1).png" alt="Wepi" style={{ height: '80px', objectFit: 'contain' }} />
         <p>
-          Â© 2026 <strong>Wepi</strong> â€” Plataforma de Pedidos y Delivery
+          © 2026 <strong>Wepi</strong> — Plataforma de Pedidos y Delivery
           <span style={{ display: 'inline-block', marginLeft: '8px', padding: '2px 8px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56,189, 248, 0.4)', fontSize: '0.75rem', fontWeight: 'bold' }}>{otaVersion}</span>
         </p>
         <p>
-          <Link to="/locales">RegistrÃ¡ tu local</Link> â€¢{' '}
-          <button className="footer-link" style={{ color: 'white' }} onClick={() => setModal('terms')}>TÃ©rminos</button> â€¢{' '}
-          <a href="mailto:bajoneando.st@gmail.com">Soporte</a> â€¢{' '}
+          <Link to="/locales">Registrá tu local</Link> •{' '}
+          <button className="footer-link" style={{ color: 'white' }} onClick={() => setModal('terms')}>Términos</button> •{' '}
+          <a href="mailto:bajoneando.st@gmail.com">Soporte</a> •{' '}
           <button 
             className="footer-link" 
             style={{ color: 'white', fontWeight: 'bold' }} 
             onClick={() => setShowRegretModal(true)}
           >
-            BotÃ³n de Arrepentimiento
+            Botón de Arrepentimiento
           </button>
         </p>
       </footer>
@@ -5615,10 +5615,10 @@ export default function PruebasWalletApp() {
       {showRegretModal && (
         <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowRegretModal(false)}>
           <div className="modal-box animate-fade-in" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>BotÃ³n de Arrepentimiento</h3>
+            <h3 style={{ color: 'var(--red-600)', marginBottom: '16px' }}>Botón de Arrepentimiento</h3>
             <p style={{ marginBottom: '20px', color: 'var(--gray-600)', fontSize: '0.95rem' }}>
-              Â¿Deseas arrepentirte de tu registro y eliminar tu cuenta permanentemente de Wepi? <br/>
-              <strong>Esta acciÃ³n no se puede deshacer.</strong>
+              ¿Deseas arrepentirte de tu registro y eliminar tu cuenta permanentemente de Wepi? <br/>
+              <strong>Esta acción no se puede deshacer.</strong>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button 
@@ -5627,7 +5627,7 @@ export default function PruebasWalletApp() {
                 disabled={deleting}
                 onClick={async () => {
                   if (!user?.userId) {
-                    toast.error("Debes iniciar sesiÃ³n para eliminar tu cuenta.");
+                    toast.error("Debes iniciar sesión para eliminar tu cuenta.");
                     setShowRegretModal(false);
                     return;
                   }
@@ -5645,7 +5645,7 @@ export default function PruebasWalletApp() {
                   }
                 }}
               >
-                {deleting ? 'Eliminando...' : 'SÃ­, eliminar mi registro'}
+                {deleting ? 'Eliminando...' : 'Sí, eliminar mi registro'}
               </button>
               <button className="btn btn-secondary" onClick={() => setShowRegretModal(false)}>Cancelar</button>
             </div>
@@ -5653,13 +5653,13 @@ export default function PruebasWalletApp() {
         </div>
       )}
 
-      {/* â”€â”€â”€ Address Selector Modals â”€â”€â”€ */}
+      {/* ─── Address Selector Modals ─── */}
       {showAddressSelector && (
         <AddressSelector
           isLoaded={isMapLoaded}
           initialAddress={addressData.address}
           initialCoords={addressData.lat ? { lat: addressData.lat, lng: addressData.lng } : null}
-          ciudad={activeCity || 'Santo TomÃ©'}
+          ciudad={activeCity || 'Santo Tomé'}
           onConfirm={(data) => {
             setAddressData(data);
             setShowAddressSelector(false);
@@ -5673,13 +5673,13 @@ export default function PruebasWalletApp() {
           isLoaded={isMapLoaded}
           initialAddress={user?.direccion || ''}
           initialCoords={user?.lat ? { lat: user.lat, lng: user.lng } : null}
-          ciudad={activeCity || 'Santo TomÃ©'}
+          ciudad={activeCity || 'Santo Tomé'}
           onConfirm={async (data) => {
             try {
               await api.updateDireccion(user.id, data.address, data.lat, data.lng);
               updateUserAddress(data.address);
-              // PodrÃ­amos necesitar recargar el usuario localmente o actualizar el context
-              toast.success('DirecciÃ³n de perfil actualizada');
+              // Podríamos necesitar recargar el usuario localmente o actualizar el context
+              toast.success('Dirección de perfil actualizada');
               setShowProfileAddressSelector(false);
               setModal('editProfile');
             } catch (e) {
@@ -5715,10 +5715,10 @@ export default function PruebasWalletApp() {
               />
             </div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '12px', color: '#333' }}>
-              ConfirmaciÃ³n de Pago
+              Confirmación de Pago
             </h3>
             <p style={{ fontSize: '0.95rem', color: '#555', lineHeight: '1.5', marginBottom: '24px' }}>
-              Se abrirÃ¡ la app de Mercado Pago para realizar el pago de tu pedido.
+              Se abrirá la app de Mercado Pago para realizar el pago de tu pedido.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button 
@@ -5747,7 +5747,7 @@ export default function PruebasWalletApp() {
         </div>
       )}
 
-      {/* Modal de BÃºsqueda de Repartidor */}
+      {/* Modal de Búsqueda de Repartidor */}
       {searchingDriver && (
         <div className="searching-modal-overlay">
           <div className="searching-modal-card" style={foundDriver ? { padding: '20px 24px', maxWidth: '380px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '4px' } : {}}>
@@ -5759,22 +5759,22 @@ export default function PruebasWalletApp() {
                 </div>
 
                 <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px', textAlign: 'center' }}>
-                  ðŸ”Ž Buscando un repartidor para tu pedido
+                  🔎 Buscando un repartidor para tu pedido
                 </h2>
                 
                 <div className="live-status-box">
                   <span className="live-status-dot"></span>
                   <span key={searchSeconds < 10 ? 'p1' : (searchSeconds < 20 ? 'p2' : (searchSeconds < 35 ? 'p3' : (searchSeconds < 50 ? 'p4' : 'p5')))} className="live-status-text">
-                    {searchSeconds < 10 && 'ðŸš€ Enviando la solicitud...'}
-                    {searchSeconds >= 10 && searchSeconds < 20 && 'ðŸ“² Notificando repartidores cercanos...'}
-                    {searchSeconds >= 20 && searchSeconds < 35 && 'â³ Esperando respuestas...'}
-                    {searchSeconds >= 35 && searchSeconds < 50 && 'ðŸ”Ž Ampliando la bÃºsqueda...'}
-                    {searchSeconds >= 50 && 'ðŸ”„ Reenviando notificaciones...'}
+                    {searchSeconds < 10 && '🚀 Enviando la solicitud...'}
+                    {searchSeconds >= 10 && searchSeconds < 20 && '📲 Notificando repartidores cercanos...'}
+                    {searchSeconds >= 20 && searchSeconds < 35 && '⏳ Esperando respuestas...'}
+                    {searchSeconds >= 35 && searchSeconds < 50 && '🔎 Ampliando la búsqueda...'}
+                    {searchSeconds >= 50 && '🔄 Reenviando notificaciones...'}
                   </span>
                 </div>
 
                 <div className="searching-timer" style={{ marginTop: '16px', fontSize: '0.95rem', fontWeight: '600', color: '#475569', textAlign: 'center' }}>
-                  â± Buscando hace{' '}
+                  ⏱ Buscando hace{' '}
                   <span style={{ fontWeight: 800, color: 'var(--red-600, #dc2626)', fontSize: '1.1rem' }}>
                     {Math.floor(searchSeconds / 60).toString().padStart(2, '0')}:{(searchSeconds % 60).toString().padStart(2, '0')}
                   </span>
@@ -5792,7 +5792,7 @@ export default function PruebasWalletApp() {
                   textAlign: 'center',
                   lineHeight: '1.4'
                 }}>
-                  ðŸ’¡ La mayorÃ­a de los pedidos encuentra un repartidor en menos de 2 minutos.
+                  💡 La mayoría de los pedidos encuentra un repartidor en menos de 2 minutos.
                 </div>
 
                 <button 
@@ -5825,7 +5825,7 @@ export default function PruebasWalletApp() {
                     style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} 
                   />
                 </div>
-                <h2 style={{ fontSize: '1.3rem', margin: '6px 0 2px', fontWeight: '800', color: '#1e293b' }}>Â¡Repartidor encontrado!</h2>
+                <h2 style={{ fontSize: '1.3rem', margin: '6px 0 2px', fontWeight: '800', color: '#1e293b' }}>¡Repartidor encontrado!</h2>
                 <p className="success-msg" style={{ margin: '0 0 8px', fontSize: '0.8rem', color: '#64748b' }}>Ya encontramos un repartidor para llevar tu pedido.</p>
                 
                 <div className="found-driver-info" style={{ margin: '8px 0', padding: '10px 14px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', textAlign: 'left' }}>
@@ -5856,7 +5856,7 @@ export default function PruebasWalletApp() {
                         style={{ height: '30px', objectFit: 'contain' }} 
                       />
                       <p style={{ fontSize: '0.8rem', color: '#555', margin: 0, fontWeight: '600', lineHeight: '1.3' }}>
-                        Se abrirÃ¡ la app de Mercado Pago para realizar el pago.
+                        Se abrirá la app de Mercado Pago para realizar el pago.
                       </p>
                       <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '2px' }}>
                         <button 
@@ -5946,7 +5946,7 @@ export default function PruebasWalletApp() {
                         setShowEsperaPanel(false);
                         setDriverSearchTimeout(false);
                         api.extenderEsperaRepartidor(pendingOrderId, whatsappCheckoutOptIn, user?.telefono).then(() => {
-                          toast.success('El pedido quedï¿½ en espera por 10 minutos ?');
+                          toast.success('El pedido qued� en espera por 10 minutos ?');
                           localStorage.removeItem('pendingOrderDataPruebas');
                           localStorage.removeItem('pendingOrderData');
                           setPendingOrderId(null);
@@ -5962,7 +5962,7 @@ export default function PruebasWalletApp() {
               ) : (
                 <>
             <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#1e293b', marginBottom: '12px', textAlign: 'center' }}>
-              ðŸ”Ž Seguimos buscando
+              🔎 Seguimos buscando
             </h2>
             
             <div style={{
@@ -5977,7 +5977,7 @@ export default function PruebasWalletApp() {
               textAlign: 'center',
               lineHeight: '1.4'
             }}>
-              ðŸ’¡ Muchos pedidos encuentran repartidor en este segundo intento.
+              💡 Muchos pedidos encuentran repartidor en este segundo intento.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
@@ -6002,10 +6002,10 @@ export default function PruebasWalletApp() {
                   setSearchSeconds(0); 
                   const currentShipping = cart.deliveryType === 'envio' ? (cart.shippingCost || 0) : 0;
                   api.broadcastOrderToDrivers(pendingOrderId, cart.total, cart.items[0]?.local_id, currentShipping);
-                  toast.success('Â¡Reenviamos la solicitud a los repartidores! ðŸ›µ');
+                  toast.success('¡Reenviamos la solicitud a los repartidores! 🛵');
                 }}
               >
-                ðŸŸ¢ Repetir pedido
+                🟢 Repetir pedido
                 </button>
 
                 {!getIsCashOrder() && (() => {
@@ -6080,7 +6080,7 @@ export default function PruebasWalletApp() {
                   
                   if (orderIdToCancel) {
                     try {
-                      // Disparamos la cancelaciÃ³n, el opt-in, el envÃ­o de plantilla al usuario y la alerta a repartidores
+                      // Disparamos la cancelación, el opt-in, el envío de plantilla al usuario y la alerta a repartidores
                       await api.handleCancelOrderSinRepartidores({
                         orderId: orderIdToCancel,
                         phone: recipientPhone,
@@ -6092,14 +6092,14 @@ export default function PruebasWalletApp() {
                          setOptInRegistered(true);
                       }
 
-                      toast.success('BÃºsqueda cancelada');
+                      toast.success('Búsqueda cancelada');
                     } catch (e) {
                       console.error("Error cancelling order:", e);
                     }
                   }
                 }}
               >
-                âšª Cancelar pedido
+                ⚪ Cancelar pedido
                 </button>
               </div>
               </>
@@ -6122,7 +6122,7 @@ export default function PruebasWalletApp() {
         />
       )}
 
-      {/* PestaÃ±ita Lateral Mundialista (Commented out) */}
+      {/* Pestañita Lateral Mundialista (Commented out) */}
       {/* <Link 
         to="/mundialista" 
         className="floating-lateral-tab"
@@ -6184,7 +6184,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
           .single();
         if (error) {
           console.error("Error fetching promo terms:", error);
-          toast.error("No se pudieron cargar los tÃ©rminos de esta promociÃ³n.");
+          toast.error("No se pudieron cargar los términos de esta promoción.");
           return;
         }
         if (data) {
@@ -6199,11 +6199,11 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
   const handleRedeemCoupon = async (e) => {
     e.preventDefault();
     if (!couponCode.trim()) {
-      toast.error('Por favor ingresa un cÃ³digo de cupÃ³n');
+      toast.error('Por favor ingresa un código de cupón');
       return;
     }
     if (!userId) {
-      toast.error('Inicia sesiÃ³n para canjear un cupÃ³n');
+      toast.error('Inicia sesión para canjear un cupón');
       return;
     }
 
@@ -6211,17 +6211,17 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
     try {
       const response = await api.redeemWalletCoupon(userId, couponCode.trim());
       if (response && response.success) {
-        toast.success(response.message || `Â¡CupÃ³n canjeado con Ã©xito! Recibiste $${response.amount} de crÃ©dito.`);
+        toast.success(response.message || `¡Cupón canjeado con éxito! Recibiste $${response.amount} de crédito.`);
         setCouponCode('');
         if (onRefresh) {
           await onRefresh();
         }
       } else {
-        toast.error(response?.message || 'Error al canjear el cupÃ³n.');
+        toast.error(response?.message || 'Error al canjear el cupón.');
       }
     } catch (error) {
       console.error('Error redeeming wallet coupon:', error);
-      toast.error(error.message || 'Error al procesar el cupÃ³n.');
+      toast.error(error.message || 'Error al procesar el cupón.');
     } finally {
       setRedeemLoading(false);
     }
@@ -6235,19 +6235,19 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
             <img src="https://i.postimg.cc/wj0SPCb4/descarga-(31)-(7).png" alt="Wallet" style={{width: 28}} />
             <h3>Mi Wepi Wallet</h3>
           </div>
-          <button className="close-drawer" onClick={onClose}>Ã—</button>
+          <button className="close-drawer" onClick={onClose}>×</button>
         </header>
 
         <div className="drawer-body">
           <div className="balance-hero">
             <label>Saldo Disponible</label>
             <div className="amount">${(balance || 0).toLocaleString()}</div>
-            <p className="balance-hint">Dinero acumulado para tus prÃ³ximos pedidos</p>
+            <p className="balance-hint">Dinero acumulado para tus próximos pedidos</p>
           </div>
 
           {/* Premium Coupon Redemption Card */}
           <div className="drawer-section coupon-redemption-card">
-            <h4>ðŸŽŸï¸ Â¿Tienes un cupÃ³n de regalo?</h4>
+            <h4>🎟️ ¿Tienes un cupón de regalo?</h4>
             <form onSubmit={handleRedeemCoupon} className="coupon-redeem-form">
               <div className="coupon-input-wrapper">
                 <input
@@ -6274,7 +6274,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
           </div>
 
           <div className="drawer-section">
-            <h4>ðŸ“œ Historial de Movimientos</h4>
+            <h4>📜 Historial de Movimientos</h4>
             <div className="credits-list">
               {transactions && transactions.length > 0 ? transactions.map(trans => {
                 const isExpired = trans.type === 'earn' && trans.expires_at && new Date(trans.expires_at) < new Date();
@@ -6285,17 +6285,17 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                   <div key={trans.id} className={`credit-item-card ${isExpired ? 'expired-trans' : ''}`}>
                     <div className="item-info">
                       <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span className="item-name">{isEarn ? 'CrÃ©dito Ganado' : 'CrÃ©dito Usado'}</span>
+                        <span className="item-name">{isEarn ? 'Crédito Ganado' : 'Crédito Usado'}</span>
                         {isExpired && <span className="badge-vencido">Vencido</span>}
                       </div>
                       <span className={`item-value ${isEarn ? 'plus' : 'minus'}`}>
-                        {isEarn ? '+' : 'âˆ’'}${Number(trans.amount).toLocaleString()}
+                        {isEarn ? '+' : '−'}${Number(trans.amount).toLocaleString()}
                       </span>
                       <div className="item-meta">
                         <span>{trans.description}</span>
                         {isEarn && trans.expires_at && (
                           <span style={{display: 'block', marginTop: '2px'}}>
-                            â³ {isExpired ? 'VenciÃ³ el' : 'Vence el'} {new Date(trans.expires_at).toLocaleDateString('es-AR')}
+                            ⏳ {isExpired ? 'Venció el' : 'Vence el'} {new Date(trans.expires_at).toLocaleDateString('es-AR')}
                           </span>
                         )}
                       </div>
@@ -6307,7 +6307,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                         onClick={() => handleShowPromoTerms(trans.campaign_id)}
                         style={{ marginLeft: '12px', flexShrink: 0 }}
                       >
-                        â„¹ï¸ Ver T&C
+                        ℹ️ Ver T&C
                       </button>
                     )}
                   </div>
@@ -6321,13 +6321,13 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
           </div>
 
           <div className="drawer-section">
-             <h4>ðŸŽ Promos Disponibles</h4>
+             <h4>🎁 Promos Disponibles</h4>
              <div className="credits-list">
                 {promotions.filter(p => p.tipo === 'credito' && p.activo).map(promo => (
                   <div key={promo.id} className="credit-item-card promo-hint-card">
                      <div className="item-info">
                         <span className="item-name">{promo.nombre}</span>
-                        <span className="item-meta">Â¡GanÃ¡ hasta ${promo.beneficios?.tope_valor || ''} con esta promo!</span>
+                        <span className="item-meta">¡Ganá hasta ${promo.beneficios?.tope_valor || ''} con esta promo!</span>
                      </div>
                      <button className="btn-info-legal" onClick={() => setSelectedPromo(promo)}>Ver T&C</button>
                   </div>
@@ -6340,16 +6340,16 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
           <div className="legal-popup-overlay" onClick={() => setSelectedPromo(null)}>
             <div className="legal-popup-content" onClick={e => e.stopPropagation()}>
               <header>
-                <h5>TÃ©rminos y Condiciones</h5>
-                <button onClick={() => setSelectedPromo(null)}>Ã—</button>
+                <h5>Términos y Condiciones</h5>
+                <button onClick={() => setSelectedPromo(null)}>×</button>
               </header>
               <div className="legal-text">
                 <h6>{selectedPromo.nombre}</h6>
-                <p>{selectedPromo.metadata?.terminos || 'VÃ¡lido para pedidos que cumplan los requisitos de la promociÃ³n.'}</p>
+                <p>{selectedPromo.metadata?.terminos || 'Válido para pedidos que cumplan los requisitos de la promoción.'}</p>
                 <div className="legal-details">
-                  <div>â€¢ Compra mÃ­nima: ${selectedPromo.triggers?.min_compra || 0}</div>
-                  <div>â€¢ Vencimiento: {selectedPromo.requisitos?.vencimiento_dias || 7} dÃ­as</div>
-                  <div>â€¢ MÃ¡x. uso: {selectedPromo.requisitos?.max_porcentaje_uso || 100}% del pedido</div>
+                  <div>• Compra mínima: ${selectedPromo.triggers?.min_compra || 0}</div>
+                  <div>• Vencimiento: {selectedPromo.requisitos?.vencimiento_dias || 7} días</div>
+                  <div>• Máx. uso: {selectedPromo.requisitos?.max_porcentaje_uso || 100}% del pedido</div>
                 </div>
               </div>
               <button className="btn btn-primary btn-full" onClick={() => setSelectedPromo(null)}>Entendido</button>
@@ -6358,8 +6358,8 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
         )}
 
         {/* Widget Mundialista Flotante (Commented out) */}
-        {/* <Link to="/mundialista" className="floating-mundial-trophy" title="Â¡CampaÃ±a Mundialista Wepi! ðŸ†">
-          <span className="trophy-emoji">ðŸ†</span>
+        {/* <Link to="/mundialista" className="floating-mundial-trophy" title="¡Campaña Mundialista Wepi! 🏆">
+          <span className="trophy-emoji">🏆</span>
           <span className="trophy-text">Mundial Wepi</span>
         </Link> */}
 
@@ -6415,7 +6415,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                   zIndex: 2
                 }}
               >
-                âœ•
+                ✕
               </button>
 
               <div style={{ position: 'relative', width: '100%', height: '320px', overflow: 'hidden' }}>
@@ -6453,16 +6453,16 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                   display: 'inline-block',
                   marginBottom: '16px'
                 }}>
-                  Â¡CampaÃ±a Mundialista! ðŸ†
+                  ¡Campaña Mundialista! 🏆
                 </span>
 
                 <h3 style={{ margin: '0 0 12px 0', fontSize: '1.5rem', fontWeight: '800', color: '#ffffff' }}>
-                  Â¡Sumaste puntos para el ranking! âš½
+                  ¡Sumaste puntos para el ranking! ⚽
                 </h3>
 
                 <p style={{ margin: '0 0 20px 0', color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5' }}>
                   Ganaste <strong style={{ color: '#fbbf24', fontSize: '1.1rem' }}>puntos</strong> para el ranking. 
-                  ParticipÃ¡ por premios exclusivos y liderÃ¡ la tabla local de Wepi.
+                  Participá por premios exclusivos y liderá la tabla local de Wepi.
                 </p>
 
                 <Link 
@@ -6482,7 +6482,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                     marginBottom: '12px'
                   }}
                 >
-                  Ir al Ranking ðŸ¥‡
+                  Ir al Ranking 🥇
                 </Link>
 
                 <button 
@@ -6542,7 +6542,7 @@ function WalletDetailsPanel({ onClose, balance, transactions, promotions, userId
                   setEnEsperaExtra(true);
                   setSearchSeconds(0);
                   api.extenderEsperaRepartidor(pendingOrderId, whatsappCheckoutOptIn, user?.telefono);
-                  toast.success('El pedido quedï¿½ en espera por 10 minutos ?');
+                  toast.success('El pedido qued� en espera por 10 minutos ?');
                 }}
               >
                 Confirmar
