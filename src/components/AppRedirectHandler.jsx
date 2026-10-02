@@ -18,8 +18,9 @@ export default function AppRedirectHandler() {
 
     const hasUTM = location.search.includes('utm_source') || location.search.includes('utm_campaign');
     const isPedir = location.pathname.startsWith('/pedir');
+    const isMisPedidos = location.pathname.startsWith('/mis-pedidos');
 
-    if (hasUTM || isPedir) {
+    if (hasUTM || isPedir || isMisPedidos) {
       setShowAppBanner(true);
 
       const hasTriedOpen = sessionStorage.getItem('wepi_auto_app_redirect_tried');
@@ -86,8 +87,8 @@ export default function AppRedirectHandler() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <span style={{ fontSize: '1.4rem' }}>📱</span>
         <div>
-          <strong style={{ fontSize: '0.88rem', display: 'block' }}>¿Tenés la App de Wepi?</strong>
-          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Abrí tu pedido directamente en la app nativa</span>
+          <strong style={{ fontSize: '0.88rem', display: 'block' }}>Descargá la App de Wepi</strong>
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Seguí tu pedido en tiempo real y obtené beneficios</span>
         </div>
       </div>
 
@@ -106,7 +107,7 @@ export default function AppRedirectHandler() {
             boxShadow: '0 2px 8px rgba(225,29,72,0.4)'
           }}
         >
-          Abrir App
+          Descargar
         </button>
         <button
           onClick={() => setShowAppBanner(false)}
