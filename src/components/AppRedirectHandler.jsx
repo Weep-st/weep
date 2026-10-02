@@ -44,7 +44,7 @@ export default function AppRedirectHandler() {
     const cleanPath = location.pathname.replace(/^\//, '');
 
     if (isAndroid) {
-      const fallbackUrl = encodeURIComponent('https://forms.gle/V4tdT3WJd4vLjMra9');
+      const fallbackUrl = encodeURIComponent('https://play.google.com/store/apps/details?id=com.wepi.app');
       window.location.href = `intent://wepi.com.ar/${cleanPath}${location.search}#Intent;scheme=https;package=com.wepi.app;S.browser_fallback_url=${fallbackUrl};end;`;
     } else if (isIOS) {
       // Usar esquema limpio wepi:// para iOS evitando bloqueos y errores de dirección no válida
