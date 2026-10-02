@@ -3402,33 +3402,34 @@ export default function PruebasWalletApp() {
                 className="login-incentive-banner animate-fade-in"
                 onClick={() => setModal('login')}
                 style={{
-                  background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-                  borderRadius: '16px',
-                  padding: '16px',
-                  margin: '16px 16px 0 16px',
+                  background: 'linear-gradient(90deg, #e11d48, #f43f5e)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  margin: '16px 16px 20px 16px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  gap: '10px',
                   color: 'white',
-                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                  boxShadow: '0 4px 12px rgba(225, 29, 72, 0.3)',
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ fontSize: '2rem' }}>🎁</div>
+                <div style={{ fontSize: '1.6rem', lineHeight: 1 }}>🎁</div>
                 <div style={{ flex: 1 }}>
-                  <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: '2px' }}>Tenés beneficios ocultos</strong>
-                  <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Iniciá sesión para ver cupones y descuentos.</span>
+                  <strong style={{ display: 'block', fontSize: '0.88rem', marginBottom: '1px' }}>Tenés beneficios ocultos</strong>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.9, display: 'block', lineHeight: 1.2 }}>Iniciá sesión para ver cupones y descuentos.</span>
                 </div>
                 <button 
                   style={{
                     background: 'white',
-                    color: '#6d28d9',
+                    color: '#e11d48',
                     border: 'none',
-                    padding: '8px 14px',
+                    padding: '6px 12px',
                     borderRadius: '20px',
                     fontWeight: 'bold',
                     fontSize: '0.75rem',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Ingresar
