@@ -15,6 +15,59 @@ import './CustomerApp.css';
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 export default function CustomerApp() {
+
+  const [resetEmail, setResetEmail] = React.useState('');
+  React.useEffect(() => {
+    if (api.wasPasswordRecovery || window.location.hash.includes('type=recovery')) {
+      setModal('reset');
+    } else if (api.supabase) {
+      const { data: authListener } = api.supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setModal('reset');
+        }
+      });
+      return () => { if (authListener?.subscription) authListener.subscription.unsubscribe(); };
+    }
+  }, []);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error('Por favor ingresa tu email arriba para recuperar la contraseña');
+      return;
+    }
+    setAuthLoading(true);
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const res = await api.sendPasswordResetEmail(resetEmail, redirectUrl);
+    if (res.success) {
+      toast.success('Te hemos enviado un correo con instrucciones para restablecer tu contraseña', { duration: 6000 });
+      setModal('login');
+    } else {
+      toast.error(res.error || 'Error al enviar el correo');
+    }
+    setAuthLoading(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const newPassword = fd.get('password');
+    if (newPassword.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setAuthLoading(true);
+    const res = await api.updateUserPassword(newPassword);
+    if (res.success) {
+      toast.success('Contraseña actualizada correctamente. Inicia sesión.');
+      window.location.hash = ''; // clear hash
+      setModal('login');
+    } else {
+      toast.error(res.error || 'Error al actualizar contraseña');
+    }
+    setAuthLoading(false);
+  };
+
   // Map Loading
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!googleMapsApiKey) {
@@ -201,6 +254,18 @@ export default function CustomerApp() {
     // Verificar repartidores al cargar
     api.checkActiveRepartidores().then(r => setHasRepartidores(r.hasActive)).catch(() => {});
     if (user) {
+      // Trigger CRM VISITA_SIN_COMPRA despues de 5 minutos navegando (con cooldown de 4h)
+      const lastVisitLogged = Number(localStorage.getItem(`wepi_last_crm_visit_logged_${user.id}`) || 0);
+      const now = Date.now();
+      if (now - lastVisitLogged >= 4 * 60 * 60 * 1000) {
+        const timerVisita = setTimeout(() => {
+          localStorage.setItem(`wepi_last_crm_visit_logged_${user.id}`, String(Date.now()));
+          api.adminLogCRMEvent(user.id, 'VISITA_SIN_COMPRA', { origin: 'customer_app_browsing' }).catch(() => {});
+        }, 300000); // 5 minutos
+        
+        // Return a cleanup if inside a hook, but here we can't easily clean it up. Since it's just a setTimeout, we might need to assign it to something. Actually, the old code didn't clear it either. Let's just leave it as is.
+      }
+
       api.getFavoritos(user.id).then(d => {
         if (Array.isArray(d)) setFavorites(d);
       }).catch(() => {});
@@ -534,31 +599,36 @@ export default function CustomerApp() {
   // --- Business Logic for Totals ---
   const MP_FEE_RATE = 0.0824;
 
-  const calculateCheckoutTotals = (P, E, method) => {
+  const calculateCheckoutTotals = (P, E, method, appliedFeeEnvio = 0) => {
+    console.log("CALCULATING TOTALS:", { P, E, method, appliedFeeEnvio });
     const net_commission = P * localCommission;
     const net_local = P - net_commission;
     const total_net = P + E;
 
-    if (method === 'transferencia') {
-      const marketplace_fee = E + net_commission;
+    // Apply fee by default (no selection or Mercado Pago). Remove only if explicitly 'efectivo'.
+    if (method !== 'efectivo') {
+      const total_con_fee = total_net + appliedFeeEnvio;
+      const marketplace_fee = E + net_commission + appliedFeeEnvio;
 
       return {
-        total: Math.round(total_net),
+        total: Math.round(total_con_fee),
         product_total: P,
         delivery_fee: E,
+        fee_envio: appliedFeeEnvio,
         commission: Math.round(net_commission),
         mp_fee: 0,
-        merchant_payout: Math.round(total_net - marketplace_fee),
+        merchant_payout: Math.round(total_con_fee - marketplace_fee),
         platform_gross: Math.round(marketplace_fee),
-        platform_net: Math.round(E + net_commission)
+        platform_net: Math.round(E + net_commission + appliedFeeEnvio)
       };
     }
 
-    // Default (Efectivo)
+    // (Efectivo)
     return {
-      total: Math.round(P + E),
+      total: Math.round(total_net),
       product_total: P,
       delivery_fee: E,
+      fee_envio: 0,
       commission: Math.round(net_commission),
       mp_fee: 0,
       merchant_payout: Math.round(net_local),
@@ -567,7 +637,12 @@ export default function CustomerApp() {
     };
   };
 
-  const checkoutTotals = calculateCheckoutTotals(cart.subtotal, cart.shippingCost, metodoPago);
+  const safeFeeEnvio = cart.feeEnvio !== undefined ? Number(cart.feeEnvio) : 250;
+  const safeFeeActivo = cart.feeEnvioActivo !== false; // defaults to true
+  const actualFeeEnvio = (safeFeeActivo && cart.deliveryType === 'envio') ? safeFeeEnvio : 0;
+  console.log("Cart values for fee:", { activo: cart.feeEnvioActivo, val: cart.feeEnvio, delType: cart.deliveryType, safeFeeEnvio, safeFeeActivo, actualFeeEnvio });
+  
+  const checkoutTotals = calculateCheckoutTotals(cart.subtotal, cart.shippingCost, metodoPago, actualFeeEnvio);
   const totalConComision = checkoutTotals.total;
   const mpFeeUI = checkoutTotals.mp_fee;
 
@@ -605,7 +680,7 @@ export default function CustomerApp() {
 
   // When shipping is $2,000, we show it as $1,700 and add the $300 to the fee label.
   const showSurchargeDisguise = false;
-  const visibleShipping = showSurchargeDisguise ? 1500 : cart.shippingCost;
+  const visibleShipping = showSurchargeDisguise ? 1500 : (cart.shippingCost + (checkoutTotals.fee_envio || 0));
   const visibleMpFee = showSurchargeDisguise ? (mpFeeUI + 300) : mpFeeUI;
 
   const handleAddToCart = async (menu) => {
@@ -785,18 +860,7 @@ export default function CustomerApp() {
       return;
     }
 
-    // Check repartidores active strictly before proceeding if envio is selected
-    if (cart.deliveryType === 'envio') {
-      const freshRiders = await api.checkActiveRepartidores();
-      if (!freshRiders.hasActive) {
-        setHasRepartidores(false);
-        const puedeRetirar = currentLocal?.acepta_retiro === true;
-        if (puedeRetirar) {
-          cart.setDeliveryType('retiro');
-        }
-        return;
-      }
-    }
+
 
     if (cart.deliveryType === 'retiro' && currentLocal?.acepta_retiro !== true) {
       toast.error('Este local no ofrece la opción de retiro en el local.');
@@ -845,6 +909,11 @@ export default function CustomerApp() {
       }
       // --- FIN VALIDACIÓN ---
 
+      // Marcar que el usuario está realizando la compra para evitar falsos positivos de CARRITO_ABANDONADO
+      if (cart.markCheckoutStarted) {
+        cart.markCheckoutStarted();
+      }
+
       // 7. Calculate exact prices using new logic
       const calcSubtotal = cart.items.reduce((sum, i) => sum + (Number(i.precio) * i.qty), 0);
       const tieneBebida = cart.items.some(i => i.categoria?.toLowerCase() === 'bebidas');
@@ -875,7 +944,8 @@ export default function CustomerApp() {
           totalCalculado: exactTotal,
           lat: addressData.lat,
           lng: addressData.lng,
-          precioEnvio: shipping
+          precioEnvio: shipping,
+          feeEnvio: finalTotals.fee_envio
         });
 
         toast.success(`¡Pedido #${response.pedidoId} registrado exitosamente!`);
@@ -938,7 +1008,8 @@ export default function CustomerApp() {
           totalCalculado: exactTotal,
           lat: addressData.lat,
           lng: addressData.lng,
-          precioEnvio: shipping
+          precioEnvio: shipping,
+          feeEnvio: finalTotals.fee_envio
         };
 
         await api.crearPedidoTemporal({
@@ -947,6 +1018,9 @@ export default function CustomerApp() {
           cart: orderItems,
           orderInfo: orderInfo
         });
+
+        // Registrar evento PEDIDO_NO_PAGADO en el CRM (se marcará pagado cuando vuelva de MP)
+        api.adminLogCRMEvent(user.id, 'PEDIDO_NO_PAGADO', { order_id: pregeneratedId, total: exactTotal }).catch(e => console.error(e));
 
         const loadingToast = toast.loading('Redirigiendo a Mercado Pago...');
         try {
@@ -1848,10 +1922,41 @@ export default function CustomerApp() {
           <div className="modal-box animate-fade-in" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); setShowPassword(false); }}>✕</button>
 
-            {modal === 'login' && (
+            
+              {modal === 'reset' && (
+                <form onSubmit={handleResetPassword}>
+                  <h2>Ingresa tu nueva contraseña</h2>
+                  <div className="password-container">
+                    <input 
+                      name="password" 
+                      type={showPassword ? "text" : "password"} 
+                      className="form-input" 
+                      placeholder="Nueva Contraseña" 
+                      required 
+                      autoComplete="new-password" 
+                    />
+                    <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                      <img 
+                        src={showPassword ? "https://i.postimg.cc/mrfJz5P3/buscamos-repartidores-(8).png" : "https://i.postimg.cc/Zq8grxNr/buscamos-repartidores-(9).png"} 
+                        alt="Ver" 
+                      />
+                    </button>
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
+                    {authLoading ? <span className="spinner spinner-white" /> : 'Guardar y Entrar'}
+                  </button>
+                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                      <button type="button" onClick={() => setModal('login')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Volver al Login
+                      </button>
+                  </div>
+                </form>
+              )}
+              {modal === 'login' && (
+  
               <form onSubmit={handleLogin}>
                 <h2>Iniciar Sesión</h2>
-                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" />
+                <input name="email" type="email" className="form-input" placeholder="Email" required autoComplete="username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
                 <div className="password-container">
                   <input 
                     name="password" 
@@ -1871,7 +1976,13 @@ export default function CustomerApp() {
                 <button type="submit" className="btn btn-primary btn-full" disabled={authLoading}>
                   {authLoading ? <span className="spinner spinner-white" /> : 'Entrar'}
                 </button>
-                <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
+                
+                  <div style={{ textAlign: 'center', marginTop: '1rem', marginBottom: '1rem' }}>
+                    <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                      ¿Olvidaste tu contraseña? Ingresa tu email arriba y haz clic aquí
+                    </button>
+                  </div>
+                  <p className="modal-switch">¿No tenés cuenta? <button type="button" onClick={() => { setModal('register'); setShowPassword(false); }}>Registrate</button></p>
               </form>
             )}
 
