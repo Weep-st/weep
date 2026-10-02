@@ -434,6 +434,22 @@ export default function PruebasWalletApp() {
   const [modal, setModal] = React.useState(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [authLoading, setAuthLoading] = React.useState(false);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    if (user) return; 
+
+    const hasShown = localStorage.getItem('wepi_onboarding_shown');
+    if (!hasShown) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('wepi_onboarding_shown', 'true');
+    setShowOnboarding(false);
+  };
   const [iceCreamModal, setIceCreamModal] = React.useState(null);
   const [iceCreamFlavors, setIceCreamFlavors] = React.useState([]);
   const [iceCreamSauces, setIceCreamSauces] = React.useState([]);
@@ -3176,6 +3192,40 @@ export default function PruebasWalletApp() {
 
   return (
     <div className="customer-app">
+
+      {/* ONBOARDING MODAL */}
+      {showOnboarding && (
+        <div className="modal-overlay animate-fade-in" style={{ zIndex: 100000 }}>
+          <div className="modal-box animate-slide-up" style={{ textAlign: 'center', padding: '32px 24px', maxWidth: '360px', borderRadius: '24px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎁</div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '12px', color: '#0f172a' }}>
+              ¡Bienvenido a Wepi!
+            </h2>
+            <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: '1.5', marginBottom: '24px' }}>
+              Iniciá sesión ahora para enterarte de promociones, novedades y beneficios exclusivos.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                className="btn btn-primary"
+                style={{ borderRadius: '16px', padding: '14px', fontSize: '1rem', fontWeight: 'bold' }}
+                onClick={() => {
+                  handleCloseOnboarding();
+                  setModal('login');
+                }}
+              >
+                Iniciar Sesión / Registrarme
+              </button>
+              <button 
+                className="btn btn-outline"
+                style={{ borderRadius: '16px', padding: '12px', fontSize: '0.9rem', color: '#64748b', border: 'none', background: 'transparent' }}
+                onClick={handleCloseOnboarding}
+              >
+                Explorar como invitado
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <header className="app-header">
         <div className="header-left-brand">
           <Link to="/" className="app-logo-link">
