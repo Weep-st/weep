@@ -19,7 +19,7 @@ export async function uploadImage(file) {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'x-file-name': file.name,
+      'x-file-name': encodeURIComponent(file.name),
       'Content-Type': file.type
     },
     body: file
@@ -34,16 +34,22 @@ export async function uploadImage(file) {
 // AUTH — Usuarios
 // ═══════════════════════════════════════════════════
 export async function loginUsuario(email, password) {
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+  if (authError || !authData.user) return { success: false, error: 'El email no existe, no ha sido verificado o la contraseña es incorrecta' };
+
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')
-    .ilike('email', email)
-    .limit(1)
-    .eq('password', password)
+    .eq('auth_id', authData.user.id)
     .single();
-  if (error || !data) return { success: false };
+
+  if (error || !data) {
+    await supabase.auth.signOut();
+    return { success: false, error: 'No tienes una cuenta de cliente válida.' };
+  }
   
   if (data.bloqueado) {
+    await supabase.auth.signOut();
     return { success: false, error: 'Usuario bloqueado' };
   }
 
@@ -54,10 +60,7 @@ export async function loginUsuario(email, password) {
     direccion: data.direccion, 
     telefono: data.telefono, 
     email: data.email,
-    emailConfirmado: data.email_confirmado,
-    role: data.role || 'user',
-    ya_realizo_pedidos: data.ya_realizo_pedidos || false,
-    ciudad: data.ciudad || 'Santo Tomé'
+    emailConfirmado: !!authData.user.email_confirmed_at || data.email_confirmado
   };
 }
 
@@ -8397,6 +8400,7 @@ export async function updateUserPassword(newPassword) {
   await supabase.from('locales').update({ password: newPassword }).eq('auth_id', authData.user.id);
   // Intentar actualizar la tabla repartidores
   await supabase.from('repartidores').update({ password: newPassword }).eq('auth_id', authData.user.id);
+  await supabase.from('usuarios').update({ password: newPassword }).eq('auth_id', authData.user.id);
   
   return { success: true };
 }

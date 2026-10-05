@@ -216,6 +216,10 @@ export default function RestaurantDashboard() {
   const [menuFilter, setMenuFilter] = React.useState('');
   const [menuCatFilter, setMenuCatFilter] = React.useState('');
   const [editItem, setEditItem] = React.useState(null);
+  const [editingPriceId, setEditingPriceId] = React.useState(null);
+  const [editingVariantId, setEditingVariantId] = React.useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = React.useState(null);
+  const [imageWarning, setImageWarning] = React.useState('');
   const [itemLoading, setItemLoading] = React.useState(false);
   const [orders, setOrders] = React.useState([]);
   const [ordersLoading, setOrdersLoading] = React.useState(false);
@@ -1070,12 +1074,16 @@ export default function RestaurantDashboard() {
         setBurgerPrecioPapas('');
         setShowVariantsConfig(false);
       }
+      setImagePreviewUrl(null);
+      setImageWarning('');
     } else if (view === 'addItem' && !editItem) {
         setItemCategory('');
         setBurgerVariants([{ nombre: '', precio: '', disponible: true }]);
         setBurgerExtras([{ nombre: '', precio: '' }]);
         setBurgerOfferPapas(false);
         setBurgerPrecioPapas('');
+        setImagePreviewUrl(null);
+        setImageWarning('');
         setShowVariantsConfig(false);
     }
 
@@ -1617,7 +1625,7 @@ export default function RestaurantDashboard() {
       const subcat = fd.get('subcategoria');
 
       const isBase = cat === 'Base';
-      const isAvailable = fd.get('disponibilidad') === 'true';
+      const isAvailable = fd.has('disponibilidad') ? fd.get('disponibilidad') === 'true' : (editItem ? editItem.disponibilidad : true);
       const hasImage = (imgUrl && imgUrl.trim() !== '') || (editItem && editItem.imagen_url && editItem.imagen_url.trim() !== '');
 
       if (!isBase && isAvailable && !hasImage) {
@@ -1685,7 +1693,7 @@ export default function RestaurantDashboard() {
         nombre: fd.get('nombre'), categoria: fd.get('categoria'),
         descripcion: fd.get('descripcion'), precio: precioVal,
         descuento: fd.get('descuento') ? parseFloat(fd.get('descuento')) : 0,
-        disponibilidad: fd.get('disponibilidad') === 'true',
+        disponibilidad: fd.has('disponibilidad') ? fd.get('disponibilidad') === 'true' : (editItem ? editItem.disponibilidad : true),
         tamano_porcion: cat === 'Helados' ? subcat : fd.get('tamano_porcion'), variantes: variantesVal,
         tiempo_preparacion: fd.get('tiempo_preparacion'),
         imagen_url: imgUrl,
@@ -1879,7 +1887,7 @@ export default function RestaurantDashboard() {
         setProfileData(prev => ({ ...prev, ...params }));
         if (fd.has('descuento_general')) loadMenu();
       }
-    } catch { toast.error('Error al guardar perfil'); }
+    } catch (error) { console.error('Error guardando perfil:', error); toast.error('Error al guardar perfil: ' + (error.message || 'Desconocido')); }
   };
 
   const handleSaveSettings = async (e) => {
@@ -4323,11 +4331,40 @@ export default function RestaurantDashboard() {
 
                          return (
                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 {hasAnyDiscount && (
                                   <span style={{ textDecoration: 'line-through', color: 'var(--gray-400)', fontSize: '0.8rem' }}>${basePrice}</span>
                                 )}
-                                <span className="rd-menu-price" style={{ color: hasAnyDiscount ? 'var(--red-600)' : 'inherit', fontSize: '1.2rem', fontWeight: 800 }}>${finalPrice}</span>
+                                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: hasAnyDiscount ? 'var(--red-600)' : 'inherit' }}>$</span>
+                                {editingPriceId === item.id ? (
+                                  <input 
+                                    type="number" 
+                                    defaultValue={basePrice}
+                                    className="form-input rd-menu-price"
+                                    autoFocus
+                                    style={{ width: '80px', padding: '4px', fontSize: '1.2rem', fontWeight: 800, marginBottom: 0, textAlign: 'right', color: hasAnyDiscount ? 'var(--red-600)' : 'inherit', background: 'transparent', border: '1px solid #e2e8f0', borderRadius: '6px' }}
+                                    onBlur={async (e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      if (val !== basePrice) {
+                                        try {
+                                          await api.updateMenuItem({ itemId: item.id, precio: val });
+                                          toast.success(`Precio actualizado`);
+                                          loadMenu();
+                                        } catch { toast.error('Error al actualizar'); }
+                                      }
+                                      setEditingPriceId(null);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') e.target.blur();
+                                      if (e.key === 'Escape') setEditingPriceId(null);
+                                    }}
+                                  />
+                                ) : (
+                                  <>
+                                    <span className="rd-menu-price" style={{ fontSize: '1.2rem', fontWeight: 800, color: hasAnyDiscount ? 'var(--red-600)' : 'inherit' }}>{hasAnyDiscount ? finalPrice : basePrice}</span>
+                                    <button className="btn btn-ghost btn-sm" style={{ padding: '4px', color: 'var(--gray-500)', marginLeft: '2px' }} title="Editar precio" onClick={() => setEditingPriceId(item.id)}>✏️</button>
+                                  </>
+                                )}
                              </div>
                              {itemDiscountPercent > 0 && (
                                <span style={{ fontSize: '0.65rem', color: 'var(--red-500)', fontWeight: 700, marginBottom: 2 }}>PROMO PLATO</span>
@@ -4357,6 +4394,93 @@ export default function RestaurantDashboard() {
                       })()}
                     </div>
                   </div>
+
+                  {/* Variantes Inline Preview */}
+                  {(() => {
+                    let cfg = {};
+                    try { cfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes) : (item.variantes || {}); } catch(e){}
+                    const variants = cfg.variants || [];
+                    if (item.categoria === 'Base') return null;
+                    if (variants.length === 0) {
+                      return (
+                        <div style={{ padding: '0 12px 12px 12px', marginTop: '-4px' }}>
+                           <button 
+                             className="btn btn-ghost btn-sm" 
+                             style={{ fontSize: '0.75rem', color: 'var(--blue-600)', background: '#f0f9ff', border: '1px dashed #bae6fd' }}
+                             onClick={() => { 
+                               setEditItem(item); 
+                               setItemCategory(item.categoria);
+                               setItemSubcategory(item.tamano || '');
+                               setView('addItem'); 
+                               setShowVariantsConfig(true);
+                             }}
+                           >
+                             + Agregar variantes / extras
+                           </button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div style={{ padding: '0 12px 12px 12px', marginTop: '-4px' }}>
+                        <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-500)', marginBottom: '8px' }}>Variantes:</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+                          {variants.map((v, vIdx) => (
+                            <div key={vIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                               <span style={{ fontSize: '0.8rem', fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.nombre}</span>
+                               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-500)' }}>$</span>
+                               {editingVariantId === item.id + '-' + vIdx ? (
+                                 <input 
+                                   type="number"
+                                   defaultValue={v.precio}
+                                   className="form-input"
+                                   autoFocus
+                                   style={{ width: '60px', padding: '2px 4px', fontSize: '0.8rem', marginBottom: 0, textAlign: 'right', background: 'white', border: '1px solid #cbd5e1' }}
+                                   onBlur={async (e) => {
+                                     const newP = parseFloat(e.target.value) || 0;
+                                     if (newP !== Number(v.precio)) {
+                                       const newVariants = [...variants];
+                                       newVariants[vIdx].precio = newP;
+                                       const newCfg = { ...cfg, variants: newVariants };
+                                       try {
+                                         await api.updateMenuItem({ itemId: item.id, variantes: JSON.stringify(newCfg) });
+                                         toast.success(`Precio actualizado`);
+                                         loadMenu();
+                                       } catch { toast.error('Error al actualizar'); }
+                                     }
+                                     setEditingVariantId(null);
+                                   }}
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter') e.target.blur();
+                                     if (e.key === 'Escape') setEditingVariantId(null);
+                                   }}
+                                 />
+                               ) : (
+                                 <>
+                                   <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '30px', textAlign: 'right' }}>{v.precio}</span>
+                                   <button className="btn btn-ghost btn-sm" style={{ padding: '2px', color: 'var(--gray-500)', fontSize: '0.75rem', marginLeft: '2px' }} title="Editar precio" onClick={() => setEditingVariantId(item.id + '-' + vIdx)}>✏️</button>
+                                 </>
+                               )}
+                               <label className="toggle" style={{ transform: 'scale(0.7)', margin: 0, marginLeft: '4px' }}>
+                                 <input type="checkbox" checked={v.disponible !== false} onChange={async (e) => {
+                                   const newVariants = [...variants];
+                                   newVariants[vIdx].disponible = e.target.checked;
+                                   const newCfg = { ...cfg, variants: newVariants };
+                                   try {
+                                     await api.updateMenuItem({ itemId: item.id, variantes: JSON.stringify(newCfg) });
+                                     toast.success(e.target.checked ? 'Variante disponible' : 'Variante agotada');
+                                     loadMenu();
+                                   } catch { toast.error('Error al actualizar'); }
+                                 }} />
+                                 <span className="toggle-track" />
+                                 <span className="toggle-thumb" />
+                               </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="rd-menu-bottom">
                     <label className="toggle" onClick={() => {
                       if (item.categoria === 'Base') {
@@ -4466,13 +4590,31 @@ export default function RestaurantDashboard() {
                           ? rubroConfigs.filter(rc => rubros.includes(rc.name))
                           : [rubroConfigs[0]]; // Default Restaurante if empty
 
-                        return activeConfigs.map(config => (
-                          <optgroup key={config.name} label={config.name}>
-                            {config.cats.map(cat => (
-                              <option key={`${config.name}-${cat}`} value={cat}>{cat}</option>
+                        const existingCats = Array.from(new Set(menuItems.filter(m => m.categoria && m.categoria !== 'Base').map(m => m.categoria)));
+                        const defaultCatsSet = new Set(activeConfigs.flatMap(c => c.cats));
+                        const extraCats = existingCats.filter(c => !defaultCatsSet.has(c));
+                        if (editItem?.categoria && editItem.categoria !== 'Base' && !defaultCatsSet.has(editItem.categoria) && !extraCats.includes(editItem.categoria)) {
+                          extraCats.push(editItem.categoria);
+                        }
+
+                        return (
+                          <>
+                            {activeConfigs.map(config => (
+                              <optgroup key={config.name} label={config.name}>
+                                {config.cats.map(cat => (
+                                  <option key={`${config.name}-${cat}`} value={cat}>{cat}</option>
+                                ))}
+                              </optgroup>
                             ))}
-                          </optgroup>
-                        ));
+                            {extraCats.length > 0 && (
+                              <optgroup label="Otras (Agregadas)">
+                                {extraCats.map(cat => (
+                                  <option key={`extra-${cat}`} value={cat}>{cat}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                          </>
+                        );
                       })()
                     )}
                   </select>
@@ -4480,33 +4622,14 @@ export default function RestaurantDashboard() {
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
                 
-                <div className="rd-form-row rd-form-row-3" style={ (isBaseProductMode || editItem?.categoria === 'Base') ? { opacity: 0.5, pointerEvents: 'none' } : {} }>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Precio Regular ($)</label>
-                    <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.precio || '')} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Descuento (%)</label>
-                    <input name="descuento" type="number" className="form-input" placeholder="Ej: 15" step="0.1" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.descuento || 0)} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Disponibilidad</label>
-                    <select name="disponibilidad" className="form-select" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 'true' : (editItem ? (editItem.disponibilidad ? 'true' : 'false') : 'true')}>
-                      <option value="true">Disponible/Visible</option>
-                      <option value="false">Oculto/No disponible</option>
-                    </select>
-                  </div>
+                <div className="rd-form-row" style={ Object.assign({ marginBottom: '16px' }, (isBaseProductMode || editItem?.categoria === 'Base') ? { opacity: 0.5, pointerEvents: 'none' } : {}) }>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Precio de Lista</label>
+                  <input name="precio" type="number" className="form-input" placeholder="Precio" step="0.01" defaultValue={(isBaseProductMode || editItem?.categoria === 'Base') ? 0 : (editItem?.precio || '')} />
                 </div>
 
-                <div className="rd-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>SKU (Código de Sincronización)</label>
-                    <input name="sku" type="text" className="form-input" placeholder="Ej: SKU-12345" defaultValue={editItem?.sku || ''} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Código de Barras</label>
-                    <input name="codigo_barras" type="text" className="form-input" placeholder="Ej: 7791234567890" defaultValue={editItem?.codigo_barras || ''} />
-                  </div>
+                <div className="rd-form-row" style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>SKU (Código de Sincronización)</label>
+                  <input name="sku" type="text" className="form-input" placeholder="Ej: SKU-12345" defaultValue={editItem?.sku || ''} />
                 </div>
                 
                 {/* ─── Helados Subcategory Selector ─── */}
@@ -4567,14 +4690,15 @@ export default function RestaurantDashboard() {
                 {/* ─── Advanced Configuration (Variants/Extras) ─── */}
                 {(itemCategory !== 'Base' && (itemCategory !== '' || editItem) && (itemCategory !== 'Helados' || (itemCategory === 'Helados' && itemSubcategory !== 'Helado por kg'))) && (
                   <div className="card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <div 
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                      onClick={() => setShowVariantsConfig(!showVariantsConfig)}
-                    >
-                      <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => setShowVariantsConfig(!showVariantsConfig)}>
+                      <label className="toggle" style={{ margin: 0 }} onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={showVariantsConfig} onChange={(e) => setShowVariantsConfig(e.target.checked)} />
+                        <span className="toggle-track" />
+                        <span className="toggle-thumb" />
+                      </label>
+                      <h3 style={{ fontSize: '1rem', color: 'var(--red-600)', margin: 0 }}>
                         ✨ Configuración de Variantes y Extras
                       </h3>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>{showVariantsConfig ? '▲ Ocultar' : '▼ Configurar'}</span>
                     </div>
                     
                     <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '8px', marginBottom: showVariantsConfig ? '16px' : 0 }}>
@@ -4622,24 +4746,44 @@ export default function RestaurantDashboard() {
                           <button type="button" className="btn btn-secondary btn-xs" onClick={() => setBurgerExtras([...burgerExtras, { nombre: '', precio: '' }])}>+ Agregar Extra</button>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #edf2f7', paddingTop: '15px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
-                            <input type="checkbox" name="ofrecer_papas" checked={burgerOfferPapas} onChange={(e) => setBurgerOfferPapas(e.target.checked)} />
-                            Ofrecer con papas
-                          </label>
-                          {burgerOfferPapas && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '0.8rem' }}>Precio extra papas: $</span>
-                              <input name="precio_papas" type="number" className="form-input" style={{ width: '80px', marginBottom: 0 }} value={burgerPrecioPapas} onChange={(e) => setBurgerPrecioPapas(e.target.value)} />
-                            </div>
-                          )}
-                        </div>
+                        {/* Removed ofrecer papas */}
                       </div>
                     )}
                   </div>
                 )}
 
-                <input name="foto" type="file" className="form-input" accept="image/*" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Foto del Producto</label>
+                  {(imagePreviewUrl || editItem?.imagen_url) && (
+                    <img 
+                      src={imagePreviewUrl || editItem.imagen_url} 
+                      alt="Preview" 
+                      style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+                    />
+                  )}
+                  {imageWarning && <span style={{ fontSize: '0.75rem', color: 'var(--amber-600)', fontWeight: 600 }}>{imageWarning}</span>}
+                  <input 
+                    name="foto" 
+                    type="file" 
+                    className="form-input" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) {
+                        setImagePreviewUrl(null);
+                        setImageWarning('');
+                        return;
+                      }
+                      if (file.size > 2 * 1024 * 1024) {
+                        setImageWarning('⚠️ La imagen pesa más de 2MB. Recomendamos comprimirla para que tu menú cargue más rápido.');
+                      } else {
+                        setImageWarning('');
+                      }
+                      const url = URL.createObjectURL(file);
+                      setImagePreviewUrl(url);
+                    }}
+                  />
+                </div>
                 {/* Ocultar control de stock del formulario de añadir/editar, manejar vía Stock Rápido */}
                 <input type="hidden" name="maneja_stock" value={editItem?.maneja_stock ? 'on' : 'off'} />
 
