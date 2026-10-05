@@ -171,9 +171,13 @@ export async function syncCatalog({
   // Mapear menú actual por SKU (O(1))
   const menuActualPorSku = {};
   const menuActualPorNombre = {};
+  const menuActualPorId = {};
   menuActual.forEach(item => {
     if (item.sku) {
       menuActualPorSku[item.sku.toString().trim().toLowerCase()] = item;
+    }
+    if (item.id) {
+      menuActualPorId[item.id.toString().trim().toLowerCase()] = item;
     }
     if (item.nombre) {
       menuActualPorNombre[item.nombre.toString().trim().toLowerCase()] = item;
@@ -208,10 +212,9 @@ export async function syncCatalog({
 
       // Obtener opcionales
       const rawPrecio = cleanMapeoColumnas.precio ? row[cleanMapeoColumnas.precio] : null;
-      const rawStock = cleanMapeoColumnas.stock ? row[cleanMapeoColumnas.stock] : null;
       const rawCategoria = cleanMapeoColumnas.categoria ? row[cleanMapeoColumnas.categoria] : null;
-      const rawCodigoBarras = cleanMapeoColumnas.codigo_barras ? row[cleanMapeoColumnas.codigo_barras] : null;
       const rawDescripcion = cleanMapeoColumnas.descripcion ? row[cleanMapeoColumnas.descripcion] : null;
+      const rawOpciones = cleanMapeoColumnas.opciones ? row[cleanMapeoColumnas.opciones] : null;
 
       // Sanitizar precio
       let precio = 0;
@@ -220,23 +223,38 @@ export async function syncCatalog({
         precio = parseFloat(cleaned) || 0;
       }
 
-      // Sanitizar stock
-      let stock = 0;
-      let manejaStock = false;
-      if (rawStock !== null && rawStock !== undefined && rawStock !== "") {
-        const cleaned = rawStock.toString().replace(/[^0-9-]/g, '');
-        const parsedStock = parseInt(cleaned, 10);
-        if (!isNaN(parsedStock)) {
-          stock = parsedStock;
-          manejaStock = true;
+      const categoria = rawCategoria ? rawCategoria.toString().trim() : 'General';
+      const descripcion = rawDescripcion ? rawDescripcion.toString().trim() : 'Sincronizado desde ERP';
+
+      // Parse Opciones/Variantes
+      let variantesConfig = null;
+      let minVariantPrice = 0;
+      if (rawOpciones !== null && rawOpciones !== undefined && rawOpciones.toString().trim() !== "") {
+        const str = rawOpciones.toString();
+        const parts = str.split(';');
+        const variantsList = [];
+        parts.forEach(part => {
+           const match = part.split(':');
+           if (match.length >= 2) {
+             const vNombre = match[0].trim();
+             const vPrecioStr = match[1].replace(/[^0-9.,-]/g, '').replace(',', '.');
+             const vPrecio = parseFloat(vPrecioStr) || 0;
+             variantsList.push({ nombre: vNombre, precio: vPrecio, disponible: true });
+           } else if (match.length === 1 && match[0].trim() !== '') {
+             variantsList.push({ nombre: match[0].trim(), precio: 0, disponible: true });
+           }
+        });
+        if (variantsList.length > 0) {
+           variantesConfig = JSON.stringify({ variants: variantsList });
+           minVariantPrice = Math.min(...variantsList.map(v => v.precio));
         }
       }
 
-      const categoria = rawCategoria ? rawCategoria.toString().trim() : 'General';
-      const codigoBarras = rawCodigoBarras ? rawCodigoBarras.toString().trim() : null;
-      const descripcion = rawDescripcion ? rawDescripcion.toString().trim() : 'Sincronizado desde ERP';
+      if (precio < minVariantPrice || precio === 0) {
+        precio = minVariantPrice;
+      }
 
-      const itemExistente = menuActualPorSku[skuLower] || menuActualPorNombre[nombreLower];
+      const itemExistente = menuActualPorSku[skuLower] || menuActualPorId[skuLower] || menuActualPorNombre[nombreLower];
 
       if (itemExistente) {
         // ACTUALIZAR PRODUCTO EXISTENTE
@@ -255,17 +273,11 @@ export async function syncCatalog({
           updates.categoria = categoria;
           hayCambios = true;
         }
-        if (camposActualizables.includes('stock')) {
-          if (itemExistente.maneja_stock !== manejaStock || itemExistente.stock_actual !== stock) {
-            updates.maneja_stock = manejaStock;
-            updates.stock_actual = stock;
-            updates.ultima_confirmacion_stock = new Date().toISOString();
+        if (camposActualizables.includes('opciones') && variantesConfig !== null) {
+          if (itemExistente.variantes !== variantesConfig) {
+            updates.variantes = variantesConfig;
             hayCambios = true;
           }
-        }
-        if (codigoBarras && itemExistente.codigo_barras !== codigoBarras) {
-          updates.codigo_barras = codigoBarras;
-          hayCambios = true;
         }
         if (camposActualizables.includes('descripcion') && itemExistente.descripcion !== descripcion) {
           updates.descripcion = descripcion;
@@ -286,13 +298,13 @@ export async function syncCatalog({
           nombre,
           precio,
           categoria,
-          maneja_stock: manejaStock,
-          stock_actual: stock,
-          codigo_barras: codigoBarras,
+          maneja_stock: false,
+          stock_actual: 0,
+          codigo_barras: null,
           disponibilidad: true,
           descripcion: descripcion,
           tamano: '',
-          variantes: [],
+          variantes: variantesConfig || null,
           tiempo_preparacion: '30',
           imagen_url: ''
         });

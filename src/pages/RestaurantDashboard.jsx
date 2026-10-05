@@ -498,8 +498,8 @@ export default function RestaurantDashboard() {
   const [syncFile, setSyncFile] = React.useState(null);
   const [syncFileType, setSyncFileType] = React.useState('csv'); // 'csv', 'xlsx'
   const [syncHeaders, setSyncHeaders] = React.useState([]);
-  const [syncMapeo, setSyncMapeo] = React.useState({ sku: '', nombre: '', descripcion: '', precio: '', stock: '', categoria: '', codigo_barras: '' });
-  const [syncCamposActualizables, setSyncCamposActualizables] = React.useState(['precio', 'stock', 'nombre', 'descripcion', 'categoria']);
+  const [syncMapeo, setSyncMapeo] = React.useState({ sku: '', nombre: '', descripcion: '', precio: '', categoria: '', opciones: '' });
+  const [syncCamposActualizables, setSyncCamposActualizables] = React.useState(['precio', 'opciones', 'nombre', 'descripcion', 'categoria']);
   const [syncDesactivarFaltantes, setSyncDesactivarFaltantes] = React.useState(false);
   const [syncGoogleSheetsUrl, setSyncGoogleSheetsUrl] = React.useState('');
   const [syncEngineLoading, setSyncEngineLoading] = React.useState(false);
@@ -1618,7 +1618,7 @@ export default function RestaurantDashboard() {
     try {
       let imgUrl = '';
       if (file && file.size > 0) imgUrl = await api.uploadImage(file);
-      let precioVal = fd.get('precio');
+      let precioVal = parseFloat(fd.get('precio')) || 0;
       let variantesVal = fd.get('variantes');
       
       const cat = fd.get('categoria');
@@ -1657,8 +1657,11 @@ export default function RestaurantDashboard() {
               extras: filteredExtras
             };
             variantesVal = JSON.stringify(advancedConfig);
-            if (!precioVal && filteredVariants.length > 0) {
-              precioVal = filteredVariants[0].precio;
+            if (filteredVariants.length > 0) {
+              const minPrice = Math.min(...filteredVariants.map(v => parseFloat(v.precio) || 0));
+              if (precioVal < minPrice || precioVal === 0) {
+                precioVal = minPrice;
+              }
             }
           } else {
             variantesVal = null;
@@ -1679,9 +1682,11 @@ export default function RestaurantDashboard() {
             precio_papas: parseFloat(burgerPrecioPapas) || 0
           };
           variantesVal = JSON.stringify(advancedConfig);
-          // Fallback: Use first variant price if regular price is empty
-          if (!precioVal && filteredVariants.length > 0) {
-            precioVal = filteredVariants[0].precio;
+          if (filteredVariants.length > 0) {
+            const minPrice = Math.min(...filteredVariants.map(v => parseFloat(v.precio) || 0));
+            if (precioVal < minPrice || precioVal === 0) {
+              precioVal = minPrice;
+            }
           }
         } else {
           variantesVal = null; // Clear if no variants/extras/papas
@@ -2941,7 +2946,67 @@ export default function RestaurantDashboard() {
             🔄 Wepi Sync
           </h2>
           <p style={{ color: 'var(--gray-600)', fontSize: '0.9rem', marginBottom: '20px' }}>
-            Sincroniza el catálogo de productos de tu sistema de gestión (ERP, Excel o CSV) con Wepi. Wepi actualizará automáticamente precios, stock e incorporará los nuevos productos mapeados por su SKU.
+            Sincroniza el catálogo de productos de tu sistema de gestión (ERP, Excel o CSV) con Wepi. Wepi actualizará automáticamente los precios e incorporará los nuevos productos mapeados por su SKU.
+            <br /><br />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button className="btn btn-outline btn-sm" onClick={() => {
+                const headers = ['SKU', 'NOMBRE', 'DESCRIPCION', 'PRECIO', 'CATEGORIA', 'OPCIONES'];
+                const row1 = ['SKU-001', '"Hamburguesa Completa"', '"Doble carne con cheddar y bacon"', '15000', '"Hamburguesas"', '"Clásica:15000; Doble Cheddar:16500; Con Bacon:17000"'];
+                const blob = new Blob(['\ufeff' + headers.join(',') + '\n' + row1.join(',')], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                if (link.download !== undefined) {
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute("href", url);
+                  link.setAttribute("download", "plantilla_wepi_carga.csv");
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }
+              }}>📄 Ver ejemplo (Descargar Plantilla CSV)</button>
+
+              {menuItems.filter(item => item.categoria !== 'Base').length > 0 && (
+                <button className="btn btn-outline btn-sm" onClick={() => {
+                  const headers = ['SKU', 'NOMBRE', 'DESCRIPCION', 'PRECIO', 'CATEGORIA', 'OPCIONES'];
+                  const rows = [headers.join(',')];
+                  
+                  menuItems.filter(item => item.categoria !== 'Base').forEach(item => {
+                    const sku = `"${((item.sku || item.id || '')).toString().replace(/"/g, '""')}"`;
+                    const nombre = `"${((item.nombre || '')).toString().replace(/"/g, '""')}"`;
+                    const desc = `"${((item.descripcion || '')).toString().replace(/"/g, '""')}"`;
+                    const precio = item.precio || 0;
+                    const cat = `"${((item.categoria || '')).toString().replace(/"/g, '""')}"`;
+                    
+                    let opcionesStr = '';
+                    if (item.variantes) {
+                      try {
+                        const cfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes) : item.variantes;
+                        if (cfg.variants && cfg.variants.length > 0) {
+                          opcionesStr = cfg.variants.map(v => `${v.nombre}:${v.precio}`).join('; ');
+                        }
+                      } catch(e) {}
+                    }
+                    opcionesStr = `"${opcionesStr.replace(/"/g, '""')}"`;
+                    
+                    rows.push([sku, nombre, desc, precio, cat, opcionesStr].join(','));
+                  });
+                  
+                  const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement("a");
+                  if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "catalogo_wepi.csv");
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }}>
+                  📤 Exportar catálogo actual
+                </button>
+              )}
+            </div>
           </p>
 
           {syncStep === 'upload' && (
@@ -2998,9 +3063,8 @@ export default function RestaurantDashboard() {
                           if (lower === 'nombre' || lower === 'producto' || lower === 'item' || lower === 'titulo' || lower === 'plato') nuevoMapeo.nombre = header;
                           if (lower === 'descripción' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
                           if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
-                          if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
                           if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
-                          if (lower === 'codigo_barras' || lower === 'codigo de barras' || lower === 'barras' || lower === 'upc' || lower === 'ean') nuevoMapeo.codigo_barras = header;
+                          if (lower === 'opciones' || lower === 'variantes' || lower === 'opciones/variantes' || lower === 'extras') nuevoMapeo.opciones = header;
                         });
                         setSyncMapeo(nuevoMapeo);
                         setSyncStep('mapping');
@@ -3035,9 +3099,8 @@ export default function RestaurantDashboard() {
                       if (lower === 'nombre' || lower === 'producto' || lower === 'item' || lower === 'titulo' || lower === 'plato') nuevoMapeo.nombre = header;
                       if (lower === 'descripción' || lower === 'descripcion' || lower === 'detalle') nuevoMapeo.descripcion = header;
                       if (lower === 'precio' || lower === 'valor' || lower === 'precio_venta' || lower === 'monto') nuevoMapeo.precio = header;
-                      if (lower === 'stock' || lower === 'cantidad' || lower === 'unidades' || lower === 'inventario') nuevoMapeo.stock = header;
                       if (lower === 'categoría' || lower === 'categoria' || lower === 'rubro' || lower === 'grupo') nuevoMapeo.categoria = header;
-                      if (lower === 'codigo_barras' || lower === 'codigo de barras' || lower === 'barras' || lower === 'upc' || lower === 'ean') nuevoMapeo.codigo_barras = header;
+                      if (lower === 'opciones' || lower === 'variantes' || lower === 'opciones/variantes' || lower === 'extras') nuevoMapeo.opciones = header;
                     });
                     setSyncMapeo(nuevoMapeo);
                     setSyncStep('mapping');
@@ -3106,7 +3169,7 @@ export default function RestaurantDashboard() {
                     Sobrescribir los siguientes campos de productos existentes:
                   </h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {['precio', 'stock', 'nombre', 'descripcion', 'categoria'].map(campo => {
+                    {['precio', 'opciones', 'nombre', 'descripcion', 'categoria'].map(campo => {
                       const mapped = campo === 'nombre' || campo === 'descripcion' || syncMapeo[campo];
                       return (
                         <label key={campo} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: mapped ? 'pointer' : 'not-allowed', opacity: mapped ? 1 : 0.5 }}>
@@ -4050,6 +4113,46 @@ export default function RestaurantDashboard() {
                    <button className="btn btn-outline" onClick={() => setView('sync')}>
                      📥 Carga masiva
                    </button>
+
+                   <button className="btn btn-outline" onClick={() => {
+                     const headers = ['SKU', 'NOMBRE', 'DESCRIPCION', 'PRECIO', 'CATEGORIA', 'OPCIONES'];
+                     const rows = [headers.join(',')];
+                     
+                     menuItems.filter(item => item.categoria !== 'Base').forEach(item => {
+                       const sku = `"${((item.sku || item.id || '')).toString().replace(/"/g, '""')}"`;
+                       const nombre = `"${((item.nombre || '')).toString().replace(/"/g, '""')}"`;
+                       const desc = `"${((item.descripcion || '')).toString().replace(/"/g, '""')}"`;
+                       const precio = item.precio || 0;
+                       const cat = `"${(item.categoria || '').replace(/"/g, '""')}"`;
+                       
+                       let opcionesStr = '';
+                       if (item.variantes) {
+                         try {
+                           const cfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes) : item.variantes;
+                           if (cfg.variants && cfg.variants.length > 0) {
+                             opcionesStr = cfg.variants.map(v => `${v.nombre}:${v.precio}`).join('; ');
+                           }
+                         } catch(e) {}
+                       }
+                       opcionesStr = `"${opcionesStr.replace(/"/g, '""')}"`;
+                       
+                       rows.push([sku, nombre, desc, precio, cat, opcionesStr].join(','));
+                     });
+                     
+                     const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                     const link = document.createElement("a");
+                     if (link.download !== undefined) {
+                       const url = URL.createObjectURL(blob);
+                       link.setAttribute("href", url);
+                       link.setAttribute("download", "catalogo.csv");
+                       link.style.visibility = 'hidden';
+                       document.body.appendChild(link);
+                       link.click();
+                       document.body.removeChild(link);
+                     }
+                   }}>
+                     📤 Exportar catálogo
+                   </button>
                 </div>
 
                 <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 600 }}>
@@ -4441,8 +4544,16 @@ export default function RestaurantDashboard() {
                                        const newVariants = [...variants];
                                        newVariants[vIdx].precio = newP;
                                        const newCfg = { ...cfg, variants: newVariants };
+                                       
+                                       const minVariantPrice = Math.min(...newVariants.map(variant => parseFloat(variant.precio) || 0));
+                                       const updatePayload = { itemId: item.id, variantes: JSON.stringify(newCfg) };
+                                       
+                                       if (item.precio < minVariantPrice || item.precio === 0) {
+                                         updatePayload.precio = minVariantPrice;
+                                       }
+                                       
                                        try {
-                                         await api.updateMenuItem({ itemId: item.id, variantes: JSON.stringify(newCfg) });
+                                         await api.updateMenuItem(updatePayload);
                                          toast.success(`Precio actualizado`);
                                          loadMenu();
                                        } catch { toast.error('Error al actualizar'); }
