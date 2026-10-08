@@ -174,14 +174,15 @@ export default function Landing() {
             />
           </Link>
           <nav className="navbar-menu">
-            <a href="#vision-mision" className="nav-link">Nosotros</a>
-            <a href="#pilares" className="nav-link">Pilares</a>
+            <a href="#inicio" className="nav-link">Inicio</a>
             <a href="#marcas" className="nav-link">Marcas</a>
-            <a href="#expansion" className="nav-link">Ciudades</a>
+            <a href="#pilares" className="nav-link">Ecosistema</a>
+            <a href="#historia" className="nav-link">Nosotros</a>
+            <a href="#expansion" className="nav-link">Localidades</a>
           </nav>
           <div className="navbar-actions">
-            <Link to="/locales" className="btn-nav-secondary">Comercios</Link>
-            <Link to="/repartidores" className="btn-nav-secondary">Repartidores</Link>
+            <a href="https://forms.gle/pdNH8taCGozjBsqT6" target="_blank" rel="noopener noreferrer" className="btn-nav-secondary">Comercios</a>
+            <a href="https://forms.gle/Se3KqKDMNQwHBBMp8" target="_blank" rel="noopener noreferrer" className="btn-nav-secondary">Repartidores</a>
             <Link to="/pedir" className="btn-nav-primary">Pedir ahora</Link>
             
             {/* Hamburger Button for Mobile */}
@@ -213,14 +214,15 @@ export default function Landing() {
             </button>
           </div>
           <nav className="drawer-nav">
-            <a href="#vision-mision" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Nosotros</a>
-            <a href="#pilares" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Pilares</a>
+            <a href="#inicio" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Inicio</a>
             <a href="#marcas" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Marcas</a>
-            <a href="#expansion" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Ciudades</a>
+            <a href="#pilares" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Ecosistema</a>
+            <a href="#historia" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Nosotros</a>
+            <a href="#expansion" className="drawer-link" onClick={() => setMobileMenuOpen(false)}>Localidades</a>
             
             <div className="drawer-actions">
-              <Link to="/locales" className="btn-drawer-secondary" onClick={() => setMobileMenuOpen(false)}>Comercios</Link>
-              <Link to="/repartidores" className="btn-drawer-secondary" onClick={() => setMobileMenuOpen(false)}>Repartidores</Link>
+              <a href="https://forms.gle/pdNH8taCGozjBsqT6" target="_blank" rel="noopener noreferrer" className="btn-drawer-secondary" onClick={() => setMobileMenuOpen(false)}>Comercios</a>
+              <a href="https://forms.gle/Se3KqKDMNQwHBBMp8" target="_blank" rel="noopener noreferrer" className="btn-drawer-secondary" onClick={() => setMobileMenuOpen(false)}>Repartidores</a>
               <Link to="/pedir" className="btn-drawer-primary" onClick={() => setMobileMenuOpen(false)}>Pedir ahora</Link>
             </div>
           </nav>
@@ -228,12 +230,12 @@ export default function Landing() {
       </div>
 
       {/* 2. HERO Section */}
-      <section className="hero-section">
+      <section id="inicio" className="hero-section">
         <div className="grid-overlay"></div>
         <div className="hero-container-split">
           <div className="hero-content">
             <h1 className="hero-title animate-fade-in animate-delay-1">La forma más fácil de <span>pedir.</span></h1>
-            <p className="hero-subtitle animate-fade-in animate-delay-2">Innovamos e impulsamos el comercio digital en ciudades pequeñas y medianas de Argentina para que pedir, vender y entregar sea más fácil.</p>
+            <p className="hero-subtitle animate-fade-in animate-delay-2">Conectamos personas, comercios y repartidores de localidades del interior argentino en un solo lugar.</p>
             <div className="hero-buttons animate-fade-in animate-delay-2">
               <Link to="/pedir" className="btn-hero-primary">
                 Pedir ahora
@@ -265,7 +267,7 @@ export default function Landing() {
               </div>
               <div className="metric-divider"></div>
               <div className="metric-item-dynamic">
-                <span className="metric-label">Ciudades activas</span>
+                <span className="metric-label">Localidades activas</span>
                 <span className="metric-number">2</span>
                 <div className="metric-progress-track">
                   <div className="metric-progress-bar" style={{ width: animateProgress ? '100%' : '0%', backgroundColor: '#2e7d32' }}></div>
@@ -273,111 +275,11 @@ export default function Landing() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 3. NUESTRA VISIÓN & NUESTRA MISIÓN */}
-      <section id="vision-mision" className="vision-mision-section">
-        <div className="vision-mision-container">
-          <div className="text-center">
-            <h3 className="section-label">Propósito</h3>
-            <h2 className="section-title">Nuestra Visión y Misión</h2>
+        
+          <div className="hero-image-container animate-fade-in animate-delay-2" style={{ flex: "1 1 350px", display: "flex", justifyContent: "flex-end", alignItems: "center", padding: "1rem 0" }}>
+            <img src="https://i.postimg.cc/7ZkwMBRP/Chat-GPT-Image-Sep-2-2026-02-40-41-PM.png" alt="Wepi App Preview" style={{ maxWidth: '100%', height: 'auto', borderRadius: '1rem', boxShadow: 'var(--shadow-lg)', objectFit: 'contain' }} />
           </div>
-          <div className="vision-mision-grid">
-            <div className="purpose-card vision-card animate-hover-glow">
-              <div className="purpose-header">
-                <div className="purpose-icon-wrapper">
-                  <VisionIcon />
-                </div>
-                <h4>NUESTRA VISIÓN</h4>
-              </div>
-              <h3 className="purpose-headline">Queremos cambiar la forma en que las ciudades piden.</h3>
-              <p className="purpose-body">
-                Convertirnos en el principal canal de pedidos de las ciudades del interior, ofreciendo la forma más simple de comprar para los usuarios y el canal de ventas más eficiente para los comercios.
-              </p>
-            </div>
-            
-            <div className="purpose-card mision-card animate-hover-glow">
-              <div className="purpose-header">
-                <div className="purpose-icon-wrapper">
-                  <MisionIcon />
-                </div>
-                <h4>NUESTRA MISIÓN</h4>
-              </div>
-              <p className="purpose-body-large">
-                Digitalizar y simplificar la operación comercial de las ciudades, conectando usuarios, comercios y logística en un único ecosistema.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. UN ECOSISTEMA. TRES PILARES */}
-      <section id="pilares" className="pilares-section">
-        <div className="pilares-container">
-          <div className="text-center">
-            <h3 className="section-label">Estructura</h3>
-            <h2 className="section-title">Un Ecosistema. Tres Pilares</h2>
-          </div>
-          
-          <div className="pilares-grid">
-            {/* Pilar 1: Usuarios */}
-            <div className="pilar-card pilar-usuarios">
-              <div className="pilar-card-glow"></div>
-              <div className="pilar-badge-icon">
-                <UserIcon />
-              </div>
-              <h3 className="pilar-name">Usuarios</h3>
-              <h4 className="pilar-tagline">La forma más fácil de pedir.</h4>
-              <p className="pilar-desc">Todo en un solo lugar.</p>
-              <p className="pilar-detail">Elegís, pedís y recibís en pocos clics</p>
-              <div className="pilar-spacer"></div>
-              <Link to="/pedir" className="btn-pilar">
-                Pedir ahora
-              </Link>
-            </div>
-
-            {/* Pilar 2: Comercios */}
-            <div className="pilar-card pilar-comercios">
-              <div className="pilar-card-glow"></div>
-              <div className="pilar-badge-icon">
-                <StoreIcon />
-              </div>
-              <h3 className="pilar-name">Comercios</h3>
-              <h4 className="pilar-tagline">Sumá un nuevo canal de pedidos.</h4>
-              <p className="pilar-desc">
-                Simplificá tu operación. Mientras vos preparás el pedido, nosotros nos encargamos del resto.
-              </p>
-              <p className="pilar-detail">
-                Wepi procesa pedidos, gestiona cobros y coordina entregas.
-              </p>
-              <div className="pilar-spacer"></div>
-              <Link to="/locales" className="btn-pilar">
-                Sumar comercio
-              </Link>
-            </div>
-
-            {/* Pilar 3: Logística */}
-            <div className="pilar-card pilar-logistica">
-              <div className="pilar-card-glow"></div>
-              <div className="pilar-badge-icon">
-                <LogisticaIcon />
-              </div>
-              <h3 className="pilar-name">Logística</h3>
-              <h4 className="pilar-tagline">Operación y Entregas.</h4>
-              <p className="pilar-desc">
-                Generamos demanda de pedidos con nuestro sistema integrado, para que empresas logísticas y repartidores asociados realicen entregas más eficientes.
-              </p>
-              <p className="pilar-detail">
-                Más pedidos, más entregas, más oportunidades.
-              </p>
-              <div className="pilar-spacer"></div>
-              <Link to="/repartidores" className="btn-pilar">
-                Ser repartidor
-              </Link>
-            </div>
-          </div>
-        </div>
+</div>
       </section>
 
       {/* 5. MARCAS QUE YA CONFÍAN */}
@@ -423,6 +325,13 @@ export default function Landing() {
                 <span>Axion Energy</span>
                 <span className="brand-city">Oberá</span>
               </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/9M1WrWM3/wepi-(30).png" alt="Café Martinez" className="brand-logo-img" />
+                </div>
+                <span>Café Martinez</span>
+                <span className="brand-city">Oberá</span>
+              </div>
               
               {/* Segundo set duplicado para scroll infinito y suave */}
               <div className="brand-logo-card">
@@ -458,6 +367,13 @@ export default function Landing() {
                   <img src="https://i.postimg.cc/MKtDBcDW/Logo-AXION-energy.jpg" alt="Axion Energy" className="brand-logo-img" />
                 </div>
                 <span>Axion Energy</span>
+                <span className="brand-city">Oberá</span>
+              </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/9M1WrWM3/wepi-(30).png" alt="Café Martinez" className="brand-logo-img" />
+                </div>
+                <span>Café Martinez</span>
                 <span className="brand-city">Oberá</span>
               </div>
               
@@ -497,47 +413,175 @@ export default function Landing() {
                 <span>Axion Energy</span>
                 <span className="brand-city">Oberá</span>
               </div>
+              <div className="brand-logo-card">
+                <div className="brand-img-container">
+                  <img src="https://i.postimg.cc/9M1WrWM3/wepi-(30).png" alt="Café Martinez" className="brand-logo-img" />
+                </div>
+                <span>Café Martinez</span>
+                <span className="brand-city">Oberá</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. CRECEMOS CIUDAD POR CIUDAD */}
+      
+{/* 4. UN ECOSISTEMA. TRES PILARES */}
+      <section id="pilares" className="pilares-section">
+        <div className="pilares-container">
+          <div className="text-center">
+            <h3 className="section-label">Estructura</h3>
+            <h2 className="section-title">Un Ecosistema. Tres Pilares</h2>
+          </div>
+          
+          <div className="pilares-grid">
+            {/* Pilar 1: Usuarios */}
+            <div className="pilar-card pilar-usuarios">
+              <div className="pilar-card-glow"></div>
+              <div className="pilar-badge-icon">
+                <UserIcon />
+              </div>
+              <h3 className="pilar-name">Usuarios</h3>
+              <h4 className="pilar-tagline">La forma más fácil de pedir.</h4>
+              <p className="pilar-desc">Todo en un solo lugar.</p>
+              <p className="pilar-detail">Elegís, pedís y recibís en pocos clics</p>
+              <div className="pilar-spacer"></div>
+              <Link to="/pedir" className="btn-pilar">
+                Pedir ahora
+              </Link>
+              <div className="app-download-buttons" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '10px', width: '100%', flexWrap: 'wrap' }}>
+                <a href="https://play.google.com/store/apps/details?id=com.wepi.app" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Disponible en Google Play" style={{ height: '40px' }} />
+                </a>
+                <a href="https://apps.apple.com/ar/app/argentina-validar/id1623221223" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Consíguelo en el App Store" style={{ height: '40px' }} />
+                </a>
+              </div>
+            </div>
+
+            {/* Pilar 2: Comercios */}
+            <div className="pilar-card pilar-comercios">
+              <div className="pilar-card-glow"></div>
+              <div className="pilar-badge-icon">
+                <StoreIcon />
+              </div>
+              <h3 className="pilar-name">Comercios</h3>
+              <h4 className="pilar-tagline">Sumá un canal de ventas digital.</h4>
+              <p className="pilar-desc">
+                Simplificá tu operación: mientras vos preparás el pedido, Wepi se encarga del resto.
+              </p>
+              <p className="pilar-detail">
+                Centralizamos pedidos, automatizamos cobros y coordinamos la entrega.
+              </p>
+              <div className="pilar-spacer"></div>
+              <Link to="/locales" className="btn-pilar">
+                Sumar comercio
+              </Link>
+            </div>
+
+            {/* Pilar 3: Logística */}
+            <div className="pilar-card pilar-logistica">
+              <div className="pilar-card-glow"></div>
+              <div className="pilar-badge-icon">
+                <LogisticaIcon />
+              </div>
+              <h3 className="pilar-name">Repartidores</h3>
+              <h4 className="pilar-tagline">Operación y Entregas.</h4>
+              <p className="pilar-desc">
+                Generamos demanda de pedidos con nuestro sistema integrado, para que empresas logísticas y repartidores asociados realicen entregas más eficientes.
+              </p>
+              <p className="pilar-detail">
+                Más pedidos, más entregas, más oportunidades.
+              </p>
+              <div className="pilar-spacer"></div>
+              <Link to="/repartidores" className="btn-pilar">
+                Ser repartidor
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      
+
+
+      
+
+      {/* 5.5. FOUNDER BIO */}
+      <section id="historia" className="founder-section" style={{ padding: '5rem 2rem', backgroundColor: 'var(--bg-light)' }}>
+        <div className="founder-container" style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center' }}>
+          <div className="founder-image-wrapper" style={{ flex: '1 1 300px', textAlign: 'center' }}>
+            <img 
+              src="https://i.postimg.cc/rwF5m99N/Whats-App-Image-2026-10-05-at-10-29-23.jpg" 
+              alt="Axel Martínez - Fundador de WEPI" 
+              style={{ width: '100%', maxWidth: '350px', borderRadius: '1rem', boxShadow: 'var(--shadow-md)', objectFit: 'cover' }} 
+            />
+          </div>
+          <div className="founder-text" style={{ flex: '2 1 400px' }}>
+            <h3 className="section-label" style={{ textAlign: 'left' }}>Un proyecto argentino</h3>
+            <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Nuestra Historia</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '1.2rem' }}>
+              <strong>WEPI</strong> es un proyecto fundado por Axel Martínez, emprendedor misionero de 21 años, que comenzó a operar en abril de 2026 en Santo Tomé, Corrientes.
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '1.2rem' }}>
+              Actualmente, WEPI supera los +1.000 pedidos operando en Santo Tomé, Corrientes y Oberá, Misiones y continúa expandiéndose hacia nuevas localidades del interior argentino, llevando tecnología, digitalización y nuevas oportunidades a cada comunidad.
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', lineHeight: '1.6' }}>
+              WEPI busca construir canales digitales y estructuras logísticas locales, conectando clientes, comercios, marcas y repartidores para generar nuevas oportunidades y fortalecer la actividad comercial de cada localidad.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. CRECEMOS LOCALIDAD POR LOCALIDAD */}
       <section id="expansion" className="expansion-section">
         <div className="expansion-container">
           <div className="expansion-content">
-            <h3 className="section-label">EXPANSIÓN</h3>
-            <h2 className="section-title">Crecemos ciudad por ciudad</h2>
+            <h3 className="section-label">OPERACIÓN Y EXPANSIÓN</h3>
+            <h2 className="section-title">Crecemos localidad por localidad</h2>
             <div className="cities-list">
-              <div className="city-item active">
-                <span className="status-dot green"></span>
-                <strong>Santo Tomé</strong>&nbsp;(Activo desde abril 2026 · +{pedidos} pedidos entregados)
+              <div className="city-item active" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span className="status-dot green"></span>
+                    <strong>Santo Tomé, Corrientes</strong>&nbsp;(Activo desde abril 2026)
+                </div>
+                <Link to="/pedir/santo-tome" className="btn-nav-primary" style={{ padding: '4px 12px', fontSize: '0.85rem' }}>Pedir en Santo Tomé</Link>
+              </div>
+              <div className="city-item active" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span className="status-dot green"></span>
+                    <strong>Oberá, Misiones</strong>&nbsp;(Activo desde julio 2026)
+                </div>
+                <Link to="/pedir/obera" className="btn-nav-primary" style={{ padding: '4px 12px', fontSize: '0.85rem' }}>Pedir en Oberá</Link>
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Oberá</strong>&nbsp;(Activo desde julio 2026 · Lanzamiento)
+                <strong>Paso de los Libres, Corrientes</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Virasoro</strong>&nbsp;(Próximamente)
+                <strong>San Vicente, Misiones</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Apóstoles</strong>&nbsp;(Próximamente)
+                <strong>Villaguay, Entre Ríos</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item future">
                 <span className="status-dot yellow"></span>
-                <strong>Leandro N. Alem</strong>&nbsp;(Próximamente)
+                <strong>Colón, Entre Ríos</strong>&nbsp;(Próximamente)
               </div>
               <div className="city-item search">
                 <span className="status-dot pulse"></span>
-                <strong>Nuevas ciudades</strong>&nbsp;(En planificación)
+                <strong>Nuevas localidades</strong>&nbsp;(En planificación)
               </div>
             </div>
           </div>
-          <div className="expansion-vision-card">
-            <div className="vision-bullet-icon"><CheckIcon /></div>
-            <p>Innovamos la forma de pedir e impulsamos el comercio digital en ciudades pequeñas y medianas de Argentina.</p>
+          <div className="expansion-vision-card" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              <div className="vision-bullet-icon"><CheckIcon /></div>
+              <p style={{ margin: 0 }}>Innovamos la forma de pedir e impulsamos el comercio digital en localidades pequeñas y medianas de Argentina.</p>
+            </div>
+            <a href="https://forms.gle/cFm2x65uoZ7FMUWh6" target="_blank" rel="noopener noreferrer" className="btn-nav-primary" style={{ alignSelf: 'flex-start', padding: '10px 20px', textDecoration: 'none' }}>Llevá WEPI a tu localidad</a>
           </div>
         </div>
       </section>
@@ -563,22 +607,22 @@ export default function Landing() {
           </div>
           <div className="footer-links-col">
             <h5>Comercios</h5>
-            <Link to="/locales">Sumar comercio</Link>
+            <a href="https://forms.gle/pdNH8taCGozjBsqT6" target="_blank" rel="noopener noreferrer">Sumar comercio</a>
             <Link to="/prueba">Probar panel</Link>
           </div>
           <div className="footer-links-col">
             <h5>Repartidores</h5>
-            <Link to="/repartidores">Ser repartidor</Link>
+            <a href="https://forms.gle/Se3KqKDMNQwHBBMp8" target="_blank" rel="noopener noreferrer">Ser repartidor</a>
             <Link to="/partners">Empresas asociadas</Link>
           </div>
           <div className="footer-links-col">
-            <h5>Ciudades</h5>
+            <h5>Localidades</h5>
             <a href="#expansion">Santo Tomé</a>
             <a href="#expansion">Oberá</a>
           </div>
           <div className="footer-links-col">
             <h5>Nosotros</h5>
-            <a href="#vision-mision">Visión y Misión</a>
+            <a href="#historia">Nuestra Historia</a>
             <Link to="/politicas-privacidad">Políticas de Privacidad</Link>
             <a href="https://wa.me/543756543610" target="_blank" rel="noopener noreferrer">Contacto</a>
           </div>
