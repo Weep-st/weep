@@ -4667,68 +4667,88 @@ export default function RestaurantDashboard() {
                       />
                     </div>
                   </div>
-                  <select 
-                    name="categoria" 
-                    className="form-select" 
-                    value={itemCategory || editItem?.categoria || ''} 
-                    required 
-                    readOnly={isBaseProductMode || editItem?.categoria === 'Base'}
-                    disabled={isBaseProductMode || editItem?.categoria === 'Base'}
-                    onChange={(e) => setItemCategory(e.target.value)}
-                  >
-                    <option value="">Categoría</option>
-                    {isBaseProductMode || editItem?.categoria === 'Base' ? (
-                      <option value="Base">Base (Inventario Interno)</option>
-                    ) : (
-                      (function() {
-                        const rubros = profileData?.rubros || [];
-                        const rubroConfigs = [
-                          { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Cafetería', 'Combos', 'Bebidas'] },
-                          { name: 'Cafetería', cats: ['Café', 'Licuados', 'Facturas', 'Pastelería', 'Galletas', 'Tostados', 'Promos'] },
-                          { name: 'Heladería', cats: ['Helados'] },
-                          { name: 'Carnicería', cats: ['Carne Vacuna', 'Pollo', 'Cerdo', 'Embutidos', 'Achuras', 'Promos'] },
-                          { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
-                          { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] },
-                          { name: 'Bebidas', cats: ['Gaseosas', 'Sin gas', 'Cervezas', 'Vinos/Espumantes', 'Aperitivos', 'Otros'] },
-                          { name: 'Hogar', cats: ['Muebles', 'Decoración', 'Blanquería', 'Cocina', 'Bazar', 'Iluminación', 'Otros'] },
-                          { name: 'Tecnología', cats: ['Celulares', 'Computación', 'Audio y Video', 'Accesorios', 'Gaming', 'Smart Home', 'Otros'] },
-                          { name: 'Moda', cats: ['Ropa de Hombre', 'Ropa de Mujer', 'Ropa Infantil', 'Calzado', 'Accesorios', 'Marroquinería', 'Otros'] },
-                          { name: 'Regalería', cats: ['Juguetes', 'Peluches', 'Librería', 'Artesanías', 'Gifts', 'Otros'] },
-                          { name: 'Deportes', cats: ['Indumentaria Deportiva', 'Calzado Deportivo', 'Accesorios', 'Equipamiento', 'Suplementos', 'Otros'] }
-                        ];
+                  {itemCategory !== '__NEW__' ? (
+                    <select 
+                      name="categoria" 
+                      className="form-select" 
+                      value={itemCategory || editItem?.categoria || ''} 
+                      required 
+                      readOnly={isBaseProductMode || editItem?.categoria === 'Base'}
+                      disabled={isBaseProductMode || editItem?.categoria === 'Base'}
+                      onChange={(e) => setItemCategory(e.target.value)}
+                    >
+                      <option value="">Categoría</option>
+                      {!isBaseProductMode && editItem?.categoria !== 'Base' && (
+                        <option value="__NEW__" style={{ fontWeight: 'bold', color: 'var(--red-600)' }}>+ Agregar nueva categoría...</option>
+                      )}
+                      {isBaseProductMode || editItem?.categoria === 'Base' ? (
+                        <option value="Base">Base (Inventario Interno)</option>
+                      ) : (
+                        (function() {
+                          const rubros = profileData?.rubros || [];
+                          const rubroConfigs = [
+                            { name: 'Restaurante', cats: ['Hamburguesas', 'Pizzas', 'Empanadas', 'Panchos', 'Cafetería', 'Combos', 'Bebidas'] },
+                            { name: 'Cafetería', cats: ['Café', 'Licuados', 'Facturas', 'Pastelería', 'Galletas', 'Tostados', 'Promos'] },
+                            { name: 'Heladería', cats: ['Helados'] },
+                            { name: 'Carnicería', cats: ['Carne Vacuna', 'Pollo', 'Cerdo', 'Embutidos', 'Achuras', 'Promos'] },
+                            { name: 'Market', cats: ['Snacks', 'Bebidas', 'Golosinas', 'Almacén', 'Congelados', 'Higiene', 'Promos'] },
+                            { name: 'Farmacia', cats: ['Medicamentos (venta libre)', 'Higiene', 'Cuidado personal/Belleza', 'Bebés/Maternidad', 'Primeros Auxilios', 'Salud Sexual', 'Promos'] },
+                            { name: 'Bebidas', cats: ['Gaseosas', 'Sin gas', 'Cervezas', 'Vinos/Espumantes', 'Aperitivos', 'Otros'] },
+                            { name: 'Hogar', cats: ['Muebles', 'Decoración', 'Blanquería', 'Cocina', 'Bazar', 'Iluminación', 'Otros'] },
+                            { name: 'Tecnología', cats: ['Celulares', 'Computación', 'Audio y Video', 'Accesorios', 'Gaming', 'Smart Home', 'Otros'] },
+                            { name: 'Moda', cats: ['Ropa de Hombre', 'Ropa de Mujer', 'Ropa Infantil', 'Calzado', 'Accesorios', 'Marroquinería', 'Otros'] },
+                            { name: 'Regalería', cats: ['Juguetes', 'Peluches', 'Librería', 'Artesanías', 'Gifts', 'Otros'] },
+                            { name: 'Deportes', cats: ['Indumentaria Deportiva', 'Calzado Deportivo', 'Accesorios', 'Equipamiento', 'Suplementos', 'Otros'] }
+                          ];
 
-                        const activeConfigs = rubros.length > 0 
-                          ? rubroConfigs.filter(rc => rubros.includes(rc.name))
-                          : [rubroConfigs[0]]; // Default Restaurante if empty
+                          const activeConfigs = rubros.length > 0 
+                            ? rubroConfigs.filter(rc => rubros.includes(rc.name))
+                            : [rubroConfigs[0]]; // Default Restaurante if empty
 
-                        const existingCats = Array.from(new Set(menuItems.filter(m => m.categoria && m.categoria !== 'Base').map(m => m.categoria)));
-                        const defaultCatsSet = new Set(activeConfigs.flatMap(c => c.cats));
-                        const extraCats = existingCats.filter(c => !defaultCatsSet.has(c));
-                        if (editItem?.categoria && editItem.categoria !== 'Base' && !defaultCatsSet.has(editItem.categoria) && !extraCats.includes(editItem.categoria)) {
-                          extraCats.push(editItem.categoria);
-                        }
+                          const existingCats = Array.from(new Set(menuItems.filter(m => m.categoria && m.categoria !== 'Base').map(m => m.categoria)));
+                          const defaultCatsSet = new Set(activeConfigs.flatMap(c => c.cats));
+                          const extraCats = existingCats.filter(c => !defaultCatsSet.has(c));
+                          if (editItem?.categoria && editItem.categoria !== 'Base' && !defaultCatsSet.has(editItem.categoria) && !extraCats.includes(editItem.categoria)) {
+                            extraCats.push(editItem.categoria);
+                          }
 
-                        return (
-                          <>
-                            {activeConfigs.map(config => (
-                              <optgroup key={config.name} label={config.name}>
-                                {config.cats.map(cat => (
-                                  <option key={`${config.name}-${cat}`} value={cat}>{cat}</option>
-                                ))}
-                              </optgroup>
-                            ))}
-                            {extraCats.length > 0 && (
-                              <optgroup label="Otras (Agregadas)">
-                                {extraCats.map(cat => (
-                                  <option key={`extra-${cat}`} value={cat}>{cat}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                          </>
-                        );
-                      })()
-                    )}
-                  </select>
+                          return (
+                            <>
+                              {activeConfigs.map(config => (
+                                <optgroup key={config.name} label={config.name}>
+                                  {config.cats.map(cat => (
+                                    <option key={`${config.name}-${cat}`} value={cat}>{cat}</option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                              {extraCats.length > 0 && (
+                                <optgroup label="Otras (Agregadas)">
+                                  {extraCats.map(cat => (
+                                    <option key={`extra-${cat}`} value={cat}>{cat}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </>
+                          );
+                        })()
+                      )}
+                    </select>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                      <input 
+                        type="text" 
+                        name="categoria" 
+                        className="form-input" 
+                        placeholder="Escribe la nueva categoría..." 
+                        required 
+                        autoFocus
+                        style={{ marginBottom: 0, flex: 1 }}
+                      />
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setItemCategory('')} title="Cancelar y volver a la lista" style={{ padding: '0 8px', fontSize: '1.2rem', color: 'var(--gray-500)' }}>
+                        ×
+                      </button>
+                    </div>
+                  )}
                   {(isBaseProductMode || editItem?.categoria === 'Base') && <input type="hidden" name="categoria" value="Base" />}
                 </div>
                 <textarea name="descripcion" className="form-textarea" rows={2} placeholder="Descripción" defaultValue={editItem?.descripcion || ''} />
