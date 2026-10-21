@@ -34,22 +34,48 @@ export async function uploadImage(file) {
 // AUTH — Usuarios
 // ═══════════════════════════════════════════════════
 export async function loginUsuario(email, password) {
+  let data = null;
+  let emailConfirmedFromAuth = false;
+
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-  if (authError || !authData.user) return { success: false, error: 'El email no existe, no ha sido verificado o la contraseña es incorrecta' };
+  if (!authError && authData?.user) {
+    emailConfirmedFromAuth = !!authData.user.email_confirmed_at;
+    const { data: byAuthId } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('auth_id', authData.user.id)
+      .maybeSingle();
 
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('*')
-    .eq('auth_id', authData.user.id)
-    .single();
-
-  if (error || !data) {
-    await supabase.auth.signOut();
-    return { success: false, error: 'No tienes una cuenta de cliente válida.' };
+    if (byAuthId) {
+      data = byAuthId;
+    } else {
+      const { data: byEmail } = await supabase
+        .from('usuarios')
+        .select('*')
+        .ilike('email', email.trim())
+        .limit(1)
+        .maybeSingle();
+      data = byEmail;
+    }
+  } else {
+    // Fallback para cuentas previas en tabla usuarios cuya contraseña aún no coincide en Supabase Auth
+    const { data: legacyUser } = await supabase
+      .from('usuarios')
+      .select('*')
+      .ilike('email', email.trim())
+      .eq('password', password)
+      .limit(1)
+      .maybeSingle();
+    data = legacyUser;
   }
-  
+
+  if (!data) {
+    if (authData?.user) await supabase.auth.signOut();
+    return { success: false, error: 'El email no existe, no ha sido verificado o la contraseña es incorrecta' };
+  }
+
   if (data.bloqueado) {
-    await supabase.auth.signOut();
+    if (authData?.user) await supabase.auth.signOut();
     return { success: false, error: 'Usuario bloqueado' };
   }
 
@@ -60,7 +86,11 @@ export async function loginUsuario(email, password) {
     direccion: data.direccion, 
     telefono: data.telefono, 
     email: data.email,
-    emailConfirmado: !!authData.user.email_confirmed_at || data.email_confirmado
+    emailConfirmado: emailConfirmedFromAuth || data.email_confirmado,
+    role: data.role || 'user',
+    ya_realizo_pedidos: data.ya_realizo_pedidos || false,
+    ciudad: data.ciudad || 'Santo Tomé',
+    onesignal_id: data.onesignal_id || null
   };
 }
 
@@ -1733,7 +1763,10 @@ export async function updateEstadoLocalOrder(pedidoLocalId, estado) {
         targetGeneralEstado = 'Retirado';
       }
 
-      await supabase.from('pedidos_general').update({ estado: targetGeneralEstado }).eq('id', pl.pedido_id);
+      const { error: errGeneral } = await supabase.from('pedidos_general').update({ estado: targetGeneralEstado }).eq('id', pl.pedido_id);
+      if (errGeneral) {
+        console.warn("Advertencia al sincronizar estado en pedidos_general:", errGeneral.message);
+      }
 
       // 2b. Efectos secundarios según el estado
       if (estado === 'Rechazado' || estado === 'Cancelado') {
@@ -2560,7 +2593,7 @@ export async function adminUpdateRepartidorEstado(repId, estado) {
 // ═══════════════════════════════════════════════════
 export async function adminGetPedidosGeneral(dateStart = '', dateEnd = '', limitCount = 10) {
   let query = supabase.from('pedidos_general')
-    .select('*, locales(nombre, tipo_servicio, ciudad), repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
+    .select('*, locales(nombre, tipo_servicio, ciudad), repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono, onesignal_id)')
     .order('created_at', { ascending: false });
 
   if (dateStart) query = query.gte('created_at', dateStart + 'T00:00:00.000Z');
@@ -2576,7 +2609,7 @@ export async function adminGetPedidosGeneral(dateStart = '', dateEnd = '', limit
 export async function adminGetPedidoDetalle(pedidoId) {
   const { data: pedido, error: errPedido } = await supabase
     .from('pedidos_general')
-    .select('*, repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono)')
+    .select('*, repartidores:repartidor_id(nombre, telefono), usuarios:usuario_id(telefono, onesignal_id)')
     .eq('id', pedidoId)
     .single();
   

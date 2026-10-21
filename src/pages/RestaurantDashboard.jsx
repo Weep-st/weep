@@ -6897,14 +6897,21 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
       </div>
       <div className="rd-order-body">
         <p><strong>Cliente:</strong> {o.nombreCliente}</p>
-        <p style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <strong>PIN de Retiro/Entrega:</strong> 
-          <span style={{ color: 'var(--red-600)', fontWeight: 'bold', fontSize: '1.1rem', background: '#fff1f2', padding: '2px 8px', borderRadius: '4px' }}>
-            {o.numConfirmacion || 'N/A'}
-          </span>
-        </p>
+        {(String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' || String(o.tipoEntrega).toLowerCase().includes('domicilio')) && (
+          <p style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <strong>PIN de Retiro/Entrega:</strong> 
+            <span style={{ color: 'var(--red-600)', fontWeight: 'bold', fontSize: '1.1rem', background: '#fff1f2', padding: '2px 8px', borderRadius: '4px' }}>
+              {o.numConfirmacion || 'N/A'}
+            </span>
+          </p>
+        )}
         <p style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <strong>Pago:</strong> {o.metodoPago}
+          {String(o.metodoPago).toLowerCase().includes('transfer') && (
+            <span style={{ fontSize: '0.8rem', color: '#166534', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #86efac' }}>
+              PEDIDO YA PAGADO
+            </span>
+          )}
           {(isOnlinePayment || String(o.metodoPago).toLowerCase().includes('mercado') || String(o.metodoPago).toLowerCase().includes('mp')) && (
             <span style={{ fontSize: '0.82rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bae6fd' }}>
               N° Op: {o.paymentId || o.numConfirmacion || o.idPedido.substring(0, 8)}

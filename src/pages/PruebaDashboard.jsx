@@ -2935,7 +2935,19 @@ function OrderCard({ order: o, onAction, finished }) {
       <div className="rd-order-body">
         <p><strong>Cliente:</strong> {o.nombreCliente}</p>
         <p><strong>Dirección:</strong> {o.direccion}</p>
-        <p><strong>Pago:</strong> {o.metodoPago}</p>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <strong>Pago:</strong> {o.metodoPago}
+          {String(o.metodoPago).toLowerCase().includes('transfer') && (
+            <span style={{ fontSize: '0.8rem', color: '#166534', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #86efac' }}>
+              PEDIDO YA PAGADO
+            </span>
+          )}
+          {(String(o.metodoPago).toLowerCase().includes('transfer') || String(o.metodoPago).toLowerCase().includes('mercado') || String(o.metodoPago).toLowerCase().includes('mp')) && (
+            <span style={{ fontSize: '0.82rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bae6fd' }}>
+              N° Op: {o.paymentId || o.numConfirmacion || (o.idPedido ? o.idPedido.substring(0, 8) : '')}
+            </span>
+          )}
+        </p>
         {String(o.metodoPago).toLowerCase().includes('efectivo') && (
           <p style={{ color: 'var(--amber-600)', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '4px', background: '#fffbeb', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef3c7' }}>
             ⚠️ El pedido no fue pagado aún
