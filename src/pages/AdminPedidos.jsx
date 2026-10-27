@@ -23,6 +23,42 @@ const AdminPedidos = () => {
     const [forceMode, setForceMode] = useState(false);
     const [userCrmHistory, setUserCrmHistory] = useState([]);
     const [allRepartidores, setAllRepartidores] = useState([]);
+    const [sendingPushId, setSendingPushId] = useState(null);
+
+    const handleSendDriverAvailablePush = async (pedidoObj, e) => {
+        if (e) e.stopPropagation();
+        const token = pedidoObj?.usuarios?.onesignal_id;
+        if (!token) {
+            toast.error('El usuario no tiene la App activa');
+            return;
+        }
+        if (sendingPushId === pedidoObj.id) return;
+
+        setSendingPushId(pedidoObj.id);
+        try {
+            const res = await api.sendPushNotification({
+                subscriptionIds: [token],
+                title: '¡Repartidor disponible! 🛵',
+                message: 'Ya tenemos repartidor disponible para tu pedido! \nRepetí tu pedido en un solo clic desde Mis Pedidos.',
+                url: 'https://wepi.com.ar/mis-pedidos',
+                data: {
+                    type: 'repartidor_disponible',
+                    pedidoId: pedidoObj.id,
+                    url: '/mis-pedidos'
+                }
+            });
+            if (res?.success) {
+                toast.success('Notificación push enviada al cliente');
+            } else {
+                toast.error('Error al enviar push: ' + (res?.error || 'Desconocido'));
+            }
+        } catch (err) {
+            console.error('Error enviando push:', err);
+            toast.error('Error al enviar notificación push');
+        } finally {
+            setSendingPushId(null);
+        }
+    };
 
     const loadRepartidores = async () => {
         try {
@@ -288,6 +324,30 @@ const AdminPedidos = () => {
                                                     </span>
                                                 </a>
                                             )}
+                                            {p.usuarios?.onesignal_id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleSendDriverAvailablePush(p, e)}
+                                                    disabled={sendingPushId === p.id}
+                                                    title="Enviar notificación Push: Ya tenemos repartidor disponible"
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        backgroundColor: '#e11d48',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '1px 6px',
+                                                        fontSize: '0.65rem',
+                                                        fontWeight: 'bold',
+                                                        cursor: sendingPushId === p.id ? 'wait' : 'pointer',
+                                                        opacity: sendingPushId === p.id ? 0.6 : 1
+                                                    }}
+                                                >
+                                                    {sendingPushId === p.id ? '⏳...' : '🔔 Push'}
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                     <td>
@@ -377,6 +437,30 @@ const AdminPedidos = () => {
                                                         💬 WA
                                                     </span>
                                                 </a>
+                                            )}
+                                            {pedidoDetalle.usuarios?.onesignal_id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleSendDriverAvailablePush(pedidoDetalle, e)}
+                                                    disabled={sendingPushId === pedidoDetalle.id}
+                                                    title="Enviar notificación Push: Ya tenemos repartidor disponible"
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        backgroundColor: '#e11d48',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '1px 6px',
+                                                        fontSize: '0.65rem',
+                                                        fontWeight: 'bold',
+                                                        cursor: sendingPushId === pedidoDetalle.id ? 'wait' : 'pointer',
+                                                        opacity: sendingPushId === pedidoDetalle.id ? 0.6 : 1
+                                                    }}
+                                                >
+                                                    {sendingPushId === pedidoDetalle.id ? '⏳ Enviando...' : '🔔 Push'}
+                                                </button>
                                             )}
                                         </p>
                                         <p><strong>Email:</strong> {pedidoDetalle.email_cliente}</p>

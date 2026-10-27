@@ -1818,20 +1818,78 @@ export default function PruebasWalletApp() {
   // Search
   React.useEffect(() => {
     clearTimeout(searchTimeout.current);
-    if (search.length >= 3) {
-      searchTimeout.current = setTimeout(() => {
+    const trimmed = search.trim();
+    if (trimmed.length >= 2) {
+      searchTimeout.current = setTimeout(async () => {
         setLoadingMenus(true);
-        api.buscarMenu(search).then(d => {
-          setMenus(d || []);
-          setMenuTitle(`Resultados para "${search}"`);
+        try {
+          const currentCity = activeCity || 'Santo Tomé';
+          let currentLocals = locals;
+          if (!currentLocals || currentLocals.length === 0) {
+            const locsRaw = await api.getLocales();
+            currentLocals = (locsRaw || []).filter(l => 
+              (l.ciudad || 'Santo Tomé') === currentCity && 
+              (isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio))
+            );
+            setLocals(currentLocals);
+          }
+
+          // Solo comercios abiertos, dados de alta y de la localidad correspondiente
+          const openLocales = (currentLocals || []).filter(l => 
+            (l.ciudad || 'Santo Tomé') === currentCity && 
+            (isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio)) &&
+            isLocalOpen(l)
+          );
+          const openLocalIds = openLocales.map(l => l.id);
+
+          if (openLocalIds.length === 0) {
+            setMenus([]);
+            setMenuTitle(`Resultados para "${trimmed}"`);
+            setShowMenus(true);
+            return;
+          }
+
+          const searchNormalized = trimmed.toLowerCase();
+          const matchingLocales = openLocales.filter(l => 
+            l.nombre && l.nombre.toLowerCase().includes(searchNormalized)
+          );
+
+          const searchPromises = [
+            api.buscarMenu(trimmed, openLocalIds).catch(() => [])
+          ];
+
+          if (matchingLocales.length > 0) {
+            const matchingIds = matchingLocales.map(l => l.id);
+            searchPromises.push(api.buscarMenu('', matchingIds).catch(() => []));
+          }
+
+          const [resultsByItem, resultsByLocal] = await Promise.all(searchPromises);
+          const combined = [...(resultsByItem || []), ...(resultsByLocal || [])];
+          
+          const uniqueItems = [];
+          const seen = new Set();
+          combined.forEach(item => {
+            if (!seen.has(item.id) && openLocalIds.includes(item.local_id)) {
+              seen.add(item.id);
+              uniqueItems.push(item);
+            }
+          });
+
+          setMenus(uniqueItems);
+          setMenuTitle(`Resultados para "${trimmed}"`);
           setShowMenus(true);
-        }).catch(() => toast.error('Error en búsqueda')).finally(() => setLoadingMenus(false));
-      }, 500);
-    } else if (search === '') {
+        } catch (err) {
+          console.error("Error en búsqueda:", err);
+          toast.error('Error en búsqueda');
+        } finally {
+          setLoadingMenus(false);
+        }
+      }, 400);
+    } else if (trimmed === '') {
       setShowMenus(false);
     }
     setTargetMenuCategory(null);
-  }, [search]);
+  }, [search, activeCity, locals, isLocalOpen, isShopsMode]);
 
   const fetchMenusByLocal = React.useCallback((localId, catId = null, fromDirectLink = false) => {
     const local = (filteredLocals || locals).find(l => l.id === localId) || locals.find(l => l.id === localId);
@@ -2003,11 +2061,19 @@ export default function PruebasWalletApp() {
         disponible_desde: l.disponible_desde, 
         config_horarios: l.config_horarios || {},
         rubro: l.rubro_local || l.rubro,
-        plan_id: l.plan_id
+        plan_id: l.plan_id,
+        ciudad: l.ciudad,
+        tipo_servicio: l.tipo_servicio || 'delivery'
       }));
 
+      // Filtrar por la localidad activa y por tipo de servicio (Shops o Delivery)
+      const currentCity = activeCity || 'Santo Tomé';
+      const cityLocales = allLocales
+        .filter(l => isShopsMode ? l.tipo_servicio === 'shops' : (l.tipo_servicio === 'delivery' || !l.tipo_servicio))
+        .filter(l => (l.ciudad || 'Santo Tomé') === currentCity);
+
       // Sort and Deduplicate
-      const mapped = allLocales.sort((a, b) => {
+      const mapped = cityLocales.sort((a, b) => {
         const openA = isLocalOpen(a) ? 1 : 0;
         const openB = isLocalOpen(b) ? 1 : 0;
         if (openA !== openB) return openB - openA;
@@ -2043,9 +2109,9 @@ export default function PruebasWalletApp() {
         return (matchesMarket || matchesRubro) && item.disponibilidad;
       });
       
-      // Only keep items from open locales
+      // Only keep items from open locales OF THE CURRENT CITY
       const finalDiscovery = filteredItems.filter(item => {
-        const local = allLocales.find(l => l.id === item.local_id);
+        const local = unique.find(l => l.id === item.local_id);
         return local && isLocalOpen(local);
       }).slice(0, 30);
 
@@ -2058,7 +2124,7 @@ export default function PruebasWalletApp() {
       setLoadingLocals(false);
       setLoadingDiscovery(false);
     }
-  }, [getTimeBasedTitle, isLocalOpen]);
+  }, [getTimeBasedTitle, isLocalOpen, activeCity, isShopsMode]);
 
   const fetchByCategory = React.useCallback((cat, label = null) => {
     if (cat === 'SHOPS') {
@@ -2436,6 +2502,10 @@ export default function PruebasWalletApp() {
   const renderMenuItem = React.useCallback((item) => {
     const itemCfg = typeof item.variantes === 'string' ? JSON.parse(item.variantes || '{}') : (item.variantes || {});
     const needsCustomization = itemCfg.es_helado || itemCfg.es_hamburguesa || itemCfg.es_combo || itemCfg.con_papas || (itemCfg.variants?.length > 0) || (itemCfg.extras?.length > 0);
+    const localRef = (selectedLocal && selectedLocal.id === item.local_id) 
+      ? selectedLocal 
+      : (locals.find(l => l.id === item.local_id) || item);
+    const itemOpen = isLocalOpen(localRef);
     
     return (
       <div 
@@ -2457,7 +2527,9 @@ export default function PruebasWalletApp() {
           </div>
         <div className="menu-card-body">
           <div className="menu-card-local" style={{ marginBottom: '2px' }}>
-             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)' }}>{item.categoria}</span>
+             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)' }}>
+               {item.local_nombre ? `${item.local_nombre} • ${item.categoria}` : item.categoria}
+             </span>
           </div>
           <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '4px' }}>{item.nombre}</h3>
           {renderCreditBadge(item, true)}
@@ -2472,7 +2544,7 @@ export default function PruebasWalletApp() {
               )}
             </div>
             <div className="menu-card-actions">
-              {isLocalOpen(selectedLocal) ? (
+              {itemOpen ? (
                 <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
                   {needsCustomization ? 'Elegir' : 'Agregar'}
                 </button>
@@ -2496,7 +2568,7 @@ export default function PruebasWalletApp() {
         </div>
       </div>
     );
-  }, [calculateDiscountedPrice, handleAddToCart, renderCreditBadge, selectedLocal, isLocalOpen, favorites, toggleFav]);
+  }, [calculateDiscountedPrice, handleAddToCart, renderCreditBadge, selectedLocal, isLocalOpen, favorites, toggleFav, locals]);
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -4087,13 +4159,17 @@ export default function PruebasWalletApp() {
         {showMenus && (
           <div className="menu-view animate-fade-in">
              <div className="menu-header-sticky">
-                <button className="back-btn-premium" onClick={() => { setShowMenus(false); setSelectedLocal(null); }}>← Volver</button>
-                <h2 className="menu-local-title">{selectedLocal?.nombre}</h2>
+                <button className="back-btn-premium" onClick={() => { setShowMenus(false); setSelectedLocal(null); setSearch(''); }}>← Volver</button>
+                <h2 className="menu-local-title">{selectedLocal?.nombre || menuTitle}</h2>
              </div>
 
              <div className="menu-content-premium">
                {loadingMenus ? (
                  <div className="loading-state-premium">Cargando el menú...</div>
+               ) : menus.length === 0 ? (
+                 <div className="empty-state-premium" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--gray-500)' }}>
+                   No se encontraron comercios ni menús abiertos{search ? ` para "${search}"` : ''} en {activeCity || 'Santo Tomé'}.
+                 </div>
                ) : (
                  <>
                    {/* Categorías del Local */}

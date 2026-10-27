@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,7 @@ import * as api from '../services/api';
 
 export default function PushNotificationManager() {
   const { user, driver, localUser } = useAuth();
+  const navigate = useNavigate();
   const [pushToken, setPushToken] = useState(null);
 
   useEffect(() => {
@@ -40,6 +42,23 @@ export default function PushNotificationManager() {
         await PushNotifications.removeAllDeliveredNotifications();
       } catch (e) {
         console.warn("Error limpiando notificaciones entregadas:", e);
+      }
+      try {
+        const rawUrl = notification?.notification?.data?.url;
+        if (rawUrl && typeof rawUrl === 'string') {
+          let targetPath = rawUrl;
+          if (rawUrl.startsWith('http')) {
+            const parsed = new URL(rawUrl);
+            targetPath = parsed.pathname + parsed.search;
+          }
+          if (targetPath && targetPath.startsWith('/')) {
+            navigate(targetPath);
+          }
+        }
+      } catch (navErr) {
+        console.warn("Error redirigiendo desde notificación push:", navErr);
+      }
+      if (false) {
       }
     });
 

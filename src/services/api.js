@@ -1813,30 +1813,73 @@ export async function registrarEmailLanzamiento(email) {
 // ═══════════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════════
-export async function buscarMenu(query) {
-  const { data } = await supabase
+export async function buscarMenu(query, localIds = null) {
+  if (localIds && Array.isArray(localIds) && localIds.length === 0) {
+    return [];
+  }
+
+  let queryBuilder = supabase
     .from('menu')
-    .select('*, locales(nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, estado, horario_apertura, horario_cierre, modo_automatico, dias_apertura)')
-    .eq('disponibilidad', true)
-    .or(`nombre.ilike.%${query}%,descripcion.ilike.%${query}%,categoria.ilike.%${query}%`)
-    .order('nombre')
-    .limit(50);
-  return (data || []).map(i => ({
-    id: i.id, nombre: i.nombre, categoria: i.categoria,
-    descripcion: i.descripcion, precio: i.precio,
+    .select('*, locales(id, nombre, foto_url, disponible_desde, acepta_retiro, acepta_envio, dias_descuento, descuento_general, categoria_descuento, estado, horario_apertura, horario_cierre, horario_apertura2, horario_cierre2, modo_automatico, dias_apertura, rubro, rubros, config_horarios, tipo_servicio, ciudad, plan_id, admin_status)')
+    .eq('disponibilidad', true);
+
+  if (localIds && Array.isArray(localIds)) {
+    queryBuilder = queryBuilder.in('local_id', localIds);
+  }
+
+  if (query && typeof query === 'string' && query.trim()) {
+    const q = query.trim();
+    queryBuilder = queryBuilder.or(`nombre.ilike.%${q}%,descripcion.ilike.%${q}%,categoria.ilike.%${q}%`);
+  }
+
+  queryBuilder = queryBuilder.order('nombre').limit(60);
+
+  const { data, error } = await queryBuilder;
+  if (error) {
+    console.error("Error in buscarMenu:", error);
+    throw error;
+  }
+
+  const filtered = (data || []).filter(i => {
+    if (localIds && Array.isArray(localIds)) {
+      return localIds.includes(i.local_id);
+    }
+    return i.locales?.admin_status === 'Aceptado';
+  });
+
+  return filtered.map(i => ({
+    id: i.id,
+    nombre: i.nombre,
+    categoria: i.categoria,
+    descripcion: i.descripcion,
+    precio: i.precio,
     descuento: i.descuento || 0,
-    imagen_url: i.imagen_url, local_id: i.local_id, variantes: i.variantes,
-    local_nombre: i.locales?.nombre || '', local_logo: i.locales?.foto_url || '',
+    imagen_url: i.imagen_url,
+    local_id: i.local_id,
+    disponibilidad: i.disponibilidad,
+    variantes: i.variantes,
+    local_nombre: i.locales?.nombre || '',
+    local_logo: i.locales?.foto_url || '',
     local_disponible_desde: i.locales?.disponible_desde || null,
     local_acepta_retiro: i.locales?.acepta_retiro,
     local_acepta_envio: i.locales?.acepta_envio,
     local_dias_descuento: i.locales?.dias_descuento || [],
     local_descuento_general: i.locales?.descuento_general || 0,
+    local_categoria_descuento: i.locales?.categoria_descuento || '',
+    local_rubro: i.locales?.rubro || '',
+    local_rubros: i.locales?.rubros || [],
+    local_tipo_servicio: i.locales?.tipo_servicio || 'delivery',
     estado: i.locales?.estado,
     horario_apertura: i.locales?.horario_apertura,
     horario_cierre: i.locales?.horario_cierre,
+    horario_apertura2: i.locales?.horario_apertura2,
+    horario_cierre2: i.locales?.horario_cierre2,
     modo_automatico: i.locales?.modo_automatico,
-    dias_apertura: i.locales?.dias_apertura
+    dias_apertura: i.locales?.dias_apertura,
+    config_horarios: i.locales?.config_horarios || {},
+    ciudad: i.locales?.ciudad,
+    plan_id: i.locales?.plan_id,
+    admin_status: i.locales?.admin_status
   }));
 }
 
