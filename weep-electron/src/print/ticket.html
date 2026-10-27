@@ -87,6 +87,9 @@
         @media print {
             body { border: none; }
             img { filter: grayscale(100%) contrast(1.2); }
+            #ticket-content {
+                page-break-after: always;
+            }
         }
     </style>
 </head>
@@ -98,6 +101,8 @@
 
         ipcRenderer.on('render-ticket', (event, order, copyType) => {
             const container = document.getElementById('ticket-content');
+            container.innerHTML = '';
+            document.body.offsetHeight;
             const config = order.config || {
                 paper_width: "80mm",
                 margin_left: "0mm",

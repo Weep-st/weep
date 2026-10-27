@@ -72,8 +72,11 @@ async function processQueue() {
         }, (success, errorType) => {
             if (!success) console.error('Error de impresión:', errorType);
             
-            isPrinting = false;
-            processQueue();
+            // Pausa entre impresiones para que la impresora térmica procese y corte el papel
+            setTimeout(() => {
+                isPrinting = false;
+                processQueue();
+            }, 1200);
         });
     };
 
