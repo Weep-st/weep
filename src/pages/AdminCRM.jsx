@@ -2117,9 +2117,24 @@ const AdminCRM = () => {
                                                 </code>
                                             </td>
                                             <td>
-                                                <span style={{ background: rawChannel === 'sistema' ? '#e2e8f0' : '#dcfce7', color: rawChannel === 'sistema' ? '#334155' : '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                                                    {rawChannel.includes('whatsapp') ? '✅ Meta API Enviado' : rawChannel.includes('push') ? '🔔 Push Entregado' : rawChannel === 'sistema' ? '📝 Log de Auditoría DB' : '📧 Email Despachado'}
-                                                </span>
+                                                {(() => {
+                                                    const dispatchSuccess = log.metadata?.dispatch_result?.success;
+                                                    const dispatchReason = log.metadata?.dispatch_result?.reason || log.metadata?.dispatch_result?.logDetail;
+
+                                                    if (dispatchSuccess === false) {
+                                                        return (
+                                                            <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '3px 10px', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.8rem' }} title={dispatchReason || 'Error de envío'}>
+                                                                ❌ Fallido ({dispatchReason || 'Sin App/Token'})
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <span style={{ background: rawChannel === 'sistema' ? '#e2e8f0' : '#dcfce7', color: rawChannel === 'sistema' ? '#334155' : '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                                                            {rawChannel.includes('whatsapp') ? '✅ Meta API Enviado' : rawChannel.includes('push') ? '🔔 Push Entregado' : rawChannel === 'sistema' ? '📝 Log de Auditoría DB' : '📧 Email Despachado'}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td>
                                                 {(rawChannel.includes('whatsapp') || rawChannel === 'wa') && cleanPhone ? (

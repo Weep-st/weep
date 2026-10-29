@@ -2646,6 +2646,40 @@ export async function adminGetPedidosGeneral(dateStart = '', dateEnd = '', limit
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
+
+  if (data && data.length > 0) {
+    const missingEmails = data
+      .filter(p => (!p.usuarios?.onesignal_id || !p.usuarios.onesignal_id.trim()) && p.email_cliente)
+      .map(p => p.email_cliente.trim().toLowerCase());
+    if (missingEmails.length > 0) {
+      try {
+        const { data: usersWithTokens } = await supabase
+          .from('usuarios')
+          .select('email, onesignal_id')
+          .in('email', [...new Set(missingEmails)])
+          .not('onesignal_id', 'is', null);
+        if (usersWithTokens && usersWithTokens.length > 0) {
+          const tokenMap = new Map();
+          usersWithTokens.forEach(u => {
+            if (u.onesignal_id && u.onesignal_id.trim()) {
+              tokenMap.set(u.email.toLowerCase().trim(), u.onesignal_id.trim());
+            }
+          });
+          data.forEach(p => {
+            if ((!p.usuarios?.onesignal_id || !p.usuarios.onesignal_id.trim()) && p.email_cliente) {
+              const fallbackToken = tokenMap.get(p.email_cliente.toLowerCase().trim());
+              if (fallbackToken) {
+                if (!p.usuarios) p.usuarios = {};
+                p.usuarios.onesignal_id = fallbackToken;
+              }
+            }
+          });
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback push token warning:', fallbackErr);
+      }
+    }
+  }
   return data || [];
 }
 
@@ -2657,6 +2691,24 @@ export async function adminGetPedidoDetalle(pedidoId) {
     .single();
   
   if (errPedido) throw new Error(errPedido.message);
+
+  if ((!pedido?.usuarios?.onesignal_id || !pedido.usuarios.onesignal_id.trim()) && pedido?.email_cliente) {
+    try {
+      const { data: altUser } = await supabase
+        .from('usuarios')
+        .select('onesignal_id')
+        .ilike('email', pedido.email_cliente.trim())
+        .not('onesignal_id', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      if (altUser?.onesignal_id && altUser.onesignal_id.trim()) {
+        if (!pedido.usuarios) pedido.usuarios = {};
+        pedido.usuarios.onesignal_id = altUser.onesignal_id.trim();
+      }
+    } catch (e) {
+      console.warn('Fallback detalle token warning:', e);
+    }
+  }
 
   const { data: items, error: errItems } = await supabase
     .from('pedidos_items')

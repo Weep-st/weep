@@ -1,15 +1,26 @@
-const wsUrlInput = document.getElementById('ws-url');
+// Elementos DOM
 const localIdInput = document.getElementById('local-id');
+const connectionTypeSelect = document.getElementById('connection-type-select');
+const windowsConfigSection = document.getElementById('windows-config-section');
+const printerSelect = document.getElementById('printer-select');
+const printModeSelect = document.getElementById('print-mode-select');
+const modeHint = document.getElementById('mode-hint');
+const tcpConfigSection = document.getElementById('tcp-config-section');
+const tcpHostInput = document.getElementById('tcp-host');
+const tcpPortSelect = document.getElementById('tcp-port-select');
+const tcpCustomPort = document.getElementById('tcp-custom-port');
+const copiesModeSelect = document.getElementById('copies-mode-select');
+const paperWidthSelect = document.getElementById('paper-width-select');
 const autoPrintCheck = document.getElementById('auto-print');
+
 const saveBtn = document.getElementById('save-btn');
 const testBtn = document.getElementById('test-btn');
 const previewBtn = document.getElementById('preview-btn');
+
 const statusIndicator = document.getElementById('status-indicator');
 const statusText = document.getElementById('status-text');
 const lastOrderCard = document.getElementById('last-order-card');
 const logList = document.getElementById('log-list');
-const alertSound = document.getElementById('alert-sound');
-const printerSelect = document.getElementById('printer-select');
 
 // Modal Elements
 const previewModal = document.getElementById('preview-modal');
@@ -22,22 +33,84 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let supabaseClient = null;
 let channel = null;
-let cloudConfig = null; // Almacenará el diseño desde la nube
+let cloudConfig = null;
+
+// Manejo de visibilidad según tipo de conexión
+function updateConnectionUI() {
+    const isTcp = connectionTypeSelect.value === 'tcp';
+    windowsConfigSection.style.display = isTcp ? 'none' : 'block';
+    tcpConfigSection.style.display = isTcp ? 'block' : 'none';
+}
+
+function updateModeHint() {
+    if (printModeSelect.value === 'escpos') {
+        modeHint.innerText = 'Envía comandos ESC/POS nativos directamente a la comandera (ideal para impresoras térmicas en modo texto).';
+        modeHint.style.color = '#fbbf24';
+    } else {
+        modeHint.innerText = 'Modo estándar gráfico para impresoras térmicas con controlador de Windows (100% retrocompatible).';
+        modeHint.style.color = '#9ca3af';
+    }
+}
+
+// Manejo del selector de puerto
+tcpPortSelect.addEventListener('change', () => {
+    if (tcpPortSelect.value === 'custom') {
+        tcpCustomPort.style.display = 'block';
+        tcpCustomPort.focus();
+    } else {
+        tcpCustomPort.style.display = 'none';
+    }
+});
+
+// Solo permitir números en el campo de puerto personalizado
+tcpCustomPort.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+});
+
+connectionTypeSelect.addEventListener('change', updateConnectionUI);
+printModeSelect.addEventListener('change', updateModeHint);
 
 async function init() {
     const settings = await window.electronAPI.getSettings();
-    wsUrlInput.value = 'Supabase Realtime (Automático)';
-    wsUrlInput.disabled = true;
-    localIdInput.value = settings.localId;
-    autoPrintCheck.checked = settings.autoPrint;
+
+    localIdInput.value = settings.localId || '';
+    connectionTypeSelect.value = settings.connectionType || 'windows';
+    printModeSelect.value = settings.printMode || 'graphic';
+    tcpHostInput.value = settings.tcpHost || '';
+    
+    // Configuración del puerto
+    const savedPort = settings.tcpPort ? String(settings.tcpPort) : '9100';
+    if (savedPort === '9100' || !savedPort) {
+        tcpPortSelect.value = '9100';
+        tcpCustomPort.style.display = 'none';
+        tcpCustomPort.value = '9100';
+    } else {
+        tcpPortSelect.value = 'custom';
+        tcpCustomPort.style.display = 'block';
+        tcpCustomPort.value = savedPort;
+    }
+
+    copiesModeSelect.value = settings.copiesMode || 'duplicate';
+    paperWidthSelect.value = settings.paperWidth || '80mm';
+    autoPrintCheck.checked = settings.autoPrint !== false;
+
+    updateConnectionUI();
+    updateModeHint();
 
     await loadPrinters(settings.printerName);
 
+    // Escuchar logs provenientes del proceso principal
+    if (window.electronAPI.onPrintLog) {
+        window.electronAPI.onPrintLog((log) => {
+            addLog(log.message, log.type);
+        });
+    }
+
     if (settings.localId) {
         connectToSupabase(settings.localId);
-        await refreshCloudConfig(); // Cargar diseño desde la nube
+        await refreshCloudConfig();
     } else {
-        addLog('Esperando ID de Local para conectar...');
+        addLog('Esperando ID de Local para conectar...', 'info');
     }
 }
 
@@ -54,28 +127,31 @@ async function refreshCloudConfig() {
         cloudConfig = data.value;
         addLog('Diseño de ticket actualizado desde la nube');
     } catch (e) {
-        addLog('Aviso: Usando diseño local (no se pudo cargar la nube)');
-        console.error('Error cargando config:', e);
+        addLog('Aviso: Usando diseño local por defecto');
     }
 }
 
 async function loadPrinters(selectedPrinter) {
-    const printers = await window.electronAPI.getPrinters();
-    printerSelect.innerHTML = '<option value="">(Impresora por defecto)</option>';
-    
-    printers.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.name;
-        option.innerText = p.name;
-        if (p.name === selectedPrinter) option.selected = true;
-        printerSelect.appendChild(option);
-    });
+    try {
+        const printers = await window.electronAPI.getPrinters();
+        printerSelect.innerHTML = '<option value="">(Impresora predeterminada de Windows)</option>';
+        
+        printers.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.name;
+            option.innerText = p.name + (p.isDefault ? ' (Por defecto)' : '');
+            if (p.name === selectedPrinter) option.selected = true;
+            printerSelect.appendChild(option);
+        });
+    } catch (err) {
+        console.error('Error cargando impresoras:', err);
+    }
 }
 
 function connectToSupabase(localId) {
     if (channel) channel.unsubscribe();
     updateStatus(false);
-    addLog(`Conectando suscripción para local: ${localId}`);
+    addLog(`Conectando suscripción para local: ${localId}`, 'info');
     
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -91,42 +167,35 @@ function connectToSupabase(localId) {
             },
             (payload) => {
                 const order = payload.new;
-                
-                // Validación para evitar caídas si el payload es nulo (por ejemplo, eventos de borrado o de sistema)
                 if (!order) return;
                 
-                // Imprimir SOLO si el estado es 'Confirmado' para estar alineados con el dashboard web
                 const printableStates = ['Confirmado'];
                 if (printableStates.includes(order.estado)) {
-                    // Evitar duplicados por id de pedido para que no imprima 2 veces el mismo confirmado
                     if (!window.printedOrdersSet) window.printedOrdersSet = new Set();
                     if (window.printedOrdersSet.has(order.pedido_id)) return;
                     window.printedOrdersSet.add(order.pedido_id);
 
-                    addLog(`¡Pedido ${order.estado.toUpperCase()} detectado! Iniciando impresión...`);
+                    addLog(`¡Pedido Confirmado! Iniciando comanda #${order.pedido_id.slice(-6)}...`, 'success');
                     fetchOrderDetails(order);
                 } else {
-                    // Loggeamos el cambio pero no disparamos la impresión
                     const shortId = order.pedido_id ? order.pedido_id.substring(order.pedido_id.length - 6) : '???';
-                    addLog(`Pedido #${shortId} en estado: ${order.estado} (Espera a Confirmado)`);
+                    addLog(`Pedido #${shortId} en estado: ${order.estado} (Espera Confirmado)`);
                 }
             }
         )
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 updateStatus(true);
-                addLog('Suscrito a pedidos en tiempo real');
+                addLog('Suscrito a pedidos en tiempo real', 'success');
             } else {
                 updateStatus(false);
-                addLog('Estado de conexión: ' + status);
+                addLog('Estado de conexión Supabase: ' + status);
             }
         });
 }
 
 async function fetchOrderDetails(pedidoLocal) {
     try {
-        addLog(`Obteniendo detalles del pedido: ${pedidoLocal.pedido_id}`);
-        
         const { data: general, error: errGen } = await supabaseClient
             .from('pedidos_general')
             .select('*')
@@ -150,8 +219,6 @@ async function fetchOrderDetails(pedidoLocal) {
             .single();
 
         const localLogo = localData?.foto_url || 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png';
-        
-        console.log(`Logo obtenido para local ${pedidoLocal.local_id}:`, localLogo);
 
         const fullOrder = {
             id: general.num_confirmacion || general.id.substring(0, 8),
@@ -177,22 +244,16 @@ async function fetchOrderDetails(pedidoLocal) {
 
         processNewOrder(fullOrder);
     } catch (error) {
-        addLog('Error al obtener detalles: ' + error.message);
+        addLog('Error al obtener detalles: ' + error.message, 'error');
     }
 }
 
 function processNewOrder(order) {
-    addLog(`Pedido procesado: #${order.id}`);
-    
-    // Reproducir alerta con verificación de seguridad
-    const sound = document.getElementById('alert-sound');
-    if (sound) {
-        sound.play().catch(e => console.log('Error de audio:', e));
-    }
+    addLog(`Procesando pedido comanda #${order.id}`);
 
     window.electronAPI.sendNewOrder({
         ...order,
-        config: cloudConfig // Enviamos la configuración de diseño junto con el pedido
+        config: cloudConfig
     });
 }
 
@@ -223,48 +284,48 @@ function renderTicketToElement(order, targetElement) {
     let totalSectionHtml = '';
     if (envio > 0) {
         totalSectionHtml = `
-            <div style="text-align: right; font-size: 13px; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;">
+            <div style="text-align: right; font-size: 12px; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;">
                 Subtotal: $${subtotal.toFixed(2)}
             </div>
-            <div style="text-align: right; font-size: 13px;">
+            <div style="text-align: right; font-size: 12px;">
                 Envío: $${envio.toFixed(2)}
             </div>
-            <div style="text-align: right; font-size: 22px; font-weight: bold;">TOTAL: $${grandTotal.toFixed(2)}</div>
+            <div style="text-align: right; font-size: 18px; font-weight: bold;">TOTAL: $${grandTotal.toFixed(2)}</div>
         `;
     } else {
         totalSectionHtml = `
-            <div style="text-align: right; font-size: 22px; font-weight: bold; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;">TOTAL: $${subtotal.toFixed(2)}</div>
+            <div style="text-align: right; font-size: 18px; font-weight: bold; margin-top: 5px; border-top: 1px solid #000; padding-top: 2px;">TOTAL: $${subtotal.toFixed(2)}</div>
         `;
     }
 
     targetElement.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 5px;">
-            <img src="${order.local_logo}" style="max-width: 25mm; max-height: 20mm; object-fit: contain;">
-            <div style="font-size: 30px; line-height: 1; color: #000;">|</div>
-            <img src="https://i.postimg.cc/YG09sFTR/wepi.png" style="max-width: 40mm; max-height: 30mm; object-fit: contain;">
+            <img src="${order.local_logo}" onerror="this.style.display='none'" style="max-width: 25mm; max-height: 20mm; object-fit: contain;">
+            <div style="font-size: 26px; line-height: 1; color: #000;">|</div>
+            <img src="https://i.postimg.cc/YG09sFTR/wepi.png" onerror="this.style.display='none'" style="max-width: 35mm; max-height: 25mm; object-fit: contain;">
         </div>
         <div style="border-top: 2px solid black; margin: 5px 0;"></div>
-        <div style="text-align: center; font-size: 10px; font-weight: bold;">RECIBO DE PEDIDO</div>
-        <div style="text-align: center; font-size: 22px; font-weight: bold; margin: 5px 0;">#${order.id}</div>
-        <div style="text-align: center; font-size: 11px; margin-bottom: 15px;">${formattedDate}</div>
+        <div style="text-align: center; font-size: 11px; font-weight: bold;">*** COMANDA DE PEDIDO ***</div>
+        <div style="text-align: center; font-size: 22px; font-weight: bold; margin: 4px 0;">#${order.id}</div>
+        <div style="text-align: center; font-size: 11px; margin-bottom: 10px;">${formattedDate}</div>
         
-        <div style="margin: 10px 0; font-size: 14px;">
+        <div style="margin: 8px 0; font-size: 13px;">
             <strong>CLIENTE:</strong><br>
             ${order.cliente.nombre}<br>
             ${order.cliente.direccion}<br>
             Tel: ${order.cliente.telefono}
         </div>
 
-        <div style="border-top: 1px dashed black; margin: 10px 0;"></div>
+        <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
         <div>${itemsHtml}</div>
-        <div style="border-top: 1px dashed black; margin: 10px 0;"></div>
+        <div style="border-top: 1px dashed black; margin: 8px 0;"></div>
 
         <div><strong>PAGO:</strong> ${order.metodo_pago.toUpperCase()}</div>
         ${order.observaciones ? `<div><strong>OBS Gral:</strong> ${order.observaciones}</div>` : ''}
 
         ${totalSectionHtml}
         
-        <div style="text-align: center; margin-top: 20px; font-size: 11px; line-height: 1.4;">
+        <div style="text-align: center; margin-top: 15px; font-size: 11px; line-height: 1.4;">
             ¡Gracias por su compra!<br>
             <strong>Wepi - Pedidos y Delivery</strong>
         </div>
@@ -274,27 +335,31 @@ function renderTicketToElement(order, targetElement) {
 function updateStatus(connected) {
     if (connected) {
         statusIndicator.className = 'status-badge connected';
-        statusText.innerText = 'Conectado a Supabase';
+        statusText.innerText = 'Conectado a Wepi';
     } else {
         statusIndicator.className = 'status-badge disconnected';
         statusText.innerText = 'Desconectado';
     }
 }
 
-function addLog(text) {
+function addLog(text, type = '') {
     const li = document.createElement('li');
     li.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
+    if (type === 'success') li.className = 'log-success';
+    if (type === 'error') li.className = 'log-error';
+    if (type === 'info') li.className = 'log-info';
+
     logList.prepend(li);
-    if (logList.children.length > 20) logList.lastElementChild.remove();
+    if (logList.children.length > 30) logList.lastElementChild.remove();
 }
 
 window.electronAPI.onUpdateLastOrder((order) => {
     lastOrderCard.className = 'order-card animate-pop';
     lastOrderCard.innerHTML = `
         <div class="central-header" style="display: flex; justify-content: center; align-items: center; gap: 15px; background: white; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-            <img src="${order.local_logo}" style="max-width: 24mm; max-height: 18mm; object-fit: contain;">
-            <div style="font-size: 30px; line-height: 1; color: #000;">|</div>
-            <img src="https://i.postimg.cc/YG09sFTR/wepi.png" style="max-width: 38mm; max-height: 28mm; object-fit: contain;">
+            <img src="${order.local_logo}" onerror="this.style.display='none'" style="max-width: 24mm; max-height: 18mm; object-fit: contain;">
+            <div style="font-size: 26px; line-height: 1; color: #000;">|</div>
+            <img src="https://i.postimg.cc/YG09sFTR/wepi.png" onerror="this.style.display='none'" style="max-width: 35mm; max-height: 25mm; object-fit: contain;">
         </div>
         <div class="order-header">
             <span class="order-number">Pedido #${order.id}</span>
@@ -308,13 +373,12 @@ window.electronAPI.onUpdateLastOrder((order) => {
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button id="view-ticket-btn" class="secondary-btn" style="padding: 8px; width: auto; flex: 1;">👁️ Ver Ticket</button>
                 <div style="flex: 2; padding: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 8px; text-align: center; font-weight: bold; font-size: 13px;">
-                    ✓ Impreso
+                    ✓ Enviado a Impresión
                 </div>
             </div>
         </div>
     `;
 
-    // Vincular el evento al botón recién creado
     const btn = document.getElementById('view-ticket-btn');
     if (btn) {
         btn.addEventListener('click', () => {
@@ -324,30 +388,41 @@ window.electronAPI.onUpdateLastOrder((order) => {
     }
 });
 
-// Función global para el onclick del botón en la tarjeta
-window.viewCurrentOrder = () => {
-    if (window.lastReceivedOrder) {
-        renderTicketToElement(window.lastReceivedOrder, ticketPreviewContainer);
-        previewModal.style.display = 'flex';
-    }
-};
-
 saveBtn.addEventListener('click', () => {
     const localId = localIdInput.value.trim();
     if (!localId) return alert('Por favor, ingresá el ID del Local');
-    window.electronAPI.saveSettings({
+
+    // Determinar el puerto: 9100 si es estándar, o el valor personalizado
+    let finalPort = 9100;
+    if (tcpPortSelect.value === 'custom') {
+        const parsed = parseInt(tcpCustomPort.value.trim(), 10);
+        finalPort = (!isNaN(parsed) && parsed > 0 && parsed <= 65535) ? parsed : 9100;
+    } else {
+        finalPort = 9100;
+    }
+
+    const settings = {
         wsUrl: 'Supabase Realtime',
         localId,
         autoPrint: autoPrintCheck.checked,
-        printerName: printerSelect.value
-    });
+        connectionType: connectionTypeSelect.value,
+        printerName: printerSelect.value,
+        printMode: printModeSelect.value,
+        tcpHost: tcpHostInput.value.trim(),
+        tcpPort: finalPort,
+        paperWidth: paperWidthSelect.value,
+        copiesMode: copiesModeSelect.value
+    };
+
+    window.electronAPI.saveSettings(settings);
     connectToSupabase(localId);
-    refreshCloudConfig(); // Actualizar al guardar
-    addLog('Configuración guardada correctamente');
+    refreshCloudConfig();
+    addLog('Configuración guardada correctamente.', 'success');
 });
 
 testBtn.addEventListener('click', () => {
     const mockOrder = getMockOrder();
+    addLog('Generando pedido de prueba...', 'info');
     processNewOrder(mockOrder);
 });
 
@@ -363,11 +438,11 @@ closePreview.addEventListener('click', () => {
 
 function getMockOrder() {
     return {
-        id: Math.floor(Math.random() * 10000).toString(),
+        id: Math.floor(1000 + Math.random() * 9000).toString(),
         total: 1350.00,
         precio_envio: 190.50,
         fecha: new Date().toISOString(),
-        local_logo: 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png', // Fallback
+        local_logo: 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png',
         cliente: {
             nombre: 'Juan Carlos Prueba',
             direccion: 'Av. Corrientes 1234, 5to B',

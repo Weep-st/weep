@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveSettings: (settings) => ipcRenderer.send('save-settings', settings),
     getPrinters: () => ipcRenderer.invoke('get-printers'),
     onUpdateLastOrder: (callback) => ipcRenderer.on('update-last-order', (event, value) => callback(value)),
+    onPrintLog: (callback) => ipcRenderer.on('print-log', (event, value) => callback(value)),
     sendNewOrder: (order) => ipcRenderer.send('new-order', order)
 });

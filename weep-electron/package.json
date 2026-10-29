@@ -1,7 +1,7 @@
 {
-  "name": "wepi-desktop",
-  "version": "1.2.0",
-  "description": "Sistema de impresión automática de pedidos Wepi",
+  "name": "wepi-comandas",
+  "version": "1.3.0",
+  "description": "Sistema universal de comandas e impresión automática de pedidos Wepi",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",

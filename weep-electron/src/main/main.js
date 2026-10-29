@@ -1,6 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const { buildEscposTicket } = require('./printer/escposBuilder');
+const { printWindowsRaw, printTcp } = require('./printer/rawPrinter');
 
 const store = new Store();
 let mainWindow;
@@ -16,13 +18,19 @@ if (match && match[1] && !store.get('localId')) {
     store.set('localId', match[1]);
 }
 
+function sendLogToUI(message, type = 'info') {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('print-log', { message, type, time: new Date().toLocaleTimeString() });
+    }
+}
+
 function createWindows() {
     // Ventana Principal
     mainWindow = new BrowserWindow({
-        width: 1000,
-        height: 700,
-        minWidth: 800,
-        minHeight: 600,
+        width: 1060,
+        height: 740,
+        minWidth: 850,
+        minHeight: 620,
         icon: path.join(__dirname, '../../assets/icon.png'),
         webPreferences: {
             preload: path.join(__dirname, '../preload/preload.js'),
@@ -34,7 +42,7 @@ function createWindows() {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
     // mainWindow.webContents.openDevTools(); // Descomentar para debug
 
-    // Ventana de Impresión (Oculta)
+    // Ventana de Impresión Gráfica HTML (Oculta)
     printerWindow = new BrowserWindow({
         show: false,
         webPreferences: {
@@ -50,12 +58,78 @@ function createWindows() {
     });
 }
 
-// Gestión de la Cola de Impresión
+// Gestión de la Cola de Impresión Universal
 async function processQueue() {
     if (isPrinting || printQueue.length === 0) return;
 
     isPrinting = true;
     const task = printQueue.shift();
+    let copyLabel = 'UNICA';
+    if (task.copyType === 'control') copyLabel = 'DUPLICADO';
+    else if (task.copyType === 'client') copyLabel = 'ORIGINAL';
+
+    const connectionType = store.get('connectionType', 'windows'); // 'windows' | 'tcp'
+    const printMode = store.get('printMode', 'graphic');           // 'graphic' | 'escpos'
+    const paperWidth = store.get('paperWidth', '80mm');
+
+    console.log(`[Impresión] Procesando pedido #${task.id} (${copyLabel}) - Modo: ${connectionType}/${printMode}`);
+
+    // MODO 1: RED ETHERNET / WI-FI (TCP SOCKET DIRECTO)
+    if (connectionType === 'tcp') {
+        const tcpHost = store.get('tcpHost', '').trim();
+        const tcpPort = parseInt(store.get('tcpPort', 9100), 10) || 9100;
+
+        if (!tcpHost) {
+            sendLogToUI(`Error: No hay IP configurada para la comandera de red.`, 'error');
+            isPrinting = false;
+            return processQueue();
+        }
+
+        try {
+            sendLogToUI(`Enviando comanda #${task.id} (${copyLabel}) a ${tcpHost}:${tcpPort}...`);
+            const buffer = buildEscposTicket(task, task.copyType, { paperWidth });
+            await printTcp(tcpHost, tcpPort, buffer);
+            sendLogToUI(`Comanda #${task.id} (${copyLabel}) impresa en red con éxito.`, 'success');
+        } catch (err) {
+            console.error('Error imprimiendo por TCP:', err);
+            sendLogToUI(`Error comandera red (${tcpHost}:${tcpPort}): ${err.message}`, 'error');
+        }
+
+        setTimeout(() => {
+            isPrinting = false;
+            processQueue();
+        }, 1000);
+        return;
+    }
+
+    // MODO 2: WINDOWS RAW ESC/POS (DIRECTO AL SPOOLER)
+    if (connectionType === 'windows' && printMode === 'escpos') {
+        const printerName = store.get('printerName', '').trim();
+
+        if (!printerName) {
+            sendLogToUI(`Error: Seleccione una impresora térmica de Windows para ESC/POS.`, 'error');
+            isPrinting = false;
+            return processQueue();
+        }
+
+        try {
+            sendLogToUI(`Enviando comanda RAW ESC/POS #${task.id} (${copyLabel}) a "${printerName}"...`);
+            const buffer = buildEscposTicket(task, task.copyType, { paperWidth });
+            await printWindowsRaw(printerName, buffer);
+            sendLogToUI(`Comanda #${task.id} (${copyLabel}) enviada a "${printerName}" con corte OK.`, 'success');
+        } catch (err) {
+            console.error('Error imprimiendo RAW Windows:', err);
+            sendLogToUI(`Error RAW en "${printerName}": ${err.message}`, 'error');
+        }
+
+        setTimeout(() => {
+            isPrinting = false;
+            processQueue();
+        }, 1000);
+        return;
+    }
+
+    // MODO 3: WINDOWS GRÁFICO HTML (COMPATIBILIDAD 100% ESTÁNDAR)
     let timeoutId = null;
 
     const handleTicketReady = async () => {
@@ -63,16 +137,23 @@ async function processQueue() {
             clearTimeout(timeoutId);
             timeoutId = null;
         }
-        
+
         const printerName = store.get('printerName', '');
+        sendLogToUI(`Imprimiendo copia gráfica (${copyLabel}) en "${printerName || 'Predeterminada'}"...`);
+
         printerWindow.webContents.print({
             silent: true,
             printBackground: true,
             deviceName: printerName
         }, (success, errorType) => {
-            if (!success) console.error('Error de impresión:', errorType);
-            
-            // Pausa entre impresiones para que la impresora térmica procese y corte el papel
+            if (!success) {
+                console.error('Error de impresión gráfica:', errorType);
+                sendLogToUI(`Error al imprimir en Windows: ${errorType}`, 'error');
+            } else {
+                sendLogToUI(`Comanda #${task.id} (${copyLabel}) impresa correctamente.`, 'success');
+            }
+
+            // Pausa entre impresiones para que la comandera procese y corte el papel
             setTimeout(() => {
                 isPrinting = false;
                 processQueue();
@@ -80,23 +161,20 @@ async function processQueue() {
         });
     };
 
-    // 1. Registrar el listener para la respuesta ANTES de enviar el pedido
     ipcMain.once('ticket-ready', handleTicketReady);
 
-    // 2. Añadir un setTimeout de seguridad (4 segundos) para evitar el congelamiento de la cola
     timeoutId = setTimeout(() => {
-        console.warn('Timeout de seguridad alcanzado esperando "ticket-ready" para el pedido:', task.id);
-        // Remover el listener registrado para evitar ejecuciones huérfanas
+        console.warn('Timeout esperando "ticket-ready" para pedido:', task.id);
+        sendLogToUI(`Timeout esperando render de comanda #${task.id}`, 'error');
         ipcMain.off('ticket-ready', handleTicketReady);
         isPrinting = false;
         processQueue();
     }, 4000);
 
     try {
-        // 3. Enviar el pedido y el tipo de copia a la ventana
         printerWindow.webContents.send('render-ticket', task, task.copyType);
     } catch (err) {
-        console.error('Error procesando cola:', err);
+        console.error('Error enviando ticket a render:', err);
         if (timeoutId) {
             clearTimeout(timeoutId);
             timeoutId = null;
@@ -117,7 +195,13 @@ ipcMain.handle('get-settings', () => {
         wsUrl: store.get('wsUrl', 'Supabase Realtime'),
         localId: store.get('localId', ''),
         autoPrint: store.get('autoPrint', true),
-        printerName: store.get('printerName', '')
+        printerName: store.get('printerName', ''),
+        connectionType: store.get('connectionType', 'windows'),
+        printMode: store.get('printMode', 'graphic'),
+        tcpHost: store.get('tcpHost', '192.168.1.100'),
+        tcpPort: store.get('tcpPort', 9100),
+        paperWidth: store.get('paperWidth', '80mm'),
+        copiesMode: store.get('copiesMode', 'duplicate')
     };
 });
 
@@ -125,24 +209,35 @@ ipcMain.on('save-settings', (event, settings) => {
     store.set('wsUrl', settings.wsUrl);
     store.set('localId', settings.localId);
     store.set('autoPrint', settings.autoPrint);
-    store.set('printerName', settings.printerName);
+    store.set('printerName', settings.printerName || '');
+    store.set('connectionType', settings.connectionType || 'windows');
+    store.set('printMode', settings.printMode || 'graphic');
+    store.set('tcpHost', settings.tcpHost || '');
+    store.set('tcpPort', settings.tcpPort || 9100);
+    store.set('paperWidth', settings.paperWidth || '80mm');
+    store.set('copiesMode', settings.copiesMode || 'duplicate');
+    console.log('Configuración guardada:', settings);
 });
 
 ipcMain.on('new-order', (event, order) => {
-    // Evitar duplicados usando db_id que es el UUID real de la DB para que no haya colisiones
     const uniqueId = order.db_id || order.id;
     if (uniqueId === lastProcessedOrderId) return;
     lastProcessedOrderId = uniqueId;
 
     console.log('Nuevo pedido recibido:', order.id);
-    
+
     // Notificar a la UI
     mainWindow.webContents.send('update-last-order', order);
 
     // Agregar a cola si la auto-impresión está activa
     if (store.get('autoPrint', true)) {
-        printQueue.push({ ...order, copyType: 'control' });
-        printQueue.push({ ...order, copyType: 'client' });
+        const copiesMode = store.get('copiesMode', 'duplicate');
+        if (copiesMode === 'single') {
+            printQueue.push({ ...order, copyType: 'single' });
+        } else {
+            printQueue.push({ ...order, copyType: 'control' });
+            printQueue.push({ ...order, copyType: 'client' });
+        }
         processQueue();
     }
 });

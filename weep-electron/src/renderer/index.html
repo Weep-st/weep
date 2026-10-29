@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wepi Desktop - Impresión de Pedidos</title>
+    <title>Wepi Comandas - Impresión de Pedidos</title>
     <link rel="stylesheet" href="style.css">
     <!-- Carga de Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,7 +13,10 @@
         <header>
             <div class="brand">
                 <img src="../../assets/icon.png" alt="Wepi" class="logo">
-                <h1>Wepi Desktop</h1>
+                <div>
+                    <h1>Wepi Comandas</h1>
+                    <span class="subtitle">Sistema Universal de Impresión Térmica</span>
+                </div>
             </div>
             <div id="status-indicator" class="status-badge disconnected">
                 <span class="dot"></span>
@@ -24,33 +27,89 @@
         <main>
             <section class="config-panel">
                 <h2>Configuración del Local</h2>
-                <div class="input-group">
-                    <label>Estado de Conexión</label>
-                    <input type="text" id="ws-url" value="Supabase Realtime (Automático)" disabled>
-                </div>
+                
                 <div class="input-group">
                     <label>ID del Local (Restaurants ID)</label>
                     <input type="text" id="local-id" placeholder="Ej: LOC-171295...">
                 </div>
+
                 <div class="input-group">
-                    <label>Impresora Térmica</label>
-                    <select id="printer-select" class="custom-select">
-                        <option value="">Cargando impresoras...</option>
+                    <label>Método de Conexión</label>
+                    <select id="connection-type-select" class="custom-select">
+                        <option value="windows">Impresora de Windows (USB / Driver)</option>
+                        <option value="tcp">Red Ethernet / Wi-Fi (Impresora IP)</option>
                     </select>
                 </div>
+
+                <!-- Campos para Impresora de Windows -->
+                <div id="windows-config-section">
+                    <div class="input-group">
+                        <label>Impresora Seleccionada</label>
+                        <select id="printer-select" class="custom-select">
+                            <option value="">Cargando impresoras...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Modo de Impresión Windows</label>
+                        <select id="print-mode-select" class="custom-select">
+                            <option value="graphic">Gráfico HTML (Estándar Windows)</option>
+                            <option value="escpos">Comandera Térmica ESC/POS (Modo RAW)</option>
+                        </select>
+                        <small class="field-hint" id="mode-hint">Modo estándar para impresoras térmicas con controlador gráfico de Windows.</small>
+                    </div>
+                </div>
+
+                <!-- Campos para Impresora de Red TCP -->
+                <div id="tcp-config-section" style="display: none;">
+                    <div class="input-group">
+                        <label>Dirección IP de la Comandera</label>
+                        <input type="text" id="tcp-host" placeholder="Ej: 192.168.1.100">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Puerto de Conexión</label>
+                        <div class="port-config-row">
+                            <select id="tcp-port-select" class="custom-select port-dropdown">
+                                <option value="9100">9100 (Estándar)</option>
+                                <option value="custom">Cambiar / Otro puerto...</option>
+                            </select>
+                            <input type="text" id="tcp-custom-port" class="custom-port-input" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="Puerto" style="display: none;">
+                        </div>
+                        <small class="field-hint">9100 es el puerto estándar de impresión para comanderas conectadas por red.</small>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Modo de Copias</label>
+                    <select id="copies-mode-select" class="custom-select">
+                        <option value="duplicate">Duplicado (Control + Cliente) - Estándar</option>
+                        <option value="single">Copia Única (1 solo ticket)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Ancho de Papel Térmico</label>
+                    <select id="paper-width-select" class="custom-select">
+                        <option value="80mm">80 mm (Estándar - 48 columnas)</option>
+                        <option value="58mm">58 mm (Estrecho - 32 columnas)</option>
+                    </select>
+                </div>
+
                 <div class="checkbox-group">
                     <input type="checkbox" id="auto-print" checked>
                     <label for="auto-print">Impresión Automática Silenciosa</label>
                 </div>
+
                 <button id="save-btn" class="primary-btn">Guardar y Conectar</button>
                 <div class="test-actions">
                     <button id="preview-btn" class="secondary-btn">Vista Previa</button>
-                    <button id="test-btn" class="secondary-btn">Test de Impresión</button>
+                    <button id="test-btn" class="secondary-btn">Probar Impresión</button>
                 </div>
             </section>
 
             <section class="order-monitor">
-                <h2>Monitoreo de Pedidos</h2>
+                <h2>Monitoreo de Pedidos en Vivo</h2>
                 <div id="last-order-card" class="order-card empty">
                     <p class="placeholder">Esperando nuevos pedidos en tiempo real...</p>
                 </div>

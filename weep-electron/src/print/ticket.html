@@ -147,7 +147,13 @@
             `).join('');
 
             const isControl = copyType === 'control';
-            const labelCopy = isControl ? 'DUPLICADO - CONTROL LOCAL' : 'ORIGINAL - CLIENTE';
+            let labelCopy = 'ORIGINAL - CLIENTE';
+            if (copyType === 'control') {
+                labelCopy = 'DUPLICADO - CONTROL LOCAL';
+            } else if (copyType === 'single') {
+                labelCopy = 'COMANDA DE PEDIDO';
+            }
+
             const subtotal = Number(order.total) || 0;
             const envio = Number(order.precio_envio) || 0;
             const grandTotal = subtotal + envio;
@@ -235,7 +241,6 @@
                 ipcRenderer.send('ticket-ready');
             } else {
                 Array.from(images).forEach(img => {
-                    // Si ya se encuentra completamente cargado (por ejemplo, desde la caché local)
                     if (img.complete) {
                         checkAllLoaded();
                     } else {

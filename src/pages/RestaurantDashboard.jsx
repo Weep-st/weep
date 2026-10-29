@@ -332,7 +332,7 @@ export default function RestaurantDashboard() {
   const handleGlobalPrintTicket = React.useCallback((o) => {
     if (!o) return;
     const logoUrl = profileData?.foto_url || 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png';
-    const dateObj = o.fecha ? new Date(o.fecha) : new Date();
+    const dateObj = o.fecha ? new Date(new Date(o.fecha).getTime() + 3 * 60 * 60 * 1000) : new Date();
     const formattedDate = dateObj.toLocaleString('es-AR', {
       day: '2-digit',
       month: 'numeric',
@@ -2325,7 +2325,7 @@ export default function RestaurantDashboard() {
 
     return allFinishedOrders.filter(o => {
       if (!o.fecha) return true;
-      const orderDateStr = formatDateYYYYMMDD(o.fecha);
+      const orderDateStr = formatDateYYYYMMDD(new Date(new Date(o.fecha).getTime() + 3 * 60 * 60 * 1000));
 
       if (historialFilterType === 'hoy') {
         return orderDateStr === todayStr;
@@ -5918,7 +5918,7 @@ export default function RestaurantDashboard() {
                   <h4 style={{ marginBottom: '16px' }}>Pasos para configurar:</h4>
                   <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--gray-600)' }}>
                     <li><strong>Descargá e instalá</strong> el programa en la computadora que tiene conectada la impresora.</li>
-                    <li><strong>Abrí Wepi Desktop</strong> e ingresá tu ID de Local (arriba).</li>
+                    <li><strong>Abrí Wepi Comandas</strong> e ingresá tu ID de Local (arriba).</li>
                     <li><strong>Seleccioná tu impresora</strong> térmica en el menú desplegable.</li>
                     <li>¡Listo! La app detectará tus pedidos y los imprimirá automáticamente.</li>
                   </ol>
@@ -6598,7 +6598,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
 
   const handlePrintTicket = () => {
     const logoUrl = localLogo || 'https://jskxfescamdjesdrcnkf.supabase.co/storage/v1/object/public/locales/default-logo.png';
-    const dateObj = o.fecha ? new Date(o.fecha) : new Date();
+    const dateObj = o.fecha ? new Date(new Date(o.fecha).getTime() + 3 * 60 * 60 * 1000) : new Date();
     const formattedDate = dateObj.toLocaleString('es-AR', {
       day: '2-digit',
       month: 'numeric',
@@ -6877,7 +6877,7 @@ function OrderCard({ order: o, onAction, finished, isShop, localNombre, localLog
         <div>
           <strong>Pedido #{o.idPedido}</strong>
 
-          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(o.fecha).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false })}</span>}
+          {o.fecha && <span className="rd-order-sub" style={{ marginLeft: 8 }}>📅 {new Date(new Date(o.fecha).getTime() + 3 * 60 * 60 * 1000).toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false })}</span>}
           <span className={`badge ${String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: 8 }}>
             {String(o.tipoEntrega).toLowerCase().includes('env') || o.tipoEntrega === 'Con Envío' ? '🚚 Envío' : '🏪 Retiro'}
           </span>

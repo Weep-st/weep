@@ -1,6 +1,6 @@
 {
-  "appId": "com.wepi.printer",
-  "productName": "Wepi Desktop",
+  "appId": "com.wepi.comandas",
+  "productName": "Wepi Comandas",
   "directories": {
     "output": "dist"
   },
@@ -24,6 +24,13 @@
   "files": [
     "src/**/*",
     "assets/**/*",
+    "bin/**/*",
     "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "bin",
+      "to": "bin"
+    }
   ]
 }
